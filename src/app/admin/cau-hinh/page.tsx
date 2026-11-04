@@ -81,6 +81,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
             <textarea className="inp font-mono" name="deposit_bonus_tiers" rows={3} defaultValue={s.deposit_bonus_tiers} />
             <p className="text-xs text-slate-400 mt-1.5">Định dạng: [{"{"}"from":500000,"percent":2{"}"},{"{"}"from":2000000,"percent":5{"}"}] — nạp đạt mốc được cộng thêm % thưởng. Để [] nếu không thưởng.</p>
           </div>
+          <div><label className="lbl">Hoa hồng giới thiệu — % trên mỗi giao dịch mua của người được giới thiệu</label><input className="inp" name="affiliate_percent" type="number" step="0.5" min="0" max="50" defaultValue={s.affiliate_percent} /></div>
         </section>
         <button className="btn-primary w-full !py-3">Lưu toàn bộ cấu hình</button>
       </form>

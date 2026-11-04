@@ -1,7 +1,7 @@
 "use server";
 import { prisma } from "@/lib/db";
 import { requireAdmin, requireStaff } from "@/lib/auth";
-import { applyBalance } from "@/lib/wallet";
+import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
 import { refundSmmOrder, syncSmmOrderStatus, syncPremiumOrderStatus } from "@/lib/orders";
 import { providerBalance, syncProviderServices, syncProviderPremium } from "@/lib/provider";
 import { setSetting } from "@/lib/settings";
@@ -334,6 +334,7 @@ export async function adminPremiumOrderAction(formData: FormData) {
       }
       await tx.premiumOrder.update({ where: { id }, data: { status: "REFUNDED" } });
     });
+    await clawbackReferralCommission(order.userId, order.total, order.code);
     done(path, "Đã huỷ đơn và hoàn tiền");
   }
   const deliveryData = String(formData.get("deliveryData") || "") || order.deliveryData;
@@ -408,7 +409,7 @@ export async function adminSaveSettings(formData: FormData) {
   const keys = [
     "site_name", "site_tagline", "support_telegram", "support_facebook", "support_zalo", "support_hotline",
     "bank_name", "bank_account", "bank_holder", "bank_branch",
-    "momo_phone", "momo_name", "deposit_min", "deposit_bonus_tiers", "maintenance", "announcement_bar",
+    "momo_phone", "momo_name", "deposit_min", "deposit_bonus_tiers", "maintenance", "announcement_bar", "affiliate_percent",
     "default_accent", "default_mode",
   ];
   for (const k of keys) {

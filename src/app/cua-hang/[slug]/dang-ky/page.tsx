@@ -8,7 +8,7 @@ import { panelRegisterAction } from "@/app/actions/auth";
 export const dynamic = "force-dynamic";
 
 /** Đăng ký tại panel con — cùng khung với trang đăng ký của web mẹ */
-export default async function PanelRegister({ params, searchParams }: { params: { slug: string }; searchParams: { err?: string; msg?: string } }) {
+export default async function PanelRegister({ params, searchParams }: { params: { slug: string }; searchParams: { err?: string; msg?: string; ref?: string } }) {
   const panel = await prisma.childPanel.findUnique({ where: { slug: params.slug } });
   if (!panel || panel.status !== "ACTIVE") notFound();
   return (
@@ -21,6 +21,7 @@ export default async function PanelRegister({ params, searchParams }: { params: 
           <Flash msg={searchParams.msg} err={searchParams.err} />
           <form action={panelRegisterAction} className="space-y-4">
             <input type="hidden" name="slug" value={panel.slug} />
+            <input type="hidden" name="ref" value={(searchParams.ref || "").trim().toUpperCase()} />
             <div>
               <label className="lbl">Tên đăng nhập *</label>
               <input className="inp" name="username" required autoComplete="username" placeholder="vd: nguyenvana" />

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { vnd, num, PLATFORMS, type PremiumCustomField } from "@/lib/format";
 import { PLATFORM_COLORS } from "@/components/ui";
+import { warrantyAction } from "@/app/actions/user";
 
 export type ServiceDTO = {
   id: number; name: string; description: string | null; rate: number; min: number; max: number;
@@ -727,5 +728,125 @@ export function CopyBtn({ text, label = "Sao chép" }: { text: string; label?: s
   return (
     <button type="button" onClick={() => { navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 1500); }}
       className="btn-ghost btn-sm">{ok ? "Đã chép" : label}</button>
+  );
+}
+
+/* ---------- Thẻ đơn Premium + popup chi tiết (kiểu thatim: Sản phẩm đã mua) ---------- */
+export type PremiumOrderCard = {
+  id: number; code: string; name: string; variant: string; desc: string;
+  total: number; quantity: number; status: string; statusLabel: string; statusCls: string;
+  created: string; updated: string; delivery: string; buyerInfo: string; warrantyUntil: string | null;
+};
+const dtf = (iso: string) => new Date(iso).toLocaleString("vi-VN", { hour12: false });
+
+export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
+  const [sel, setSel] = useState<PremiumOrderCard | null>(null);
+  return (
+    <div className="space-y-4">
+      {orders.map((o) => (
+        <div key={o.id} className="card p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="font-black text-slate-900">#{o.id}</span>
+              <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${o.statusCls}`}>{o.statusLabel}</span>
+              <span className="text-xs text-slate-400">{dtf(o.created)}</span>
+            </div>
+            <div className="text-sm text-slate-500">Tổng tiền <b className="text-brand-600 text-base">{vnd(o.total)}</b></div>
+          </div>
+          <div className="border-t border-slate-100 mt-4 pt-4 flex items-center gap-3.5">
+            <span className="w-11 h-11 shrink-0 rounded-xl bg-brand-600 text-white flex items-center justify-center font-black">{o.name.charAt(0).toUpperCase()}</span>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-slate-900 truncate">{o.name} ({o.variant})</div>
+              {o.desc && <div className="text-[13px] text-slate-500 truncate">{o.desc}</div>}
+            </div>
+            <button type="button" onClick={() => setSel(o)} className="btn-dark shrink-0">Chi tiết</button>
+          </div>
+        </div>
+      ))}
+      {sel && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSel(null)}>
+          <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between sticky top-0">
+              <div className="font-bold">Chi tiết đơn hàng #{sel.id}</div>
+              <button type="button" onClick={() => setSel(null)} className="text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5">Đóng</button>
+            </div>
+            <div className="p-5 space-y-6">
+              <section>
+                <div className="font-bold text-slate-900 mb-2.5">Thông tin đơn hàng</div>
+                <dl className="text-sm space-y-1.5">
+                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">Tên sản phẩm:</dt><dd className="font-medium text-slate-800">{sel.name} ({sel.variant})</dd></div>
+                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">Số tiền thanh toán:</dt><dd className="font-medium text-slate-800">{vnd(sel.total)}</dd></div>
+                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">Trạng thái:</dt><dd className="font-medium text-slate-800">{sel.statusLabel}</dd></div>
+                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">Ghi chú:</dt><dd className="font-medium text-slate-800 whitespace-pre-wrap">{sel.buyerInfo || "."}</dd></div>
+                </dl>
+              </section>
+              <section>
+                <div className="font-bold text-slate-900 mb-2.5">Thông tin tài khoản:</div>
+                {sel.delivery ? (
+                  <div>
+                    <textarea readOnly value={sel.delivery} rows={Math.min(8, sel.delivery.split("\n").length + 1)} className="inp font-mono !text-[13px] w-full" />
+                    <div className="mt-2"><CopyBtn text={sel.delivery} label="Sao chép" /></div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">{sel.status === "PENDING" ? "Đơn đang chờ giao." : "Chưa có nội dung giao."}</p>
+                )}
+                {(sel.status === "DELIVERED" || sel.status === "COMPLETED") && sel.warrantyUntil && new Date(sel.warrantyUntil) > new Date() && (
+                  <form action={warrantyAction} className="mt-4 flex flex-wrap gap-2">
+                    <input type="hidden" name="orderId" value={sel.id} />
+                    <input className="inp flex-1 min-w-[200px]" name="note" placeholder="Mô tả lỗi để yêu cầu bảo hành" />
+                    <button className="btn-ghost btn-sm !py-2.5">Yêu cầu bảo hành</button>
+                  </form>
+                )}
+              </section>
+              <section>
+                <div className="font-bold text-slate-900 mb-2.5">Lịch sử xử lý</div>
+                <ol className="relative border-l-2 border-slate-100 ml-1.5 space-y-4">
+                  {(sel.status === "DELIVERED" || sel.status === "COMPLETED") && (
+                    <li className="pl-4 relative"><span className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-emerald-500" /><div className="text-sm font-semibold text-slate-800">Đã giao hàng</div><div className="text-xs text-slate-400">{dtf(sel.updated)}</div></li>
+                  )}
+                  <li className="pl-4 relative"><span className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-slate-300" /><div className="text-sm font-semibold text-slate-800">Đã tạo đơn hàng</div><div className="text-xs text-slate-400">{dtf(sel.created)}</div></li>
+                </ol>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Tabs tài liệu API (kiểu thatim: danh sách action bên trái, Parameters + Example Response bên phải) ---------- */
+export type ApiActionDoc = { id: string; label: string; params: [string, string, string][]; response: string };
+export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
+  const [active, setActive] = useState(actions[0]?.id);
+  const cur = actions.find((a) => a.id === active) || actions[0];
+  if (!cur) return null;
+  return (
+    <div className="grid md:grid-cols-[220px_1fr] gap-4 items-start">
+      <div className="card p-2 flex md:flex-col gap-1 overflow-x-auto">
+        {actions.map((a) => (
+          <button key={a.id} type="button" onClick={() => setActive(a.id)} className={`text-left whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${a.id === cur.id ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{a.label}</button>
+        ))}
+      </div>
+      <div className="card p-5">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Parameters</div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px]">
+            <thead className="border-b border-slate-200"><tr><th className="th !py-2">Parameter</th><th className="th !py-2">Type</th><th className="th !py-2">Description</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {cur.params.map((p) => (
+                <tr key={p[0]}><td className="td font-mono text-xs font-bold text-brand-700">{p[0]}</td><td className="td text-slate-500 text-xs">{p[1]}</td><td className="td text-slate-600">{p[2]}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center justify-between mt-6 mb-2">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Example Response</div>
+          <CopyBtn text={cur.response} label="Copy" />
+        </div>
+        <div className="text-xs font-mono text-slate-400 mb-1">response.json</div>
+        <pre className="bg-slate-950 text-slate-100 rounded-2xl p-4 text-xs sm:text-[13px] overflow-x-auto">{cur.response}</pre>
+      </div>
+    </div>
   );
 }

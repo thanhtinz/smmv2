@@ -2,8 +2,11 @@ import Link from "next/link";
 import { SiteHeader, SiteFooter } from "@/components/site";
 import { Flash } from "@/components/ui";
 import { registerAction } from "@/app/actions/auth";
+import { prisma } from "@/lib/db";
 
-export default function RegisterPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function RegisterPage({ searchParams }: { searchParams: { msg?: string; err?: string; ref?: string } }) {
+  const ref = (searchParams.ref || "").trim().toUpperCase();
+  const referrer = ref ? await prisma.user.findUnique({ where: { refCode: ref }, select: { username: true } }) : null;
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <SiteHeader />
@@ -11,8 +14,10 @@ export default function RegisterPage({ searchParams }: { searchParams: { msg?: s
         <div className="card p-8 w-full max-w-md">
           <h1 className="text-2xl font-extrabold text-slate-900">Đăng ký tài khoản</h1>
           <p className="text-sm text-slate-500 mt-1.5 mb-6">Miễn phí — có ngay API key cho đại lý sau khi đăng ký.</p>
+          {referrer && <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">Bạn được <b>{referrer.username}</b> giới thiệu</div>}
           <Flash msg={searchParams.msg} err={searchParams.err} />
           <form action={registerAction} className="space-y-4">
+            <input type="hidden" name="ref" value={referrer ? ref : ""} />
             <div>
               <label className="lbl">Tên đăng nhập *</label>
               <input className="inp" name="username" required autoComplete="username" placeholder="vd: nguyenvana" />

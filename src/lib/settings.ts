@@ -21,6 +21,8 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   momo_name: "",
   // Nạp tiền
   deposit_min: "10000",
+  // Hoa hồng giới thiệu (% trên tiền nạp của người được giới thiệu) — trang Kiếm tiền
+  affiliate_percent: "6",
   // Thưởng nạp dạng JSON: [{"from":500000,"percent":2},{"from":2000000,"percent":5}]
   deposit_bonus_tiers: "[]",
   maintenance: "0",

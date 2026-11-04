@@ -1,5 +1,5 @@
 import { prisma } from "./db";
-import { applyBalance } from "./wallet";
+import { applyBalance, creditReferralCommission, clawbackReferralCommission } from "./wallet";
 import { LEVEL_DISCOUNT, smmCharge, genCode, parsePremiumFields } from "./format";
 import {
   providerAddOrder, providerOrderStatus, mapProviderStatus,
@@ -142,6 +142,8 @@ export async function createSmmOrder(input: {
     if (panel && commission > 0) {
       await applyBalance(tx, panel.ownerId, commission, "PANEL_COMMISSION", code, `Hoa hồng đơn ${code} — panel ${panel.name}`);
     }
+    // Hoa hồng giới thiệu: tính trên giao dịch mua của người được giới thiệu (kiểu thatim)
+    await creditReferralCommission(tx, input.user.id, charge, code);
     return { ...o, code };
   });
 
@@ -214,6 +216,8 @@ export async function refundSmmOrder(orderId: number, amount: number, note: stri
       }
     }
   }
+  // Thu hồi hoa hồng giới thiệu theo tỉ lệ số tiền vừa hoàn
+  await clawbackReferralCommission(order.userId, amt, order.code);
 }
 
 /**
@@ -386,6 +390,8 @@ export async function createPremiumOrder(input: {
     if (panel && commission > 0) {
       await applyBalance(tx, panel.ownerId, commission, "PANEL_COMMISSION", code, `Hoa hồng đơn ${code} — panel ${panel.name}`);
     }
+    // Hoa hồng giới thiệu: tính trên giao dịch mua (kiểu thatim)
+    await creditReferralCommission(tx, input.user.id, total, code);
 
     // Giao tự động từ kho
     if (variant.product.fulfillment === "AUTO_STOCK") {
@@ -451,6 +457,7 @@ export async function createPremiumOrder(input: {
         }
         await tx.premiumOrder.update({ where: { id: created.id }, data: { status: "REFUNDED" } });
       });
+      await clawbackReferralCommission(input.user.id, total, created.code);
       return { ...created, status: "REFUNDED" as const };
     }
     if (failed > 0) {
@@ -462,6 +469,7 @@ export async function createPremiumOrder(input: {
           await applyBalance(tx, panel.ownerId, -clawback, "PANEL_COMMISSION", created.code, "Thu hồi hoa hồng phần đơn premium bị hoàn");
         }
       });
+      await clawbackReferralCommission(input.user.id, refundAmt, created.code);
     }
     const updated = await prisma.premiumOrder.update({
       where: { id: created.id },
@@ -523,6 +531,7 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
       }
       await tx.premiumOrder.update({ where: { id: order.id }, data: { status: "REFUNDED" } });
     });
+    await clawbackReferralCommission(order.userId, order.total, order.code);
   }
   return prisma.premiumOrder.findUnique({ where: { id: order.id } });
 }

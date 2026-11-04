@@ -6,7 +6,7 @@ import { adminAdjustBalance, adminUpdateUser } from "@/app/actions/admin";
 import { vnd, LEVEL_NAME, dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-const TX_LABEL: Record<string, string> = { DEPOSIT: "Nạp tiền", SMM_ORDER: "Đặt đơn SMM", PREMIUM_ORDER: "Mua Premium", REFUND: "Hoàn tiền", ADJUST: "Admin điều chỉnh", BONUS: "Thưởng" };
+const TX_LABEL: Record<string, string> = { DEPOSIT: "Nạp tiền", SMM_ORDER: "Đặt đơn SMM", PREMIUM_ORDER: "Mua Premium", REFUND: "Hoàn tiền", ADJUST: "Admin điều chỉnh", BONUS: "Thưởng", PANEL_COMMISSION: "Hoa hồng panel con", REFERRAL_COMMISSION: "Hoa hồng giới thiệu" };
 
 export default async function AdminUserDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
   await requireAdminPage();

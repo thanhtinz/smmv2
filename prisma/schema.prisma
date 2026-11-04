@@ -44,6 +44,10 @@ model User {
   totalSpent     Int        @default(0)
   apiKey         String     @unique @db.VarChar(64)
   depositCode    String     @unique @db.VarChar(12) // nội dung CK: SMM <code>
+  refCode        String?    @unique @db.VarChar(12) // mã giới thiệu (trang Kiếm tiền)
+  referredById   Int? // người đã giới thiệu tài khoản này
+  referredBy     User?      @relation("Referral", fields: [referredById], references: [id])
+  referrals      User[]     @relation("Referral")
   lastLoginAt    DateTime?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -327,6 +331,7 @@ enum TxType {
   ADJUST
   BONUS
   PANEL_COMMISSION
+  REFERRAL_COMMISSION
 }
 
 model Transaction {

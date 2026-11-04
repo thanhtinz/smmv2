@@ -20,6 +20,8 @@ export async function registerAction(formData: FormData) {
   if (password.length < 6) back("/register", "err", "Mật khẩu tối thiểu 6 ký tự");
   const exists = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
   if (exists) back("/register", "err", "Tên đăng nhập hoặc email đã được sử dụng");
+  const ref = String(formData.get("ref") || "").trim().toUpperCase();
+  const referrer = ref ? await prisma.user.findUnique({ where: { refCode: ref }, select: { id: true } }) : null;
   const user = await prisma.user.create({
     data: {
       username,
@@ -29,6 +31,8 @@ export async function registerAction(formData: FormData) {
       passwordHash: await bcrypt.hash(password, 10),
       apiKey: randomKey(32),
       depositCode: randomKey(6).toUpperCase(),
+      refCode: randomKey(8).toUpperCase(),
+      referredById: referrer?.id ?? null,
     },
   });
   await createSession({ id: user.id, role: user.role, username: user.username });
@@ -51,12 +55,16 @@ export async function panelRegisterAction(formData: FormData) {
   if (password.length < 6) back(page, "err", "Mật khẩu tối thiểu 6 ký tự");
   const exists = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
   if (exists) back(page, "err", "Tên đăng nhập hoặc email đã được sử dụng");
+  const ref = String(formData.get("ref") || "").trim().toUpperCase();
+  const referrer = ref ? await prisma.user.findUnique({ where: { refCode: ref }, select: { id: true } }) : null;
   const user = await prisma.user.create({
     data: {
       username, email, fullName: fullName || null, phone: phone || null,
       passwordHash: await bcrypt.hash(password, 10),
       apiKey: randomKey(32),
       depositCode: randomKey(6).toUpperCase(),
+      refCode: randomKey(8).toUpperCase(),
+      referredById: referrer?.id ?? null,
       panelId: panel.id,
     },
   });
