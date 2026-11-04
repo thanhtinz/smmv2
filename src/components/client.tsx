@@ -507,7 +507,7 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
               <li>— Khách đăng ký tại gian hàng là khách của bạn; hoa hồng vào ví ngay khi có đơn.</li>
             </ul>
           </div>
-          <p className="text-sm text-slate-500 mt-4 leading-relaxed">Sau khi {mode === "create" ? "tạo" : "lưu"}, hãy chia sẻ link gian hàng cho khách. Bạn gán cấp bậc cho từng khách và theo dõi hoa hồng tại trang Panel con của tôi.</p>
+          <p className="text-sm text-slate-500 mt-4 leading-relaxed">Sau khi {mode === "create" ? "tạo" : "lưu"}, hãy chia sẻ link gian hàng cho khách. Bạn gán cấp bậc cho từng khách và theo dõi hoa hồng tại Panel Admin của panel.</p>
         </div>
 
       <div className="flex items-center justify-between mt-9 pt-5 border-t border-dashed">

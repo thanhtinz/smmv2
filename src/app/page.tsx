@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { SiteHeader, SiteFooter } from "@/components/site";
 import { getSettings } from "@/lib/settings";
 import { vnd, num, PLATFORMS } from "@/lib/format";
-import { I, PLATFORM_COLORS } from "@/components/ui";
+import { I, PLATFORM_COLORS, SectionHead, HeroStat } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -486,21 +486,3 @@ order=100482`}</pre>
   );
 }
 
-function HeroStat({ v, l }: { v: string; l: string }) {
-  return (
-    <div className="bg-white border border-slate-200/70 shadow-soft rounded-2xl py-3">
-      <div className="font-extrabold text-lg text-slate-900">{v}</div>
-      <div className="text-[11px] text-slate-400">{l}</div>
-    </div>
-  );
-}
-
-function SectionHead({ no, label, title, desc, center }: { no: string; label: string; title: string; desc?: string; center?: boolean }) {
-  return (
-    <div className={`mb-10 ${center ? "text-center" : ""}`}>
-      <div className="text-xs font-black tracking-[0.18em] text-brand-600">{no} — {label.toUpperCase()}</div>
-      <h2 className="text-2xl lg:text-4xl font-extrabold text-slate-900 mt-2.5 leading-tight">{title}</h2>
-      {desc && <p className={`text-slate-500 mt-3 leading-relaxed ${center ? "mx-auto" : ""} max-w-2xl`}>{desc}</p>}
-    </div>
-  );
-}

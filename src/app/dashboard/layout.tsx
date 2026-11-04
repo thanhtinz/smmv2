@@ -28,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
     { href: "/dashboard/giao-dich", label: "Lịch sử số dư", icon: I.chart },
     { href: "/dashboard/api", label: "API đại lý", icon: I.key },
-    { href: "/dashboard/panel-cua-toi", label: "Panel con của tôi", icon: I.server },
+    { href: "/panel-admin", label: "Panel Admin", icon: I.server },
     { href: "/dashboard/ticket", label: "Hỗ trợ / Ticket", icon: I.ticket, badge: openTickets },
     { href: "/dashboard/ho-so", label: "Hồ sơ", icon: I.users },
   ];
