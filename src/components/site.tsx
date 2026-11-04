@@ -31,7 +31,11 @@ export async function SiteHeader() {
           {session ? (
             <>
               {user && <span className="hidden sm:inline-flex rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 text-sm font-bold">{vnd(user.balance)}</span>}
-              <Link href={user && (user.role === "ADMIN" || user.role === "STAFF") ? "/admin" : "/dashboard"} className="btn-primary btn-sm !px-4 !py-2">Bảng điều khiển</Link>
+              <Link href="/dashboard" className="btn-primary btn-sm !px-4 !py-2 whitespace-nowrap">Bảng điều khiển</Link>
+              {/* Link Admin Panel CHỈ hiện khi role đúng ADMIN — STAFF và USER không thấy */}
+              {user?.role === "ADMIN" && (
+                <Link href="/admin" className="btn btn-sm !px-4 !py-2 whitespace-nowrap bg-slate-900 text-white hover:bg-slate-700">Admin Panel</Link>
+              )}
               <form action={logoutAction}>
                 <button className="btn-ghost btn-sm !px-3 !py-2">Đăng xuất</button>
               </form>
