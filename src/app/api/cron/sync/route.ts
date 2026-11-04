@@ -1,0 +1,74 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { syncSmmOrderStatus, syncPremiumOrderStatus } from "@/lib/orders";
+import { syncProviderServices, syncProviderPremium, providerBalance } from "@/lib/provider";
+
+/**
+ * Cron đồng bộ (gọi mỗi 5-10 phút bởi crontab / Vercel Cron):
+ *  GET /api/cron/sync?secret=<CRON_SECRET>           -> đồng bộ trạng thái đơn API đang chạy
+ *  GET /api/cron/sync?secret=...&services=1          -> kèm đồng bộ dịch vụ + số dư provider
+ */
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+
+export async function GET(req: NextRequest) {
+  const secret = process.env.CRON_SECRET || "";
+  const given =
+    req.nextUrl.searchParams.get("secret") ||
+    req.headers.get("x-cron-secret") ||
+    (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (secret && given !== secret) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const result: any = { ordersSynced: 0, ordersFailed: 0, premiumSynced: 0, premiumFailed: 0, providers: [] };
+
+  const orders = await prisma.smmOrder.findMany({
+    where: { fulfillment: "API", providerOrderId: { not: null }, status: { in: ["PENDING", "PROCESSING", "IN_PROGRESS"] } },
+    take: 200,
+    orderBy: { updatedAt: "asc" },
+  });
+  for (const o of orders) {
+    try {
+      await syncSmmOrderStatus(o);
+      result.ordersSynced++;
+    } catch {
+      result.ordersFailed++;
+    }
+  }
+
+  // Đơn premium đấu API đang chờ giao -> hỏi history của provider
+  const preOrders = await prisma.premiumOrder.findMany({
+    where: { providerId: { not: null }, providerOrderId: { not: null }, status: "PENDING" },
+    take: 100,
+    orderBy: { updatedAt: "asc" },
+  });
+  for (const o of preOrders) {
+    try {
+      await syncPremiumOrderStatus(o);
+      result.premiumSynced++;
+    } catch {
+      result.premiumFailed++;
+    }
+  }
+
+  if (req.nextUrl.searchParams.get("services") === "1") {
+    const providers = await prisma.provider.findMany({ where: { active: true } });
+    for (const p of providers) {
+      try {
+        const bal = await providerBalance(p);
+        const entry: any = { name: p.name, balanceVnd: bal.vnd };
+        if (p.kind === "SMM" || p.kind === "BOTH") entry.smm = await syncProviderServices(p);
+        if (p.kind === "PREMIUM" || p.kind === "BOTH") {
+          try {
+            entry.premium = await syncProviderPremium(p);
+          } catch (e: any) {
+            entry.premiumError = String(e?.message || e);
+          }
+        }
+        result.providers.push(entry);
+      } catch (e: any) {
+        result.providers.push({ name: p.name, error: String(e?.message || e) });
+      }
+    }
+  }
+  return NextResponse.json(result);
+}

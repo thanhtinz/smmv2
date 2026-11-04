@@ -1,0 +1,381 @@
+// SMMv2 — SMM Panel + Premium Shop
+// Tiền tệ: VND lưu dạng Int (đồng) để tránh lỗi thập phân.
+// Đổi sang Postgres: provider = "postgresql" + DATABASE_URL tương ứng.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  STAFF
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+}
+
+// Cấp khách: chiết khấu % áp trên giá dịch vụ SMM
+enum UserLevel {
+  MEMBER // 0%
+  RESELLER // 5%
+  AGENCY // 10%
+  VIP // 15%
+}
+
+model User {
+  id             Int        @id @default(autoincrement())
+  username       String     @unique @db.VarChar(50)
+  email          String     @unique @db.VarChar(191)
+  phone          String?    @db.VarChar(20)
+  fullName       String?    @db.VarChar(100)
+  passwordHash   String     @db.VarChar(191)
+  role           Role       @default(USER)
+  status         UserStatus @default(ACTIVE)
+  level          UserLevel  @default(MEMBER)
+  balance        Int        @default(0) // VND
+  totalDeposited Int        @default(0)
+  totalSpent     Int        @default(0)
+  apiKey         String     @unique @db.VarChar(64)
+  depositCode    String     @unique @db.VarChar(12) // nội dung CK: SMM <code>
+  lastLoginAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  smmOrders     SmmOrder[]
+  premiumOrders PremiumOrder[]
+  deposits      Deposit[]
+  transactions  Transaction[]
+  tickets       Ticket[]
+}
+
+enum Fulfillment {
+  API // tự động đẩy qua nhà cung cấp
+  MANUAL // admin xử lý tay trong hàng đợi
+}
+
+enum ProviderKind {
+  SMM // chỉ dịch vụ social
+  PREMIUM // chỉ sản phẩm (API mua sản phẩm kiểu ThaTim)
+  BOTH // cả hai (vd ThaTim)
+}
+
+model Provider {
+  id            Int          @id @default(autoincrement())
+  kind          ProviderKind @default(BOTH)
+  name          String       @db.VarChar(100)
+  apiUrl        String   @db.VarChar(255) // vd https://slike.vn/api/v2
+  apiKey        String   @db.VarChar(191)
+  currency      String   @default("VND") @db.VarChar(10) // VND | USD
+  exchangeRate  Int      @default(1) // 1 đơn vị tiền gốc = ? VND (USD: 26000)
+  markupPercent Int      @default(30) // % cộng lãi khi đồng bộ dịch vụ
+  balanceCache  Int      @default(0) // số dư quy VND, cập nhật khi check
+  active        Boolean  @default(true)
+  note          String?  @db.Text
+  lastSyncAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  services      SmmService[]
+  orders        SmmOrder[]
+  premiumProducts PremiumProduct[]
+  premiumOrders   PremiumOrder[]
+}
+
+model SmmCategory {
+  id       Int     @id @default(autoincrement())
+  platform String  @db.VarChar(30) // facebook | tiktok | instagram | youtube | telegram | shopee | x | spotify | other
+  name     String  @db.VarChar(120)
+  sort     Int     @default(0)
+  active   Boolean @default(true)
+
+  services SmmService[]
+}
+
+enum SmmOrderStatus {
+  PENDING
+  PROCESSING
+  IN_PROGRESS
+  COMPLETED
+  PARTIAL
+  CANCELED
+  REFUNDED
+}
+
+model SmmService {
+  id               Int         @id @default(autoincrement())
+  categoryId       Int
+  category         SmmCategory @relation(fields: [categoryId], references: [id])
+  name             String      @db.VarChar(255)
+  description      String?     @db.Text
+  rate             Int // giá bán / 1000 (VND, trước chiết khấu cấp khách)
+  costRate         Int         @default(0) // giá vốn / 1000 (VND)
+  min              Int         @default(10)
+  max              Int         @default(100000)
+  avgTime          String?     @db.VarChar(60) // "0-15 phút", "1-2 giờ"...
+  refill           Boolean     @default(false)
+  cancelable       Boolean     @default(false)
+  dripfeed         Boolean     @default(false)
+  fulfillment      Fulfillment @default(MANUAL)
+  providerId       Int?
+  provider         Provider?   @relation(fields: [providerId], references: [id])
+  providerServiceId String?    @db.VarChar(50)
+  active           Boolean     @default(true)
+  sort             Int         @default(0)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  orders SmmOrder[]
+
+  @@index([providerId, providerServiceId])
+}
+
+model SmmOrder {
+  id             Int            @id @default(autoincrement())
+  code           String         @unique @db.VarChar(16) // SMM100001
+  userId         Int
+  user           User           @relation(fields: [userId], references: [id])
+  serviceId      Int
+  service        SmmService     @relation(fields: [serviceId], references: [id])
+  link           String         @db.VarChar(500)
+  quantity       Int
+  charge         Int // tiền khách trả (VND)
+  cost           Int            @default(0) // tiền vốn (VND)
+  startCount     Int?
+  remains        Int?
+  status         SmmOrderStatus @default(PENDING)
+  fulfillment    Fulfillment
+  providerId     Int?
+  provider       Provider?      @relation(fields: [providerId], references: [id])
+  providerOrderId String?       @db.VarChar(50)
+  viaApi         Boolean        @default(false) // đặt qua API reseller
+  params         String?        @db.Text // JSON tham số phụ kiểu ThaTim: comments, reaction, minutes, duration, posts
+  note           String?        @db.Text // ghi chú của khách
+  adminNote      String?        @db.Text
+  refundedAmount Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, fulfillment])
+}
+
+model PremiumCategory {
+  id     Int     @id @default(autoincrement())
+  name   String  @db.VarChar(100)
+  slug   String  @unique @db.VarChar(100)
+  sort   Int     @default(0)
+  active Boolean @default(true)
+
+  products PremiumProduct[]
+}
+
+enum PremiumFulfillment {
+  AUTO_STOCK // có kho: giao ngay khi mua
+  MANUAL // admin giao tay (nâng cấp chính chủ, add family/team...)
+  API // dự phòng: đẩy qua API đối tác (xử lý như MANUAL nếu chưa cấu hình)
+}
+
+model PremiumProduct {
+  id          Int                @id @default(autoincrement())
+  categoryId  Int
+  category    PremiumCategory    @relation(fields: [categoryId], references: [id])
+  name        String             @db.VarChar(150)
+  slug        String             @unique @db.VarChar(150)
+  tagline     String?            @db.VarChar(255)
+  description String?            @db.Text
+  color       String             @default("#3178fc") @db.VarChar(9) // màu nhận diện thẻ
+  fulfillment PremiumFulfillment @default(MANUAL)
+  providerId       Int?
+  provider         Provider? @relation(fields: [providerId], references: [id])
+  providerProductId String?  @db.VarChar(50) // ID sản phẩm phía nhà cung cấp (khi fulfillment = API)
+  active      Boolean            @default(true)
+  sort        Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  variants PremiumVariant[]
+}
+
+model PremiumVariant {
+  id          Int            @id @default(autoincrement())
+  productId   Int
+  product     PremiumProduct @relation(fields: [productId], references: [id])
+  name        String         @db.VarChar(100) // "1 tháng", "1 năm"...
+  price       Int // VND
+  cost        Int            @default(0)
+  warrantyDays Int           @default(0)
+  providerCycle Int? // chu kỳ tháng phía nhà cung cấp (1, 3, 6, 12) — bắt buộc khi sản phẩm đấu API kiểu ThaTim
+  active      Boolean        @default(true)
+  sort        Int            @default(0)
+
+  stocks PremiumStock[]
+  orders PremiumOrder[]
+}
+
+enum StockStatus {
+  AVAILABLE
+  SOLD
+}
+
+model PremiumStock {
+  id        Int            @id @default(autoincrement())
+  variantId Int
+  variant   PremiumVariant @relation(fields: [variantId], references: [id])
+  payload   String         @db.Text // nội dung giao: tài khoản / mã / hướng dẫn
+  status    StockStatus    @default(AVAILABLE)
+  orderId   Int?
+  createdAt DateTime       @default(now())
+
+  @@index([variantId, status])
+}
+
+enum PremiumOrderStatus {
+  PENDING // chờ admin giao (thủ công)
+  DELIVERED // đã giao (tự động hoặc admin vừa giao)
+  COMPLETED
+  WARRANTY // đang bảo hành / đổi acc
+  CANCELED
+  REFUNDED
+}
+
+model PremiumOrder {
+  id            Int                @id @default(autoincrement())
+  code          String             @unique @db.VarChar(16) // PRE100001
+  userId        Int
+  user          User               @relation(fields: [userId], references: [id])
+  variantId     Int
+  variant       PremiumVariant     @relation(fields: [variantId], references: [id])
+  quantity      Int                @default(1)
+  total         Int
+  cost          Int                @default(0)
+  status        PremiumOrderStatus @default(PENDING)
+  providerId    Int?
+  provider      Provider?          @relation(fields: [providerId], references: [id])
+  providerOrderId String?          @db.VarChar(60) // order_code phía nhà cung cấp (kiểu ThaTim: _8488103)
+  buyerInfo     String?            @db.Text // email/tài khoản khách cần nâng cấp (gói MANUAL)
+  deliveryData  String?            @db.Text // nội dung đã giao (kho hoặc admin nhập)
+  warrantyUntil DateTime?
+  adminNote     String?            @db.Text
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+enum DepositMethod {
+  BANK
+  MOMO
+  CARD
+  USDT
+}
+
+enum DepositStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Deposit {
+  id        Int           @id @default(autoincrement())
+  code      String        @unique @db.VarChar(16) // NAP100001
+  userId    Int
+  user      User          @relation(fields: [userId], references: [id])
+  method    DepositMethod @default(BANK)
+  amount    Int
+  bonus     Int           @default(0)
+  status    DepositStatus @default(PENDING)
+  content   String?       @db.VarChar(100) // nội dung chuyển khoản
+  auto      Boolean       @default(false) // cộng qua webhook
+  adminNote String?       @db.VarChar(255)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+enum TxType {
+  DEPOSIT
+  SMM_ORDER
+  PREMIUM_ORDER
+  REFUND
+  ADJUST
+  BONUS
+}
+
+model Transaction {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  type         TxType
+  amount       Int // + cộng / - trừ
+  balanceAfter Int
+  ref          String?  @db.VarChar(30)
+  note         String?  @db.VarChar(255)
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+enum TicketStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
+model Ticket {
+  id        Int          @id @default(autoincrement())
+  userId    Int
+  user      User         @relation(fields: [userId], references: [id])
+  subject   String       @db.VarChar(200)
+  category  String       @default("other") @db.VarChar(30) // smm | premium | deposit | other
+  status    TicketStatus @default(OPEN)
+  priority  String       @default("normal") @db.VarChar(10)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  messages TicketMessage[]
+}
+
+model TicketMessage {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromAdmin Boolean  @default(false)
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(200)
+  body      String   @db.Text
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// Cấu hình site dạng key-value: site_name, bank_*, momo_*, deposit_bonus_tiers,
+// support_*, maintenance...
+model Setting {
+  key   String @id @db.VarChar(80)
+  value String @db.Text
+}
+
+model ApiLog {
+  id        Int      @id @default(autoincrement())
+  kind      String   @db.VarChar(30) // provider_out | reseller_in | webhook
+  ref       String?  @db.VarChar(100)
+  detail    String?  @db.Text
+  ok        Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([kind, createdAt])
+}

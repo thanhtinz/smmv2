@@ -1,0 +1,24 @@
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: smmv2
+      MARIADB_ROOT_PASSWORD: smmv2-root-pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - smmv2-db:/var/lib/mysql
+  app:
+    build: .
+    environment:
+      DATABASE_URL: "mysql://root:smmv2-root-pass@db:3306/smmv2"
+      AUTH_SECRET: "doi-chuoi-nay-thanh-ngau-nhien-dai-32-ky-tu"
+      CRON_SECRET: "doi-chuoi-nay-nua"
+      NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    command: sh -c "npx prisma db push && npm run db:seed && npm start"
+volumes:
+  smmv2-db:
