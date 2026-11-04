@@ -17,7 +17,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
   const stripeOn = s.stripe_enabled === "1" && !!s.stripe_secret_key;
   return (
     <div>
-      <PageHead title="Nạp tiền" desc="Chọn phương thức nạp bên dưới. Chuyển khoản/MoMo cộng tự động khi đúng nội dung; PayPal/Stripe cộng tự động theo tỉ giá ngay khi thanh toán thành công." />
+      <PageHead title="Nạp tiền" desc="Chọn phương thức nạp bên dưới. SePay (ngân hàng & MoMo) cộng tự động khi đúng nội dung; PayPal/Stripe cộng tự động theo tỉ giá ngay khi thanh toán thành công." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <DepositCard

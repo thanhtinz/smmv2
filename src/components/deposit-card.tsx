@@ -4,20 +4,20 @@ import { CopyBtn } from "@/components/client";
 import { createDepositAction, startPaypalCheckoutAction, startStripeCheckoutAction } from "@/app/actions/user";
 import { vnd } from "@/lib/format";
 
-/** Thẻ Nạp tiền hợp nhất: chọn 1 phương thức (Ngân hàng / MoMo / PayPal / Stripe) — nội dung đổi theo phương thức */
+/** Thẻ Nạp tiền hợp nhất: chọn 1 phương thức — SePay (ngân hàng + MoMo chung 1 cổng đối soát) / PayPal / Stripe.
+ *  Nội dung dưới đổi theo phương thức đang chọn. */
 type BankInfo = { name: string; account: string; holder: string; qr: string; content: string; min: number };
 type MomoInfo = { phone: string; name: string; content: string };
 type IntlInfo = { rate: number; paypal: boolean; stripe: boolean };
-type MethodKey = "bank" | "momo" | "paypal" | "stripe";
+type MethodKey = "sepay" | "paypal" | "stripe";
 
 export function DepositCard({ bank, momo, tiers, intl }: { bank: BankInfo | null; momo: MomoInfo | null; tiers: { from: number; percent: number }[]; intl: IntlInfo | null }) {
   const methods: { key: MethodKey; brand: React.ReactNode; desc: string }[] = [
-    ...(bank ? [{ key: "bank" as const, brand: <span className="text-slate-800">Ngân hàng</span>, desc: "VietQR · cộng tự động" }] : []),
-    ...(momo ? [{ key: "momo" as const, brand: <span className="text-[#a50064]">MoMo</span>, desc: "Ví điện tử · cộng tự động" }] : []),
+    ...(bank || momo ? [{ key: "sepay" as const, brand: <span className="text-slate-800">SePay</span>, desc: "Ngân hàng & MoMo · cộng tự động" }] : []),
     ...(intl?.paypal ? [{ key: "paypal" as const, brand: <><span className="text-[#003087]">Pay</span><span className="text-[#0079C1]">Pal</span></>, desc: "Trả USD · cộng theo tỉ giá" }] : []),
     ...(intl?.stripe ? [{ key: "stripe" as const, brand: <span className="text-[#635BFF]">Stripe</span>, desc: "Thẻ Visa / Mastercard" }] : []),
   ];
-  const [method, setMethod] = useState<MethodKey>(methods[0]?.key || "bank");
+  const [method, setMethod] = useState<MethodKey>(methods[0]?.key || "sepay");
   const [usd, setUsd] = useState("10");
   const rate = intl?.rate || 25000;
   const vndVal = Math.round((parseFloat(usd) || 0) * rate);
@@ -49,26 +49,33 @@ export function DepositCard({ bank, momo, tiers, intl }: { bank: BankInfo | null
         })}
       </div>
 
-      {method === "bank" && bank && (
-        <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={bank.qr} alt="VietQR nạp tiền" className="w-[200px] h-[200px] rounded-2xl border border-slate-200 object-contain bg-white" />
-          <dl className="space-y-3 text-sm">
-            <Row k="Ngân hàng" v={bank.name} />
-            <Row k="Số tài khoản" v={bank.account} copy />
-            <Row k="Chủ tài khoản" v={bank.holder} />
-            <Row k="Nội dung CK (bắt buộc đúng)" v={bank.content} copy strong />
-            <Row k="Nạp tối thiểu" v={vnd(bank.min)} />
-          </dl>
+      {method === "sepay" && (
+        <div>
+          {bank && (
+            <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={bank.qr} alt="VietQR nạp tiền" className="w-[200px] h-[200px] rounded-2xl border border-slate-200 object-contain bg-white" />
+              <dl className="space-y-3 text-sm">
+                <Row k="Ngân hàng" v={bank.name} />
+                <Row k="Số tài khoản" v={bank.account} copy />
+                <Row k="Chủ tài khoản" v={bank.holder} />
+                <Row k="Nội dung CK (bắt buộc đúng)" v={bank.content} copy strong />
+                <Row k="Nạp tối thiểu" v={vnd(bank.min)} />
+              </dl>
+            </div>
+          )}
+          {momo && (
+            <div className={bank ? "mt-6 border-t border-dashed pt-5" : ""}>
+              <h3 className="font-bold text-slate-900 mb-3">Ví MoMo</h3>
+              <dl className="space-y-3 text-sm">
+                <Row k="Số MoMo" v={momo.phone} copy />
+                <Row k="Tên" v={momo.name} />
+                <Row k="Nội dung" v={momo.content} copy strong />
+              </dl>
+            </div>
+          )}
+          <p className="text-xs text-slate-400 mt-4">Ngân hàng và MoMo đều được đối soát tự động qua SePay — chuyển đúng nội dung là tiền cộng ngay.</p>
         </div>
-      )}
-
-      {method === "momo" && momo && (
-        <dl className="space-y-3 text-sm">
-          <Row k="Số MoMo" v={momo.phone} copy />
-          <Row k="Tên" v={momo.name} />
-          <Row k="Nội dung" v={momo.content} copy strong />
-        </dl>
       )}
 
       {isIntl && intl && (
@@ -103,7 +110,7 @@ export function DepositCard({ bank, momo, tiers, intl }: { bank: BankInfo | null
             </div>
             <div>
               <label className="lbl">Kênh</label>
-              <select className="inp" name="method" key={method} defaultValue={method === "momo" ? "MOMO" : "BANK"}><option value="BANK">Ngân hàng</option><option value="MOMO">MoMo</option><option value="CARD">Thẻ cào</option><option value="USDT">USDT</option></select>
+              <select className="inp" name="method" defaultValue="BANK"><option value="BANK">Ngân hàng</option><option value="MOMO">MoMo</option><option value="CARD">Thẻ cào</option><option value="USDT">USDT</option></select>
             </div>
           </div>
           <button className="btn-dark w-full">Gửi khai báo nạp</button>

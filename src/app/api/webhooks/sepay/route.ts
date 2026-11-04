@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
   const content: string = body.content || body.description || body.transferContent || "";
   const amount: number = Number(body.transferAmount || body.amount || 0);
   const txId: string = String(body.id || body.referenceCode || body.transactionId || "");
+  const gateway: string = String(body.gateway || "");
+  const isMomo = /momo/i.test(gateway); // cả ngân hàng và MoMo đều đối soát qua SePay, chỉ khác kênh ghi sổ
   const type: string = String(body.transferType || "in");
   if (type !== "in" || !amount || amount <= 0) return NextResponse.json({ success: true, skipped: "not a credit" });
   if (txId) {
@@ -46,11 +48,11 @@ export async function POST(req: NextRequest) {
   const bonus = calcBonus(amount, settings.deposit_bonus_tiers);
   const dep = await prisma.$transaction(async (tx) => {
     const d = await tx.deposit.create({
-      data: { code: "TMP", userId: matched.id, method: "BANK", amount, bonus, status: "APPROVED", content, auto: true },
+      data: { code: "TMP", userId: matched.id, method: isMomo ? "MOMO" : "BANK", amount, bonus, status: "APPROVED", content, auto: true },
     });
     const code = genCode("NAP", d.id);
     await tx.deposit.update({ where: { id: d.id }, data: { code } });
-    await applyBalance(tx, matched.id, amount, "DEPOSIT", code, "Nạp tiền tự động qua chuyển khoản");
+    await applyBalance(tx, matched.id, amount, "DEPOSIT", code, isMomo ? "Nạp tiền tự động qua SePay (MoMo)" : "Nạp tiền tự động qua SePay");
     if (bonus > 0) await applyBalance(tx, matched.id, bonus, "BONUS", code, "Thưởng nạp tiền");
     return { ...d, code };
   });
