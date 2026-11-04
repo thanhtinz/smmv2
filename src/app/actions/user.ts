@@ -82,6 +82,25 @@ function panelSlug(raw: string) {
   return raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
 
+/** API key nhập ở trang setup lần đầu: key của tài khoản mẹ mà panel liên kết.
+ *  Để trống = dùng key của chính chủ panel. Trả null nếu key không tồn tại. */
+async function panelApiLink(formData: FormData, fallback: { apiKey: string | null; apiUserId: number | null }) {
+  const key = String(formData.get("apiKey") || "").trim();
+  if (!key) return fallback;
+  const owner = await prisma.user.findUnique({ where: { apiKey: key } });
+  if (!owner) return null;
+  return { apiKey: key, apiUserId: owner.id };
+}
+
+function panelDiscounts(formData: FormData) {  const clamp = (v: FormDataEntryValue | null, dflt: number) => Math.min(90, Math.max(0, parseInt(String(v ?? dflt)) || 0));
+  return {
+    discountMember: clamp(formData.get("discountMember"), 0),
+    discountReseller: clamp(formData.get("discountReseller"), 5),
+    discountAgency: clamp(formData.get("discountAgency"), 10),
+    discountVip: clamp(formData.get("discountVip"), 15),
+  };
+}
+
 export async function createPanelAction(formData: FormData) {
   const user = await requireUser();
   const existing = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
@@ -91,13 +110,24 @@ export async function createPanelAction(formData: FormData) {
   const markup = Math.min(200, Math.max(0, parseInt(String(formData.get("markup") || "20")) || 0));
   const accent = PANEL_ACCENTS.includes(String(formData.get("accent"))) ? String(formData.get("accent")) : "blue";
   const tagline = String(formData.get("tagline") || "").trim() || null;
+  const support = String(formData.get("support") || "").trim() || null;
   const domainRaw = String(formData.get("domain") || "").trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0] || null;
-  if (name.length < 3) back("/dashboard/panel-cua-toi", "err", "Tên panel tối thiểu 3 ký tự");
-  if (slug.length < 3 || slug.length > 40) back("/dashboard/panel-cua-toi", "err", "Đường dẫn panel phải 3-40 ký tự (chữ thường, số, dấu -)");
-  if (RESERVED_SLUGS.includes(slug)) back("/dashboard/panel-cua-toi", "err", "Đường dẫn này đã được hệ thống dùng");
+  if (name.length < 3) back("/dashboard/panel-cua-toi/thiet-lap", "err", "Tên panel tối thiểu 3 ký tự");
+  if (slug.length < 3 || slug.length > 40) back("/dashboard/panel-cua-toi/thiet-lap", "err", "Đường dẫn panel phải 3-40 ký tự (chữ thường, số, dấu -)");
+  if (RESERVED_SLUGS.includes(slug)) back("/dashboard/panel-cua-toi/thiet-lap", "err", "Đường dẫn này đã được hệ thống dùng");
   const dup = await prisma.childPanel.findFirst({ where: { OR: [{ slug }, ...(domainRaw ? [{ domain: domainRaw }] : [])] } });
-  if (dup) back("/dashboard/panel-cua-toi", "err", "Đường dẫn hoặc tên miền đã có panel khác dùng");
-  await prisma.childPanel.create({ data: { ownerId: user.id, name, slug, markup, accent, tagline, domain: domainRaw } });
+  if (dup) back("/dashboard/panel-cua-toi/thiet-lap", "err", "Đường dẫn hoặc tên miền đã có panel khác dùng");
+  const me = await prisma.user.findUnique({ where: { id: user.id }, select: { apiKey: true } });
+  const link = await panelApiLink(formData, { apiKey: me?.apiKey || null, apiUserId: user.id });
+  if (!link) back("/dashboard/panel-cua-toi/thiet-lap", "err", "API key không hợp lệ — hãy dán key của tài khoản mẹ (lấy tại mục API đại lý)");
+  await prisma.childPanel.create({
+    data: {
+      ownerId: user.id, name, slug, markup, accent, tagline, support, domain: domainRaw,
+      apiKey: link.apiKey, apiUserId: link.apiUserId,
+      ...panelDiscounts(formData),
+      setupDone: formData.get("setupDone") === "1",
+    },
+  });
   back("/dashboard/panel-cua-toi", "msg", `Đã tạo panel ${name} — gian hàng của bạn: /cua-hang/${slug}`);
 }
 
@@ -111,13 +141,72 @@ export async function updatePanelAction(formData: FormData) {
   const tagline = String(formData.get("tagline") || "").trim() || null;
   const domainRaw = String(formData.get("domain") || "").trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0] || null;
   const status = formData.get("status") === "SUSPENDED" ? "SUSPENDED" : "ACTIVE";
+  const support = String(formData.get("support") || "").trim() || null;
   if (name.length < 3) back("/dashboard/panel-cua-toi", "err", "Tên panel tối thiểu 3 ký tự");
   if (domainRaw && domainRaw !== panel.domain) {
     const dup = await prisma.childPanel.findFirst({ where: { domain: domainRaw, NOT: { id: panel.id } } });
     if (dup) back("/dashboard/panel-cua-toi", "err", "Tên miền đã có panel khác dùng");
   }
-  await prisma.childPanel.update({ where: { id: panel.id }, data: { name, markup, accent, tagline, domain: domainRaw, status } });
+  const link = await panelApiLink(formData, { apiKey: panel.apiKey, apiUserId: panel.apiUserId });
+  if (!link) back("/dashboard/panel-cua-toi/thiet-lap", "err", "API key không hợp lệ — hãy dán key của tài khoản mẹ (lấy tại mục API đại lý)");
+  await prisma.childPanel.update({
+    where: { id: panel.id },
+    data: {
+      name, markup, accent, tagline, support, domain: domainRaw, status,
+      apiKey: link.apiKey, apiUserId: link.apiUserId,
+      ...panelDiscounts(formData),
+      ...(formData.get("setupDone") === "1" ? { setupDone: true } : {}),
+    },
+  });
   back("/dashboard/panel-cua-toi", "msg", "Đã cập nhật panel");
+}
+/** Giá riêng từng dịch vụ theo từng bậc cho panel của chính mình (kiểu thatim):
+ *  để trống một bậc = bậc đó dùng giá panel chuẩn (markup + % giảm của bậc) */
+export async function setPanelServicePricesAction(formData: FormData) {
+  const user = await requireUser();
+  const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
+  if (!panel) back("/dashboard/panel-cua-toi/thiet-lap", "err", "Bạn chưa có panel");
+  const serviceId = parseInt(String(formData.get("serviceId") || "0"));
+  const svc = await prisma.smmService.findUnique({ where: { id: serviceId } });
+  if (!svc) back("/dashboard/panel-cua-toi", "err", "Dịch vụ không tồn tại");
+  const levels = ["MEMBER", "RESELLER", "AGENCY", "VIP"] as const;
+  for (const lv of levels) {
+    const raw = String(formData.get(`price_${lv}`) || "").trim();
+    const price = Math.floor(Number(raw));
+    if (!raw || !price || price <= 0) {
+      await prisma.panelServicePrice.deleteMany({ where: { panelId: panel.id, serviceId, level: lv } });
+    } else {
+      await prisma.panelServicePrice.upsert({
+        where: { panelId_serviceId_level: { panelId: panel.id, serviceId, level: lv } },
+        create: { panelId: panel.id, serviceId, level: lv, price },
+        update: { price },
+      });
+    }
+  }
+  back("/dashboard/panel-cua-toi", "msg", `Đã lưu giá riêng theo bậc cho "${svc.name}"`);
+}
+
+export async function deletePanelServicePriceAction(formData: FormData) {
+  const user = await requireUser();
+  const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
+  if (!panel) back("/dashboard/panel-cua-toi", "err", "Bạn chưa có panel");
+  const id = parseInt(String(formData.get("id") || "0"));
+  await prisma.panelServicePrice.deleteMany({ where: { id, panelId: panel.id } });
+  back("/dashboard/panel-cua-toi", "msg", "Đã xoá giá riêng");
+}
+
+/** Chủ panel gán cấp bậc cho khách CỦA PANEL MÌNH (không đụng được khách ngoài panel) */
+export async function setPanelMemberLevelAction(formData: FormData) {
+  const user = await requireUser();
+  const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
+  if (!panel) back("/dashboard/panel-cua-toi", "err", "Bạn chưa có panel");
+  const memberId = parseInt(String(formData.get("memberId")));
+  const level = String(formData.get("level") || "MEMBER");
+  if (!["MEMBER", "RESELLER", "AGENCY", "VIP"].includes(level)) back("/dashboard/panel-cua-toi", "err", "Cấp bậc không hợp lệ");
+  const member = await prisma.user.findFirst({ where: { id: memberId, panelId: panel.id } });
+  if (!member) back("/dashboard/panel-cua-toi", "err", "Khách này không thuộc panel của bạn");
+  await prisma.user.update({ where: { id: memberId }, data: { level: level as any } });
+  back("/dashboard/panel-cua-toi", "msg", `Đã đặt cấp bậc cho ${member.username}`);
 }
 
 export async function buyPremiumAction(formData: FormData) {

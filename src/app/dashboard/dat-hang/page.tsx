@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { PageHead, Flash } from "@/components/ui";
 import { OrderForm, ServiceDTO } from "@/components/client";
 import { LEVEL_DISCOUNT } from "@/lib/format";
+import { panelTierDiscount } from "@/lib/orders";
 import { placeSmmOrderAction } from "@/app/actions/user";
 
 export const dynamic = "force-dynamic";
@@ -26,9 +27,9 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
       <PageHead title="Đặt đơn SMM" desc="Chọn dịch vụ, dán link công khai và nhập số lượng — hệ thống tự đẩy qua nhà cung cấp hoặc hàng đợi xử lý tay tuỳ dịch vụ." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       {panelActive && (
-        <div className="card px-5 py-3.5 mb-5 text-sm text-slate-600">Bạn đang mua qua panel <b className="text-slate-900">{panelActive.name}</b> — giá hiển thị đã gồm phụ phí {panelActive.markup}% của panel.</div>
+        <div className="card px-5 py-3.5 mb-5 text-sm text-slate-600">Bạn đang mua qua panel <b className="text-slate-900">{panelActive.name}</b> — giá đã gồm phụ phí {panelActive.markup}% của panel{panelTierDiscount(panelActive, user.level) > 0 ? `, cấp bậc của bạn được giảm thêm ${panelTierDiscount(panelActive, user.level)}%` : ""}.</div>
       )}
-      <OrderForm services={dto} categories={cats} discount={panelActive ? 0 : LEVEL_DISCOUNT[user.level] || 0} preselect={searchParams.service ? parseInt(searchParams.service) : undefined} action={placeSmmOrderAction}
+      <OrderForm services={dto} categories={cats} discount={panelActive ? panelTierDiscount(panelActive, user.level) : LEVEL_DISCOUNT[user.level] || 0} preselect={searchParams.service ? parseInt(searchParams.service) : undefined} action={placeSmmOrderAction}
         balance={user.balance} initialLink={searchParams.link} initialQty={searchParams.qty ? parseInt(searchParams.qty) : undefined} />
     </div>
   );

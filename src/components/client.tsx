@@ -17,7 +17,7 @@ const StarBtn = ({ active, onClick }: { active: boolean; onClick: () => void }) 
   </button>
 );
 
-export function ServicesExplorer({ services, orderMode = false }: { services: ServiceDTO[]; orderMode?: boolean }) {
+export function ServicesExplorer({ services, orderMode = false, registerHref }: { services: ServiceDTO[]; orderMode?: boolean; registerHref?: string }) {
   const platforms = useMemo(() => Array.from(new Set(services.map((s) => s.platform))), [services]);
   const [platform, setPlatform] = useState<string>("all");
   const [q, setQ] = useState("");
@@ -42,7 +42,7 @@ export function ServicesExplorer({ services, orderMode = false }: { services: Se
   );
   if (sort === "asc") list = [...list].sort((a, b) => a.rate - b.rate);
   if (sort === "desc") list = [...list].sort((a, b) => b.rate - a.rate);
-  const orderHref = (id: number) => (orderMode ? `/dashboard/dat-hang?service=${id}` : "/register");
+  const orderHref = (id: number) => (orderMode ? `/dashboard/dat-hang?service=${id}` : registerHref || "/register");
   return (
     <div>
       <div className="flex flex-col xl:flex-row gap-3 mb-5">
@@ -363,6 +363,229 @@ export function BulkOrderForm({ services, discount, balance, action }: {
         </div>
       </div>
     </form>
+  );
+}
+
+/* ---------- Wizard cấu hình lần đầu cho panel con ---------- */
+export type PanelWizardData = {
+  name: string; slug: string; tagline: string; accent: string;
+  markup: number; discountMember: number; discountReseller: number; discountAgency: number; discountVip: number;
+  apiKey: string; domain: string; support: string;
+};
+
+export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
+  mode: "create" | "edit";
+  initial: PanelWizardData;
+  samples: { name: string; rate: number }[];
+  apiUrl: string;
+  action: (formData: FormData) => void;
+}) {
+  const [step, setStep] = useState(1);
+  const [d, setD] = useState<PanelWizardData>(initial);
+  const set = (k: keyof PanelWizardData, v: string | number) => setD((p) => ({ ...p, [k]: v }));
+  const accents = [
+    { id: "blue", label: "Xanh dương", hex: "#4680ff" }, { id: "violet", label: "Tím", hex: "#7c5cff" },
+    { id: "emerald", label: "Xanh lá", hex: "#10b981" }, { id: "orange", label: "Cam", hex: "#f97316" },
+    { id: "rose", label: "Hồng", hex: "#f43f5e" }, { id: "teal", label: "Ngọc", hex: "#14b8a6" },
+  ];
+  const tiers: { k: keyof PanelWizardData; label: string }[] = [
+    { k: "discountMember", label: "Thành viên" }, { k: "discountReseller", label: "Đại lý" },
+    { k: "discountAgency", label: "Tổng đại lý" }, { k: "discountVip", label: "VIP" },
+  ];
+  const step1Ok = d.name.trim().length >= 3 && (mode === "edit" || d.slug.trim().length >= 3);
+  const panelPrice = (rate: number) => Math.round(rate * (1 + (Number(d.markup) || 0) / 100));
+  const tierPrice = (rate: number, disc: number) => Math.round(panelPrice(rate) * (1 - disc / 100));
+  const steps = ["Thông tin gian hàng", "Giá & cấp bậc", "Kết nối API", "Tên miền & hỗ trợ", "Hoàn tất"];
+  return (
+    <form action={action} className="card p-6 sm:p-8">
+      <input type="hidden" name="setupDone" value="1" />
+      <div className="flex items-center gap-2 mb-8 flex-wrap">
+        {steps.map((s, i) => (
+          <div key={s} className="flex items-center gap-2">
+            <button type="button" onClick={() => i + 1 < step && setStep(i + 1)} className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-semibold ${step === i + 1 ? "bg-brand-600 text-white" : i + 1 < step ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-400"}`}>
+              <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center ${step === i + 1 ? "bg-white/25" : i + 1 < step ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"}`}>{i + 1 < step ? "✓" : i + 1}</span>{s}
+            </button>
+            {i < steps.length - 1 && <span className="w-5 h-px bg-slate-200 hidden sm:block" />}
+          </div>
+        ))}
+      </div>
+
+      <div className={step === 1 ? "space-y-4 max-w-xl" : "hidden"}>
+          <div><label className="lbl">Tên panel / gian hàng *</label><input className="inp" name="name" required minLength={3} value={d.name} onChange={(e) => set("name", e.target.value)} placeholder="Vd: Tăng Tương Tác Pro" /></div>
+          <div>
+            <label className="lbl">Đường dẫn (slug) {mode === "create" ? "*" : ""}</label>
+            {mode === "create" ? (
+              <div className="flex items-center gap-2"><span className="text-sm text-slate-400 whitespace-nowrap">/cua-hang/</span><input className="inp" name="slug" required value={d.slug} onChange={(e) => set("slug", e.target.value)} placeholder="tang-tuong-tac-pro" /></div>
+            ) : (
+              <input className="inp bg-slate-50" value={`/cua-hang/${d.slug}`} readOnly />
+            )}
+            <p className="text-xs text-slate-400 mt-1.5">Chỉ chữ thường, số và dấu gạch ngang. Không đổi được sau khi tạo.</p>
+          </div>
+          <div><label className="lbl">Câu giới thiệu</label><input className="inp" name="tagline" maxLength={255} value={d.tagline} onChange={(e) => set("tagline", e.target.value)} placeholder="Dịch vụ nhanh — bảo hành rõ ràng" /></div>
+          <div>
+            <label className="lbl">Màu chủ đạo của gian hàng</label>
+            <input type="hidden" name="accent" value={d.accent} />
+            <div className="flex flex-wrap gap-2">
+              {accents.map((a) => (
+                <button type="button" key={a.id} onClick={() => set("accent", a.id)} className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium ${d.accent === a.id ? "border-slate-800 bg-slate-50" : "border-slate-200 text-slate-500"}`}>
+                  <span className="w-4 h-4 rounded-full" style={{ background: a.hex }} />{a.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+      <div className={step === 2 ? "grid grid-cols-1 lg:grid-cols-2 gap-8" : "hidden"}>
+          <div className="space-y-4">
+            <div>
+              <label className="lbl">Phụ phí của panel (%)</label>
+              <input className="inp" name="markup" type="number" min={0} max={200} value={d.markup} onChange={(e) => set("markup", parseInt(e.target.value) || 0)} />
+              <p className="text-xs text-slate-400 mt-1.5">Cộng trên giá gốc của hệ thống — đây là mặt bằng giá bán của panel và nguồn hoa hồng của bạn.</p>
+            </div>
+            <div>
+              <label className="lbl">Giảm giá theo cấp bậc khách (%)</label>
+              <div className="grid grid-cols-2 gap-3">
+                {tiers.map((t) => (
+                  <div key={t.k}><label className="lbl !mb-1">{t.label}</label><input className="inp" name={t.k} type="number" min={0} max={90} value={d[t.k] as number} onChange={(e) => set(t.k, parseInt(e.target.value) || 0)} /></div>
+                ))}
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5">Khách được bạn gán bậc cao hơn sẽ mua rẻ hơn. Phần giảm tính trên giá panel và trừ vào hoa hồng của bạn trước.</p>
+            </div>
+          </div>
+          <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
+            <div className="font-bold text-slate-900 text-sm mb-3">Xem trước giá bán</div>
+            <div className="space-y-3">
+              {samples.map((s) => (
+                <div key={s.name} className="rounded-xl bg-white border border-slate-200 p-3.5">
+                  <div className="text-sm font-medium text-slate-700 leading-snug">{s.name}</div>
+                  <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold">
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500">Gốc {vnd(s.rate)}</span>
+                    <span className="rounded-full bg-brand-50 text-brand-700 px-2 py-1">Panel {vnd(panelPrice(s.rate))}</span>
+                    {tiers.filter((t) => (d[t.k] as number) > 0).map((t) => (
+                      <span key={t.k} className="rounded-full bg-emerald-50 text-emerald-700 px-2 py-1">{t.label} {vnd(tierPrice(s.rate, d[t.k] as number))}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-slate-400 mt-3">Giá trên 1.000 lượt. Hoa hồng mỗi đơn = tiền khách trả − giá gốc (tối thiểu 0).</p>
+          </div>
+        </div>
+
+      <div className={step === 3 ? "space-y-4 max-w-xl" : "hidden"}>
+          <div>
+            <label className="lbl">API URL của web mẹ</label>
+            <input className="inp bg-slate-50 font-mono !text-[13px]" value={apiUrl} readOnly />
+          </div>
+          <div>
+            <label className="lbl">API key tài khoản mẹ *</label>
+            <input className="inp font-mono !text-[13px]" name="apiKey" value={d.apiKey} onChange={(e) => set("apiKey", e.target.value)} placeholder="Dán API key của tài khoản mẹ" autoComplete="off" />
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">Panel con liên kết với web mẹ bằng API key này — mặc định là key của chính tài khoản bạn (lấy tại mục <b>API đại lý</b> trong khu khách hàng). Nếu muốn panel chạy trên một tài khoản mẹ khác (ví dụ tài khoản cấp cao hơn), dán key của tài khoản đó. Hệ thống kiểm tra key ngay khi lưu.</p>
+          </div>
+      </div>
+
+      <div className={step === 4 ? "space-y-4 max-w-xl" : "hidden"}>
+          <div>
+            <label className="lbl">Tên miền riêng (tuỳ chọn)</label>
+            <input className="inp" name="domain" value={d.domain} onChange={(e) => set("domain", e.target.value)} placeholder="shop.tenmiencuaban.com" />
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">Trỏ bản ghi <b>CNAME</b> của tên miền về máy chủ của hệ thống, gian hàng sẽ chạy ngay trên tên miền của bạn. Chưa có tên miền thì bỏ qua — dùng đường dẫn /cua-hang/{d.slug || "..."} cũng đầy đủ tính năng.</p>
+          </div>
+          <div>
+            <label className="lbl">Liên hệ hỗ trợ của panel</label>
+            <input className="inp" name="support" maxLength={255} value={d.support} onChange={(e) => set("support", e.target.value)} placeholder="Vd: Zalo 0901 234 567 hoặc https://t.me/hotrocuaban" />
+            <p className="text-xs text-slate-400 mt-1.5">Hiện ở gian hàng để khách của panel liên hệ bạn trực tiếp khi cần.</p>
+          </div>
+        </div>
+
+      <div className={step === 5 ? "max-w-xl" : "hidden"}>
+          <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5">
+            <div className="font-bold text-emerald-800">Sẵn sàng mở bán</div>
+            <ul className="mt-2.5 text-sm text-emerald-700 space-y-1.5">
+              <li>— Gian hàng: <b>/cua-hang/{d.slug || "..."}</b>{d.domain ? <> và tên miền <b>{d.domain}</b></> : ""}</li>
+              <li>— Liên kết web mẹ bằng API key <b className="font-mono">{d.apiKey ? `${d.apiKey.slice(0, 6)}••••••` : "(chưa nhập)"}</b></li>
+              <li>— Giá bán: giá gốc + {Number(d.markup) || 0}%, giảm thêm theo bậc: Đại lý −{d.discountReseller}%, Tổng đại lý −{d.discountAgency}%, VIP −{d.discountVip}%</li>
+              <li>— Khách đăng ký tại gian hàng là khách của bạn; hoa hồng vào ví ngay khi có đơn.</li>
+            </ul>
+          </div>
+          <p className="text-sm text-slate-500 mt-4 leading-relaxed">Sau khi {mode === "create" ? "tạo" : "lưu"}, hãy chia sẻ link gian hàng cho khách. Bạn gán cấp bậc cho từng khách và theo dõi hoa hồng tại trang Panel con của tôi.</p>
+        </div>
+
+      <div className="flex items-center justify-between mt-9 pt-5 border-t border-dashed">
+        <button type="button" onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1} className="btn-ghost !px-5 !py-2.5 disabled:opacity-40">Quay lại</button>
+        {step < 5 ? (
+          <button type="button" onClick={() => setStep(step + 1)} disabled={(step === 1 && !step1Ok) || (step === 3 && !d.apiKey.trim())} className="btn-primary !px-6 !py-2.5 disabled:opacity-50">Tiếp tục</button>
+        ) : (
+          <button type="submit" className="btn-primary !px-6 !py-2.5">{mode === "create" ? "Tạo panel & mở bán" : "Lưu cấu hình"}</button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+/* ---------- Giá riêng từng dịch vụ theo cấp bậc (panel con) ---------- */
+export function PanelPriceEditor({ services, overrides, action, deleteAction }: {
+  services: { id: number; name: string; panelRate: number }[];
+  overrides: { id: number; serviceId: number; level: string; price: number }[];
+  action: (formData: FormData) => void;
+  deleteAction: (formData: FormData) => void;
+}) {
+  const LEVELS = [
+    { k: "MEMBER", label: "Thành viên" },
+    { k: "RESELLER", label: "Đại lý" },
+    { k: "AGENCY", label: "Tổng đại lý" },
+    { k: "VIP", label: "VIP" },
+  ] as const;
+  const [serviceId, setServiceId] = useState<number>(services[0]?.id || 0);
+  const svc = services.find((s) => s.id === serviceId);
+  const current = (lv: string) => overrides.find((o) => o.serviceId === serviceId && o.level === lv)?.price;
+  const byService = useMemo(() => {
+    const m = new Map<number, { name: string; rows: typeof overrides }>();
+    for (const o of overrides) {
+      const s = services.find((x) => x.id === o.serviceId);
+      if (!m.has(o.serviceId)) m.set(o.serviceId, { name: s?.name || `#${o.serviceId}`, rows: [] });
+      m.get(o.serviceId)!.rows.push(o);
+    }
+    return Array.from(m.entries());
+  }, [overrides, services]);
+  return (
+    <div>
+      <form action={action} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end" key={serviceId}>
+        <div className="md:col-span-2">
+          <label className="lbl">Dịch vụ</label>
+          <select className="inp" name="serviceId" value={serviceId} onChange={(e) => setServiceId(Number(e.target.value))}>
+            {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        {LEVELS.map((lv) => (
+          <div key={lv.k}>
+            <label className="lbl">{lv.label}</label>
+            <input className="inp" name={`price_${lv.k}`} type="number" min={0} defaultValue={current(lv.k) || ""} placeholder={svc ? String(svc.panelRate) : ""} />
+          </div>
+        ))}
+        <button className="btn-primary !py-2.5">Lưu giá</button>
+      </form>
+      <p className="text-xs text-slate-400 mt-2">Giá tính trên 1.000 lượt. Ô gợi ý mờ là giá panel chuẩn của dịch vụ (đã gồm markup). Để trống một bậc = bậc đó dùng giá chuẩn kèm % giảm của bậc; điền số = giá cuối cố định cho bậc đó, không giảm thêm.</p>
+      {byService.length > 0 && (
+        <div className="mt-4 divide-y divide-slate-100 border border-slate-100 rounded-xl">
+          {byService.map(([sid, g]) => (
+            <div key={sid} className="px-4 py-3">
+              <div className="text-sm font-semibold text-slate-800">{g.name}</div>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {g.rows.map((o) => (
+                  <span key={o.id} className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold px-2.5 py-1">
+                    {LEVELS.find((l) => l.k === o.level)?.label}: {vnd(o.price)}
+                    <form action={deleteAction} className="inline">
+                      <input type="hidden" name="id" value={o.id} />
+                      <button className="text-brand-400 hover:text-red-500 font-black" title="Xoá giá riêng này">×</button>
+                    </form>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

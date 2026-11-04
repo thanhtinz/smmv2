@@ -3,7 +3,7 @@ import { applyBalance } from "./wallet";
 import { LEVEL_DISCOUNT, smmCharge, genCode } from "./format";
 import {
   providerAddOrder, providerOrderStatus, mapProviderStatus,
-  providerBuyProduct, providerProductHistory, findHistoryEntry, extractDelivery,
+  providerBuyProduct, findPremiumOrderInHistory, extractDelivery,
   type SmmExtraParams,
 } from "./provider";
 import type { PremiumOrder, SmmOrder, User } from "@prisma/client";
@@ -29,6 +29,19 @@ export function parseDripfeed(params: string | null | undefined): DripfeedState 
     return p && p.dripfeed ? (p.dripfeed as DripfeedState) : null;
   } catch {
     return null;
+  }
+}
+
+/** % giảm theo cấp bậc của khách panel — mỗi panel tự đặt riêng từng bậc */
+export function panelTierDiscount(
+  panel: { discountMember: number; discountReseller: number; discountAgency: number; discountVip: number },
+  level: string
+) {
+  switch (level) {
+    case "RESELLER": return panel.discountReseller;
+    case "AGENCY": return panel.discountAgency;
+    case "VIP": return panel.discountVip;
+    default: return panel.discountMember;
   }
 }
 
@@ -73,16 +86,28 @@ export async function createSmmOrder(input: {
     };
   }
 
-  // Panel con: khách thuộc panel trả giá đã cộng markup của chủ panel (không chiết khấu cấp bậc);
-  // phần chênh lệch so với giá gốc là hoa hồng của chủ panel.
-  let panel: { id: number; ownerId: number; markup: number; name: string } | null = null;
+  // Panel con: khách thuộc panel trả giá đã cộng markup của chủ panel, được giảm thêm theo
+  // cấp bậc mà panel quy định riêng từng bậc; phần chênh lệch còn lại so với giá gốc là hoa hồng của chủ panel.
+  let panel: { id: number; ownerId: number; markup: number; name: string; discountMember: number; discountReseller: number; discountAgency: number; discountVip: number } | null = null;
   if (input.user.panelId) {
     const p = await prisma.childPanel.findUnique({ where: { id: input.user.panelId } });
-    if (p && p.status === "ACTIVE") panel = { id: p.id, ownerId: p.ownerId, markup: p.markup, name: p.name };
+    if (p && p.status === "ACTIVE") panel = p;
   }
   const panelRate = panel ? Math.round(service.rate * (1 + panel.markup / 100)) : service.rate;
-  const discount = panel ? 0 : LEVEL_DISCOUNT[input.user.level] || 0;
-  const charge = Math.max(1, Math.round(smmCharge(panelRate, input.quantity) * (1 - discount / 100)));
+  let effectiveRate = panelRate;
+  let discount = panel ? panelTierDiscount(panel, input.user.level) : LEVEL_DISCOUNT[input.user.level] || 0;
+  if (panel) {
+    // Giá riêng từng dịch vụ theo từng bậc (kiểu thatim: bảng giá có một cột giá cho mỗi cấp):
+    // chủ panel đặt giá riêng cho đúng dịch vụ + bậc của khách thì giá đó là GIÁ CUỐI, không giảm thêm %.
+    const ov = await prisma.panelServicePrice.findUnique({
+      where: { panelId_serviceId_level: { panelId: panel.id, serviceId: service.id, level: input.user.level } },
+    });
+    if (ov) {
+      effectiveRate = ov.price;
+      discount = 0;
+    }
+  }
+  const charge = Math.max(1, Math.round(smmCharge(effectiveRate, input.quantity) * (1 - discount / 100)));
   const commission = panel ? Math.max(0, charge - smmCharge(service.rate, input.quantity)) : 0;
   const cost = smmCharge(service.costRate, input.quantity);
   const order = await prisma.$transaction(async (tx) => {
@@ -417,26 +442,41 @@ export async function createPremiumOrder(input: {
   return created;
 }
 
-/** Đồng bộ đơn premium API từ provider (action=history) — cron + nút bấm admin */
+/** Đồng bộ đơn premium API từ provider (action=history) — cron + nút bấm admin.
+ *  Bàn giao nằm ở trường "data" của mục history khi status = completed. */
 export async function syncPremiumOrderStatus(order: PremiumOrder) {
   if (!order.providerId || !order.providerOrderId) return order;
   const provider = await prisma.provider.findUnique({ where: { id: order.providerId } });
   if (!provider) return order;
+  const variant = await prisma.premiumVariant.findUnique({
+    where: { id: order.variantId },
+    include: { product: { select: { providerProductId: true } } },
+  });
   const codes = order.providerOrderId.split(",").map((x) => x.trim()).filter(Boolean);
-  const raw = await providerProductHistory(provider, codes);
   const deliveries: string[] = [];
   let canceled = 0;
+  let completedNoData = 0;
+  let seen = 0;
   for (const code of codes) {
-    const entry = findHistoryEntry(raw, code);
+    const entry = await findPremiumOrderInHistory(provider, variant?.product.providerProductId || undefined, code);
     if (!entry) continue;
+    seen++;
     const { delivery, status } = extractDelivery(entry);
+    const st = (status || "").toLowerCase();
     if (delivery) deliveries.push(delivery);
-    if (status && /cancel|refund|fail/i.test(status)) canceled++;
+    else if (st === "completed") completedNoData++;
+    if (/cancel|refund|fail/.test(st)) canceled++;
   }
   if (deliveries.length) {
     await prisma.premiumOrder.update({
       where: { id: order.id },
       data: { status: "DELIVERED", deliveryData: deliveries.join("\n---\n") },
+    });
+  } else if (completedNoData > 0 && seen === codes.length && canceled === 0) {
+    // Provider báo hoàn thành nhưng chưa trả dữ liệu bàn giao -> đánh dấu hoàn thành, admin đối soát
+    await prisma.premiumOrder.update({
+      where: { id: order.id },
+      data: { status: "COMPLETED", adminNote: [order.adminNote, "Provider báo completed nhưng chưa có dữ liệu bàn giao"].filter(Boolean).join(" · ") },
     });
   } else if (canceled === codes.length && codes.length > 0 && order.status !== "REFUNDED") {
     await prisma.$transaction(async (tx) => {

@@ -28,7 +28,8 @@ Kèm **Admin panel riêng** tại `/admin` và **API cho đại lý** tại `/ap
 - Đặt đơn SMM: chọn danh mục → dịch vụ, tính tiền trực tiếp; dịch vụ comment có ô nhập nội dung từng dòng, dịch vụ cảm xúc có chọn reaction, watch time có số phút (đúng tham số kiểu ThaTim)
 - **Drip-feed**: dịch vụ hỗ trợ sẽ có tuỳ chọn thả nhỏ giọt — chia tổng số lượng thành nhiều lượt cách nhau theo phút, cron thả từng lượt, huỷ chỉ hoàn phần chưa thả
 - **Đặt hàng loạt**: dán danh sách `id dịch vụ | link | số lượng` (tối đa 50 dòng), xem trước từng dòng + tổng tiền rồi đặt tất cả
-- **Panel con**: mở gian hàng riêng (tên/màu/phụ phí %) tại `/cua-hang/[slug]` hoặc tên miền riêng (CNAME) — khách của panel mua theo giá panel, chủ panel nhận hoa hồng từng đơn (hoàn tiền thì thu hồi theo tỉ lệ)
+- **Panel con**: mở gian hàng riêng tại `/cua-hang/[slug]` hoặc tên miền riêng (CNAME) — khách của panel mua theo giá panel, chủ panel nhận hoa hồng từng đơn (hoàn tiền thì thu hồi theo tỉ lệ). Gian hàng dùng đúng khung + component của web mẹ. **Trang cấu hình lần đầu** (`/dashboard/panel-cua-toi/thiet-lap`) là wizard 5 bước: thông tin → giá & cấp bậc → **nhập API key tài khoản mẹ để liên kết** (mặc định là key của chính chủ panel, hệ thống kiểm tra key khi lưu — đúng mô hình thatim: tạo panel xong vào Cài đặt nhập API token) → tên miền & hỗ trợ → hoàn tất
+- **Cấp bậc khách của panel**: 4 bậc Thành viên / Đại lý / Tổng đại lý / VIP — mỗi panel tự đặt % giảm riêng từng bậc (trừ vào hoa hồng của chủ panel) và đặt thêm được **giá cố định cho từng dịch vụ theo từng bậc** (kiểu bảng giá nhiều cột cấp bậc của thatim); chủ panel gán bậc cho từng khách ngay trong trang quản lý panel
 - Shop Premium: gói kho giao ngay, gói chính chủ giao tay, bảo hành trong trang đơn
 - Nạp tiền: VietQR ngân hàng + MoMo, cộng **tự động qua webhook** (SePay/Casso) khi chuyển đúng nội dung `SMM <mã nạp>`; thưởng nạp theo mốc cấu hình được
 - Sổ giao dịch đầy đủ, ticket hỗ trợ 2 chiều, trang API key cho đại lý
@@ -77,6 +78,7 @@ Seed gồm: 18 dịch vụ SMM thủ công mẫu, 9 sản phẩm Premium với g
 2. Vào **Admin → Nhà cung cấp API → Thêm nguồn ThaTim** (preset sẵn URL `https://thatim.vn/api/v2`, loại "Cả SMM + Premium"), dán key, bật, lưu.
 3. Bấm **Kiểm tra số dư** rồi **Đồng bộ dịch vụ**: hệ thống kéo toàn bộ dịch vụ social (`action=services`) và sản phẩm (`action=category`), quy đổi tiền và cộng markup % bạn đặt.
 4. Từ đó: khách đặt đơn dịch vụ API → hệ thống tự `action=add` (kèm `comments`/`reaction`/`minutes` khi có); khách mua sản phẩm API → tự `action=buy` với `cycle` + `note`; cron tự hỏi `status`/`history` và bàn giao + hoàn tiền khi cần.
+   - Đã đối chiếu tài liệu thật của thatim.vn (2026-11-04): API sản phẩm nằm ở endpoint riêng **`https://thatim.vn/api/product`** (hệ thống tự suy ra từ URL `/api/v2` khi đồng bộ/mua); `services` của thatim trả về dạng lồng theo danh mục kèm trường `price` — đã hỗ trợ; `category` trả `time_data` với nhãn chu kỳ ("1 Tháng", "1 Năm", cả "… Ngày") — nhãn được quy về số tháng khi gọi `buy`; trạng thái/bàn giao đơn premium lấy qua `history` (lọc `product_id`, khớp `order_code`), **dữ liệu bàn giao nằm ở trường `data`** của mục history khi đơn `completed`.
 
 Không có key ThaTim? Mọi panel chuẩn SMM API v2 khác (slike...) đều đấu được theo cùng cách.
 

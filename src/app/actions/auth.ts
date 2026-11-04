@@ -44,6 +44,7 @@ export async function panelRegisterAction(formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
   const fullName = String(formData.get("fullName") || "").trim();
+  const phone = String(formData.get("phone") || "").trim();
   const page = `/cua-hang/${slug}/dang-ky`;
   if (!/^[a-z0-9_.]{4,30}$/.test(username)) back(page, "err", "Tên đăng nhập 4-30 ký tự, chỉ gồm chữ thường, số, dấu . và _");
   if (!/^\S+@\S+\.\S+$/.test(email)) back(page, "err", "Email không hợp lệ");
@@ -52,7 +53,7 @@ export async function panelRegisterAction(formData: FormData) {
   if (exists) back(page, "err", "Tên đăng nhập hoặc email đã được sử dụng");
   const user = await prisma.user.create({
     data: {
-      username, email, fullName: fullName || null,
+      username, email, fullName: fullName || null, phone: phone || null,
       passwordHash: await bcrypt.hash(password, 10),
       apiKey: randomKey(32),
       depositCode: randomKey(6).toUpperCase(),

@@ -49,9 +49,32 @@ export async function providerBalance(provider: Provider): Promise<{ raw: number
 }
 
 export async function providerServices(provider: Provider): Promise<ProviderService[]> {
-  const r = await call<ProviderService[]>(provider, { action: "services" });
-  if (!Array.isArray(r)) throw new Error("Provider không trả danh sách dịch vụ dạng mảng");
-  return r;
+  const r: any = await call<any>(provider, { action: "services" });
+  // Chuẩn SMM v2 cổ điển: mảng phẳng. Kiểu ThaTim: {status, data:[{name, services:[...]}]} lồng theo danh mục.
+  let arr: any[] = [];
+  if (Array.isArray(r)) arr = r;
+  else if (Array.isArray(r?.data)) {
+    for (const item of r.data) {
+      if (Array.isArray(item?.services)) {
+        for (const s of item.services) arr.push({ ...s, category: s.category || item.name });
+      } else if (item && (item.id !== undefined || item.service !== undefined)) arr.push(item);
+    }
+  }
+  if (!arr.length) throw new Error("Provider không trả danh sách dịch vụ dạng mảng");
+  return arr
+    .filter((s) => !s.status || s.status === "selling")
+    .map((s) => ({
+      service: s.service ?? s.id,
+      name: String(s.name || `Dịch vụ ${s.service ?? s.id}`),
+      type: s.type,
+      category: s.category,
+      rate: s.rate ?? s.price ?? 0, // ThaTim dùng "price" (giá / price_per lượt, thường là 1000)
+      min: s.min ?? 1,
+      max: s.max ?? 100000,
+      refill: !!s.refill,
+      cancel: !!s.cancel,
+      dripfeed: !!s.dripfeed,
+    }));
 }
 
 export type SmmExtraParams = {
@@ -205,17 +228,50 @@ export function guessPlatform(text: string): string {
 }
 
 /* =====================================================================
- * API MUA SẢN PHẨM (Premium) kiểu ThaTim — cùng endpoint + key với SMM:
- *   action=category -> danh mục + sản phẩm + chu kỳ/giá
- *   action=buy      -> product=<id>, cycle=<số tháng>, note=<thông tin giao>
- *   action=history  -> ids=<order_code,...> (bỏ trống = tất cả)
- * Định dạng trả về của từng nhà cung cấp có thể lệch nhau đôi chút nên
- * lớp normalize dưới đây chấp nhận nhiều dạng (mảng phẳng, lồng theo
- * danh mục, bọc trong data/categories...).
+ * API MUA SẢN PHẨM (Premium) kiểu ThaTim — endpoint RIÊNG /api/product
+ * (không phải /api/v2 của SMM), hỗ trợ GET/POST form, cùng API key:
+ *   action=category -> {status, data:[{id,name,slug,...,products:[{product_id,
+ *                      product_name, time_data:[{cycle_id, cycle (nhãn), price,
+ *                      original_price, description}]}]}]}
+ *   action=buy      -> product=<product_id>, cycle=<số tháng>, note=<thông tin giao>
+ *                      trả {status, data:{order_id, order_code, total}}
+ *   action=history  -> page/limit/status/product_id; mỗi mục có order_code,
+ *                      status (pending|processing|completed|cancelled|failed|
+ *                      refunded) và "data" = dữ liệu bàn giao khi hoàn thành.
+ * (Đã đối chiếu tài liệu + trang api-docs thật của thatim.vn ngày 2026-11-04.)
  * ===================================================================== */
 
+/** Suy endpoint sản phẩm từ apiUrl SMM: .../api/v2 -> .../api/product */
+export function productEndpoint(provider: Provider): string {
+  const u = provider.apiUrl.replace(/\/+$/, "");
+  if (u.endsWith("/api/v2")) return `${u.slice(0, -"/v2".length)}/product`;
+  if (u.endsWith("/api")) return `${u}/product`;
+  return `${u}/api/product`;
+}
+
+async function callProduct<T = any>(provider: Provider, params: Record<string, string>): Promise<T> {
+  const body = new URLSearchParams({ key: provider.apiKey, ...params });
+  const res = await fetch(productEndpoint(provider), {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+    cache: "no-store",
+    signal: AbortSignal.timeout(30000),
+  });
+  const text = await res.text();
+  let json: any;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error(`Provider (sản phẩm) trả về dữ liệu không hợp lệ (HTTP ${res.status})`);
+  }
+  if (json?.error) throw new Error(String(json.error));
+  if (json?.status && json.status !== "success") throw new Error(String(json.message || "Provider báo lỗi"));
+  return json as T;
+}
+
 export async function providerProductCategoriesRaw(provider: Provider): Promise<any> {
-  return call<any>(provider, { action: "category" });
+  return callProduct<any>(provider, { action: "category" });
 }
 
 export async function providerBuyProduct(
@@ -224,44 +280,80 @@ export async function providerBuyProduct(
   cycle: number,
   note: string
 ): Promise<{ orderCode: string; raw: any }> {
-  const r = await call<any>(provider, {
+  const r = await callProduct<any>(provider, {
     action: "buy",
     product: providerProductId,
     cycle: String(cycle),
     note: note || "",
   });
-  const orderCode = r?.order_code || r?.orderCode || r?.code || r?.order || r?.id || r?.data?.order_code || r?.data?.id;
+  const orderCode = r?.data?.order_code || r?.order_code || r?.orderCode || r?.code || r?.order || r?.data?.order_id || r?.id;
   if (!orderCode) throw new Error("Provider không trả order_code cho đơn sản phẩm");
   return { orderCode: String(orderCode), raw: r };
 }
 
-export async function providerProductHistory(provider: Provider, orderCodes?: string[]): Promise<any> {
-  const params: Record<string, string> = { action: "history" };
-  if (orderCodes && orderCodes.length) params.ids = orderCodes.join(",");
-  return call<any>(provider, params);
+/** Lịch sử mua sản phẩm phía provider (action=history, có phân trang + lọc) */
+export async function providerProductHistory(
+  provider: Provider,
+  opts: { productId?: string; page?: number; limit?: number; status?: string } = {}
+): Promise<any> {
+  const params: Record<string, string> = { action: "history", page: String(opts.page ?? 1), limit: String(opts.limit ?? 50) };
+  if (opts.productId) params.product_id = opts.productId;
+  if (opts.status) params.status = opts.status;
+  return callProduct<any>(provider, params);
+}
+
+/** Tìm 1 đơn premium trong history phía provider theo order_code (lật tối đa maxPages trang) */
+export async function findPremiumOrderInHistory(
+  provider: Provider,
+  providerProductId: string | undefined,
+  orderCode: string,
+  maxPages = 5
+): Promise<any | null> {
+  for (let page = 1; page <= maxPages; page++) {
+    const raw = await providerProductHistory(provider, { productId: providerProductId, page, limit: 50 });
+    const found = findHistoryEntry(raw, orderCode);
+    if (found) return found;
+    const lastPage = Number(raw?.pagination?.last_page ?? page);
+    if (page >= lastPage) break;
+  }
+  return null;
 }
 
 export type NormalizedProduct = {
   providerProductId: string;
   name: string;
   categoryName: string;
-  variants: { cycle: number; priceRaw: number }[];
+  variants: { cycle: number; priceRaw: number; label?: string }[];
 };
+
+/** Nhãn chu kỳ kiểu ThaTim ("1 Tháng", "1 Năm", "23 Ngày") -> số tháng để gọi action=buy */
+export function parseCycleMonths(v: any): number {
+  if (v === null || v === undefined) return 0;
+  if (typeof v === "number") return Math.round(v);
+  const s = String(v).toLowerCase();
+  const num = parseFloat(s.replace(",", "."));
+  if (isNaN(num)) return 0;
+  if (s.includes("năm") || s.includes("year")) return Math.round(num * 12);
+  if (s.includes("ngày") || s.includes("ngay") || s.includes("day")) return Math.max(1, Math.round(num / 30));
+  return Math.round(num);
+}
 
 export function normalizeProducts(raw: any): NormalizedProduct[] {
   const out: NormalizedProduct[] = [];
   const pushProduct = (p: any, categoryName: string) => {
     if (!p || (p.id === undefined && p.product_id === undefined)) return;
-    const variants: { cycle: number; priceRaw: number }[] = [];
-    const pushVar = (cycle: any, price: any) => {
-      const c = parseInt(String(cycle));
+    const variants: { cycle: number; priceRaw: number; label?: string }[] = [];
+    const pushVar = (cycle: any, price: any, label?: string) => {
+      const c = parseCycleMonths(cycle);
       const pr = parseFloat(String(price));
-      if (c > 0 && pr > 0) variants.push({ cycle: c, priceRaw: pr });
+      if (c > 0 && pr > 0) variants.push({ cycle: c, priceRaw: pr, label });
     };
-    const arr = p.cycles || p.plans || p.prices || p.durations || p.packages;
+    const arr = p.time_data || p.cycles || p.plans || p.prices || p.durations || p.packages;
     if (Array.isArray(arr)) {
       for (const v of arr) {
-        if (typeof v === "object") pushVar(v.cycle ?? v.months ?? v.duration ?? v.time, v.price ?? v.rate ?? v.amount);
+        if (typeof v === "object") {
+          pushVar(v.cycle ?? v.months ?? v.duration ?? v.time, v.price ?? v.rate ?? v.amount, typeof v.cycle === "string" ? v.cycle : undefined);
+        }
       }
     }
     for (const k of Object.keys(p)) {
@@ -272,11 +364,13 @@ export function normalizeProducts(raw: any): NormalizedProduct[] {
       pushVar(p.cycle ?? p.months ?? p.duration ?? 1, p.price ?? p.rate);
     }
     if (!variants.length) return;
+    const dedup = new Map<number, { cycle: number; priceRaw: number; label?: string }>();
+    for (const v of variants) if (!dedup.has(v.cycle)) dedup.set(v.cycle, v);
     out.push({
       providerProductId: String(p.id ?? p.product_id),
-      name: String(p.name || p.title || `Sản phẩm ${p.id}`),
+      name: String(p.product_name || p.name || p.title || `Sản phẩm ${p.id ?? p.product_id}`),
       categoryName: String(p.category || p.category_name || categoryName || "Sản phẩm khác"),
-      variants: Array.from(new Map(variants.map((v) => [v.cycle, v])).values()).sort((a, b) => a.cycle - b.cycle),
+      variants: Array.from(dedup.values()).sort((a, b) => a.cycle - b.cycle),
     });
   };
   const walk = (node: any, categoryName = "") => {
@@ -376,7 +470,7 @@ export async function syncProviderPremium(provider: Provider) {
       const ev = await prisma.premiumVariant.findFirst({ where: { productId, providerCycle: v.cycle } });
       const data = {
         productId,
-        name: v.cycle >= 12 && v.cycle % 12 === 0 ? `${v.cycle / 12} năm` : `${v.cycle} tháng`,
+        name: v.label?.trim() || (v.cycle >= 12 && v.cycle % 12 === 0 ? `${v.cycle / 12} năm` : `${v.cycle} tháng`),
         price: sell,
         cost: costVnd,
         warrantyDays: 0,

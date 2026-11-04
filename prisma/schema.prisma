@@ -137,6 +137,7 @@ model SmmService {
   updatedAt        DateTime    @updatedAt
 
   orders SmmOrder[]
+  panelPrices PanelServicePrice[]
 
   @@index([providerId, providerServiceId])
 }
@@ -400,12 +401,39 @@ model ChildPanel {
   slug      String   @unique @db.VarChar(60)
   domain    String?  @unique @db.VarChar(190)
   markup    Int      @default(20) // % cộng trên giá gốc
+  // Giảm giá riêng theo cấp bậc của khách panel (% tính trên giá panel, lấy từ phần hoa hồng của chủ panel)
+  discountMember   Int @default(0)
+  discountReseller Int @default(5)
+  discountAgency   Int @default(10)
+  discountVip      Int @default(15)
   accent    String   @default("blue") @db.VarChar(20)
   tagline   String?  @db.VarChar(255)
+  support   String?  @db.VarChar(255) // liên hệ hỗ trợ riêng của panel (Zalo/Telegram/link)
+  apiKey    String?  @db.VarChar(64) // API key tài khoản mẹ mà panel liên kết (nhập ở trang setup lần đầu)
+  apiUserId Int? // tài khoản mẹ sở hữu API key trên
+  setupDone Boolean  @default(false) // đã qua trang cấu hình lần đầu
   status    String   @default("ACTIVE") @db.VarChar(20) // ACTIVE | SUSPENDED
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   members User[]     @relation("PanelMember")
   orders  SmmOrder[]
+  servicePrices PanelServicePrice[]
+}
+
+// Giá riêng của panel cho TỪNG dịch vụ theo TỪNG cấp bậc khách (kiểu thatim:
+// bảng giá có một cột giá cho mỗi cấp). Có giá riêng thì đó là giá cuối cho bậc đó.
+model PanelServicePrice {
+  id        Int        @id @default(autoincrement())
+  panelId   Int
+  panel     ChildPanel @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  serviceId Int
+  service   SmmService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  level     UserLevel
+  price     Int // giá bán /1000 tại panel cho đúng bậc này (đã gồm markup)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([panelId, serviceId, level])
+  @@index([panelId])
 }
