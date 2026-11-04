@@ -72,6 +72,9 @@ export default async function AdminPremium({ searchParams }: { searchParams: { m
             <div><label className="lbl">Slug (đường dẫn)</label><input className="inp font-mono" name="slug" required defaultValue={edit?.slug || ""} placeholder="youtube-premium" /></div>
             <div><label className="lbl">Dòng giới thiệu ngắn</label><input className="inp" name="tagline" defaultValue={edit?.tagline || ""} /></div>
             <div><label className="lbl">Mô tả chi tiết</label><textarea className="inp" name="description" rows={4} defaultValue={edit?.description || ""} /></div>
+            <div><label className="lbl">Ảnh sản phẩm (đường link ảnh)</label><input className="inp" name="imageUrl" defaultValue={edit?.imageUrl || ""} placeholder="https://... (để trống = dùng chữ cái đại diện)" /></div>
+            <div><label className="lbl">Thông tin bảo hành</label><textarea className="inp" name="warrantyInfo" rows={3} defaultValue={edit?.warrantyInfo || ""} placeholder="Điều kiện bảo hành của sản phẩm (để trống = hiện theo số ngày của từng gói)" /></div>
+            <div><label className="lbl">Hướng dẫn sử dụng</label><textarea className="inp" name="usageGuide" rows={4} defaultValue={edit?.usageGuide || ""} placeholder="Các bước sử dụng sau khi mua..." /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="lbl">Màu nhận diện</label><input className="inp !p-1.5 h-[42px]" name="color" type="color" defaultValue={edit?.color || "#3178fc"} /></div>
               <div>

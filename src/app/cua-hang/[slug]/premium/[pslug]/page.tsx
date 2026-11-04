@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { SiteHeader, SiteFooter } from "@/components/site";
+import { SiteHeader, SiteFooter, PremiumInfoSections } from "@/components/site";
 import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
 import { getSession } from "@/lib/auth";
@@ -39,7 +39,12 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
         <Link href={base} className="text-sm font-medium text-brand-600">← Tất cả sản phẩm Premium của {panel.name}</Link>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-6 items-start">
           <div className="lg:col-span-2">
-            <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-white font-black text-3xl" style={{ background: product.color }}>{product.name.charAt(0)}</div>
+            {product.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={product.imageUrl} alt={product.name} className="w-full aspect-[16/9] object-cover rounded-3xl border border-slate-200 mb-5" />
+            ) : (
+              <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-white font-black text-3xl" style={{ background: product.color }}>{product.name.charAt(0)}</div>
+            )}
             <h1 className="text-3xl font-extrabold text-slate-900 mt-5">{product.name}</h1>
             <p className="text-slate-500 mt-2">{product.tagline}</p>
             <div className="mt-5 space-y-2.5 text-sm text-slate-600">
@@ -47,7 +52,6 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
               <div className="flex gap-2"><span className="text-emerald-600 mt-0.5">{I.check}</span>Bảo hành theo số ngày ghi trên từng gói — lỗi là đổi mới hoặc hoàn tiền</div>
               <div className="flex gap-2"><span className="text-emerald-600 mt-0.5">{I.check}</span>Thanh toán bằng số dư, xem lại nội dung đã giao bất cứ lúc nào trong mục Đơn Premium</div>
             </div>
-            {product.description && <div className="mt-6 text-sm text-slate-600 leading-relaxed whitespace-pre-line bg-white border border-slate-200 rounded-2xl p-5">{product.description}</div>}
             <div className="mt-4 text-sm text-slate-400">Giá tại {panel.name} — gói rẻ nhất: {product.variants[0] ? vnd(panelRate(product.variants[0].price)) : "—"}</div>
           </div>
           <div className="card p-6 lg:col-span-3">
@@ -71,6 +75,7 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
             )}
           </div>
         </div>
+        <PremiumInfoSections product={{ description: product.description, usageGuide: product.usageGuide, warrantyInfo: product.warrantyInfo, categoryName: product.category.name, fulfillment: product.fulfillment, variants: product.variants.map((v) => ({ name: v.name, warrantyDays: v.warrantyDays })) }} />
         {related.length > 0 && (
           <div className="mt-14">
             <h2 className="text-xl font-extrabold text-slate-900 mb-5">Sản phẩm liên quan</h2>

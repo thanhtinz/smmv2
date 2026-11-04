@@ -152,3 +152,50 @@ function FloatingSupport({ s }: { s: Record<string, string> }) {
     </div>
   );
 }
+
+/** Các mục thông tin đầy đủ ở trang chi tiết premium: Thông tin sản phẩm /
+ *  Thông tin bảo hành / Hướng dẫn sử dụng — nội dung admin nhập theo từng sản phẩm. */
+export function PremiumInfoSections({ product }: {
+  product: {
+    description?: string | null;
+    usageGuide?: string | null;
+    warrantyInfo?: string | null;
+    categoryName: string;
+    fulfillment: string;
+    variants: { name: string; warrantyDays: number }[];
+  };
+}) {
+  const fulfillmentLabel = product.fulfillment === "AUTO_STOCK" ? "Giao ngay tự động từ kho" : product.fulfillment === "API" ? "Giao tự động qua nhà cung cấp" : "Nâng cấp chính chủ / giao thủ công";
+  const maxWarranty = Math.max(0, ...product.variants.map((v) => v.warrantyDays || 0));
+  return (
+    <div className="mt-12 space-y-6">
+      <section className="card p-6">
+        <h2 className="text-lg font-extrabold text-slate-900 mb-4">Thông tin sản phẩm</h2>
+        {product.description && <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-line mb-5">{product.description}</div>}
+        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+          <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Danh mục</dt><dd className="font-semibold text-slate-800 mt-1">{product.categoryName}</dd></div>
+          <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Hình thức giao</dt><dd className="font-semibold text-slate-800 mt-1">{fulfillmentLabel}</dd></div>
+          <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Bảo hành tối đa</dt><dd className="font-semibold text-slate-800 mt-1">{maxWarranty ? `${maxWarranty} ngày` : "Không bảo hành"}</dd></div>
+        </dl>
+      </section>
+      <section className="card p-6">
+        <h2 className="text-lg font-extrabold text-slate-900 mb-4">Thông tin bảo hành</h2>
+        {product.warrantyInfo
+          ? <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{product.warrantyInfo}</div>
+          : (
+            <ul className="text-sm text-slate-600 space-y-1.5">
+              {product.variants.map((v) => (
+                <li key={v.name}>Gói {v.name}: {v.warrantyDays ? `bảo hành ${v.warrantyDays} ngày` : "không bảo hành"}</li>
+              ))}
+            </ul>
+          )}
+      </section>
+      {product.usageGuide && (
+        <section className="card p-6">
+          <h2 className="text-lg font-extrabold text-slate-900 mb-4">Hướng dẫn sử dụng</h2>
+          <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{product.usageGuide}</div>
+        </section>
+      )}
+    </div>
+  );
+}

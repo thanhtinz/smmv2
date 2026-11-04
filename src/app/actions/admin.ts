@@ -230,6 +230,9 @@ export async function adminSaveProduct(formData: FormData) {
     providerProductId: String(formData.get("fulfillment")) === "API" ? String(formData.get("providerProductId") || "") || null : null,
     customFields: normalizePremiumFieldsJson(String(formData.get("customFields") || "")),
     buyNote: String(formData.get("buyNote") || "").trim().slice(0, 500) || null,
+    imageUrl: String(formData.get("imageUrl") || "").trim().slice(0, 500) || null,
+    usageGuide: String(formData.get("usageGuide") || "").trim() || null,
+    warrantyInfo: String(formData.get("warrantyInfo") || "").trim() || null,
     active: formData.get("active") === "on",
     sort: parseInt(String(formData.get("sort") || "0")),
   };

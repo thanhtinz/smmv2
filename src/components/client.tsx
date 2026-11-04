@@ -604,13 +604,15 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="slug" value={slug} />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {variants.map((x) => (
           <button type="button" key={x.id} onClick={() => setVariantId(x.id)}
-            className={`text-left rounded-2xl border-2 p-4 transition ${x.id === v?.id ? "border-brand-600 bg-brand-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-            <div className="font-bold text-slate-900">{x.name}</div>
-            <div className="text-brand-700 font-extrabold text-lg mt-1">{vnd(x.price)}</div>
-            <div className="text-xs text-slate-500 mt-1">
+            className={`text-left rounded-xl border-2 px-3.5 py-3 transition ${x.id === v?.id ? "border-brand-600 bg-brand-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-bold text-slate-900 text-[15px]">{x.name}</span>
+              <span className="text-brand-700 font-extrabold whitespace-nowrap">{vnd(x.price)}</span>
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5">
               {x.warrantyDays ? `Bảo hành ${x.warrantyDays} ngày` : "Không bảo hành"}
               {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? ` · Còn ${x.stock} trong kho` : " · Hết kho — giao tay") : fulfillment === "API" ? " · Giao qua nhà cung cấp" : " · Giao thủ công"}
             </div>
@@ -618,12 +620,16 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
         ))}
       </div>
       <input type="hidden" name="variantId" value={v?.id || ""} />
-      <div className="flex items-end gap-3">
-        <div className="w-32">
+      <div className="flex items-end justify-between gap-3">
+        <div>
           <label className="lbl">Số lượng</label>
-          <input className="inp" name="quantity" type="number" min={1} max={50} value={qty} onChange={(e) => setQty(parseInt(e.target.value) || 1)} />
+          <div className="flex items-stretch h-[46px]">
+            <button type="button" aria-label="Giảm số lượng" onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-11 rounded-l-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">−</button>
+            <input className="w-16 border-y border-slate-300 text-center text-lg font-bold outline-none" name="quantity" type="number" min={1} max={50} value={qty} onChange={(e) => setQty(parseInt(e.target.value) || 1)} />
+            <button type="button" aria-label="Tăng số lượng" onClick={() => setQty((q) => Math.min(50, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
+          </div>
         </div>
-        <div className="flex-1 text-right">
+        <div className="text-right">
           <div className="text-xs text-slate-500">Tổng tiền</div>
           <div className="text-2xl font-extrabold text-brand-700">{vnd((v?.price || 0) * qty)}</div>
         </div>
