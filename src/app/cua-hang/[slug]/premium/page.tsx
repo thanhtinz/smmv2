@@ -32,7 +32,7 @@ export default async function PanelPremiumPage({ params, searchParams }: { param
       <main className="flex-1 max-w-7xl mx-auto px-4 py-12 w-full">
         <Link href={`/cua-hang/${panel.slug}`} className="text-sm font-medium text-brand-600">← Về trang chủ {panel.name}</Link>
         <h1 className="text-3xl font-extrabold text-slate-900 mt-4">Tài khoản Premium</h1>
-        <p className="text-slate-500 mt-2 mb-6">Shop Premium của {panel.name} — dùng chung kho với hệ thống: gói có kho giao ngay tự động, gói nâng cấp chính chủ bảo hành rõ ràng từng gói. Giá đã gồm phụ phí của panel; khách thuộc panel được giảm thêm theo cấp bậc khi đặt đơn.</p>
+        <p className="text-slate-500 mt-2 mb-6">Giá đã gồm phụ phí của panel.</p>
         <form method="get" className="flex gap-2 mb-6 max-w-lg">
           {catId && <input type="hidden" name="cat" value={catId} />}
           <input className="inp flex-1" name="q" placeholder="Tìm sản phẩm... (vd: Netflix, Spotify)" defaultValue={searchParams.q || ""} />

@@ -6,7 +6,7 @@ import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
 import { getSession } from "@/lib/auth";
 import { buyPremiumAction } from "@/app/actions/user";
-import { vnd } from "@/lib/format";
+import { vnd, parsePremiumFields } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +48,7 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
               <div className="flex gap-2"><span className="text-emerald-600 mt-0.5">{I.check}</span>Thanh toán bằng số dư, xem lại nội dung đã giao bất cứ lúc nào trong mục Đơn Premium</div>
             </div>
             {product.description && <div className="mt-6 text-sm text-slate-600 leading-relaxed whitespace-pre-line bg-white border border-slate-200 rounded-2xl p-5">{product.description}</div>}
-            <div className="mt-4 text-sm text-slate-400">Giá tại {panel.name} — gói rẻ nhất: {product.variants[0] ? vnd(panelRate(product.variants[0].price)) : "—"}. Khách thuộc panel được giảm thêm theo cấp bậc khi đặt đơn.</div>
+            <div className="mt-4 text-sm text-slate-400">Giá tại {panel.name} — gói rẻ nhất: {product.variants[0] ? vnd(panelRate(product.variants[0].price)) : "—"}</div>
           </div>
           <div className="card p-6 lg:col-span-3">
             <h2 className="font-bold text-slate-900 mb-4">Chọn gói</h2>
@@ -58,6 +58,8 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
                 slug={product.slug}
                 fulfillment={product.fulfillment}
                 action={buyPremiumAction}
+                fields={parsePremiumFields(product.customFields)}
+                note={product.buyNote}
                 variants={product.variants.map((v) => ({ id: v.id, name: v.name, price: panelRate(v.price), warrantyDays: v.warrantyDays, stock: stockMap.get(v.id) || 0 }))}
               />
             ) : (

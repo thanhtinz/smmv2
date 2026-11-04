@@ -66,9 +66,6 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
               </div>
             ))}</div>
           )}
-          <div className="mt-5 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500 leading-relaxed">
-            Việc của Panel Admin: chỉnh <b>giá bán</b> ở mục Dịch vụ & Giá, gán <b>cấp bậc</b> cho khách ở mục Khách hàng, và giữ gian hàng đẹp ở mục Cài đặt. Nguồn dịch vụ, nhà cung cấp và xử lý đơn do web mẹ đảm nhiệm.
-          </div>
         </div>
       </div>
       <div className="card p-6 mt-6">
@@ -76,7 +73,7 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
           <div className="font-bold text-slate-900">Nạp tiền gần nhất của khách</div>
           <span className="text-xs text-slate-400">{num(depositAgg._count)} lượt nạp thành công qua SePay</span>
         </div>
-        {deposits.length === 0 ? <p className="text-sm text-slate-400">Chưa có lượt nạp nào. Khách nạp tại mục Nạp tiền bằng chuyển khoản — tiền qua cổng SePay chung của hệ thống và cộng thẳng vào ví của khách.</p> : (
+        {deposits.length === 0 ? <p className="text-sm text-slate-400">Chưa có lượt nạp nào.</p> : (
           <div className="divide-y divide-slate-100">{deposits.map((d) => (
             <div key={d.id} className="py-2.5 flex items-center justify-between gap-3 text-sm">
               <div className="min-w-0"><span className="font-mono font-semibold text-slate-700">{d.code}</span> <span className="text-slate-400">· {d.user.username}</span>{d.auto && <span className="ml-2 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold px-2 py-0.5">SePay tự động</span>}</div>

@@ -35,7 +35,7 @@ export default async function PanelOrdersPage({ searchParams }: { searchParams: 
   const totalCommission = orders.reduce((a, o) => a + o.commission, 0);
   return (
     <div>
-      <PageHead title="Đơn hàng qua panel" desc="Đơn do khách của panel đặt — việc chạy đơn và bảo hành do web mẹ xử lý, bạn theo dõi và nhận hoa hồng tại đây." />
+      <PageHead title="Đơn hàng qua panel" desc="Đơn do khách của panel đặt." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
@@ -66,7 +66,6 @@ export default async function PanelOrdersPage({ searchParams }: { searchParams: 
       <div className="card overflow-hidden mt-6">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
           <div className="font-bold text-slate-900">Đơn Premium qua panel</div>
-          <span className="text-xs text-slate-400">Sản phẩm premium dùng chung kho của web mẹ, giá bán theo panel của bạn</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px]">

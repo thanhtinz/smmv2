@@ -49,9 +49,6 @@ export default async function PanelAdminLayout({ children }: { children: React.R
       <div className="max-w-[1440px] mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[248px_1fr] gap-6 items-start">
         <aside className="lg:sticky lg:top-24 lg:bg-white lg:rounded-2xl lg:border lg:border-slate-200/60 lg:shadow-soft lg:p-3">
           <SideNav items={items} />
-          <div className="hidden lg:block mt-3 px-3.5 py-3 rounded-xl bg-slate-50 text-xs text-slate-500 leading-relaxed">
-            Dịch vụ được đồng bộ từ web mẹ — tại Panel Admin bạn chỉ chỉnh <b>giá bán</b>, quản lý khách, đơn và cài đặt gian hàng.
-          </div>
         </aside>
         <main className="min-w-0 pb-20 lg:pb-0">
           {panel.status !== "ACTIVE" && (

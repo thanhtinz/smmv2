@@ -5,7 +5,7 @@ import { applyBalance } from "@/lib/wallet";
 import { refundSmmOrder, syncSmmOrderStatus, syncPremiumOrderStatus } from "@/lib/orders";
 import { providerBalance, syncProviderServices, syncProviderPremium } from "@/lib/provider";
 import { setSetting } from "@/lib/settings";
-import { genCode } from "@/lib/format";
+import { genCode, normalizePremiumFieldsJson } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -228,6 +228,8 @@ export async function adminSaveProduct(formData: FormData) {
     fulfillment: String(formData.get("fulfillment") || "MANUAL"),
     providerId: String(formData.get("fulfillment")) === "API" && formData.get("providerId") ? parseInt(String(formData.get("providerId"))) : null,
     providerProductId: String(formData.get("fulfillment")) === "API" ? String(formData.get("providerProductId") || "") || null : null,
+    customFields: normalizePremiumFieldsJson(String(formData.get("customFields") || "")),
+    buyNote: String(formData.get("buyNote") || "").trim().slice(0, 500) || null,
     active: formData.get("active") === "on",
     sort: parseInt(String(formData.get("sort") || "0")),
   };

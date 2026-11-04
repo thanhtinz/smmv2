@@ -42,21 +42,19 @@ export default async function PanelSettingsPage({ searchParams }: { searchParams
             <div><label className="lbl">Fanpage Facebook riêng</label><input className="inp" name="supportFacebook" maxLength={120} defaultValue={panel.supportFacebook || ""} placeholder="Tên fanpage hoặc link facebook.com" /></div>
             <div><label className="lbl">Hotline riêng</label><input className="inp" name="supportHotline" maxLength={120} defaultValue={panel.supportHotline || ""} placeholder="Số hotline của panel" /></div>
           </div>
-          <p className="-mt-2 text-xs text-slate-400">4 kênh trên hiện ở nút liên hệ nổi + cuối trang của landing panel. Để trống kênh nào thì kênh đó dùng thông tin của web mẹ.</p>
-          <div><label className="lbl">Thông báo riêng của panel</label><input className="inp" name="announcement" maxLength={500} defaultValue={panel.announcement || ""} placeholder="VD: Khuyến mãi cuối tuần — giảm thêm cho khách VIP của shop" /><p className="text-xs text-slate-400 mt-1.5">Hiện thành thanh thông báo ngay dưới đầu trang landing của panel. Để trống = không hiện.</p></div>
+          <div><label className="lbl">Thông báo riêng của panel</label><input className="inp" name="announcement" maxLength={500} defaultValue={panel.announcement || ""} placeholder="VD: Khuyến mãi cuối tuần — giảm thêm cho khách VIP của shop" /></div>
           <div><label className="lbl">Tên miền riêng</label><input className="inp" name="domain" defaultValue={panel.domain || ""} placeholder="shop.tenmiencuaban.com" /><p className="text-xs text-slate-400 mt-1.5">Trỏ CNAME của tên miền về máy chủ hệ thống để khách vào thẳng gian hàng bằng tên miền của bạn.</p></div>
           <div>
             <label className="lbl">API key liên kết web mẹ</label>
             <input className="inp font-mono !text-[13px]" name="apiKey" defaultValue={panel.apiKey || ""} placeholder="Để trống = giữ key hiện tại" autoComplete="off" />
-            <p className="text-xs text-slate-400 mt-1.5">Panel đang liên kết bằng key của tài khoản <b>{linked ? `${linked.username} (#${panel.apiUserId})` : "—"}</b>. Đây là cách panel con kết nối về web mẹ — đúng mô hình các panel lớn: tạo web con xong vào Cài đặt nhập API token. Hệ thống kiểm tra key ngay khi lưu.</p>
+            <p className="text-xs text-slate-400 mt-1.5">Đang liên kết bằng key của tài khoản <b>{linked ? `${linked.username} (#${panel.apiUserId})` : "—"}</b>. Hệ thống kiểm tra key ngay khi lưu.</p>
           </div>
           <div><label className="lbl">Trạng thái bán</label><select className="inp" name="status" defaultValue={panel.status}><option value="ACTIVE">Đang mở bán</option><option value="SUSPENDED">Tạm ngưng (khách mua theo giá gốc, không hoa hồng)</option></select></div>
           <button className="btn-primary w-full !py-2.5" type="submit">Lưu cài đặt</button>
         </form>
         <div className="lg:col-span-2 space-y-6">
           <div className="card p-6">
-            <div className="font-bold text-slate-900">Thanh toán SePay — cấu hình chung toàn hệ thống</div>
-            <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">Cả web mẹ và mọi panel con đều nạp qua <b>một cổng SePay chung</b> do web mẹ cấu hình — panel con không cần (và không tự) cấu hình tài khoản nhận tiền riêng. Khách của panel chuyển khoản vào tài khoản dưới đây với nội dung chứa mã nạp của họ, SePay tự cộng tiền vào ví trong vài phút.</p>
+            <div className="font-bold text-slate-900">Thanh toán SePay — cấu hình chung</div>
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between gap-3"><dt className="text-slate-400">Ngân hàng nhận</dt><dd className="font-semibold text-slate-800 text-right">{s.bank_name || "—"}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-slate-400">Số tài khoản</dt><dd className="font-semibold text-slate-800 text-right">{s.bank_account || "—"}</dd></div>
@@ -65,21 +63,11 @@ export default async function PanelSettingsPage({ searchParams }: { searchParams
               <div className="flex justify-between gap-3"><dt className="text-slate-400">Nạp tối thiểu</dt><dd className="font-semibold text-slate-800 text-right">{vnd(parseInt(s.deposit_min || "10000"))}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-slate-400">Nội dung chuyển khoản</dt><dd className="font-semibold text-slate-800 text-right font-mono text-[13px]">SMM + mã nạp riêng của từng khách</dd></div>
             </dl>
-            <p className="text-xs text-slate-400 mt-4 leading-relaxed">Mỗi khách có một mã nạp riêng nên tiền luôn vào đúng ví dù nạp từ web mẹ hay panel con. Thưởng nạp theo mốc (nếu web mẹ bật) cũng áp dụng chung cho khách của panel.</p>
           </div>
           <div className="card p-6">
             <div className="font-bold text-slate-900">Cấu hình lần đầu</div>
             <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">Muốn chỉnh lại toàn bộ theo từng bước (thông tin → giá & cấp bậc → API key → tên miền & hỗ trợ), mở lại trang cấu hình lần đầu.</p>
             <Link href="/dashboard/panel-cua-toi/thiet-lap" className="btn-ghost w-full mt-4">Mở trang cấu hình lần đầu</Link>
-          </div>
-          <div className="card p-6">
-            <div className="font-bold text-slate-900">Panel con hoạt động thế nào?</div>
-            <ul className="text-sm text-slate-500 mt-2 space-y-2 leading-relaxed list-disc pl-5">
-              <li>Dịch vụ và nguồn hàng do <b>web mẹ</b> cung cấp — panel không tự đấu nguồn riêng.</li>
-              <li>Bạn chỉ quyết định <b>giá bán</b>: phụ phí, giảm theo bậc và giá riêng từng dịch vụ.</li>
-              <li>Chênh lệch giữa giá khách trả và giá web mẹ là <b>hoa hồng</b> của bạn, cộng vào ví ngay khi đơn được tạo.</li>
-              <li>Khách của panel dùng chung ví, đơn và API key trên toàn hệ thống.</li>
-            </ul>
           </div>
         </div>
       </div>

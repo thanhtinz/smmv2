@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder } from "@/lib/orders";
 import { getSettings, calcBonus } from "@/lib/settings";
-import { randomKey, genCode } from "@/lib/format";
+import { randomKey, genCode, parsePremiumFields } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -234,9 +234,17 @@ export async function buyPremiumAction(formData: FormData) {
   const quantity = parseInt(String(formData.get("quantity") || "1"));
   const buyerInfo = String(formData.get("buyerInfo") || "") || undefined;
   const slug = String(formData.get("slug") || "");
+  // Trường tuỳ chỉnh của sản phẩm (form gửi cf_0, cf_1... theo thứ tự trường đã định nghĩa)
+  let customData: Record<string, string> | undefined;
+  const variantRow = variantId ? await prisma.premiumVariant.findUnique({ where: { id: variantId }, include: { product: { select: { customFields: true } } } }) : null;
+  const fields = parsePremiumFields(variantRow?.product.customFields);
+  if (fields.length > 0) {
+    customData = {};
+    fields.forEach((f, i) => { customData![f.label] = String(formData.get(`cf_${i}`) || ""); });
+  }
   try {
     const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-    const order = await createPremiumOrder({ user: fresh, variantId, quantity, buyerInfo });
+    const order = await createPremiumOrder({ user: fresh, variantId, quantity, buyerInfo, customData });
     back(
       "/dashboard/don-premium",
       "msg",

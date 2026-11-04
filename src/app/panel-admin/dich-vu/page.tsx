@@ -33,13 +33,12 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
   }
   return (
     <div>
-      <PageHead title="Dịch vụ & Giá" desc="Toàn bộ dịch vụ được đồng bộ từ web mẹ — bạn không thêm dịch vụ hay đấu nguồn riêng tại đây, chỉ chỉnh giá bán của panel mình." />
+      <PageHead title="Dịch vụ & Giá" desc="Dịch vụ đồng bộ từ web mẹ — chỉ chỉnh giá bán." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
 
       <div className="card p-6 mb-6">
         <div className="font-bold text-slate-900">Giá chung của panel</div>
-        <p className="text-sm text-slate-500 mt-1 mb-4">Áp dụng cho mọi dịch vụ chưa có giá riêng: giá bán = giá web mẹ cộng phụ phí, rồi giảm thêm theo cấp bậc của khách (phần giảm trừ vào hoa hồng của bạn).</p>
-        <form action={updatePanelAction} className="grid grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+        <form action={updatePanelAction} className="grid grid-cols-2 lg:grid-cols-5 gap-4 items-end mt-4">
           <input type="hidden" name="back" value="/panel-admin/dich-vu" />
           <div><label className="lbl">Phụ phí (%)</label><input className="inp" name="markup" type="number" min={0} max={200} defaultValue={panel.markup} /></div>
           <div><label className="lbl">Giảm — Thành viên (%)</label><input className="inp" name="discountMember" type="number" min={0} max={90} defaultValue={panel.discountMember} /></div>
@@ -54,13 +53,14 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
 
       <div className="card p-6 mb-6">
         <div className="font-bold text-slate-900">Giá riêng từng dịch vụ theo cấp bậc</div>
-        <p className="text-sm text-slate-500 mt-1 mb-4">Đặt giá cố định cho từng dịch vụ ứng với từng bậc khách — dịch vụ nào có giá riêng thì giá đó là giá cuối cho bậc đó, không giảm thêm %.</p>
+        <div className="mt-4">
         <PanelPriceEditor
           services={services.map((s) => ({ id: s.id, name: s.name, panelRate: panelRate(s.rate) }))}
           overrides={overrides}
           action={setPanelServicePricesAction}
           deleteAction={deletePanelServicePriceAction}
         />
+        </div>
       </div>
 
       <div className="card overflow-hidden">

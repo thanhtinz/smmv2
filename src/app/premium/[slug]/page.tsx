@@ -6,7 +6,7 @@ import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
 import { getSession } from "@/lib/auth";
 import { buyPremiumAction } from "@/app/actions/user";
-import { vnd } from "@/lib/format";
+import { vnd, parsePremiumFields } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +51,8 @@ export default async function PremiumDetail({ params, searchParams }: { params: 
                 slug={product.slug}
                 fulfillment={product.fulfillment}
                 action={buyPremiumAction}
+                fields={parsePremiumFields(product.customFields)}
+                note={product.buyNote}
                 variants={product.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, warrantyDays: v.warrantyDays, stock: stockMap.get(v.id) || 0 }))}
               />
             ) : (

@@ -3,7 +3,8 @@ import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { adminSavePremiumCategory, adminSaveProduct, adminDeleteProduct } from "@/app/actions/admin";
-import { vnd } from "@/lib/format";
+import { PremiumFieldsEditor } from "@/components/client";
+import { vnd, parsePremiumFields } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,11 @@ export default async function AdminPremium({ searchParams }: { searchParams: { m
               <div><label className="lbl">ID sản phẩm phía nhà cung cấp</label><input className="inp" name="providerProductId" defaultValue={edit?.providerProductId || ""} placeholder="Tự có khi đồng bộ từ provider" /></div>
               <label className="flex items-center gap-2 text-sm pt-6"><input type="checkbox" name="active" defaultChecked={edit ? edit.active : true} className="w-4 h-4" /> Đang bán</label>
             </div>
+            <div>
+              <label className="lbl">Trường tuỳ chỉnh khách điền khi mua</label>
+              <PremiumFieldsEditor initial={parsePremiumFields(edit?.customFields)} />
+            </div>
+            <div><label className="lbl">Hướng dẫn nhập thông tin (hiện trên trang chi tiết)</label><input className="inp" name="buyNote" maxLength={500} defaultValue={edit?.buyNote || ""} placeholder="Vd: Vui lòng nhập Gmail cần nâng cấp (không cần mật khẩu)" /></div>
             <button className="btn-primary w-full">{edit ? "Lưu sản phẩm" : "Thêm sản phẩm"}</button>
             {edit && <a href="/admin/premium" className="btn-ghost w-full">Huỷ sửa</a>}
           </form>

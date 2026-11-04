@@ -24,7 +24,7 @@ export default async function PanelMembersPage({ searchParams }: { searchParams:
   const stats = new Map(orderCounts.map((o) => [o.userId, o]));
   return (
     <div>
-      <PageHead title="Khách hàng của panel" desc="Khách đăng ký tại gian hàng của bạn. Gán cấp bậc để khách được hưởng giá theo bậc bạn đã đặt ở mục Dịch vụ & Giá." />
+      <PageHead title="Khách hàng của panel" desc="Khách đăng ký tại gian hàng của bạn." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
@@ -58,7 +58,6 @@ export default async function PanelMembersPage({ searchParams }: { searchParams:
           </table>
         </div>
       </div>
-      <p className="text-xs text-slate-400 mt-3">Chỉ gán được bậc cho khách thuộc panel của bạn. Giá mỗi bậc (giảm % + giá riêng từng dịch vụ) đặt tại mục Dịch vụ & Giá.</p>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { vnd, num, PLATFORMS } from "@/lib/format";
+import { vnd, num, PLATFORMS, type PremiumCustomField } from "@/lib/format";
 import { PLATFORM_COLORS } from "@/components/ui";
 
 export type ServiceDTO = {
@@ -590,11 +590,13 @@ export function PanelPriceEditor({ services, overrides, action, deleteAction }: 
 }
 
 /* ---------- Form mua premium ---------- */
-export function PremiumBuyForm({ variants, slug, fulfillment, action }: {
+export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note }: {
   variants: { id: number; name: string; price: number; warrantyDays: number; stock: number }[];
   slug: string;
   fulfillment: string;
   action: (formData: FormData) => void;
+  fields?: PremiumCustomField[]; // trường tuỳ chỉnh của sản phẩm — có thì thay ô thông tin bàn giao mặc định
+  note?: string | null; // hướng dẫn riêng của sản phẩm (hộp xanh phía trên các ô nhập)
 }) {
   const [variantId, setVariantId] = useState(variants[0]?.id);
   const [qty, setQty] = useState(1);
@@ -626,14 +628,35 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action }: {
           <div className="text-2xl font-extrabold text-brand-700">{vnd((v?.price || 0) * qty)}</div>
         </div>
       </div>
-      {(fulfillment === "MANUAL" || fulfillment === "API") && (
+      {note && (
+        <div className="rounded-xl bg-sky-50 border border-sky-100 px-4 py-3 text-sm text-sky-900 leading-relaxed">{note}</div>
+      )}
+      {fields && fields.length > 0 ? (
+        <div className="space-y-3.5">
+          {fields.map((f, i) => (
+            <div key={i}>
+              <label className="lbl">{f.label}{f.required ? " *" : ""}</label>
+              {f.type === "textarea" ? (
+                <textarea className="inp" name={`cf_${i}`} rows={3} required={f.required} placeholder={f.placeholder || ""} />
+              ) : f.type === "select" ? (
+                <select className="inp" name={`cf_${i}`} required={f.required} defaultValue="">
+                  <option value="" disabled>-- Chọn --</option>
+                  {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : (
+                <input className="inp" name={`cf_${i}`} required={f.required} placeholder={f.placeholder || ""} />
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (fulfillment === "MANUAL" || fulfillment === "API") && (
         <div>
           <label className="lbl">Email / tài khoản của bạn để bàn giao *</label>
           <input className="inp" name="buyerInfo" required placeholder="Vd: email nhận gói / tài khoản cần nâng cấp" />
           <p className="text-xs text-slate-400 mt-1.5">{fulfillment === "API" ? "Thông tin này được gửi kèm đơn sang nhà cung cấp để bàn giao gói." : "Gói này được nâng cấp trực tiếp lên tài khoản của bạn — chỉ cần email, không cần mật khẩu."}</p>
         </div>
       )}
-      {fulfillment === "AUTO_STOCK" && (
+      {!fields?.length && fulfillment === "AUTO_STOCK" && (
         <div>
           <label className="lbl">Ghi chú (tuỳ chọn)</label>
           <input className="inp" name="buyerInfo" placeholder="Email nhận tài khoản (mặc định dùng email tài khoản của bạn)" />
@@ -641,6 +664,55 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action }: {
       )}
       <button className="btn-primary w-full !py-3">Mua ngay bằng số dư</button>
     </form>
+  );
+}
+
+/** Trình soạn TRƯỜNG TUỲ CHỈNH cho sản phẩm premium (admin): mỗi sản phẩm định nghĩa
+ *  các ô khách phải điền khi mua — nhãn, kiểu ô, bắt buộc hay không, gợi ý, lựa chọn. */
+export function PremiumFieldsEditor({ initial }: { initial: PremiumCustomField[] }) {
+  const [rows, setRows] = useState<PremiumCustomField[]>(initial);
+  const set = (i: number, patch: Partial<PremiumCustomField>) =>
+    setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  return (
+    <div>
+      <input type="hidden" name="customFields" value={JSON.stringify(rows.filter((r) => r.label.trim()))} />
+      <div className="space-y-3">
+        {rows.map((r, i) => (
+          <div key={i} className="rounded-xl border border-slate-200 p-3 space-y-2.5">
+            <div className="flex gap-2">
+              <input className="inp flex-1" placeholder="Nhãn trường — vd: Gmail cần nâng cấp" value={r.label}
+                onChange={(e) => set(i, { label: e.target.value })} />
+              <button type="button" className="btn-ghost btn-sm !text-rose-600 shrink-0"
+                onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}>Xoá</button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <select className="inp" value={r.type} onChange={(e) => set(i, { type: e.target.value as PremiumCustomField["type"] })}>
+                <option value="text">Ô nhập 1 dòng</option>
+                <option value="textarea">Ô nhập nhiều dòng</option>
+                <option value="select">Danh sách chọn</option>
+              </select>
+              <input className="inp" placeholder="Chữ gợi ý trong ô" value={r.placeholder || ""}
+                onChange={(e) => set(i, { placeholder: e.target.value })} />
+            </div>
+            {r.type === "select" && (
+              <input className="inp" placeholder="Các lựa chọn, cách nhau dấu phẩy — vd: Android, iOS, TV"
+                value={(r.options || []).join(", ")}
+                onChange={(e) => set(i, { options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
+            )}
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <input type="checkbox" className="w-4 h-4" checked={r.required} onChange={(e) => set(i, { required: e.target.checked })} />
+              Bắt buộc khách điền
+            </label>
+          </div>
+        ))}
+      </div>
+      {rows.length < 8 && (
+        <button type="button" className="btn-ghost btn-sm mt-3"
+          onClick={() => setRows((rs) => [...rs, { label: "", type: "text", required: true }])}>
+          + Thêm trường tuỳ chỉnh
+        </button>
+      )}
+    </div>
   );
 }
 

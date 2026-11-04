@@ -58,6 +58,40 @@ export const PLATFORMS: Record<string, string> = {
 export function genCode(prefix: string, id: number) {
   return `${prefix}${100000 + id}`;
 }
+
+/** Trường tuỳ chỉnh của sản phẩm premium — khách điền khi mua (vd Gmail nâng cấp, link, loại thiết bị).
+ *  Admin định nghĩa theo từng sản phẩm; lưu JSON trên PremiumProduct.customFields. */
+export type PremiumCustomField = {
+  label: string;
+  type: "text" | "textarea" | "select";
+  required: boolean;
+  placeholder?: string;
+  options?: string[];
+};
+
+export function parsePremiumFields(json?: string | null): PremiumCustomField[] {
+  try {
+    const a = JSON.parse(json || "[]");
+    if (!Array.isArray(a)) return [];
+    return a
+      .filter((f) => f && typeof f.label === "string" && f.label.trim())
+      .map((f) => ({
+        label: String(f.label).slice(0, 80),
+        type: f.type === "textarea" || f.type === "select" ? f.type : ("text" as const),
+        required: !!f.required,
+        placeholder: f.placeholder ? String(f.placeholder).slice(0, 120) : undefined,
+        options: Array.isArray(f.options) ? f.options.map((o: unknown) => String(o).slice(0, 60)).filter(Boolean).slice(0, 12) : undefined,
+      }))
+      .slice(0, 8);
+  } catch {
+    return [];
+  }
+}
+
+export function normalizePremiumFieldsJson(raw: string): string | null {
+  const f = parsePremiumFields(raw);
+  return f.length ? JSON.stringify(f) : null;
+}
 export function randomKey(bytes = 24) {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let s = "";

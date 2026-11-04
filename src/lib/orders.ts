@@ -1,6 +1,6 @@
 import { prisma } from "./db";
 import { applyBalance } from "./wallet";
-import { LEVEL_DISCOUNT, smmCharge, genCode } from "./format";
+import { LEVEL_DISCOUNT, smmCharge, genCode, parsePremiumFields } from "./format";
 import {
   providerAddOrder, providerOrderStatus, mapProviderStatus,
   providerBuyProduct, findPremiumOrderInHistory, extractDelivery,
@@ -324,6 +324,7 @@ export async function createPremiumOrder(input: {
   variantId: number;
   quantity: number;
   buyerInfo?: string;
+  customData?: Record<string, string>; // giá trị các trường tuỳ chỉnh theo label (form web gửi)
 }) {
   const variant = await prisma.premiumVariant.findUnique({
     where: { id: input.variantId },
@@ -331,7 +332,19 @@ export async function createPremiumOrder(input: {
   });
   if (!variant || !variant.active || !variant.product.active) throw new Error("Gói không tồn tại hoặc đã ngưng bán");
   if (input.quantity < 1 || input.quantity > 50) throw new Error("Số lượng không hợp lệ");
-  if ((variant.product.fulfillment === "MANUAL" || variant.product.fulfillment === "API") && !input.buyerInfo?.trim())
+  // Trường tuỳ chỉnh của sản phẩm: validate trường bắt buộc và gộp thành thông tin bàn giao
+  const fields = parsePremiumFields(variant.product.customFields);
+  let buyerInfo = input.buyerInfo;
+  if (fields.length > 0 && input.customData !== undefined) {
+    const lines: string[] = [];
+    for (const f of fields) {
+      const val = String(input.customData[f.label] || "").trim();
+      if (f.required && !val) throw new Error(`Thiếu thông tin: ${f.label}`);
+      if (val) lines.push(`${f.label}: ${val}`);
+    }
+    buyerInfo = lines.join("\n") || undefined;
+  }
+  if ((variant.product.fulfillment === "MANUAL" || variant.product.fulfillment === "API") && !buyerInfo?.trim())
     throw new Error("Gói này cần thông tin tài khoản/email của bạn để bàn giao");
 
   // Panel con: khách thuộc panel trả giá panel (cộng markup, giảm theo cấp bậc của panel),
@@ -362,7 +375,7 @@ export async function createPremiumOrder(input: {
         providerId: variant.product.providerId,
         panelId: panel?.id,
         commission,
-        buyerInfo: input.buyerInfo,
+        buyerInfo,
         warrantyUntil: variant.warrantyDays
           ? new Date(Date.now() + variant.warrantyDays * 86400000)
           : null,
@@ -419,7 +432,7 @@ export async function createPremiumOrder(input: {
     let failed = 0;
     for (let i = 0; i < input.quantity; i++) {
       try {
-        const r = await providerBuyProduct(provider, variant.product.providerProductId, variant.providerCycle, input.buyerInfo || "");
+        const r = await providerBuyProduct(provider, variant.product.providerProductId, variant.providerCycle, buyerInfo || "");
         codes.push(r.orderCode);
         const d = extractDelivery(r.raw?.data || r.raw).delivery;
         if (d) deliveries.push(d);
