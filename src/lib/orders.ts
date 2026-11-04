@@ -334,7 +334,18 @@ export async function createPremiumOrder(input: {
   if ((variant.product.fulfillment === "MANUAL" || variant.product.fulfillment === "API") && !input.buyerInfo?.trim())
     throw new Error("Gói này cần thông tin tài khoản/email của bạn để bàn giao");
 
-  const total = variant.price * input.quantity;
+  // Panel con: khách thuộc panel trả giá panel (cộng markup, giảm theo cấp bậc của panel),
+  // chênh lệch so với giá web mẹ là hoa hồng của chủ panel — cùng nguyên tắc với đơn SMM.
+  const panelRow = input.user.panelId ? await prisma.childPanel.findUnique({ where: { id: input.user.panelId } }) : null;
+  const panel = panelRow && panelRow.status === "ACTIVE" ? panelRow : null;
+  let total = variant.price * input.quantity;
+  let commission = 0;
+  if (panel) {
+    const unit = Math.round(variant.price * (1 + panel.markup / 100));
+    const disc = panelTierDiscount(panel, input.user.level);
+    total = Math.max(1, Math.round(unit * input.quantity * (1 - disc / 100)));
+    commission = Math.max(0, total - variant.price * input.quantity);
+  }
   const cost = variant.cost * input.quantity;
 
   const created = await prisma.$transaction(async (tx) => {
@@ -349,6 +360,8 @@ export async function createPremiumOrder(input: {
         cost,
         status: "PENDING",
         providerId: variant.product.providerId,
+        panelId: panel?.id,
+        commission,
         buyerInfo: input.buyerInfo,
         warrantyUntil: variant.warrantyDays
           ? new Date(Date.now() + variant.warrantyDays * 86400000)
@@ -357,6 +370,9 @@ export async function createPremiumOrder(input: {
     });
     const code = genCode("PRE", o.id);
     await tx.premiumOrder.update({ where: { id: o.id }, data: { code } });
+    if (panel && commission > 0) {
+      await applyBalance(tx, panel.ownerId, commission, "PANEL_COMMISSION", code, `Hoa hồng đơn ${code} — panel ${panel.name}`);
+    }
 
     // Giao tự động từ kho
     if (variant.product.fulfillment === "AUTO_STOCK") {
@@ -414,17 +430,24 @@ export async function createPremiumOrder(input: {
       }
     }
     if (codes.length === 0) {
-      // Provider từ chối toàn bộ -> hoàn tiền đủ
+      // Provider từ chối toàn bộ -> hoàn tiền đủ + thu hồi toàn bộ hoa hồng panel
       await prisma.$transaction(async (tx) => {
         await applyBalance(tx, input.user.id, total, "REFUND", created.code, "Nhà cung cấp từ chối đơn premium — hoàn tiền");
+        if (panel && commission > 0) {
+          await applyBalance(tx, panel.ownerId, -commission, "PANEL_COMMISSION", created.code, "Thu hồi hoa hồng — đơn premium bị hoàn toàn bộ");
+        }
         await tx.premiumOrder.update({ where: { id: created.id }, data: { status: "REFUNDED" } });
       });
       return { ...created, status: "REFUNDED" as const };
     }
     if (failed > 0) {
-      const refundAmt = variant.price * failed;
+      const refundAmt = Math.floor((total * failed) / input.quantity);
+      const clawback = panel ? Math.floor((commission * failed) / input.quantity) : 0;
       await prisma.$transaction(async (tx) => {
         await applyBalance(tx, input.user.id, refundAmt, "REFUND", created.code, `Hoàn ${failed} đơn vị provider không nhận`);
+        if (panel && clawback > 0) {
+          await applyBalance(tx, panel.ownerId, -clawback, "PANEL_COMMISSION", created.code, "Thu hồi hoa hồng phần đơn premium bị hoàn");
+        }
       });
     }
     const updated = await prisma.premiumOrder.update({
@@ -479,8 +502,12 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
       data: { status: "COMPLETED", adminNote: [order.adminNote, "Provider báo completed nhưng chưa có dữ liệu bàn giao"].filter(Boolean).join(" · ") },
     });
   } else if (canceled === codes.length && codes.length > 0 && order.status !== "REFUNDED") {
+    const panelOwner = order.panelId ? await prisma.childPanel.findUnique({ where: { id: order.panelId }, select: { ownerId: true } }) : null;
     await prisma.$transaction(async (tx) => {
       await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Nhà cung cấp huỷ đơn premium — hoàn tiền");
+      if (panelOwner && order.commission > 0) {
+        await applyBalance(tx, panelOwner.ownerId, -order.commission, "PANEL_COMMISSION", order.code, "Thu hồi hoa hồng — đơn premium bị hoàn");
+      }
       await tx.premiumOrder.update({ where: { id: order.id }, data: { status: "REFUNDED" } });
     });
   }

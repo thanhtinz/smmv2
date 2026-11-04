@@ -268,6 +268,9 @@ model PremiumOrder {
   providerId    Int?
   provider      Provider?          @relation(fields: [providerId], references: [id])
   providerOrderId String?          @db.VarChar(60) // order_code phía nhà cung cấp (kiểu ThaTim: _8488103)
+  panelId       Int? // đơn mua qua panel con — chủ panel hưởng commission
+  panel         ChildPanel?        @relation(fields: [panelId], references: [id])
+  commission    Int                @default(0) // hoa hồng đã trả cho chủ panel (VND)
   buyerInfo     String?            @db.Text // email/tài khoản khách cần nâng cấp (gói MANUAL)
   deliveryData  String?            @db.Text // nội dung đã giao (kho hoặc admin nhập)
   warrantyUntil DateTime?
@@ -409,6 +412,11 @@ model ChildPanel {
   accent    String   @default("blue") @db.VarChar(20)
   tagline   String?  @db.VarChar(255)
   support   String?  @db.VarChar(255) // liên hệ hỗ trợ riêng của panel (Zalo/Telegram/link)
+  supportZalo     String? @db.VarChar(120)
+  supportTelegram String? @db.VarChar(120)
+  supportFacebook String? @db.VarChar(120)
+  supportHotline  String? @db.VarChar(120)
+  announcement String? @db.VarChar(500) // thông báo riêng của panel, hiện trên landing con
   apiKey    String?  @db.VarChar(64) // API key tài khoản mẹ mà panel liên kết (nhập ở trang setup lần đầu)
   apiUserId Int? // tài khoản mẹ sở hữu API key trên
   setupDone Boolean  @default(false) // đã qua trang cấu hình lần đầu
@@ -418,6 +426,7 @@ model ChildPanel {
 
   members User[]     @relation("PanelMember")
   orders  SmmOrder[]
+  premiumOrders PremiumOrder[]
   servicePrices PanelServicePrice[]
 }
 

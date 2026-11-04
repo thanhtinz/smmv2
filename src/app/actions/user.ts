@@ -150,6 +150,11 @@ export async function updatePanelAction(formData: FormData) {
   if (has("accent")) data.accent = PANEL_ACCENTS.includes(String(formData.get("accent"))) ? String(formData.get("accent")) : panel.accent;
   if (has("tagline")) data.tagline = String(formData.get("tagline") || "").trim() || null;
   if (has("support")) data.support = String(formData.get("support") || "").trim() || null;
+  if (has("supportZalo")) data.supportZalo = String(formData.get("supportZalo") || "").trim().slice(0, 120) || null;
+  if (has("supportTelegram")) data.supportTelegram = String(formData.get("supportTelegram") || "").trim().slice(0, 120) || null;
+  if (has("supportFacebook")) data.supportFacebook = String(formData.get("supportFacebook") || "").trim().slice(0, 120) || null;
+  if (has("supportHotline")) data.supportHotline = String(formData.get("supportHotline") || "").trim().slice(0, 120) || null;
+  if (has("announcement")) data.announcement = String(formData.get("announcement") || "").trim().slice(0, 500) || null;
   if (has("domain")) {
     const domainRaw = String(formData.get("domain") || "").trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0] || null;
     if (domainRaw && domainRaw !== panel.domain) {

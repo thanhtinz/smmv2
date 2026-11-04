@@ -14,11 +14,17 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
   const content = depositContent(user.depositCode);
   const tiers = (() => { try { return JSON.parse(s.deposit_bonus_tiers || "[]") as { from: number; percent: number }[]; } catch { return []; } })();
   const deposits = await prisma.deposit.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 20 });
+  const myPanel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { name: true } }) : null;
   void calcBonus;
   return (
     <div>
-      <PageHead title="Nạp tiền" desc="Chuyển khoản đúng nội dung để được cộng tiền tự động. Sai nội dung vẫn được cộng nhưng phải chờ admin kiểm tra tay." />
+      <PageHead title="Nạp tiền" desc="Chuyển khoản đúng nội dung để được cộng tiền tự động qua SePay. Sai nội dung vẫn được cộng nhưng phải chờ admin kiểm tra tay." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
+      {myPanel && (
+        <div className="card px-5 py-4 mb-6 bg-brand-50/60 border !border-brand-100 text-sm text-slate-600">
+          Bạn là khách của panel <b className="text-slate-800">{myPanel.name}</b>. Panel dùng chung cổng nạp <b className="text-slate-800">SePay</b> của toàn hệ thống — cứ chuyển khoản đúng nội dung bên dưới, tiền cộng thẳng vào ví này trong vài phút, không cần cấu hình gì thêm.
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="card p-6">
           <h2 className="font-bold text-slate-900 mb-4">Chuyển khoản ngân hàng</h2>

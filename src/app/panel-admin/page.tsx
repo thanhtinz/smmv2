@@ -9,12 +9,14 @@ export const dynamic = "force-dynamic";
 export default async function PanelAdminHome({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
   const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
-  const [memberCount, orderAgg, commissionAgg, members, orders] = await Promise.all([
+  const [memberCount, orderAgg, commissionAgg, members, orders, depositAgg, deposits] = await Promise.all([
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.smmOrder.aggregate({ where: { panelId: panel.id }, _count: true, _sum: { charge: true } }),
     prisma.transaction.aggregate({ where: { userId: user.id, type: "PANEL_COMMISSION", amount: { gt: 0 } }, _sum: { amount: true } }),
     prisma.user.findMany({ where: { panelId: panel.id }, orderBy: { createdAt: "desc" }, take: 6, select: { id: true, username: true, createdAt: true, level: true } }),
     prisma.smmOrder.findMany({ where: { panelId: panel.id }, orderBy: { createdAt: "desc" }, take: 8, include: { user: { select: { username: true } }, service: { select: { name: true } } } }),
+    prisma.deposit.aggregate({ where: { user: { panelId: panel.id }, status: "APPROVED" }, _count: true, _sum: { amount: true, bonus: true } }),
+    prisma.deposit.findMany({ where: { user: { panelId: panel.id } }, orderBy: { createdAt: "desc" }, take: 5, include: { user: { select: { username: true } } } }),
   ]);
   return (
     <div>
@@ -31,7 +33,7 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
           ["Hoa hồng đã nhận", vnd(commissionAgg._sum.amount || 0)],
           ["Phụ phí hiện tại", `+${panel.markup}%`],
           ["Số dư của bạn", vnd(user.balance)],
-          ["Dịch vụ đang bán", "Đồng bộ từ web mẹ"],
+          ["Khách đã nạp (SePay chung)", vnd((depositAgg._sum.amount || 0) + (depositAgg._sum.bonus || 0))],
         ].map(([k, v]) => (
           <div key={k} className="card p-5"><div className="text-xs text-slate-400 font-semibold uppercase tracking-wide">{k}</div><div className="mt-1.5 text-xl font-extrabold text-slate-900">{v}</div></div>
         ))}
@@ -68,6 +70,24 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
             Việc của Panel Admin: chỉnh <b>giá bán</b> ở mục Dịch vụ & Giá, gán <b>cấp bậc</b> cho khách ở mục Khách hàng, và giữ gian hàng đẹp ở mục Cài đặt. Nguồn dịch vụ, nhà cung cấp và xử lý đơn do web mẹ đảm nhiệm.
           </div>
         </div>
+      </div>
+      <div className="card p-6 mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="font-bold text-slate-900">Nạp tiền gần nhất của khách</div>
+          <span className="text-xs text-slate-400">{num(depositAgg._count)} lượt nạp thành công qua SePay</span>
+        </div>
+        {deposits.length === 0 ? <p className="text-sm text-slate-400">Chưa có lượt nạp nào. Khách nạp tại mục Nạp tiền bằng chuyển khoản — tiền qua cổng SePay chung của hệ thống và cộng thẳng vào ví của khách.</p> : (
+          <div className="divide-y divide-slate-100">{deposits.map((d) => (
+            <div key={d.id} className="py-2.5 flex items-center justify-between gap-3 text-sm">
+              <div className="min-w-0"><span className="font-mono font-semibold text-slate-700">{d.code}</span> <span className="text-slate-400">· {d.user.username}</span>{d.auto && <span className="ml-2 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold px-2 py-0.5">SePay tự động</span>}</div>
+              <div className="text-right shrink-0 flex items-center gap-3">
+                <span className="font-semibold">{vnd(d.amount + d.bonus)}</span>
+                <Badge cls={d.status === "APPROVED" ? "bg-emerald-50 text-emerald-700" : d.status === "REJECTED" ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-700"}>{d.status}</Badge>
+                <span className="text-xs text-slate-400 hidden sm:inline">{dt(d.createdAt)}</span>
+              </div>
+            </div>
+          ))}</div>
+        )}
       </div>
     </div>
   );

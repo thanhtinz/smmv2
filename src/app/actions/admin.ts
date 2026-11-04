@@ -320,8 +320,13 @@ export async function adminPremiumOrderAction(formData: FormData) {
     }
   }
   if (kind === "cancel") {
+    if (order.status === "REFUNDED") back(path, "err", "Đơn đã hoàn tiền trước đó");
+    const panelOwner = order.panelId ? await prisma.childPanel.findUnique({ where: { id: order.panelId }, select: { ownerId: true } }) : null;
     await prisma.$transaction(async (tx) => {
       await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Admin huỷ đơn premium — hoàn tiền");
+      if (panelOwner && order.commission > 0) {
+        await applyBalance(tx, panelOwner.ownerId, -order.commission, "PANEL_COMMISSION", order.code, "Thu hồi hoa hồng — đơn premium bị huỷ");
+      }
       await tx.premiumOrder.update({ where: { id }, data: { status: "REFUNDED" } });
     });
     done(path, "Đã huỷ đơn và hoàn tiền");

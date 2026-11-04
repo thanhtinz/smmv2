@@ -67,6 +67,9 @@ export default async function PanelStorefront({ params, searchParams }: { params
   return (
     <div data-accent={panel.accent} className="min-h-screen flex flex-col">
       <SiteHeader />
+      {panel.announcement && (
+        <div className="bg-brand-600 text-white text-center text-sm font-medium px-4 py-2.5">{panel.announcement}</div>
+      )}
       <main className="flex-1">
         {/* ================= HERO ================= */}
         <section className="relative overflow-hidden">
@@ -420,15 +423,15 @@ order=100482`}</pre>
                 <h2 className="text-2xl lg:text-3xl font-extrabold text-slate-900">Tài khoản Premium</h2>
                 <p className="text-slate-500 mt-2">Dùng chung tài khoản {panel.name} để mua — kho tự động giao ngay, gói chính chủ bảo hành đầy đủ.</p>
               </div>
-              <Link href="/premium" className="btn-ghost shrink-0">Xem tất cả</Link>
+              <Link href={`/cua-hang/${panel.slug}/premium`} className="btn-ghost shrink-0">Xem tất cả</Link>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {premiums.map((p) => (
-                <Link key={p.id} href={`/premium/${p.slug}`} className="card p-6 hover:shadow-lg transition group">
+                <Link key={p.id} href={`/cua-hang/${panel.slug}/premium/${p.slug}`} className="card p-6 hover:shadow-lg transition group">
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl" style={{ background: p.color }}>{p.name.charAt(0)}</div>
                   <div className="font-bold text-slate-900 mt-4 group-hover:text-brand-700">{p.name}</div>
                   <p className="text-sm text-slate-500 mt-1 line-clamp-2">{p.tagline}</p>
-                  {p.variants[0] && <div className="mt-4 text-sm">Chỉ từ <span className="font-extrabold text-brand-700 text-base">{vnd(p.variants[0].price)}</span></div>}
+                  {p.variants[0] && <div className="mt-4 text-sm">Chỉ từ <span className="font-extrabold text-brand-700 text-base">{vnd(Math.round(p.variants[0].price * (1 + panel.markup / 100)))}</span></div>}
                 </Link>
               ))}
             </div>
@@ -475,7 +478,7 @@ order=100482`}</pre>
           </div>
         </section>
       </main>
-      <SiteFooter />
+      <SiteFooter brand={{ name: panel.name, tagline: panel.tagline, zalo: panel.supportZalo, telegram: panel.supportTelegram, facebook: panel.supportFacebook, hotline: panel.supportHotline }} />
     </div>
   );
 }

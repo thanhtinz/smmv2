@@ -52,17 +52,37 @@ export async function SiteHeader() {
   );
 }
 
-export async function SiteFooter() {
+export type FooterBrand = {
+  name: string;
+  tagline?: string | null;
+  zalo?: string | null;
+  telegram?: string | null;
+  facebook?: string | null;
+  hotline?: string | null;
+};
+
+/** Footer dùng chung. Trang panel con truyền `brand` để footer + nút liên hệ nổi
+ *  mang thương hiệu và kênh hỗ trợ RIÊNG của panel (kênh nào panel để trống thì dùng của web mẹ). */
+export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
   const s = await getSettings();
   const session = await getSession().catch(() => null);
+  const merged = brand
+    ? {
+        ...s,
+        support_zalo: brand.zalo || s.support_zalo,
+        support_telegram: brand.telegram || s.support_telegram,
+        support_facebook: brand.facebook || s.support_facebook,
+        support_hotline: brand.hotline || s.support_hotline,
+      }
+    : s;
   return (
     <>
-    <FloatingSupport s={s} />
+    <FloatingSupport s={merged} />
     <footer className="bg-slate-950 text-slate-400 mt-20">
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm">
         <div>
-          <div className="text-white font-extrabold text-lg mb-3">{s.site_name}</div>
-          <p className="leading-relaxed">{s.site_tagline}</p>
+          <div className="text-white font-extrabold text-lg mb-3">{brand?.name || s.site_name}</div>
+          <p className="leading-relaxed">{brand?.tagline || s.site_tagline}</p>
         </div>
         <div>
           <div className="text-white font-semibold mb-3">Dịch vụ</div>
@@ -83,14 +103,14 @@ export async function SiteFooter() {
         <div>
           <div className="text-white font-semibold mb-3">Hỗ trợ 24/7</div>
           <ul className="space-y-2">
-            {s.support_hotline && <li>Hotline: {s.support_hotline}</li>}
-            {s.support_telegram && <li>Telegram: {s.support_telegram}</li>}
-            {s.support_facebook && <li>Facebook: {s.support_facebook}</li>}
+            {merged.support_hotline && <li>Hotline: {merged.support_hotline}</li>}
+            {merged.support_telegram && <li>Telegram: {merged.support_telegram}</li>}
+            {merged.support_facebook && <li>Facebook: {merged.support_facebook}</li>}
             <li><Link href="/dashboard/ticket" className="hover:text-white">Gửi ticket hỗ trợ</Link></li>
           </ul>
         </div>
       </div>
-      <div className="border-t border-slate-800 py-5 text-center text-xs">© {new Date().getFullYear()} {s.site_name}. Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.</div>
+      <div className="border-t border-slate-800 py-5 text-center text-xs">© {new Date().getFullYear()} {brand?.name || s.site_name}. Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.</div>
     </footer>
     <div className="h-[68px] lg:hidden" />
     <TabBar variant={session ? "app" : "site"} />
