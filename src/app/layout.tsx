@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getSettings } from "@/lib/settings";
+import { DisplayEngine } from "@/components/display";
 
 export const viewport: Viewport = {
   viewportFit: "cover",
@@ -21,8 +22,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// Áp giao diện khách đã chọn (lưu localStorage) trước khi trang vẽ để không chớp màu
-const THEME_SCRIPT = `(function(){try{var a=localStorage.getItem('smmv2-accent');var m=localStorage.getItem('smmv2-mode');var h=document.documentElement;if(a)h.setAttribute('data-accent',a);if(m==='dark')h.classList.add('dark');else if(m==='light')h.classList.remove('dark');}catch(e){}})();`;
+// Áp tuỳ chọn hiển thị khách đã chọn (localStorage) trước khi trang vẽ để không chớp
+const THEME_SCRIPT = `(function(){try{var h=document.documentElement;var a=localStorage.getItem('smmv2-accent');var m=localStorage.getItem('smmv2-mode');if(a)h.setAttribute('data-accent',a);if(m==='dark')h.classList.add('dark');else if(m==='light')h.classList.remove('dark');var d=localStorage.getItem('smmv2-dir');if(d)h.setAttribute('dir',d);var f=localStorage.getItem('smmv2-font');if(f)h.setAttribute('data-font',f);var s=localStorage.getItem('smmv2-fsize');if(s)h.setAttribute('data-fsize',s);var l=localStorage.getItem('smmv2-lang');if(l)h.setAttribute('lang',l);}catch(e){}})();`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const s = await getSettings().catch(() => null);
@@ -33,7 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body>{children}</body>
+      <body>{children}<DisplayEngine /></body>
     </html>
   );
 }

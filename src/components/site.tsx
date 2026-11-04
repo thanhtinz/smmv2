@@ -5,7 +5,7 @@ import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { vnd } from "@/lib/format";
 import { prisma } from "@/lib/db";
-import { ThemePicker } from "@/components/theme";
+import { DisplaySettings } from "@/components/display";
 
 export async function SiteHeader() {
   const session = await getSession();
@@ -27,7 +27,7 @@ export async function SiteHeader() {
           <Link href="/api-docs" className="hover:text-brand-600">API đại lý</Link>
         </nav>
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5">
-          <ThemePicker />
+          <DisplaySettings />
           {session ? (
             <>
               {user && <span className="hidden sm:inline-flex rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 text-sm font-bold">{vnd(user.balance)}</span>}

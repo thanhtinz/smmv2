@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { ChildPanel, User } from "@prisma/client";
 import { logoutAction } from "@/app/actions/auth";
 import { SideNav } from "@/components/nav";
-import { ThemePicker } from "@/components/theme";
+import { DisplaySettings } from "@/components/display";
 import { I } from "@/components/ui";
 import { vnd, LEVEL_NAME } from "@/lib/format";
 
@@ -13,9 +13,9 @@ export function PanelShell({ panel, user, children }: { panel: ChildPanel; user:
   const items = [
     { href: `/cua-hang/${panel.slug}`, label: "Gian hàng", icon: I.home },
     { href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },
-    { href: `/cua-hang/${panel.slug}/don-hang`, label: "Đơn SMM của tôi", icon: I.list },
+    { href: `/cua-hang/${panel.slug}/don-hang`, label: "Đơn hàng SMM", icon: I.list },
     { href: `/cua-hang/${panel.slug}/premium`, label: "Mua Premium", icon: I.gem },
-    { href: `/cua-hang/${panel.slug}/don-premium`, label: "Đơn Premium", icon: I.box },
+    { href: `/cua-hang/${panel.slug}/don-premium`, label: "Đơn hàng Premium", icon: I.box },
     { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
     { href: `/cua-hang/${panel.slug}/giao-dich`, label: "Dòng tiền", icon: I.chart },
     { href: `/cua-hang/${panel.slug}/kiem-tien`, label: "Kiếm tiền", icon: I.gem },
@@ -32,7 +32,7 @@ export function PanelShell({ panel, user, children }: { panel: ChildPanel; user:
             <span className="font-extrabold text-slate-900 hidden sm:inline">{panel.name}</span>
           </Link>
           <div className="ml-auto flex items-center gap-2.5">
-            <ThemePicker />
+            <DisplaySettings />
             <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hidden sm:inline-block">{LEVEL_NAME[user.level]}</span>
             <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3.5 py-1.5 text-sm font-bold">{vnd(user.balance)}</span>
             <span className="hidden md:inline text-sm font-medium text-slate-700">{user.username}</span>

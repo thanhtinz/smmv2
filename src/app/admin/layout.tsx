@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { SideNav } from "@/components/nav";
-import { ThemePicker } from "@/components/theme";
+import { DisplaySettings } from "@/components/display";
 import TabBar from "@/components/tabbar";
 import { I } from "@/components/ui";
 import { prisma } from "@/lib/db";
@@ -49,7 +49,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="font-extrabold hidden sm:inline">{s.site_name} <span className="text-slate-400 font-medium">/ Admin</span></span>
           </Link>
           <div className="ml-auto flex items-center gap-3">
-            <ThemePicker tone="dark" />
+            <DisplaySettings tone="dark" />
             <Link href="/" className="text-sm text-slate-300 hover:text-white hidden md:inline">Xem website</Link>
             <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold">{user.role} · {user.username}</span>
             <form action={logoutAction}><button className="btn bg-white/10 hover:bg-white/20 text-white btn-sm !py-2">Đăng xuất</button></form>

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/actions/auth";
 import { SideNav } from "@/components/nav";
-import { ThemePicker } from "@/components/theme";
+import { DisplaySettings } from "@/components/display";
 import TabBar from "@/components/tabbar";
 import { I } from "@/components/ui";
 import { prisma } from "@/lib/db";
@@ -38,7 +38,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
             <span className="font-extrabold hidden sm:inline">{panel.name} <span className="text-slate-400 font-medium">/ Panel Admin</span></span>
           </Link>
           <div className="ml-auto flex items-center gap-3">
-            <ThemePicker tone="dark" />
+            <DisplaySettings tone="dark" />
             <Link href={`/cua-hang/${panel.slug}`} className="text-sm text-slate-300 hover:text-white hidden md:inline">Xem gian hàng</Link>
             <Link href="/dashboard" className="text-sm text-slate-300 hover:text-white hidden md:inline">Khu khách hàng</Link>
             <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold">{vnd(user.balance)} · {user.username}</span>

@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { SideNav } from "@/components/nav";
-import { ThemePicker } from "@/components/theme";
+import { DisplaySettings } from "@/components/display";
 import TabBar from "@/components/tabbar";
 import { I } from "@/components/ui";
 import { vnd, LEVEL_NAME } from "@/lib/format";
@@ -22,9 +22,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard", label: "Tổng quan", icon: I.home },
     { href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },
     { href: "/dashboard/dat-hang-loat", label: "Đặt hàng loạt", icon: I.list },
-    { href: "/dashboard/don-hang", label: "Đơn SMM của tôi", icon: I.list },
+    { href: "/dashboard/don-hang", label: "Đơn hàng SMM", icon: I.list },
     { href: "/premium", label: "Mua Premium", icon: I.gem },
-    { href: "/dashboard/don-premium", label: "Đơn Premium", icon: I.box },
+    { href: "/dashboard/don-premium", label: "Đơn hàng Premium", icon: I.box },
     { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
     { href: "/dashboard/giao-dich", label: "Lịch sử số dư", icon: I.chart },
     { href: "/dashboard/kiem-tien", label: "Kiếm tiền", icon: I.gem },
@@ -42,7 +42,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <span className="font-extrabold text-slate-900 hidden sm:inline">{s.site_name}</span>
           </Link>
           <div className="ml-auto flex items-center gap-2.5">
-            <ThemePicker />
+            <DisplaySettings />
             <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hidden sm:inline-block">{LEVEL_NAME[user.level]}</span>
             <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3.5 py-1.5 text-sm font-bold">{vnd(user.balance)}</span>
             <span className="hidden md:inline text-sm font-medium text-slate-700">{user.username}</span>

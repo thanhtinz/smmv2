@@ -54,8 +54,8 @@ const VARIANTS: Record<string, Item[]> = {
   // STAFF: chỉ việc của nhân viên — xử lý đơn + ticket, không có mục tiền/quản trị
   staff: [
     { href: "/admin", label: "Tổng quan", icon: ICONS.home, exact: true },
-    { href: "/admin/don-smm", label: "Đơn SMM", icon: ICONS.list },
-    { href: "/admin/don-premium", label: "Đơn Premium", icon: ICONS.box, center: true },
+    { href: "/admin/don-premium", label: "Đơn Premium", icon: ICONS.box },
+    { href: "/admin/don-smm", label: "Đơn SMM", icon: ICONS.list, center: true },
     { href: "/admin/ticket", label: "Ticket", icon: ICONS.ticket },
     { href: "/admin/nhat-ky", label: "Nhật ký", icon: ICONS.clock },
   ],
