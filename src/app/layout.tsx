@@ -30,7 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const accent = s?.default_accent || "blue";
   const dark = s?.default_mode === "dark";
   return (
-    <html lang="vi" data-accent={accent} className={dark ? "dark" : undefined} suppressHydrationWarning>
+    <html lang="en" data-accent={accent} className={dark ? "dark" : undefined} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>

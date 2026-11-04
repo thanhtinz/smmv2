@@ -2,8 +2,8 @@
  *  Lớp hiển thị (DisplayEngine) dịch tại chỗ các nhãn/nút/tiêu đề khớp chính xác;
  *  nội dung dữ liệu (tên dịch vụ, mô tả sản phẩm, ghi chú) giữ nguyên như đã nhập. */
 export const LANGS = [
-  { key: "vi", name: "Tiếng Việt" },
   { key: "en", name: "English" },
+  { key: "vi", name: "Tiếng Việt" },
   { key: "zh", name: "中文" },
   { key: "th", name: "ไทย" },
   { key: "ja", name: "日本語" },
@@ -16,6 +16,7 @@ const e = (en: string, zh: string, th: string, ja: string, ko: string): Tr => ({
 
 export const DICT: Record<string, Tr> = {
   // Cài đặt hiển thị
+  "Cài đặt": e("Settings", "设置", "ตั้งค่า", "設定", "설정"),
   "Cài đặt hiển thị": e("Display settings", "显示设置", "ตั้งค่าการแสดงผล", "表示設定", "디스플레이 설정"),
   "Chế độ": e("Mode", "模式", "โหมด", "モード", "모드"),
   "Sáng": e("Light", "浅色", "สว่าง", "ライト", "라이트"),

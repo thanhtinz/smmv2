@@ -5,7 +5,7 @@ import { DICT, LANGS, CURRENCIES, FONTS, FSIZES } from "@/lib/i18n";
 
 /* ================= Tuỳ chọn hiển thị (lưu trên máy khách) ================= */
 export type Prefs = { accent: string; mode: string; dir: string; font: string; fsize: string; lang: string; cur: string };
-const DEF: Prefs = { accent: "blue", mode: "light", dir: "ltr", font: "default", fsize: "md", lang: "vi", cur: "VND" };
+const DEF: Prefs = { accent: "blue", mode: "light", dir: "ltr", font: "default", fsize: "md", lang: "en", cur: "VND" };
 const KEYS: Record<keyof Prefs, string> = { accent: "smmv2-accent", mode: "smmv2-mode", dir: "smmv2-dir", font: "smmv2-font", fsize: "smmv2-fsize", lang: "smmv2-lang", cur: "smmv2-cur" };
 
 export function readPrefs(): Prefs {
