@@ -199,22 +199,3 @@ export function PremiumInfoSections({ product }: {
     </div>
   );
 }
-
-/** Thanh điều hướng khu tài khoản TRÊN GIAN HÀNG panel con — khách của panel xem
- *  đơn hàng / dòng tiền / kiếm tiền / tài liệu API ngay tại thương hiệu của panel */
-export function PanelAccountNav({ slug, active }: { slug: string; active: string }) {
-  const items = [
-    { key: "don-hang", href: `/cua-hang/${slug}/don-hang`, label: "Đơn SMM" },
-    { key: "don-premium", href: `/cua-hang/${slug}/don-premium`, label: "Đơn Premium" },
-    { key: "giao-dich", href: `/cua-hang/${slug}/giao-dich`, label: "Dòng tiền" },
-    { key: "kiem-tien", href: `/cua-hang/${slug}/kiem-tien`, label: "Kiếm tiền" },
-    { key: "tai-lieu-api", href: `/cua-hang/${slug}/tai-lieu-api`, label: "Tài liệu API" },
-  ];
-  return (
-    <div className="flex flex-wrap gap-2 mb-6">
-      {items.map((i) => (
-        <Link key={i.key} href={i.href} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${i.key === active ? "bg-brand-600 text-white" : "bg-white border border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-700"}`}>{i.label}</Link>
-      ))}
-    </div>
-  );
-}
