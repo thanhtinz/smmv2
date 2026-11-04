@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
 import { refundSmmOrder, syncSmmOrderStatus, syncPremiumOrderStatus } from "@/lib/orders";
+import { orderTransition } from "@/lib/notify";
 import { providerBalance, syncProviderServices, syncProviderPremium } from "@/lib/provider";
 import { setSetting } from "@/lib/settings";
 import { genCode, normalizePremiumFieldsJson } from "@/lib/format";
@@ -199,6 +200,7 @@ export async function adminSmmOrderAction(formData: FormData) {
     done(path, `Đã cập nhật đơn + hoàn ${amt.toLocaleString("vi-VN")}đ phần chưa chạy`);
   }
   await prisma.smmOrder.update({ where: { id }, data: { status, startCount, remains, adminNote } });
+  if (status !== order.status) await orderTransition(order, status, "Admin cập nhật thủ công");
   done(path, "Đã cập nhật đơn");
 }
 
@@ -411,7 +413,7 @@ export async function adminSaveSettings(formData: FormData) {
     "bank_name", "bank_account", "bank_holder", "bank_branch",
     "momo_phone", "momo_name", "deposit_min", "deposit_bonus_tiers", "maintenance", "announcement_bar", "affiliate_percent",
     "usd_rate", "paypal_enabled", "paypal_client_id", "paypal_client_secret", "paypal_mode",
-    "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret",
+    "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret", "profit_protection",
     "default_accent", "default_mode",
   ];
   for (const k of keys) {

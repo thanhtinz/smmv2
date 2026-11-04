@@ -21,6 +21,8 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   momo_name: "",
   // Nạp tiền
   deposit_min: "10000",
+  // Bảo vệ lợi nhuận: "1" = chặn đặt đơn khi giá bán sau chiết khấu thấp hơn giá vốn
+  profit_protection: "1",
   // Thanh toán quốc tế (PayPal / Stripe) — khách trả USD, hệ thống cộng VND theo tỉ giá này
   usd_rate: "25000",
   paypal_enabled: "0",

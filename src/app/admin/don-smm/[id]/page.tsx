@@ -42,6 +42,11 @@ export default async function AdminSmmOrderDetail({ params, searchParams }: { pa
             ))}
             {o.note && <div className="py-2.5 grid grid-cols-[140px_1fr] gap-4 text-sm"><dt className="text-slate-500">Ghi chú khách</dt><dd>{o.note}</dd></div>}
           </dl>
+          {o.flagNote && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <b>Cờ rủi ro:</b> {o.flagNote}
+            </div>
+          )}
         </div>
         <div className="lg:col-span-2 space-y-4">
           <form action={adminSmmOrderAction} className="card p-6 space-y-4">

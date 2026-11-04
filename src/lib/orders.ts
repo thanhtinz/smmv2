@@ -1,6 +1,8 @@
 import { prisma } from "./db";
 import { applyBalance, creditReferralCommission, clawbackReferralCommission } from "./wallet";
-import { LEVEL_DISCOUNT, smmCharge, genCode, parsePremiumFields } from "./format";
+import { LEVEL_DISCOUNT, smmCharge, genCode, parsePremiumFields, vnd } from "./format";
+import { getSettings } from "./settings";
+import { orderEvent, orderTransition } from "./notify";
 import {
   providerAddOrder, providerOrderStatus, mapProviderStatus,
   providerBuyProduct, findPremiumOrderInHistory, extractDelivery,
@@ -110,6 +112,26 @@ export async function createSmmOrder(input: {
   const charge = Math.max(1, Math.round(smmCharge(effectiveRate, input.quantity) * (1 - discount / 100)));
   const commission = panel ? Math.max(0, charge - smmCharge(service.rate, input.quantity)) : 0;
   const cost = smmCharge(service.costRate, input.quantity);
+
+  // Profit Protection: không cho đặt đơn nếu giá bán (sau mọi chiết khấu) thấp hơn giá vốn
+  const settings = await getSettings();
+  if (settings.profit_protection !== "0" && service.costRate > 0 && charge < cost) {
+    throw new Error("Dịch vụ tạm dừng nhận đơn do biến động giá vốn — vui lòng chọn dịch vụ khác hoặc liên hệ hỗ trợ");
+  }
+
+  // Duplicate Detection + Order Risk Detection: gắn cờ để admin chú ý (vẫn cho đặt)
+  const flags: string[] = [];
+  const dup = await prisma.smmOrder.findFirst({
+    where: { userId: input.user.id, serviceId: service.id, link: input.link.trim(), status: { in: ["PENDING", "PROCESSING", "IN_PROGRESS"] } },
+    orderBy: { id: "desc" }, select: { code: true },
+  });
+  if (dup) flags.push(`Nghi trùng đơn ${dup.code} (cùng dịch vụ + link đang chạy)`);
+  const hourAgo = new Date(Date.now() - 3600_000);
+  const repeats = await prisma.smmOrder.count({ where: { userId: input.user.id, link: input.link.trim(), createdAt: { gte: hourAgo } } });
+  if (repeats >= 3) flags.push(`Đặt lặp link này ${repeats} lần trong 1 giờ`);
+  if (input.quantity >= 100000) flags.push("Số lượng rất lớn (>= 100.000)");
+  const flagNote = flags.length ? flags.join("; ").slice(0, 255) : null;
+
   const order = await prisma.$transaction(async (tx) => {
     await applyBalance(tx, input.user.id, -charge, "SMM_ORDER", undefined, `Đặt đơn ${service.name}`);
     const o = await tx.smmOrder.create({
@@ -128,6 +150,7 @@ export async function createSmmOrder(input: {
         panelId: panel?.id,
         commission,
         note: input.note,
+        flagNote,
         params: (() => {
           const obj: Record<string, any> = { ...(input.extra || {}) };
           if (drip) obj.dripfeed = drip;
@@ -146,6 +169,7 @@ export async function createSmmOrder(input: {
     await creditReferralCommission(tx, input.user.id, charge, code);
     return { ...o, code };
   });
+  await orderEvent(order.id, "PENDING", flagNote ? `Đã tạo đơn · Cờ: ${flagNote}` : "Đã tạo đơn");
 
   // Đẩy qua provider nếu là đơn API — lỗi thì giữ PENDING để admin xử lý / cron thử lại, KHÔNG mất tiền khách vô ích:
   // nếu provider từ chối dứt khoát, hoàn tiền ngay.
@@ -160,6 +184,7 @@ export async function createSmmOrder(input: {
       await prisma.apiLog.create({
         data: { kind: "provider_out", ref: order.code, detail: `providerOrder=${pid} provider=${service.provider.name}` },
       });
+      await orderEvent(order.id, "PROCESSING", `Đã đẩy sang nhà cung cấp ${service.provider.name} (mã ${pid})`);
       return { ...order, providerOrderId: pid, status: "PROCESSING" as const };
     } catch (e: any) {
       await prisma.apiLog.create({
@@ -200,6 +225,7 @@ export async function refundSmmOrder(orderId: number, amount: number, note: stri
     }
     await tx.smmOrder.update({ where: { id: orderId }, data });
   });
+  await orderTransition(order, status, amt > 0 ? `${note} — hoàn ${vnd(amt)}` : note);
   // Thu hồi hoa hồng panel theo đúng tỉ lệ số tiền vừa hoàn (best-effort: chủ panel đã tiêu thì ghi log, không chặn hoàn tiền của khách)
   if (order.panelId && order.commission > 0 && amt > 0 && order.charge > 0) {
     const claw = Math.floor((order.commission * amt) / order.charge);
@@ -310,14 +336,17 @@ export async function syncSmmOrderStatus(order: SmmOrder) {
           data: { status: "PARTIAL", remains, startCount, refundedAmount: { increment: extra } },
         });
       });
+      await orderTransition(order, "PARTIAL", `Hoàn phần chưa chạy ${vnd(extra)}`);
       return prisma.smmOrder.findUnique({ where: { id: order.id } });
     }
     await prisma.smmOrder.update({ where: { id: order.id }, data: { status: "PARTIAL", remains, startCount } });
+    if (order.status !== "PARTIAL") await orderTransition(order, "PARTIAL", "Đơn hoàn một phần");
   } else {
     await prisma.smmOrder.update({
       where: { id: order.id },
       data: { status: mapped, remains, startCount },
     });
+    if (mapped !== order.status) await orderTransition(order, mapped, mapped === "COMPLETED" ? "Đơn đã hoàn thành" : undefined);
   }
   return prisma.smmOrder.findUnique({ where: { id: order.id } });
 }

@@ -57,6 +57,7 @@ model User {
   deposits      Deposit[]
   transactions  Transaction[]
   tickets       Ticket[]
+  notifications Notification[]
 
   // Panel con (child panel): khách đăng ký qua panel của đại lý khác
   panelId    Int?
@@ -171,6 +172,8 @@ model SmmOrder {
   params         String?        @db.Text // JSON tham số phụ kiểu ThaTim: comments, reaction, minutes, duration, posts
   note           String?        @db.Text // ghi chú của khách
   adminNote      String?        @db.Text
+  flagNote       String?        @db.VarChar(255) // cờ rủi ro/trùng đơn do hệ thống gắn (Duplicate/Risk Detection)
+  events         OrderEvent[]
   refundedAmount Int            @default(0)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -459,4 +462,30 @@ model PanelServicePrice {
 
   @@unique([panelId, serviceId, level])
   @@index([panelId])
+}
+
+// Lịch sử thay đổi trạng thái của 1 đơn SMM (Order Tracking 2.0)
+model OrderEvent {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     SmmOrder @relation(fields: [orderId], references: [id])
+  status    String   @db.VarChar(20)
+  note      String?  @db.VarChar(255)
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+// Thông báo riêng cho từng khách (đơn hoàn thành/lỗi/hoàn tiền...)
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  title     String   @db.VarChar(150)
+  body      String   @db.VarChar(500)
+  link      String?  @db.VarChar(200)
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
 }

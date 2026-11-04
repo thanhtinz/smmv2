@@ -18,6 +18,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return <div className="min-h-screen flex items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold mb-2">Hệ thống đang bảo trì</h1><p className="text-slate-500">Vui lòng quay lại sau ít phút.</p></div></div>;
   }
   const openTickets = await prisma.ticket.count({ where: { userId: user.id, status: "ANSWERED" } });
+  const unreadNoti = await prisma.notification.count({ where: { userId: user.id, read: false } });
   const items = [
     { href: "/dashboard", label: "Tổng quan", icon: I.home },
     { href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },
@@ -31,6 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/api", label: "API đại lý", icon: I.key },
     { href: "/panel-admin", label: "Panel Admin", icon: I.server },
     { href: "/dashboard/ticket", label: "Hỗ trợ / Ticket", icon: I.ticket, badge: openTickets },
+    { href: "/dashboard/thong-bao", label: "Thông báo", icon: I.bell, badge: unreadNoti },
     { href: "/dashboard/ho-so", label: "Hồ sơ", icon: I.users },
   ];
   return (

@@ -82,6 +82,10 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
             <p className="text-xs text-slate-400 mt-1.5">Định dạng: [{"{"}"from":500000,"percent":2{"}"},{"{"}"from":2000000,"percent":5{"}"}] — nạp đạt mốc được cộng thêm % thưởng. Để [] nếu không thưởng.</p>
           </div>
           <div><label className="lbl">Hoa hồng giới thiệu — % trên mỗi giao dịch mua của người được giới thiệu</label><input className="inp" name="affiliate_percent" type="number" step="0.5" min="0" max="50" defaultValue={s.affiliate_percent} /></div>
+          <div>
+            <label className="lbl">Bảo vệ lợi nhuận (chặn đặt đơn khi giá bán sau chiết khấu thấp hơn giá vốn)</label>
+            <select className="inp" name="profit_protection" defaultValue={s.profit_protection === "0" ? "0" : "1"}><option value="1">Bật</option><option value="0">Tắt</option></select>
+          </div>
         </section>
 
         <section className="card p-6 space-y-4">

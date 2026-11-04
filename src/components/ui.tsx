@@ -92,6 +92,7 @@ export const I = {
   check: <P d="M20 6 9 17l-5-5" />,
   db: <P d="M12 8c4.97 0 9-1.34 9-3s-4.03-3-9-3-9 1.34-9 3 4.03 3 9 3Zm9 2c0 1.66-4.03 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />,
   megaphone: <P d="m3 11 18-5v12L3 14v-3Zm0 0v3M11.6 16.8a3 3 0 1 1-5.8-1.6" />,
+  bell: <P d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" />,
 };
 
 export const PLATFORM_COLORS: Record<string, string> = {
