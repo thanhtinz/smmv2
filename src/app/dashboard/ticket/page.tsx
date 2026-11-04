@@ -16,7 +16,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
   const user = (await getCurrentUser())!;
   const tickets = await prisma.ticket.findMany({ where: { userId: user.id }, orderBy: { updatedAt: "desc" }, take: 30, include: { _count: { select: { messages: true } } } });
   return (
-    <div className="grid lg:grid-cols-5 gap-6 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
       <div className="lg:col-span-3">
         <PageHead title="Ticket hỗ trợ" desc="Đội hỗ trợ phản hồi trong giờ hành chính, thường dưới 2 giờ." />
         <Flash msg={searchParams.msg} err={searchParams.err} />

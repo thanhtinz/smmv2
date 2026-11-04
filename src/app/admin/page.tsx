@@ -42,7 +42,7 @@ export default async function AdminHome() {
   return (
     <div>
       <PageHead title="Tổng quan kinh doanh" desc="Doanh thu và lợi nhuận gộp (doanh thu trừ vốn dịch vụ/kho) — chưa gồm chi phí vận hành." />
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <Stat label="Doanh thu hôm nay" value={vnd(revToday)} icon={I.chart} sub={`${smmToday._count + preToday._count} đơn`} />
         <Stat label="Lợi nhuận hôm nay" value={vnd(profitToday)} icon={I.wallet} />
         <Stat label="Doanh thu tháng này" value={vnd(revMonth)} icon={I.db} sub={`Lợi nhuận ${vnd(profitMonth)}`} />
@@ -78,7 +78,7 @@ export default async function AdminHome() {
         </div>
       )}
 
-      <div className="grid xl:grid-cols-2 gap-6 mt-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6 items-start">
         <div className="card overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex justify-between"><span className="font-bold text-slate-900">Đơn SMM mới nhất</span><Link href="/admin/don-smm" className="text-sm text-brand-600 font-medium">Tất cả</Link></div>
           <table className="w-full"><tbody className="divide-y divide-slate-100">

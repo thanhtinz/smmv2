@@ -383,9 +383,10 @@ export async function adminSaveSettings(formData: FormData) {
   const me = await requireAdmin();
   if (me.role !== "ADMIN") back("/admin/cau-hinh", "err", "Chỉ ADMIN mới sửa cấu hình");
   const keys = [
-    "site_name", "site_tagline", "support_telegram", "support_facebook", "support_hotline",
+    "site_name", "site_tagline", "support_telegram", "support_facebook", "support_zalo", "support_hotline",
     "bank_name", "bank_account", "bank_holder", "bank_branch",
     "momo_phone", "momo_name", "deposit_min", "deposit_bonus_tiers", "maintenance", "announcement_bar",
+    "default_accent", "default_mode",
   ];
   for (const k of keys) {
     const v = formData.get(k);

@@ -8,21 +8,71 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardHome() {
   const user = (await getCurrentUser())!;
-  const [smmCount, smmRunning, preCount, announcements, recent] = await Promise.all([
+  const since = new Date(Date.now() - 13 * 86400000);
+  since.setHours(0, 0, 0, 0);
+  const [smmCount, smmRunning, preCount, announcements, recent, spendSmm, spendPre] = await Promise.all([
     prisma.smmOrder.count({ where: { userId: user.id } }),
     prisma.smmOrder.count({ where: { userId: user.id, status: { in: ["PENDING", "PROCESSING", "IN_PROGRESS"] } } }),
     prisma.premiumOrder.count({ where: { userId: user.id } }),
     prisma.announcement.findMany({ where: { active: true }, orderBy: { id: "desc" }, take: 3 }),
     prisma.smmOrder.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 6, include: { service: true } }),
+    prisma.smmOrder.findMany({ where: { userId: user.id, createdAt: { gte: since }, status: { not: "CANCELED" } }, select: { charge: true, createdAt: true } }),
+    prisma.premiumOrder.findMany({ where: { userId: user.id, createdAt: { gte: since }, status: { not: "CANCELED" } }, select: { total: true, createdAt: true } }),
   ]);
+  const days: { label: string; value: number }[] = [];
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(since.getTime() + i * 86400000);
+    days.push({ label: `${d.getDate()}/${d.getMonth() + 1}`, value: 0 });
+  }
+  const addSpend = (createdAt: Date, amount: number) => {
+    const idx = Math.floor((createdAt.getTime() - since.getTime()) / 86400000);
+    const clamped = Math.max(0, Math.min(13, idx));
+    days[clamped].value += amount;
+  };
+  for (const o of spendSmm) addSpend(o.createdAt, o.charge);
+  for (const o of spendPre) addSpend(o.createdAt, o.total);
+  const maxDay = Math.max(...days.map((d) => d.value), 1);
+  const totalSpend14 = days.reduce((s, d) => s + d.value, 0);
   return (
     <div>
       <PageHead title={`Xin chào, ${user.fullName || user.username}`} desc={`Cấp bậc: ${LEVEL_NAME[user.level]} · Mã nạp tiền của bạn: SMM ${user.depositCode}`} />
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <Stat label="Số dư khả dụng" value={vnd(user.balance)} icon={I.wallet} sub={<Link href="/dashboard/nap-tien" className="text-brand-600 font-medium">Nạp thêm →</Link>} />
         <Stat label="Tổng đã nạp" value={vnd(user.totalDeposited)} icon={I.db} />
         <Stat label="Đơn SMM" value={num(smmCount)} icon={I.cart} sub={`${smmRunning} đơn đang chạy`} />
         <Stat label="Đơn Premium" value={num(preCount)} icon={I.gem} />
+      </div>
+
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mt-4">
+        {[
+          { href: "/dashboard/dat-hang", t: "Đặt đơn SMM", d: "Tăng like / follow / view", icon: I.cart },
+          { href: "/dashboard/nap-tien", t: "Nạp tiền", d: "VietQR cộng tự động", icon: I.wallet },
+          { href: "/premium", t: "Mua Premium", d: "Giao ngay từ kho", icon: I.gem },
+          { href: "/dashboard/ticket", t: "Gửi hỗ trợ", d: "Ticket trả lời trong ngày", icon: I.ticket },
+        ].map((a) => (
+          <Link key={a.href} href={a.href} className="card p-4 flex items-center gap-3 hover:shadow-lg transition group">
+            <span className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0 [&>svg]:w-5 [&>svg]:h-5">{a.icon}</span>
+            <span className="min-w-0">
+              <span className="block font-bold text-sm text-slate-900 group-hover:text-brand-700 truncate">{a.t}</span>
+              <span className="block text-xs text-slate-400 truncate">{a.d}</span>
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      <div className="card p-5 mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="font-bold text-slate-900">Chi tiêu 14 ngày gần nhất</div>
+          <div className="text-sm text-slate-500">Tổng <b className="text-slate-800">{vnd(totalSpend14)}</b></div>
+        </div>
+        <div className="flex items-end gap-1.5 h-32">
+          {days.map((d, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1.5 min-w-0 h-full" title={`${d.label}: ${vnd(d.value)}`}>
+              <div className="w-full rounded-t-md bg-brand-500/85 hover:bg-brand-600 transition-all" style={{ height: `${d.value > 0 ? Math.max(5, Math.round((d.value / maxDay) * 92)) : 2}px` }} />
+              <div className="text-[10px] text-slate-400 whitespace-nowrap">{i % 2 === 0 || i === 13 ? d.label : ""}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {announcements.length > 0 && (
@@ -57,6 +107,7 @@ export default async function DashboardHome() {
                     <td className="td">{num(o.quantity)}</td>
                     <td className="td font-semibold">{vnd(o.charge)}</td>
                     <td className="td"><Badge cls={SMM_STATUS[o.status].cls}>{SMM_STATUS[o.status].label}</Badge></td>
+                    <td className="td text-right"><Link href={`/dashboard/dat-hang?service=${o.serviceId}&link=${encodeURIComponent(o.link)}&qty=${o.quantity}`} className="text-sm font-semibold text-brand-600 hover:text-brand-700 whitespace-nowrap">Đặt lại</Link></td>
                   </tr>
                 ))}
               </tbody>

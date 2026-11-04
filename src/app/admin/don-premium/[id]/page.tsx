@@ -16,7 +16,7 @@ export default async function AdminPremiumOrderDetail({ params, searchParams }: 
     <div>
       <BackLink href="/admin/don-premium">Danh sách đơn Premium</BackLink>
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid lg:grid-cols-5 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         <div className="card p-6 lg:col-span-3">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-slate-900">Đơn {o.code}</h1>

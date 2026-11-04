@@ -24,7 +24,7 @@ export default async function AdminStock({ searchParams }: { searchParams: { msg
     <div>
       <PageHead title="Kho Premium" desc="Mỗi dòng kho = 1 đơn vị giao ngay khi khách mua gói tương ứng. Mục đã bán được gắn mã đơn để tra cứu bảo hành." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid xl:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
         <div className="xl:col-span-2 space-y-6">
           <div className="card overflow-x-auto">
             <table className="w-full min-w-[560px]">

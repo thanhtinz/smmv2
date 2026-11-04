@@ -15,10 +15,11 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       <form action={adminSaveSettings} className="space-y-6">
         <section className="card p-6 space-y-4">
           <div className="font-bold text-slate-900">Thương hiệu & hỗ trợ</div>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="lbl">Tên website</label><input className="inp" name="site_name" defaultValue={s.site_name} /></div>
             <div><label className="lbl">Khẩu hiệu (tagline)</label><input className="inp" name="site_tagline" defaultValue={s.site_tagline} /></div>
             <div><label className="lbl">Telegram hỗ trợ</label><input className="inp" name="support_telegram" defaultValue={s.support_telegram} placeholder="@username" /></div>
+            <div><label className="lbl">Zalo hỗ trợ (số điện thoại hoặc link)</label><input className="inp" name="support_zalo" defaultValue={s.support_zalo} placeholder="09xx xxx xxx hoặc https://zalo.me/..." /></div>
             <div><label className="lbl">Facebook hỗ trợ</label><input className="inp" name="support_facebook" defaultValue={s.support_facebook} /></div>
             <div><label className="lbl">Hotline</label><input className="inp" name="support_hotline" defaultValue={s.support_hotline} /></div>
             <div><label className="lbl">Thanh thông báo trên cùng (để trống = tắt)</label><input className="inp" name="announcement_bar" defaultValue={s.announcement_bar} /></div>
@@ -33,8 +34,33 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
         </section>
 
         <section className="card p-6 space-y-4">
+          <div className="font-bold text-slate-900">Giao diện mặc định</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="lbl">Màu chủ đạo mặc định (khách mới)</label>
+              <select className="inp" name="default_accent" defaultValue={s.default_accent || "blue"}>
+                <option value="blue">Xanh dương (kiểu thatim)</option>
+                <option value="violet">Tím</option>
+                <option value="emerald">Xanh lá</option>
+                <option value="orange">Cam</option>
+                <option value="rose">Hồng</option>
+                <option value="teal">Ngọc</option>
+              </select>
+            </div>
+            <div>
+              <label className="lbl">Chế độ nền mặc định</label>
+              <select className="inp" name="default_mode" defaultValue={s.default_mode || "light"}>
+                <option value="light">Sáng</option>
+                <option value="dark">Tối</option>
+              </select>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400">Khách luôn tự đổi được 6 tông màu + sáng/tối bằng nút "Giao diện" trên thanh trên cùng; lựa chọn của họ lưu trên thiết bị của họ.</p>
+        </section>
+
+        <section className="card p-6 space-y-4">
           <div className="font-bold text-slate-900">Tài khoản nhận tiền</div>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="lbl">Ngân hàng</label><input className="inp" name="bank_name" defaultValue={s.bank_name} placeholder="Vd: MB Bank, Vietcombank..." /></div>
             <div><label className="lbl">Số tài khoản</label><input className="inp" name="bank_account" defaultValue={s.bank_account} /></div>
             <div><label className="lbl">Chủ tài khoản</label><input className="inp" name="bank_holder" defaultValue={s.bank_holder} /></div>

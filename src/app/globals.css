@@ -2,8 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============ ĐA GIAO DIỆN: 6 tông màu chủ đạo (mặc định Xanh dương kiểu thatim #4680ff) ============ */
+:root {
+  --b50: 237 242 255; --b100: 219 231 255; --b200: 188 211 255; --b300: 142 180 255; --b400: 94 143 255;
+  --b500: 70 128 255; --b600: 56 102 204; --b700: 42 85 184; --b800: 39 73 143; --b900: 38 63 115;
+}
+[data-accent="violet"] {
+  --b50: 245 243 255; --b100: 237 233 255; --b200: 221 214 254; --b300: 196 181 253; --b400: 167 139 250;
+  --b500: 139 92 246; --b600: 124 58 237; --b700: 109 40 217; --b800: 91 33 182; --b900: 76 29 149;
+}
+[data-accent="emerald"] {
+  --b50: 236 253 245; --b100: 209 250 229; --b200: 167 243 208; --b300: 110 231 183; --b400: 52 211 153;
+  --b500: 16 185 129; --b600: 5 150 105; --b700: 4 120 87; --b800: 6 95 70; --b900: 6 78 59;
+}
+[data-accent="orange"] {
+  --b50: 255 247 237; --b100: 255 237 213; --b200: 254 215 170; --b300: 253 186 116; --b400: 251 146 60;
+  --b500: 249 115 22; --b600: 234 88 12; --b700: 194 65 12; --b800: 154 52 18; --b900: 124 45 18;
+}
+[data-accent="rose"] {
+  --b50: 255 241 242; --b100: 255 228 230; --b200: 254 205 211; --b300: 253 164 175; --b400: 251 113 133;
+  --b500: 244 63 94; --b600: 225 29 72; --b700: 190 18 60; --b800: 159 18 57; --b900: 136 19 55;
+}
+[data-accent="teal"] {
+  --b50: 240 253 250; --b100: 204 251 241; --b200: 153 246 228; --b300: 94 234 212; --b400: 45 212 191;
+  --b500: 20 184 166; --b600: 13 148 136; --b700: 15 118 110; --b800: 17 94 89; --b900: 19 78 74;
+}
+
 html { scroll-behavior: smooth; }
-body { @apply bg-slate-50 text-slate-800 antialiased; }
+body { @apply text-slate-800 antialiased; background: #f3f6f9; }
 input, select, textarea { @apply outline-none; }
 input:focus, select:focus, textarea:focus { @apply ring-2 ring-brand-500/40 border-brand-500; }
 
@@ -16,7 +42,80 @@ input:focus, select:focus, textarea:focus { @apply ring-2 ring-brand-500/40 bord
   .btn-sm { @apply px-3 py-1.5 text-xs rounded-lg; }
   .inp { @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm placeholder:text-slate-400; }
   .lbl { @apply block text-sm font-medium text-slate-700 mb-1.5; }
-  .card { @apply bg-white rounded-2xl border border-slate-200/80 shadow-soft; }
+  .card { @apply bg-white rounded-2xl border border-slate-200/60 shadow-soft; }
   .th { @apply text-left text-xs font-semibold uppercase tracking-wide text-slate-500 px-4 py-3; }
   .td { @apply px-4 py-3 text-sm align-middle; }
+}
+
+/* ============ CHẾ ĐỘ TỐI: ánh xạ lại các màu bề mặt/chữ dùng chung toàn site ============ */
+.dark body { background: #0a1120; color: #d7e1ef; }
+.dark .card { background: #101a2e; border-color: rgba(120,150,200,.14); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.dark .inp { background: #0d1728; border-color: #2b4066; color: #e6edf7; }
+.dark .inp::placeholder { color: #5f748f; }
+.dark select.inp option { background: #0d1728; color: #e6edf7; }
+.dark .btn-ghost { background: #101a2e; border-color: #263757; color: #d7e1ef; }
+.dark .btn-ghost:hover { background: #16233c; }
+.dark .btn-dark { background: #1c2c49; }
+.dark .btn-dark:hover { background: #24365a; }
+.dark .lbl { color: #bcc9dd; }
+.dark .th { color: #7d8db0; }
+.dark .bg-white { background-color: #101a2e; }
+.dark .bg-white\/90 { background-color: rgba(13,23,40,.92); }
+.dark .bg-slate-50 { background-color: #0d1728; }
+.dark .bg-slate-100 { background-color: #16233c; }
+.dark .bg-slate-100\/70 { background-color: rgba(13,23,40,.75); }
+.dark .bg-slate-200 { background-color: #1c2c49; }
+.dark .text-slate-900 { color: #eef3fb; }
+.dark .text-slate-800 { color: #d7e1ef; }
+.dark .text-slate-700 { color: #bcc9dd; }
+.dark .text-slate-600 { color: #9fb0c9; }
+.dark .text-slate-500 { color: #8498b5; }
+.dark .text-slate-400 { color: #647d9e; }
+.dark .border-slate-100 { border-color: #1a2947; }
+.dark .border-slate-200 { border-color: #22345a; }
+.dark .border-slate-200\/80 { border-color: rgba(52,76,122,.8); }
+.dark .border-slate-200\/60 { border-color: rgba(52,76,122,.6); }
+.dark .border-slate-300 { border-color: #2b4066; }
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1a2947; }
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: #22345a; }
+.dark .hover\:bg-slate-50:hover { background-color: #16233c; }
+.dark .hover\:bg-slate-50\/60:hover { background-color: rgba(22,35,60,.6); }
+.dark .hover\:bg-white:hover { background-color: #16233c; }
+.dark .hover\:text-slate-900:hover { color: #eef3fb; }
+.dark .bg-emerald-50 { background-color: rgba(16,185,129,.13); }
+.dark .text-emerald-700 { color: #5fd3a5; }
+.dark .text-emerald-800 { color: #5fd3a5; }
+.dark .bg-emerald-100 { background-color: rgba(16,185,129,.18); }
+.dark .border-emerald-200 { border-color: rgba(16,185,129,.35); }
+.dark .bg-amber-50 { background-color: rgba(245,158,11,.13); }
+.dark .bg-amber-100 { background-color: rgba(245,158,11,.18); }
+.dark .text-amber-700 { color: #fcd34d; }
+.dark .text-amber-800 { color: #fcd34d; }
+.dark .bg-rose-50 { background-color: rgba(244,63,94,.13); }
+.dark .bg-rose-100 { background-color: rgba(244,63,94,.18); }
+.dark .text-rose-700 { color: #fda4af; }
+.dark .text-rose-800 { color: #fda4af; }
+.dark .border-rose-200 { border-color: rgba(244,63,94,.35); }
+.dark .bg-indigo-50 { background-color: rgba(99,102,241,.16); }
+.dark .text-indigo-700 { color: #a5b4fc; }
+.dark .bg-blue-100 { background-color: rgba(59,130,246,.18); }
+.dark .text-blue-800 { color: #93c5fd; }
+.dark .bg-slate-100.text-slate-600 { color: #9fb0c9; }
+.dark .bg-white\/95 { background-color: rgba(13,23,40,.95); }
+@media (min-width: 1024px) {
+  .dark .lg\:bg-white { background-color: #101a2e; }
+}
+
+/* Nền hero trang chủ: sáng thoáng / tối sâu theo chế độ */
+.hero-bg {
+  background:
+    radial-gradient(700px 320px at 12% -5%, rgb(var(--b200) / .45), transparent),
+    radial-gradient(820px 380px at 95% 8%, rgb(var(--b100) / .8), transparent),
+    linear-gradient(180deg, #ffffff 0%, #f3f6f9 100%);
+}
+.dark .hero-bg {
+  background:
+    radial-gradient(700px 320px at 12% -5%, rgb(var(--b500) / .22), transparent),
+    radial-gradient(820px 380px at 95% 8%, rgb(var(--b700) / .18), transparent),
+    linear-gradient(180deg, #0a1120 0%, #0d1728 100%);
 }

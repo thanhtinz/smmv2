@@ -11,7 +11,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <form action={updateProfileAction} className="card p-6 space-y-4 mb-6">
         <div className="font-bold text-slate-900">Thông tin cá nhân</div>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><label className="lbl">Họ tên</label><input className="inp" name="fullName" defaultValue={user.fullName || ""} /></div>
           <div><label className="lbl">Số điện thoại</label><input className="inp" name="phone" defaultValue={user.phone || ""} /></div>
         </div>

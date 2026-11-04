@@ -9,7 +9,7 @@ export default async function AdminAnnouncements({ searchParams }: { searchParam
   const list = await prisma.announcement.findMany({ orderBy: { id: "desc" } });
   const edit = searchParams.edit ? list.find((a) => a.id === parseInt(searchParams.edit!)) : undefined;
   return (
-    <div className="grid xl:grid-cols-3 gap-6 items-start">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
       <div className="xl:col-span-2">
         <PageHead title="Thông báo" desc="Thông báo đang bật sẽ hiện ở trang Tổng quan của khách." />
         <Flash msg={searchParams.msg} err={searchParams.err} />

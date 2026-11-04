@@ -31,7 +31,7 @@ export default async function AdminServiceForm({ params, searchParams }: { param
         </div>
         <div><label className="lbl">Tên dịch vụ</label><input className="inp" name="name" required defaultValue={s?.name || ""} /></div>
         <div><label className="lbl">Mô tả (khách thấy khi đặt đơn)</label><textarea className="inp" name="description" rows={4} defaultValue={s?.description || ""} /></div>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><label className="lbl">Giá bán / 1000 (VND)</label><input className="inp" name="rate" type="number" required defaultValue={s?.rate ?? ""} /></div>
           <div><label className="lbl">Giá vốn / 1000 (VND)</label><input className="inp" name="costRate" type="number" defaultValue={s?.costRate ?? 0} /></div>
           <div><label className="lbl">Số lượng tối thiểu</label><input className="inp" name="min" type="number" defaultValue={s?.min ?? 10} /></div>
@@ -39,7 +39,7 @@ export default async function AdminServiceForm({ params, searchParams }: { param
           <div><label className="lbl">Thời gian dự kiến</label><input className="inp" name="avgTime" defaultValue={s?.avgTime || ""} placeholder="Vd: 0-15 phút" /></div>
           <div><label className="lbl">Thứ tự hiển thị</label><input className="inp" name="sort" type="number" defaultValue={s?.sort ?? 0} /></div>
         </div>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="lbl">Hình thức xử lý</label>
             <select className="inp" name="fulfillment" defaultValue={s?.fulfillment || "MANUAL"}>

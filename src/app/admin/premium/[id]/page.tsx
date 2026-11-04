@@ -27,7 +27,7 @@ export default async function AdminProductDetail({ params, searchParams }: { par
           <p className="text-sm text-slate-500">{product.category.name} · {product.fulfillment === "AUTO_STOCK" ? "Kho tự động" : "Thủ công"} · <Link href={`/premium/${product.slug}`} className="text-brand-600">Xem trang bán</Link></p>
         </div>
       </div>
-      <div className="grid xl:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
         <div className="xl:col-span-2 card overflow-x-auto">
           <table className="w-full min-w-[560px]">
             <thead className="bg-slate-50 border-b border-slate-200"><tr>

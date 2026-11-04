@@ -5,10 +5,11 @@ import { vnd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function PremiumPage({ searchParams }: { searchParams: { cat?: string } }) {
+export default async function PremiumPage({ searchParams }: { searchParams: { cat?: string; q?: string } }) {
   const cats = await prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } });
   const catId = searchParams.cat ? parseInt(searchParams.cat) : undefined;
-  const products = await prisma.premiumProduct.findMany({
+  const q = (searchParams.q || "").trim().toLowerCase();
+  const allProducts = await prisma.premiumProduct.findMany({
     where: { active: true, ...(catId ? { categoryId: catId } : {}) },
     orderBy: { sort: "asc" },
     include: {
@@ -17,6 +18,15 @@ export default async function PremiumPage({ searchParams }: { searchParams: { ca
       _count: { select: { variants: true } },
     },
   });
+  const products = q ? allProducts.filter((p) => (p.name + " " + (p.tagline || "")).toLowerCase().includes(q)) : allProducts;
+  const soldRows = await prisma.premiumOrder.groupBy({ by: ["variantId"], where: { status: { not: "CANCELED" } }, _count: true });
+  const variantRows = await prisma.premiumVariant.findMany({ select: { id: true, productId: true } });
+  const variantProduct = new Map(variantRows.map((v) => [v.id, v.productId]));
+  const soldMap = new Map<number, number>();
+  for (const r of soldRows) {
+    const pid = variantProduct.get(r.variantId);
+    if (pid) soldMap.set(pid, (soldMap.get(pid) || 0) + (typeof r._count === "number" ? r._count : 0));
+  }
   const stockByVariant = await prisma.premiumStock.groupBy({
     by: ["variantId"],
     where: { status: "AVAILABLE" },
@@ -29,14 +39,19 @@ export default async function PremiumPage({ searchParams }: { searchParams: { ca
       <SiteHeader />
       <main className="flex-1 max-w-7xl mx-auto px-4 py-12 w-full">
         <h1 className="text-3xl font-extrabold text-slate-900">Tài khoản Premium</h1>
-        <p className="text-slate-500 mt-2 mb-8">Gói có kho được giao ngay tự động sau thanh toán. Gói nâng cấp chính chủ được xử lý tay trên chính tài khoản của bạn, bảo hành rõ ràng từng gói.</p>
+        <p className="text-slate-500 mt-2 mb-6">Gói có kho được giao ngay tự động sau thanh toán. Gói nâng cấp chính chủ được xử lý tay trên chính tài khoản của bạn, bảo hành rõ ràng từng gói.</p>
+        <form method="get" className="flex gap-2 mb-6 max-w-lg">
+          {catId && <input type="hidden" name="cat" value={catId} />}
+          <input className="inp flex-1" name="q" placeholder="Tìm sản phẩm... (vd: Netflix, Spotify)" defaultValue={searchParams.q || ""} />
+          <button className="btn-primary shrink-0">Tìm</button>
+        </form>
         <div className="flex flex-wrap gap-2 mb-8">
           <Link href="/premium" className={`btn-sm rounded-full font-semibold py-2 px-4 ${!catId ? "bg-brand-600 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>Tất cả</Link>
           {cats.map((c) => (
             <Link key={c.id} href={`/premium?cat=${c.id}`} className={`btn-sm rounded-full font-semibold py-2 px-4 ${catId === c.id ? "bg-brand-600 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>{c.name}</Link>
           ))}
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {products.map((p) => {
             const from = p.variants[0];
             const totalStock = p.variants.reduce((sum, v) => sum + (stockMap.get(v.id) || 0), 0);
@@ -48,8 +63,11 @@ export default async function PremiumPage({ searchParams }: { searchParams: { ca
                     {p.fulfillment === "AUTO_STOCK" ? (totalStock > 0 ? `Giao ngay · còn ${totalStock}` : "Giao tay (hết kho)") : p.fulfillment === "API" ? "Giao tự động qua đối tác" : "Nâng cấp chính chủ"}
                   </span>
                 </div>
-                <div className="font-bold text-lg text-slate-900 mt-4 group-hover:text-brand-700">{p.name}</div>
-                <div className="text-xs text-slate-400">{p.category.name} · {p.variants.length} gói</div>
+                <div className="flex items-center gap-2 mt-4">
+                  <div className="font-bold text-lg text-slate-900 group-hover:text-brand-700">{p.name}</div>
+                  {(soldMap.get(p.id) || 0) >= 3 && <span className="text-[11px] font-bold rounded-full bg-amber-100 text-amber-800 px-2 py-0.5">Bán chạy</span>}
+                </div>
+                <div className="text-xs text-slate-400">{p.category.name} · {p.variants.length} gói{(soldMap.get(p.id) || 0) > 0 ? ` · Đã bán ${soldMap.get(p.id)}` : ""}</div>
                 <p className="text-sm text-slate-500 mt-2 line-clamp-2 flex-1">{p.tagline}</p>
                 {from && <div className="mt-4">Chỉ từ <span className="font-extrabold text-brand-700 text-lg">{vnd(from.price)}</span></div>}
               </Link>

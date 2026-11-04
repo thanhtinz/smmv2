@@ -14,6 +14,12 @@ Mỗi mảng chạy được **cả 2 hình thức song song**:
 
 Kèm **Admin panel riêng** tại `/admin` và **API cho đại lý** tại `/api/v2` (chuẩn SMM v2 + API sản phẩm) để khách khác đấu vào bán lại.
 
+## Giao diện (đa theme, theo phong cách thatim)
+
+- **Đa giao diện**: khách tự đổi **6 tông màu** (Xanh dương #4680ff kiểu thatim, Tím, Xanh lá, Cam, Hồng, Ngọc) × **Sáng/Tối** bằng nút "Giao diện" trên mọi thanh header; lựa chọn lưu trên thiết bị của khách. Admin đặt tông + chế độ mặc định cho khách mới tại **Admin → Cấu hình → Giao diện mặc định**.
+- Ngôn ngữ thiết kế theo thatim.vn: nền xám xanh rất nhạt, thẻ trắng bóng mềm, sidebar mục đang chọn nền nhạt viền mảnh, nút liên hệ nổi Zalo/Telegram/Fanpage/Hotline góc phải dưới (điền link ở Admin → Cấu hình).
+- Dễ dùng: trang dịch vụ có xem Bảng/Lưới, sắp xếp giá, lọc khoảng giá, ghim yêu thích; form đặt đơn có nút Dán link, chip chọn nhanh số lượng, cảnh báo link sai nền tảng và thiếu số dư; dashboard có biểu đồ chi tiêu 14 ngày, thao tác nhanh, nút Đặt lại đơn cũ; điện thoại có thanh điều hướng dưới cùng trong khu khách hàng.
+
 ## Tính năng chính
 
 **Khách hàng**

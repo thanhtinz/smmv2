@@ -21,7 +21,7 @@ export default async function AdminPremium({ searchParams }: { searchParams: { m
     <div>
       <PageHead title="Sản phẩm Premium" desc="AUTO_STOCK: bán từ kho, giao ngay. MANUAL: admin giao tay / nâng cấp chính chủ theo thông tin khách gửi." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid xl:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
         <div className="xl:col-span-2 card overflow-x-auto">
           <table className="w-full min-w-[700px]">
             <thead className="bg-slate-50 border-b border-slate-200"><tr>

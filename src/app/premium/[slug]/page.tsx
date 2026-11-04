@@ -19,13 +19,18 @@ export default async function PremiumDetail({ params, searchParams }: { params: 
   const session = await getSession();
   const stocks = await prisma.premiumStock.groupBy({ by: ["variantId"], where: { status: "AVAILABLE", variantId: { in: product.variants.map((v) => v.id) } }, _count: true });
   const stockMap = new Map(stocks.map((x) => [x.variantId, x._count]));
+  const related = await prisma.premiumProduct.findMany({
+    where: { active: true, categoryId: product.categoryId, id: { not: product.id } },
+    orderBy: { sort: "asc" }, take: 3,
+    include: { variants: { where: { active: true }, orderBy: { price: "asc" }, take: 1 } },
+  });
 
   return (
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
       <main className="flex-1 max-w-5xl mx-auto px-4 py-12 w-full">
         <Link href="/premium" className="text-sm font-medium text-brand-600">← Tất cả sản phẩm Premium</Link>
-        <div className="grid lg:grid-cols-5 gap-8 mt-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-6 items-start">
           <div className="lg:col-span-2">
             <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-white font-black text-3xl" style={{ background: product.color }}>{product.name.charAt(0)}</div>
             <h1 className="text-3xl font-extrabold text-slate-900 mt-5">{product.name}</h1>
@@ -57,6 +62,21 @@ export default async function PremiumDetail({ params, searchParams }: { params: 
             )}
           </div>
         </div>
+        {related.length > 0 && (
+          <div className="mt-14">
+            <h2 className="text-xl font-extrabold text-slate-900 mb-5">Sản phẩm liên quan</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {related.map((p) => (
+                <Link key={p.id} href={`/premium/${p.slug}`} className="card p-5 hover:shadow-lg transition group">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-black text-lg" style={{ background: p.color }}>{p.name.charAt(0)}</div>
+                  <div className="font-bold text-slate-900 mt-3.5 group-hover:text-brand-700">{p.name}</div>
+                  <p className="text-sm text-slate-500 mt-1 line-clamp-2">{p.tagline}</p>
+                  {p.variants[0] && <div className="mt-3 text-sm">Chỉ từ <span className="font-extrabold text-brand-700">{vnd(p.variants[0].price)}</span></div>}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
       <SiteFooter />
     </div>

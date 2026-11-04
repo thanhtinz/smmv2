@@ -10,9 +10,18 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// Áp giao diện khách đã chọn (lưu localStorage) trước khi trang vẽ để không chớp màu
+const THEME_SCRIPT = `(function(){try{var a=localStorage.getItem('smmv2-accent');var m=localStorage.getItem('smmv2-mode');var h=document.documentElement;if(a)h.setAttribute('data-accent',a);if(m==='dark')h.classList.add('dark');else if(m==='light')h.classList.remove('dark');}catch(e){}})();`;
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const s = await getSettings().catch(() => null);
+  const accent = s?.default_accent || "blue";
+  const dark = s?.default_mode === "dark";
   return (
-    <html lang="vi">
+    <html lang="vi" data-accent={accent} className={dark ? "dark" : undefined} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );

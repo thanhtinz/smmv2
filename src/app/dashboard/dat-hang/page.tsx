@@ -7,7 +7,7 @@ import { placeSmmOrderAction } from "@/app/actions/user";
 
 export const dynamic = "force-dynamic";
 
-export default async function OrderPage({ searchParams }: { searchParams: { service?: string; msg?: string; err?: string } }) {
+export default async function OrderPage({ searchParams }: { searchParams: { service?: string; msg?: string; err?: string; link?: string; qty?: string } }) {
   const user = (await getCurrentUser())!;
   const [services, categories] = await Promise.all([
     prisma.smmService.findMany({ where: { active: true }, include: { category: true }, orderBy: [{ categoryId: "asc" }, { sort: "asc" }] }),
@@ -22,7 +22,8 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
     <div>
       <PageHead title="Đặt đơn SMM" desc="Chọn dịch vụ, dán link công khai và nhập số lượng — hệ thống tự đẩy qua nhà cung cấp hoặc hàng đợi xử lý tay tuỳ dịch vụ." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <OrderForm services={dto} categories={cats} discount={LEVEL_DISCOUNT[user.level] || 0} preselect={searchParams.service ? parseInt(searchParams.service) : undefined} action={placeSmmOrderAction} />
+      <OrderForm services={dto} categories={cats} discount={LEVEL_DISCOUNT[user.level] || 0} preselect={searchParams.service ? parseInt(searchParams.service) : undefined} action={placeSmmOrderAction}
+        balance={user.balance} initialLink={searchParams.link} initialQty={searchParams.qty ? parseInt(searchParams.qty) : undefined} />
     </div>
   );
 }

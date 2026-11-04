@@ -16,7 +16,7 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
         <a href="/admin/nha-cung-cap?preset=thatim" className="btn-primary">+ Thêm nguồn ThaTim</a>
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid xl:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
         <div className="xl:col-span-2 space-y-4">
           {providers.map((p) => (
             <div key={p.id} className="card p-5">

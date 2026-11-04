@@ -21,7 +21,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
     <div>
       <BackLink href="/admin/nguoi-dung">Danh sách người dùng</BackLink>
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid lg:grid-cols-5 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         <div className="lg:col-span-2 space-y-6">
           <div className="card p-6">
             <div className="flex items-center justify-between">

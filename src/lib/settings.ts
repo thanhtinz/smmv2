@@ -6,7 +6,11 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   site_logo_text: "S",
   support_telegram: "",
   support_facebook: "",
+  support_zalo: "",
   support_hotline: "",
+  // Giao diện mặc định cho khách mới (khách tự đổi được, lưu trên máy họ)
+  default_accent: "blue",
+  default_mode: "light",
   // Nạp ngân hàng
   bank_name: "",
   bank_account: "",

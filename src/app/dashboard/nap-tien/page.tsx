@@ -19,11 +19,11 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
     <div>
       <PageHead title="Nạp tiền" desc="Chuyển khoản đúng nội dung để được cộng tiền tự động. Sai nội dung vẫn được cộng nhưng phải chờ admin kiểm tra tay." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="card p-6">
           <h2 className="font-bold text-slate-900 mb-4">Chuyển khoản ngân hàng</h2>
           {s.bank_account ? (
-            <div className="grid sm:grid-cols-[200px_1fr] gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={vietQrUrl(s.bank_name, s.bank_account, 0, content, s.bank_holder)} alt="VietQR nạp tiền" className="w-[200px] h-[200px] rounded-2xl border border-slate-200 object-contain bg-white" />
               <dl className="space-y-3 text-sm">

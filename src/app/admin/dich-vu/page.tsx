@@ -24,7 +24,7 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
 
-      <div className="grid xl:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
         <div className="space-y-6">
           <div className="card p-5">
             <div className="font-bold text-slate-900 mb-3">Danh mục ({categories.length})</div>
