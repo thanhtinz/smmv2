@@ -4,6 +4,7 @@ import { getSettings, depositContent, vietQrUrl, calcBonus } from "@/lib/setting
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
 import { createDepositAction } from "@/app/actions/user";
+import { IntlDeposit } from "@/components/intl-deposit";
 import { vnd, num, DEP_STATUS, dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +89,9 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
           <div className="px-5 py-4 bg-slate-50 text-sm text-slate-500">Tổng đã nạp: <b className="text-slate-800">{vnd(user.totalDeposited)}</b> · Đã chi tiêu: <b className="text-slate-800">{vnd(user.totalSpent)}</b> · Số dư: <b className="text-emerald-700">{num(user.balance)}đ</b></div>
         </div>
       </div>
+      {(s.paypal_enabled === "1" && s.paypal_client_id) || (s.stripe_enabled === "1" && s.stripe_secret_key) ? (
+        <IntlDeposit rate={parseInt(s.usd_rate || "25000", 10) || 25000} paypal={s.paypal_enabled === "1" && !!s.paypal_client_id} stripe={s.stripe_enabled === "1" && !!s.stripe_secret_key} />
+      ) : null}
     </div>
   );
 }

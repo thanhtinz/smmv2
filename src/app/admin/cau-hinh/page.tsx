@@ -83,6 +83,31 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           </div>
           <div><label className="lbl">Hoa hồng giới thiệu — % trên mỗi giao dịch mua của người được giới thiệu</label><input className="inp" name="affiliate_percent" type="number" step="0.5" min="0" max="50" defaultValue={s.affiliate_percent} /></div>
         </section>
+
+        <section className="card p-6 space-y-4">
+          <div className="font-bold text-slate-900">Thanh toán quốc tế — PayPal & Stripe</div>
+          <div><label className="lbl">Tỉ giá quy đổi: 1 USD = ? VND (khách trả USD, được cộng số VND này)</label><input className="inp" name="usd_rate" type="number" min="1000" defaultValue={s.usd_rate} /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="lbl">PayPal</label>
+              <select className="inp" name="paypal_enabled" defaultValue={s.paypal_enabled === "1" ? "1" : "0"}><option value="0">Tắt</option><option value="1">Bật</option></select>
+            </div>
+            <div>
+              <label className="lbl">Môi trường PayPal</label>
+              <select className="inp" name="paypal_mode" defaultValue={s.paypal_mode || "sandbox"}><option value="sandbox">Sandbox (thử nghiệm)</option><option value="live">Live (thật)</option></select>
+            </div>
+            <div><label className="lbl">PayPal Client ID</label><input className="inp" name="paypal_client_id" defaultValue={s.paypal_client_id} /></div>
+            <div><label className="lbl">PayPal Client Secret</label><input className="inp" name="paypal_client_secret" defaultValue={s.paypal_client_secret} /></div>
+            <div>
+              <label className="lbl">Stripe</label>
+              <select className="inp" name="stripe_enabled" defaultValue={s.stripe_enabled === "1" ? "1" : "0"}><option value="0">Tắt</option><option value="1">Bật</option></select>
+            </div>
+            <div><label className="lbl">Stripe Publishable Key</label><input className="inp" name="stripe_publishable_key" defaultValue={s.stripe_publishable_key} /></div>
+            <div><label className="lbl">Stripe Secret Key</label><input className="inp" name="stripe_secret_key" defaultValue={s.stripe_secret_key} /></div>
+            <div><label className="lbl">Stripe Webhook Secret (whsec_...)</label><input className="inp" name="stripe_webhook_secret" defaultValue={s.stripe_webhook_secret} /></div>
+          </div>
+          <p className="text-xs text-slate-400">Webhook Stripe trỏ về <span className="font-mono">/api/webhooks/stripe</span> (sự kiện checkout.session.completed). Tiền cộng tự động khi thanh toán thành công, chống cộng trùng theo mã phiên.</p>
+        </section>
         <button className="btn-primary w-full !py-3">Lưu toàn bộ cấu hình</button>
       </form>
 

@@ -410,6 +410,8 @@ export async function adminSaveSettings(formData: FormData) {
     "site_name", "site_tagline", "support_telegram", "support_facebook", "support_zalo", "support_hotline",
     "bank_name", "bank_account", "bank_holder", "bank_branch",
     "momo_phone", "momo_name", "deposit_min", "deposit_bonus_tiers", "maintenance", "announcement_bar", "affiliate_percent",
+    "usd_rate", "paypal_enabled", "paypal_client_id", "paypal_client_secret", "paypal_mode",
+    "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret",
     "default_accent", "default_mode",
   ];
   for (const k of keys) {

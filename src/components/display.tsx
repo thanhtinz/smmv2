@@ -101,7 +101,9 @@ const FRAGMENTS: [string, Record<string, string>][] = [
 const MONEY = /(\d{1,3}(?:\.\d{3})+|\d+)đ/g;
 const LOCALES: Record<string, string> = { vi: "vi-VN", en: "en-US", zh: "zh-CN", th: "th-TH", ja: "ja-JP", ko: "ko-KR" };
 const originals = new Map<Text, string>();
+const written = new Map<Text, string>();
 const phOriginals = new Map<Element, string>();
+const phWritten = new Map<Element, string>();
 let applying = false;
 
 function fmtMoney(vndInt: number, cur: string, lang: string) {
@@ -127,7 +129,9 @@ function runDisplay() {
     const nodes: Text[] = [];
     while (walker.nextNode()) nodes.push(walker.currentNode as Text);
     for (const n of nodes) {
-      if (!originals.has(n)) originals.set(n, n.nodeValue || "");
+      // Nếu nội dung hiện tại khác lần cuối chính lớp hiển thị ghi -> React vừa cập nhật giá trị mới:
+      // lấy nó làm nguồn mới (tránh "đóng băng" các con số động như xem trước số tiền, số dư...)
+      if (!originals.has(n) || (written.has(n) && n.nodeValue !== written.get(n))) originals.set(n, n.nodeValue || "");
       const src = originals.get(n)!;
       let out = src;
       if (p.lang !== "vi") {
@@ -140,17 +144,19 @@ function runDisplay() {
         out = out.replace(MONEY, (m, num: string) => fmtMoney(parseInt(num.replace(/\./g, ""), 10), p.cur, p.lang) ?? m);
       }
       if (out !== n.nodeValue) n.nodeValue = out;
+      written.set(n, out);
     }
     // placeholder của ô nhập
     document.querySelectorAll("input[placeholder], textarea[placeholder]").forEach((el) => {
-      if (!phOriginals.has(el)) phOriginals.set(el, el.getAttribute("placeholder") || "");
+      if (!phOriginals.has(el) || (phWritten.has(el) && el.getAttribute("placeholder") !== phWritten.get(el))) phOriginals.set(el, el.getAttribute("placeholder") || "");
       const src = phOriginals.get(el)!;
       let out = src;
       if (p.lang !== "vi") { const tr = (DICT[src.trim()] as any)?.[p.lang]; if (tr) out = tr; }
       if (out !== el.getAttribute("placeholder")) el.setAttribute("placeholder", out);
+      phWritten.set(el, out);
     });
     // dọn node đã rời khỏi trang
-    for (const k of Array.from(originals.keys())) if (!k.isConnected) originals.delete(k);
+    for (const k of Array.from(originals.keys())) if (!k.isConnected) { originals.delete(k); written.delete(k); }
   } finally { applying = false; }
 }
 

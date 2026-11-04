@@ -296,6 +296,8 @@ enum DepositMethod {
   MOMO
   CARD
   USDT
+  PAYPAL
+  STRIPE
 }
 
 enum DepositStatus {
@@ -314,6 +316,8 @@ model Deposit {
   bonus     Int           @default(0)
   status    DepositStatus @default(PENDING)
   content   String?       @db.VarChar(100) // nội dung chuyển khoản
+  externalId String?      @unique @db.VarChar(90) // mã phiên phía PayPal/Stripe — chống cộng trùng
+  usdCents  Int? // số USD đã thu (cent) với cổng quốc tế
   auto      Boolean       @default(false) // cộng qua webhook
   adminNote String?       @db.VarChar(255)
   createdAt DateTime      @default(now())

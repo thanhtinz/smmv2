@@ -343,3 +343,61 @@ export async function warrantyAction(formData: FormData) {
   });
   back("/dashboard/don-premium", "msg", `Đã gửi yêu cầu bảo hành cho đơn ${o.code}`);
 }
+
+/* ---------- Nạp tiền qua cổng quốc tế (PayPal / Stripe) ---------- */
+export async function startStripeCheckoutAction(formData: FormData) {
+  const user = await requireUser();
+  const s = await getSettings();
+  const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, stripeCreateCheckout, siteOrigin } = await import("@/lib/payments");
+  if (s.stripe_enabled !== "1" || !s.stripe_secret_key) back("/dashboard/nap-tien", "err", "Stripe chưa được cấu hình");
+  const usd = parseFloat(String(formData.get("usd") || "0"));
+  if (!usd || usd < MIN_USD) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${MIN_USD}`);
+  const usdCents = Math.round(usd * 100);
+  const amountVnd = Math.round(usd * (parseInt(s.usd_rate || "25000", 10) || 25000));
+  const dep = await createPendingDeposit(user.id, "STRIPE", amountVnd, usdCents);
+  const origin = await siteOrigin();
+  let url = "";
+  try {
+    const sess = await stripeCreateCheckout(s.stripe_secret_key, {
+      amountCents: usdCents,
+      depositCode: dep.code,
+      successUrl: `${origin}/api/payments/stripe/return?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${origin}/dashboard/nap-tien?err=${encodeURIComponent("Đã huỷ thanh toán Stripe")}`,
+    });
+    await attachExternalId(dep.id, sess.id);
+    url = sess.url;
+  } catch (e: any) {
+    await failDeposit(dep.id, `Stripe: ${e?.message || e}`);
+    back("/dashboard/nap-tien", "err", "Không tạo được phiên thanh toán Stripe, vui lòng thử lại sau");
+  }
+  redirect(url);
+}
+
+export async function startPaypalCheckoutAction(formData: FormData) {
+  const user = await requireUser();
+  const s = await getSettings();
+  const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, paypalAccessToken, paypalCreateOrder, siteOrigin } = await import("@/lib/payments");
+  if (s.paypal_enabled !== "1" || !s.paypal_client_id || !s.paypal_client_secret) back("/dashboard/nap-tien", "err", "PayPal chưa được cấu hình");
+  const usd = parseFloat(String(formData.get("usd") || "0"));
+  if (!usd || usd < MIN_USD) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${MIN_USD}`);
+  const usdCents = Math.round(usd * 100);
+  const amountVnd = Math.round(usd * (parseInt(s.usd_rate || "25000", 10) || 25000));
+  const dep = await createPendingDeposit(user.id, "PAYPAL", amountVnd, usdCents);
+  const origin = await siteOrigin();
+  let url = "";
+  try {
+    const token = await paypalAccessToken(s.paypal_client_id, s.paypal_client_secret, s.paypal_mode || "sandbox");
+    const order = await paypalCreateOrder(token, s.paypal_mode || "sandbox", {
+      amountUsd: (usdCents / 100).toFixed(2),
+      depositCode: dep.code,
+      returnUrl: `${origin}/api/payments/paypal/return`,
+      cancelUrl: `${origin}/api/payments/paypal/cancel`,
+    });
+    await attachExternalId(dep.id, order.id);
+    url = order.approveUrl;
+  } catch (e: any) {
+    await failDeposit(dep.id, `PayPal: ${e?.message || e}`);
+    back("/dashboard/nap-tien", "err", "Không tạo được phiên thanh toán PayPal, vui lòng thử lại sau");
+  }
+  redirect(url);
+}

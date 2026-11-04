@@ -21,6 +21,16 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   momo_name: "",
   // Nạp tiền
   deposit_min: "10000",
+  // Thanh toán quốc tế (PayPal / Stripe) — khách trả USD, hệ thống cộng VND theo tỉ giá này
+  usd_rate: "25000",
+  paypal_enabled: "0",
+  paypal_client_id: "",
+  paypal_client_secret: "",
+  paypal_mode: "sandbox",
+  stripe_enabled: "0",
+  stripe_publishable_key: "",
+  stripe_secret_key: "",
+  stripe_webhook_secret: "",
   // Hoa hồng giới thiệu (% trên tiền nạp của người được giới thiệu) — trang Kiếm tiền
   affiliate_percent: "6",
   // Thưởng nạp dạng JSON: [{"from":500000,"percent":2},{"from":2000000,"percent":5}]
