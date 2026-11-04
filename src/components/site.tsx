@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
+import TabBar from "@/components/tabbar";
 import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { vnd } from "@/lib/format";
@@ -49,6 +50,7 @@ export async function SiteHeader() {
 
 export async function SiteFooter() {
   const s = await getSettings();
+  const session = await getSession().catch(() => null);
   return (
     <>
     <FloatingSupport s={s} />
@@ -86,6 +88,8 @@ export async function SiteFooter() {
       </div>
       <div className="border-t border-slate-800 py-5 text-center text-xs">© {new Date().getFullYear()} {s.site_name}. Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.</div>
     </footer>
+    <div className="h-[68px] lg:hidden" />
+    <TabBar variant={session ? "app" : "site"} />
     </>
   );
 }
@@ -111,7 +115,7 @@ function FloatingSupport({ s }: { s: Record<string, string> }) {
   });
   if (items.length === 0) return null;
   return (
-    <div className="fixed bottom-5 right-4 sm:right-5 z-50 flex flex-col gap-2.5">
+    <div className="fixed bottom-[5.5rem] lg:bottom-5 right-4 sm:right-5 z-50 flex flex-col gap-2.5">
       {items.map((it) => (
         <a key={it.label} href={it.href} target={it.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" title={it.label}
           className="group flex items-center gap-0 hover:gap-2.5 flex-row-reverse transition-all">

@@ -5,6 +5,7 @@ import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { SideNav } from "@/components/nav";
 import { ThemePicker } from "@/components/theme";
+import TabBar from "@/components/tabbar";
 import { I } from "@/components/ui";
 import { vnd, LEVEL_NAME } from "@/lib/format";
 import { prisma } from "@/lib/db";
@@ -52,21 +53,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </aside>
         <main className="min-w-0 pb-20 lg:pb-0">{children}</main>
       </div>
-      {/* Điều hướng dưới cho điện thoại — thao tác một tay, không phải cuộn menu */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
-        {[
-          { href: "/dashboard", label: "Tổng quan", icon: I.home },
-          { href: "/dashboard/dat-hang", label: "Đặt đơn", icon: I.cart },
-          { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
-          { href: "/premium", label: "Premium", icon: I.gem },
-          { href: "/dashboard/don-hang", label: "Đơn của tôi", icon: I.list },
-        ].map((it) => (
-          <Link key={it.href} href={it.href} className="flex flex-col items-center gap-1 py-2 text-[10px] font-medium text-slate-500 active:text-brand-700">
-            <span className="[&>svg]:w-5 [&>svg]:h-5">{it.icon}</span>
-            {it.label}
-          </Link>
-        ))}
-      </nav>
+      {/* Menu footer kiểu webapp cho điện thoại */}
+      <TabBar variant="app" />
     </div>
   );
 }

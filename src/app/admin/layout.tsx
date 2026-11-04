@@ -5,6 +5,7 @@ import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { SideNav } from "@/components/nav";
 import { ThemePicker } from "@/components/theme";
+import TabBar from "@/components/tabbar";
 import { I } from "@/components/ui";
 import { prisma } from "@/lib/db";
 
@@ -54,8 +55,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <aside className="lg:sticky lg:top-24 lg:bg-white lg:rounded-2xl lg:border lg:border-slate-200/60 lg:shadow-soft lg:p-3">
           <SideNav items={items} />
         </aside>
-        <main className="min-w-0">{children}</main>
+        <main className="min-w-0 pb-20 lg:pb-0">{children}</main>
       </div>
+      <TabBar variant="admin" />
     </div>
   );
 }
