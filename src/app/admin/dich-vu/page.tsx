@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { adminSaveCategory, adminDeleteCategory, adminDeleteService } from "@/app/actions/admin";
@@ -7,6 +8,7 @@ import { vnd, PLATFORMS } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminServices({ searchParams }: { searchParams: { msg?: string; err?: string; cat?: string; q?: string } }) {
+  await requireAdminPage();
   const [categories, providers] = await Promise.all([
     prisma.smmCategory.findMany({ orderBy: [{ sort: "asc" }, { id: "asc" }], include: { _count: { select: { services: true } } } }),
     prisma.provider.findMany({ orderBy: { id: "asc" } }),

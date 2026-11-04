@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "./db";
 
 const secret = new TextEncoder().encode(
@@ -53,9 +54,27 @@ export async function requireUser() {
   return u;
 }
 
-export async function requireAdmin() {
+/* Phân quyền 2 tầng (chốt 2026-11-04):
+   - requireStaff(): ADMIN hoặc STAFF — xem và xử lý đơn SMM/Premium, trả lời ticket, xem danh sách.
+   - requireAdmin(): CHỈ ADMIN — mọi thao tác tiền (số dư, duyệt nạp), nhà cung cấp + API key,
+     người dùng + vai trò, dịch vụ + giá, sản phẩm + kho, cấu hình, thông báo. */
+export async function requireStaff() {
   const u = await getCurrentUser();
   if (!u || (u.role !== "ADMIN" && u.role !== "STAFF")) throw new Error("FORBIDDEN");
+  return u;
+}
+
+export async function requireAdmin() {
+  const u = await getCurrentUser();
+  if (!u || u.role !== "ADMIN") throw new Error("FORBIDDEN");
+  return u;
+}
+
+/* Chốt cứng ở các trang quản trị chỉ dành cho ADMIN: STAFF gõ thẳng URL cũng bị đưa về /admin */
+export async function requireAdminPage() {
+  const u = await getCurrentUser();
+  if (!u) redirect("/login");
+  if (u.role !== "ADMIN") redirect("/admin");
   return u;
 }
 

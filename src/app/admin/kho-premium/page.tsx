@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { adminImportStock, adminDeleteStock } from "@/app/actions/admin";
 import { dt } from "@/lib/format";
@@ -6,6 +7,7 @@ import { dt } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminStock({ searchParams }: { searchParams: { msg?: string; err?: string; variant?: string; status?: string } }) {
+  await requireAdminPage();
   const variants = await prisma.premiumVariant.findMany({
     where: { product: { fulfillment: "AUTO_STOCK" } },
     include: { product: true },

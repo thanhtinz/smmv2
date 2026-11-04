@@ -1,6 +1,6 @@
 "use server";
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireStaff } from "@/lib/auth";
 import { applyBalance } from "@/lib/wallet";
 import { refundSmmOrder, syncSmmOrderStatus, syncPremiumOrderStatus } from "@/lib/orders";
 import { providerBalance, syncProviderServices, syncProviderPremium } from "@/lib/provider";
@@ -29,13 +29,14 @@ export async function adminAdjustBalance(formData: FormData) {
 }
 
 export async function adminUpdateUser(formData: FormData) {
-  const me = await requireAdmin();
+  await requireAdmin();
   const userId = parseInt(String(formData.get("userId")));
   const data: any = {
     level: String(formData.get("level") || "MEMBER"),
     status: String(formData.get("status") || "ACTIVE"),
+    // Đổi vai trò: chỉ ADMIN (requireAdmin đã chốt cứng ở trên)
+    role: String(formData.get("role") || "USER"),
   };
-  if (me.role === "ADMIN") data.role = String(formData.get("role") || "USER");
   await prisma.user.update({ where: { id: userId }, data });
   done(`/admin/nguoi-dung/${userId}`, "Đã cập nhật người dùng");
 }
@@ -166,7 +167,7 @@ export async function adminProviderAction(formData: FormData) {
 
 /* ---------- Đơn SMM ---------- */
 export async function adminSmmOrderAction(formData: FormData) {
-  await requireAdmin();
+  await requireStaff();
   const id = parseInt(String(formData.get("id")));
   const kind = String(formData.get("kind"));
   const order = await prisma.smmOrder.findUnique({ where: { id } });
@@ -304,7 +305,7 @@ export async function adminDeleteStock(formData: FormData) {
 
 /* ---------- Đơn premium ---------- */
 export async function adminPremiumOrderAction(formData: FormData) {
-  await requireAdmin();
+  await requireStaff();
   const id = parseInt(String(formData.get("id")));
   const kind = String(formData.get("kind"));
   const order = await prisma.premiumOrder.findUnique({ where: { id } });
@@ -369,7 +370,7 @@ export async function adminManualDeposit(formData: FormData) {
 
 /* ---------- Ticket ---------- */
 export async function adminReplyTicket(formData: FormData) {
-  await requireAdmin();
+  await requireStaff();
   const ticketId = parseInt(String(formData.get("ticketId")));
   const body = String(formData.get("body") || "").trim();
   const close = formData.get("close") === "on";
@@ -380,8 +381,7 @@ export async function adminReplyTicket(formData: FormData) {
 
 /* ---------- Cấu hình + thông báo ---------- */
 export async function adminSaveSettings(formData: FormData) {
-  const me = await requireAdmin();
-  if (me.role !== "ADMIN") back("/admin/cau-hinh", "err", "Chỉ ADMIN mới sửa cấu hình");
+  await requireAdmin();
   const keys = [
     "site_name", "site_tagline", "support_telegram", "support_facebook", "support_zalo", "support_hotline",
     "bank_name", "bank_account", "bank_holder", "bank_branch",

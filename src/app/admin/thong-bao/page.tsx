@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { adminSaveAnnouncement } from "@/app/actions/admin";
 import { dt } from "@/lib/format";
@@ -6,6 +7,7 @@ import { dt } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminAnnouncements({ searchParams }: { searchParams: { msg?: string; err?: string; edit?: string } }) {
+  await requireAdminPage();
   const list = await prisma.announcement.findMany({ orderBy: { id: "desc" } });
   const edit = searchParams.edit ? list.find((a) => a.id === parseInt(searchParams.edit!)) : undefined;
   return (

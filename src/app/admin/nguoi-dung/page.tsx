@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PageHead, Flash, Badge, Empty } from "@/components/ui";
 import { vnd, num, LEVEL_NAME, dt } from "@/lib/format";
@@ -6,6 +7,7 @@ import { vnd, num, LEVEL_NAME, dt } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsers({ searchParams }: { searchParams: { q?: string; msg?: string; err?: string } }) {
+  await requireAdminPage();
   const where: any = searchParams.q
     ? { OR: [{ username: { contains: searchParams.q } }, { email: { contains: searchParams.q } }, { phone: { contains: searchParams.q } }] }
     : {};

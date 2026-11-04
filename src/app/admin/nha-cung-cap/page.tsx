@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { adminSaveProvider, adminDeleteProvider, adminProviderAction } from "@/app/actions/admin";
 import { vnd, dt } from "@/lib/format";
@@ -6,6 +7,7 @@ import { vnd, dt } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminProviders({ searchParams }: { searchParams: { msg?: string; err?: string; edit?: string; preset?: string } }) {
+  await requireAdminPage();
   const providers = await prisma.provider.findMany({ orderBy: { id: "asc" }, include: { _count: { select: { services: true, orders: true } } } });
   const editFound = searchParams.edit ? providers.find((p) => p.id === parseInt(searchParams.edit!)) : undefined;
   const presetThatim = !editFound && searchParams.preset === "thatim";

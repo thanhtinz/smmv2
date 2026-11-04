@@ -20,21 +20,25 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     prisma.deposit.count({ where: { status: "PENDING" } }),
     prisma.ticket.count({ where: { status: "OPEN" } }),
   ]);
-  const items = [
+  // Phân quyền 2 tầng: STAFF chỉ thấy việc của mình (đơn + ticket + nhật ký);
+  // các mục tiền/nguồn/dịch vụ/kho/người dùng/thông báo/cấu hình là của ADMIN.
+  const isAdmin = user.role === "ADMIN";
+  const allItems = [
     { href: "/admin", label: "Tổng quan", icon: I.home },
     { href: "/admin/don-smm", label: "Đơn SMM", icon: I.cart, badge: manualPending },
     { href: "/admin/don-premium", label: "Đơn Premium", icon: I.box, badge: prePending },
-    { href: "/admin/nap-tien", label: "Nạp tiền", icon: I.wallet, badge: depPending },
-    { href: "/admin/dich-vu", label: "Dịch vụ SMM", icon: I.list },
-    { href: "/admin/nha-cung-cap", label: "Nhà cung cấp API", icon: I.server },
-    { href: "/admin/premium", label: "Sản phẩm Premium", icon: I.gem },
-    { href: "/admin/kho-premium", label: "Kho Premium", icon: I.db },
-    { href: "/admin/nguoi-dung", label: "Người dùng", icon: I.users },
+    { href: "/admin/nap-tien", label: "Nạp tiền", icon: I.wallet, badge: depPending, adminOnly: true },
+    { href: "/admin/dich-vu", label: "Dịch vụ SMM", icon: I.list, adminOnly: true },
+    { href: "/admin/nha-cung-cap", label: "Nhà cung cấp API", icon: I.server, adminOnly: true },
+    { href: "/admin/premium", label: "Sản phẩm Premium", icon: I.gem, adminOnly: true },
+    { href: "/admin/kho-premium", label: "Kho Premium", icon: I.db, adminOnly: true },
+    { href: "/admin/nguoi-dung", label: "Người dùng", icon: I.users, adminOnly: true },
     { href: "/admin/ticket", label: "Ticket", icon: I.ticket, badge: ticketOpen },
-    { href: "/admin/thong-bao", label: "Thông báo", icon: I.megaphone },
+    { href: "/admin/thong-bao", label: "Thông báo", icon: I.megaphone, adminOnly: true },
     { href: "/admin/nhat-ky", label: "Nhật ký API", icon: I.clock },
-    { href: "/admin/cau-hinh", label: "Cấu hình", icon: I.gear },
+    { href: "/admin/cau-hinh", label: "Cấu hình", icon: I.gear, adminOnly: true },
   ];
+  const items = allItems.filter((it) => isAdmin || !it.adminOnly);
   return (
     <div className="min-h-screen">
       <header className="bg-slate-950 text-white sticky top-0 z-40">
@@ -57,7 +61,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </aside>
         <main className="min-w-0 pb-20 lg:pb-0">{children}</main>
       </div>
-      <TabBar variant="admin" />
+      <TabBar variant={isAdmin ? "admin" : "staff"} />
     </div>
   );
 }

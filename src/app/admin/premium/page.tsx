@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { adminSavePremiumCategory, adminSaveProduct, adminDeleteProduct } from "@/app/actions/admin";
@@ -7,6 +8,7 @@ import { vnd } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminPremium({ searchParams }: { searchParams: { msg?: string; err?: string; edit?: string } }) {
+  await requireAdminPage();
   const categories = await prisma.premiumCategory.findMany({ orderBy: { sort: "asc" }, include: { _count: { select: { products: true } } } });
   const products = await prisma.premiumProduct.findMany({
     orderBy: [{ categoryId: "asc" }, { sort: "asc" }],

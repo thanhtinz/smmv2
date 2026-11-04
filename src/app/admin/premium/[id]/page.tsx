@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdminPage } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { BackLink, Flash } from "@/components/ui";
@@ -8,6 +9,7 @@ import { vnd } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminProductDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string; v?: string } }) {
+  await requireAdminPage();
   const product = await prisma.premiumProduct.findUnique({
     where: { id: parseInt(params.id) },
     include: { category: true, variants: { orderBy: [{ sort: "asc" }, { price: "asc" }] } },

@@ -22,6 +22,9 @@ const ICONS = {
   user: <Icon d="M5.2 19.6c1.3-3.1 3.9-4.7 6.8-4.7s5.5 1.6 6.8 4.7" extra={<circle cx="12" cy="8.2" r="3.5" />} />,
   plus: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5.5v13M5.5 12h13" /></svg>),
   check: <Icon d="m5 12.5 4.5 4.5L19 7.8" />,
+  box: <Icon d="M12 3 4 7v10l8 4 8-4V7Z" extra={<><path d="M4 7l8 4 8-4" /><path d="M12 11v10" /></>} />,
+  ticket: <Icon d="M4 8.5A2.5 2.5 0 0 1 6.5 6h11A2.5 2.5 0 0 1 20 8.5v2a2.5 2.5 0 0 0 0 5v2a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-2a2.5 2.5 0 0 0 0-5Z" extra={<path d="M13.5 6v2.5M13.5 11v2.5M13.5 17v2" />} />,
+  clock: <Icon d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" extra={<path d="M12 7v5l3.5 2" />} />,
 };
 
 type Item = { href: string; label: string; icon: React.ReactNode; center?: boolean; exact?: boolean };
@@ -48,9 +51,17 @@ const VARIANTS: Record<string, Item[]> = {
     { href: "/admin/dich-vu", label: "Dịch vụ", icon: ICONS.grid },
     { href: "/admin/nguoi-dung", label: "Người dùng", icon: ICONS.user },
   ],
+  // STAFF: chỉ việc của nhân viên — xử lý đơn + ticket, không có mục tiền/quản trị
+  staff: [
+    { href: "/admin", label: "Tổng quan", icon: ICONS.home, exact: true },
+    { href: "/admin/don-smm", label: "Đơn SMM", icon: ICONS.list },
+    { href: "/admin/don-premium", label: "Đơn Premium", icon: ICONS.box, center: true },
+    { href: "/admin/ticket", label: "Ticket", icon: ICONS.ticket },
+    { href: "/admin/nhat-ky", label: "Nhật ký", icon: ICONS.clock },
+  ],
 };
 
-export default function TabBar({ variant }: { variant: "site" | "app" | "admin" }) {
+export default function TabBar({ variant }: { variant: "site" | "app" | "admin" | "staff" }) {
   const pathname = usePathname() || "/";
   const items = VARIANTS[variant];
   const isActive = (it: Item) => (it.exact ? pathname === it.href : pathname === it.href || pathname.startsWith(it.href + "/"));

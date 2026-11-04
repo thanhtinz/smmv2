@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { adminDepositAction, adminManualDeposit } from "@/app/actions/admin";
 import { vnd, DEP_STATUS, dt } from "@/lib/format";
@@ -6,6 +7,7 @@ import { vnd, DEP_STATUS, dt } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDeposits({ searchParams }: { searchParams: { msg?: string; err?: string; status?: string } }) {
+  await requireAdminPage();
   const where: any = {};
   if (searchParams.status) where.status = searchParams.status;
   const deposits = await prisma.deposit.findMany({ where, orderBy: { id: "desc" }, take: 60, include: { user: true } });

@@ -1,10 +1,12 @@
 import { getSettings } from "@/lib/settings";
+import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash } from "@/components/ui";
 import { adminSaveSettings } from "@/app/actions/admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettings({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+  await requireAdminPage();
   const s = await getSettings();
   const cronUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn"}/api/cron/sync?secret=<CRON_SECRET>&services=1`;
   const webhookUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn"}/api/webhooks/sepay`;

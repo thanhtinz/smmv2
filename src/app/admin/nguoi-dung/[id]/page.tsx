@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import {  getCurrentUser , requireAdminPage } from "@/lib/auth";
 import { BackLink, Flash, Badge } from "@/components/ui";
 import { adminAdjustBalance, adminUpdateUser } from "@/app/actions/admin";
 import { vnd, LEVEL_NAME, dt } from "@/lib/format";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 const TX_LABEL: Record<string, string> = { DEPOSIT: "Nạp tiền", SMM_ORDER: "Đặt đơn SMM", PREMIUM_ORDER: "Mua Premium", REFUND: "Hoàn tiền", ADJUST: "Admin điều chỉnh", BONUS: "Thưởng" };
 
 export default async function AdminUserDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
+  await requireAdminPage();
   const me = (await getCurrentUser())!;
   const u = await prisma.user.findUnique({ where: { id: parseInt(params.id) } });
   if (!u) notFound();

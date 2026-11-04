@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { BackLink, Flash } from "@/components/ui";
 import { adminSaveService } from "@/app/actions/admin";
@@ -7,6 +8,7 @@ import { PLATFORMS } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminServiceForm({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
+  await requireAdminPage();
   const isNew = params.id === "moi";
   const service = isNew ? null : await prisma.smmService.findUnique({ where: { id: parseInt(params.id) } });
   if (!isNew && !service) notFound();
