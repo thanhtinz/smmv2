@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { Badge, BackLink } from "@/components/ui";
 import { vnd, num, SMM_STATUS, dt } from "@/lib/format";
+import { parseDripfeed } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export default async function SmmOrderDetail({ params }: { params: { id: string 
   const user = (await getCurrentUser())!;
   const o = await prisma.smmOrder.findFirst({ where: { id: parseInt(params.id), userId: user.id }, include: { service: { include: { category: true } } } });
   if (!o) notFound();
+  const drip = parseDripfeed(o.params);
   const rows: [string, string][] = [
     ["Mã đơn", o.code],
     ["Dịch vụ", o.service.name],
@@ -23,6 +25,12 @@ export default async function SmmOrderDetail({ params }: { params: { id: string 
     ["Hình thức xử lý", o.fulfillment === "API" ? "Tự động qua nhà cung cấp" : "Xử lý thủ công bởi đội ngũ"],
     ["Tạo lúc", dt(o.createdAt)],
     ["Cập nhật", dt(o.updatedAt)],
+    ...(drip ? [[
+      "Drip-feed",
+      drip.cancelled
+        ? `Đã dừng ở lượt ${drip.doneRuns}/${drip.runs}`
+        : `Đã thả ${drip.doneRuns}/${drip.runs} lượt · mỗi lượt ${num(drip.perRun)} · cách nhau ${drip.intervalMinutes} phút${drip.doneRuns < drip.runs ? ` · lượt tiếp theo: ${dt(new Date(drip.nextRunAt))}` : ""}`,
+    ] as [string, string]] : []),
   ];
   return (
     <div>

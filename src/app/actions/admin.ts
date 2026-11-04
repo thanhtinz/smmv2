@@ -369,6 +369,19 @@ export async function adminManualDeposit(formData: FormData) {
 }
 
 /* ---------- Ticket ---------- */
+export async function adminPanelAction(formData: FormData) {
+  await requireAdmin();
+  const id = parseInt(String(formData.get("id")));
+  const kind = String(formData.get("kind"));
+  const panel = await prisma.childPanel.findUnique({ where: { id } });
+  if (!panel) back("/admin/panel-con", "err", "Không tìm thấy panel");
+  if (kind === "toggle") {
+    await prisma.childPanel.update({ where: { id }, data: { status: panel.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE" } });
+    done("/admin/panel-con", `Đã ${panel.status === "ACTIVE" ? "khoá" : "mở lại"} panel ${panel.name}`);
+  }
+  back("/admin/panel-con", "err", "Thao tác không hợp lệ");
+}
+
 export async function adminReplyTicket(formData: FormData) {
   await requireStaff();
   const ticketId = parseInt(String(formData.get("ticketId")));

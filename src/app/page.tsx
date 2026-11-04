@@ -404,6 +404,9 @@ order=100482`}</pre>
               { t: "Giá sỉ trực tiếp", d: "Đấu thẳng nhà cung cấp, giá vốn công khai theo từng dịch vụ — không qua trung gian.", i: I.db },
               { t: "Hỗ trợ người thật", d: "Mở ticket bất cứ lúc nào và nói chuyện với người thật, không phải kịch bản.", i: I.ticket },
               { t: "Nạp tự động 24/7", d: "VietQR + webhook ngân hàng: chuyển đúng nội dung là tiền vào trong vài phút.", i: I.wallet },
+              { t: "Drip-feed — thả nhỏ giọt", d: "Chia đơn thành nhiều lượt thả đều theo phút để số tăng tự nhiên như người thật.", i: I.clock },
+              { t: "Đặt hàng loạt", d: "Dán cả danh sách đơn một lần — hệ thống kiểm tra từng dòng, tính tổng trước khi chạy.", i: I.list },
+              { t: "Panel con riêng", d: "Đại lý mở gian hàng mang thương hiệu riêng, tự đặt giá — hoa hồng về ví theo từng đơn.", i: I.server },
             ].map((x) => (
               <div key={x.t} className="card p-6 hover:shadow-lg transition">
                 <span className="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">{x.i}</span>

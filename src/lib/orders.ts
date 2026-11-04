@@ -8,6 +8,30 @@ import {
 } from "./provider";
 import type { PremiumOrder, SmmOrder, User } from "@prisma/client";
 
+/** Trạng thái drip-feed lưu trong params của đơn (JSON) */
+export type DripfeedState = {
+  runs: number;
+  intervalMinutes: number;
+  perRun: number;
+  remainder: number; // cộng dồn vào lượt đầu
+  doneRuns: number;
+  placedQty: number;
+  nextRunAt: string; // ISO
+  failCount: number;
+  cancelled?: boolean;
+  children: { pid: string; qty: number; at: string }[];
+};
+
+export function parseDripfeed(params: string | null | undefined): DripfeedState | null {
+  if (!params) return null;
+  try {
+    const p = JSON.parse(params);
+    return p && p.dripfeed ? (p.dripfeed as DripfeedState) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Tạo đơn SMM (dùng chung cho web, API reseller). Ném Error với message hiển thị cho khách. */
 export async function createSmmOrder(input: {
   user: User;
@@ -17,6 +41,7 @@ export async function createSmmOrder(input: {
   note?: string;
   viaApi?: boolean;
   extra?: SmmExtraParams;
+  dripfeed?: { runs: number; intervalMinutes: number };
 }) {
   const service = await prisma.smmService.findUnique({
     where: { id: input.serviceId },
@@ -27,10 +52,39 @@ export async function createSmmOrder(input: {
   if (input.quantity < service.min) throw new Error(`Số lượng tối thiểu là ${service.min}`);
   if (input.quantity > service.max) throw new Error(`Số lượng tối đa là ${service.max}`);
 
-  const discount = LEVEL_DISCOUNT[input.user.level] || 0;
-  const charge = Math.max(1, Math.round(smmCharge(service.rate, input.quantity) * (1 - discount / 100)));
-  const cost = smmCharge(service.costRate, input.quantity);
+  // Drip-feed: chia tổng số lượng thành nhiều lượt thả cách nhau theo phút (kiểu slike/panel chuẩn)
+  let drip: DripfeedState | null = null;
+  if (input.dripfeed) {
+    if (!service.dripfeed) throw new Error("Dịch vụ này không hỗ trợ drip-feed");
+    const runs = Math.floor(input.dripfeed.runs);
+    const intervalMinutes = Math.floor(input.dripfeed.intervalMinutes);
+    if (runs < 2 || runs > 100) throw new Error("Số lượt drip-feed phải từ 2 đến 100");
+    if (intervalMinutes < 5 || intervalMinutes > 1440) throw new Error("Khoảng cách giữa các lượt phải từ 5 đến 1440 phút");
+    const perRun = Math.floor(input.quantity / runs);
+    if (perRun < service.min) throw new Error(`Mỗi lượt thả ${perRun} < tối thiểu ${service.min} của dịch vụ — giảm số lượt hoặc tăng tổng số lượng`);
+    if (perRun > service.max) throw new Error(`Mỗi lượt thả ${perRun} > tối đa ${service.max} của dịch vụ — tăng số lượt`);
+    drip = {
+      runs, intervalMinutes, perRun,
+      remainder: input.quantity - perRun * runs,
+      doneRuns: 0, placedQty: 0,
+      nextRunAt: new Date().toISOString(),
+      failCount: 0,
+      children: [],
+    };
+  }
 
+  // Panel con: khách thuộc panel trả giá đã cộng markup của chủ panel (không chiết khấu cấp bậc);
+  // phần chênh lệch so với giá gốc là hoa hồng của chủ panel.
+  let panel: { id: number; ownerId: number; markup: number; name: string } | null = null;
+  if (input.user.panelId) {
+    const p = await prisma.childPanel.findUnique({ where: { id: input.user.panelId } });
+    if (p && p.status === "ACTIVE") panel = { id: p.id, ownerId: p.ownerId, markup: p.markup, name: p.name };
+  }
+  const panelRate = panel ? Math.round(service.rate * (1 + panel.markup / 100)) : service.rate;
+  const discount = panel ? 0 : LEVEL_DISCOUNT[input.user.level] || 0;
+  const charge = Math.max(1, Math.round(smmCharge(panelRate, input.quantity) * (1 - discount / 100)));
+  const commission = panel ? Math.max(0, charge - smmCharge(service.rate, input.quantity)) : 0;
+  const cost = smmCharge(service.costRate, input.quantity);
   const order = await prisma.$transaction(async (tx) => {
     await applyBalance(tx, input.user.id, -charge, "SMM_ORDER", undefined, `Đặt đơn ${service.name}`);
     const o = await tx.smmOrder.create({
@@ -46,19 +100,30 @@ export async function createSmmOrder(input: {
         fulfillment: service.fulfillment,
         providerId: service.providerId,
         viaApi: !!input.viaApi,
+        panelId: panel?.id,
+        commission,
         note: input.note,
-        params: input.extra && Object.keys(input.extra).length ? JSON.stringify(input.extra) : null,
+        params: (() => {
+          const obj: Record<string, any> = { ...(input.extra || {}) };
+          if (drip) obj.dripfeed = drip;
+          return Object.keys(obj).length ? JSON.stringify(obj) : null;
+        })(),
         remains: input.quantity,
       },
     });
     const code = genCode("SMM", o.id);
     await tx.smmOrder.update({ where: { id: o.id }, data: { code } });
+    // Trả hoa hồng cho chủ panel ngay khi đơn được tạo (hoàn tiền sẽ thu hồi theo tỉ lệ)
+    if (panel && commission > 0) {
+      await applyBalance(tx, panel.ownerId, commission, "PANEL_COMMISSION", code, `Hoa hồng đơn ${code} — panel ${panel.name}`);
+    }
     return { ...o, code };
   });
 
   // Đẩy qua provider nếu là đơn API — lỗi thì giữ PENDING để admin xử lý / cron thử lại, KHÔNG mất tiền khách vô ích:
   // nếu provider từ chối dứt khoát, hoàn tiền ngay.
-  if (service.fulfillment === "API" && service.provider && service.providerServiceId) {
+  // Đơn drip-feed KHÔNG đẩy ngay: cron thả từng lượt theo lịch (xem processDripfeedOrders).
+  if (!drip && service.fulfillment === "API" && service.provider && service.providerServiceId) {
     try {
       const pid = await providerAddOrder(service.provider, service.providerServiceId, order.link, order.quantity, input.extra);
       await prisma.smmOrder.update({
@@ -77,22 +142,118 @@ export async function createSmmOrder(input: {
       return { ...order, status: "REFUNDED" as const };
     }
   }
+  if (drip && service.fulfillment === "API") {
+    await prisma.smmOrder.update({ where: { id: order.id }, data: { status: "PROCESSING" } });
+    return { ...order, status: "PROCESSING" as const };
+  }
   return order;
 }
 
-/** Hoàn tiền (toàn bộ hoặc một phần) cho đơn SMM + cập nhật trạng thái */
+/** Hoàn tiền (toàn bộ hoặc một phần) cho đơn SMM + cập nhật trạng thái.
+ *  Đơn drip-feed: chỉ hoàn phần CHƯA thả (phần đã thả là giá trị đã giao) và dừng lịch thả. */
 export async function refundSmmOrder(orderId: number, amount: number, note: string, status: "REFUNDED" | "CANCELED" | "PARTIAL" = "REFUNDED") {
   const order = await prisma.smmOrder.findUnique({ where: { id: orderId } });
   if (!order) return;
-  const refundable = order.charge - order.refundedAmount;
-  const amt = Math.min(amount, refundable);
+  const drip = parseDripfeed(order.params);
+  let cap = order.charge - order.refundedAmount;
+  if (drip && drip.placedQty > 0) {
+    const placedValue = Math.floor((order.charge * drip.placedQty) / Math.max(1, order.quantity));
+    cap = Math.min(cap, Math.max(0, order.charge - placedValue - order.refundedAmount));
+  }
+  const amt = Math.min(amount, cap);
   await prisma.$transaction(async (tx) => {
     if (amt > 0) await applyBalance(tx, order.userId, amt, "REFUND", order.code, note);
-    await tx.smmOrder.update({
-      where: { id: orderId },
-      data: { status, refundedAmount: { increment: amt } },
-    });
+    const data: any = { status, refundedAmount: { increment: amt } };
+    if (drip && !drip.cancelled) {
+      try {
+        const p = JSON.parse(order.params || "{}");
+        p.dripfeed = { ...drip, cancelled: true };
+        data.params = JSON.stringify(p);
+      } catch {}
+    }
+    await tx.smmOrder.update({ where: { id: orderId }, data });
   });
+  // Thu hồi hoa hồng panel theo đúng tỉ lệ số tiền vừa hoàn (best-effort: chủ panel đã tiêu thì ghi log, không chặn hoàn tiền của khách)
+  if (order.panelId && order.commission > 0 && amt > 0 && order.charge > 0) {
+    const claw = Math.floor((order.commission * amt) / order.charge);
+    if (claw > 0) {
+      try {
+        const panel = await prisma.childPanel.findUnique({ where: { id: order.panelId } });
+        if (panel) {
+          await prisma.$transaction(async (tx) => {
+            await applyBalance(tx, panel.ownerId, -claw, "PANEL_COMMISSION", order.code, `Thu hồi hoa hồng — đơn ${order.code} hoàn tiền`);
+          });
+        }
+      } catch (e: any) {
+        await prisma.apiLog.create({ data: { kind: "panel_commission", ref: order.code, ok: false, detail: `clawback failed ${claw}: ${String(e?.message || e)}` } });
+      }
+    }
+  }
+}
+
+/**
+ * Động cơ drip-feed (cron gọi mỗi lượt): thả lượt tiếp theo cho các đơn đến hạn.
+ * Mỗi lượt là một đơn con thật ở provider; hết lượt thì gắn providerOrderId của lượt cuối
+ * để bộ đồng bộ trạng thái thường tiếp quản. Lượt lỗi 3 lần liên tiếp -> huỷ phần còn lại + hoàn tiền.
+ */
+export async function processDripfeedOrders(limit = 10) {
+  const now = new Date();
+  const candidates = await prisma.smmOrder.findMany({
+    where: { fulfillment: "API", status: { in: ["PENDING", "PROCESSING"] }, params: { contains: "dripfeed" } },
+    take: 100,
+    orderBy: { createdAt: "asc" },
+  });
+  let placed = 0, finished = 0, failed = 0;
+  for (const order of candidates) {
+    if (placed + failed >= limit) break;
+    const drip = parseDripfeed(order.params);
+    if (!drip || drip.cancelled || drip.doneRuns >= drip.runs) continue;
+    if (new Date(drip.nextRunAt) > now) continue;
+    const service = await prisma.smmService.findUnique({ where: { id: order.serviceId }, include: { provider: true } });
+    if (!service?.provider || !service.providerServiceId) continue;
+    const runQty = drip.perRun + (drip.doneRuns === 0 ? drip.remainder : 0);
+    let extra: SmmExtraParams | undefined;
+    try {
+      const p = JSON.parse(order.params || "{}");
+      const { dripfeed, ...rest } = p;
+      extra = rest as SmmExtraParams;
+    } catch {}
+    try {
+      const pid = await providerAddOrder(service.provider, service.providerServiceId, order.link, runQty, extra);
+      drip.children.push({ pid, qty: runQty, at: now.toISOString() });
+      drip.doneRuns += 1;
+      drip.placedQty += runQty;
+      drip.failCount = 0;
+      drip.nextRunAt = new Date(now.getTime() + drip.intervalMinutes * 60000).toISOString();
+      const done = drip.doneRuns >= drip.runs;
+      const p = JSON.parse(order.params || "{}");
+      p.dripfeed = drip;
+      await prisma.smmOrder.update({
+        where: { id: order.id },
+        data: {
+          params: JSON.stringify(p),
+          status: "PROCESSING",
+          remains: Math.max(0, order.quantity - drip.placedQty),
+          ...(done ? { providerOrderId: pid } : {}),
+        },
+      });
+      await prisma.apiLog.create({ data: { kind: "provider_out", ref: order.code, detail: `dripfeed run ${drip.doneRuns}/${drip.runs} qty=${runQty} -> ${pid}` } });
+      placed++;
+      if (done) finished++;
+    } catch (e: any) {
+      drip.failCount += 1;
+      drip.nextRunAt = new Date(now.getTime() + 60000).toISOString();
+      const p = JSON.parse(order.params || "{}");
+      p.dripfeed = drip;
+      await prisma.smmOrder.update({ where: { id: order.id }, data: { params: JSON.stringify(p) } });
+      await prisma.apiLog.create({ data: { kind: "provider_out", ref: order.code, ok: false, detail: `dripfeed run failed (${drip.failCount}): ${String(e?.message || e)}` } });
+      failed++;
+      if (drip.failCount >= 3) {
+        await refundSmmOrder(order.id, order.charge, "Drip-feed: provider lỗi 3 lượt liên tiếp — hoàn phần chưa thả", "CANCELED");
+      }
+    }
+  }
+  return { placed, finished, failed };
 }
 
 /** Đồng bộ trạng thái 1 đơn API từ provider (cron + nút bấm tay của admin) */

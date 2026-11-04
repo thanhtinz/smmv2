@@ -51,7 +51,9 @@ key=...&action=add&service=31&link=...&quantity=2&comments=Hay quá\\nRất ch�
 # Dịch vụ cảm xúc: reaction = like|love|haha|wow|sad|angry (nhiều loại cách nhau dấu |)
 key=...&action=add&service=9&link=...&quantity=100&reaction=like|love
 # Dịch vụ watch time: minutes / duration; gói subscription: posts
-key=...&action=add&service=40&link=...&quantity=100&minutes=30`} res={`Các tham số này được chuyển thẳng sang nhà cung cấp nguồn (kiểu ThaTim) khi dịch vụ đấu API.`} />
+key=...&action=add&service=40&link=...&quantity=100&minutes=30
+# Drip-feed (chỉ dịch vụ có dripfeed=true): chia quantity thành runs lượt, cách nhau interval phút
+key=...&action=add&service=2&link=...&quantity=10000&dripfeed=1&runs=10&interval=60`} res={`Các tham số này được chuyển thẳng sang nhà cung cấp nguồn (kiểu ThaTim) khi dịch vụ đấu API. Đơn drip-feed được hệ thống thả từng lượt theo lịch, trạng thái theo dõi như đơn thường.`} />
 
         <div className="card p-6 mt-8">
           <h3 className="font-bold text-slate-900 mb-2">Lưu ý tích hợp panel con</h3>

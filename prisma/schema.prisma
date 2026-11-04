@@ -53,6 +53,11 @@ model User {
   deposits      Deposit[]
   transactions  Transaction[]
   tickets       Ticket[]
+
+  // Panel con (child panel): khách đăng ký qua panel của đại lý khác
+  panelId    Int?
+  panel      ChildPanel?  @relation("PanelMember", fields: [panelId], references: [id])
+  ownedPanel ChildPanel?  @relation("PanelOwner")
 }
 
 enum Fulfillment {
@@ -155,6 +160,9 @@ model SmmOrder {
   provider       Provider?      @relation(fields: [providerId], references: [id])
   providerOrderId String?       @db.VarChar(50)
   viaApi         Boolean        @default(false) // đặt qua API reseller
+  panelId        Int? // đơn đặt qua panel con — chủ panel hưởng commission
+  panel          ChildPanel?    @relation(fields: [panelId], references: [id])
+  commission     Int            @default(0) // hoa hồng đã trả cho chủ panel (VND)
   params         String?        @db.Text // JSON tham số phụ kiểu ThaTim: comments, reaction, minutes, duration, posts
   note           String?        @db.Text // ghi chú của khách
   adminNote      String?        @db.Text
@@ -309,6 +317,7 @@ enum TxType {
   REFUND
   ADJUST
   BONUS
+  PANEL_COMMISSION
 }
 
 model Transaction {
@@ -378,4 +387,25 @@ model ApiLog {
   createdAt DateTime @default(now())
 
   @@index([kind, createdAt])
+}
+
+// Panel con (child panel): gian hàng riêng của đại lý — khách của panel trả giá đã cộng
+// markup của chủ panel, phần chênh lệch trả về chủ panel dưới dạng hoa hồng (PANEL_COMMISSION).
+// Chạy tại /cua-hang/[slug] hoặc tên miền riêng của chủ panel (CNAME -> middleware nhận diện).
+model ChildPanel {
+  id        Int      @id @default(autoincrement())
+  ownerId   Int      @unique
+  owner     User     @relation("PanelOwner", fields: [ownerId], references: [id])
+  name      String   @db.VarChar(120)
+  slug      String   @unique @db.VarChar(60)
+  domain    String?  @unique @db.VarChar(190)
+  markup    Int      @default(20) // % cộng trên giá gốc
+  accent    String   @default("blue") @db.VarChar(20)
+  tagline   String?  @db.VarChar(255)
+  status    String   @default("ACTIVE") @db.VarChar(20) // ACTIVE | SUSPENDED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members User[]     @relation("PanelMember")
+  orders  SmmOrder[]
 }

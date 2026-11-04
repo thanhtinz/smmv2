@@ -130,6 +130,8 @@ async function main() {
           avgTime: avg,
           refill,
           cancelable: true,
+          // Dịch vụ follow/sub/member cho phép thả nhỏ giọt (drip-feed)
+          dripfeed: /follow|subscribe|member/i.test(name),
           fulfillment: "MANUAL",
           description: desc || null,
         },

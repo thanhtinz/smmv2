@@ -26,6 +26,9 @@ Kèm **Admin panel riêng** tại `/admin` và **API cho đại lý** tại `/ap
 **Khách hàng**
 - Đăng ký / đăng nhập, cấp bậc Thành viên → Đại lý (−5%) → Tổng đại lý (−10%) → VIP (−15%) áp tự động vào giá SMM
 - Đặt đơn SMM: chọn danh mục → dịch vụ, tính tiền trực tiếp; dịch vụ comment có ô nhập nội dung từng dòng, dịch vụ cảm xúc có chọn reaction, watch time có số phút (đúng tham số kiểu ThaTim)
+- **Drip-feed**: dịch vụ hỗ trợ sẽ có tuỳ chọn thả nhỏ giọt — chia tổng số lượng thành nhiều lượt cách nhau theo phút, cron thả từng lượt, huỷ chỉ hoàn phần chưa thả
+- **Đặt hàng loạt**: dán danh sách `id dịch vụ | link | số lượng` (tối đa 50 dòng), xem trước từng dòng + tổng tiền rồi đặt tất cả
+- **Panel con**: mở gian hàng riêng (tên/màu/phụ phí %) tại `/cua-hang/[slug]` hoặc tên miền riêng (CNAME) — khách của panel mua theo giá panel, chủ panel nhận hoa hồng từng đơn (hoàn tiền thì thu hồi theo tỉ lệ)
 - Shop Premium: gói kho giao ngay, gói chính chủ giao tay, bảo hành trong trang đơn
 - Nạp tiền: VietQR ngân hàng + MoMo, cộng **tự động qua webhook** (SePay/Casso) khi chuyển đúng nội dung `SMM <mã nạp>`; thưởng nạp theo mốc cấu hình được
 - Sổ giao dịch đầy đủ, ticket hỗ trợ 2 chiều, trang API key cho đại lý
@@ -38,7 +41,8 @@ Kèm **Admin panel riêng** tại `/admin` và **API cho đại lý** tại `/ap
 - Dịch vụ SMM: CRUD danh mục/dịch vụ, chọn nguồn API hoặc thủ công cho từng dịch vụ
 - **Nhà cung cấp API**: thêm/sửa, kiểm tra số dư, **đồng bộ dịch vụ SMM và sản phẩm Premium** (cộng markup %), preset sẵn cho **ThaTim**
 - Sản phẩm Premium + gói bán (giá, vốn, bảo hành, chu kỳ nhà cung cấp), Kho Premium nhập hàng loạt từng dòng
-- Người dùng: cộng/trừ số dư, đổi cấp bậc, khoá tài khoản, phân quyền STAFF/ADMIN
+- Người dùng: cộng/trừ số dư, đổi cấp bậc, khoá tài khoản, phân quyền **2 tầng** — STAFF chỉ xem/xử lý đơn + ticket; tiền, nhà cung cấp + API key, dịch vụ + giá, sản phẩm + kho, người dùng + vai trò, cấu hình và thông báo chỉ ADMIN (link Admin Panel cũng chỉ hiện với role ADMIN)
+- Panel con: danh sách gian hàng của đại lý, khoá/mở panel
 - Ticket, Thông báo, Nhật ký API/webhook, Cấu hình (tên site, ngân hàng/MoMo, mốc thưởng nạp, bảo trì...)
 
 ## Công nghệ
@@ -82,7 +86,7 @@ Không có key ThaTim? Mọi panel chuẩn SMM API v2 khác (slike...) đều đ
 */5 * * * * curl -s "https://your-domain.vn/api/cron/sync?secret=<CRON_SECRET>&services=1"
 ```
 
-Cron này: đồng bộ trạng thái đơn SMM đang chạy (hoàn tiền Partial/Canceled), lấy bàn giao đơn Premium API, và (khi `services=1`) đồng bộ lại giá/dịch vụ + số dư từ mọi nhà cung cấp đang bật.
+Cron này: **thả các lượt drip-feed đến hạn**, đồng bộ trạng thái đơn SMM đang chạy (hoàn tiền Partial/Canceled), lấy bàn giao đơn Premium API, và (khi `services=1`) đồng bộ lại giá/dịch vụ + số dư từ mọi nhà cung cấp đang bật.
 
 Trên Vercel: dùng `vercel.json` đã kèm sẵn (cron 10 phút) và đặt env `CRON_SECRET` — Vercel tự gửi `Authorization: Bearer <CRON_SECRET>` khi chạy cron, endpoint đã hỗ trợ cả 3 cách xác thực (`?secret=`, header `x-cron-secret`, Bearer). Database dùng MySQL ngoài (VPS MySQL, Aiven, PlanetScale...) vì Vercel không chứa MySQL.
 

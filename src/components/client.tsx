@@ -6,7 +6,7 @@ import { PLATFORM_COLORS } from "@/components/ui";
 
 export type ServiceDTO = {
   id: number; name: string; description: string | null; rate: number; min: number; max: number;
-  avgTime: string | null; refill: boolean; categoryId: number; categoryName: string; platform: string;
+  avgTime: string | null; refill: boolean; dripfeed?: boolean; categoryId: number; categoryName: string; platform: string;
 };
 
 /* ---------- Khám phá dịch vụ (trang công khai + trang đặt đơn) ---------- */
@@ -147,6 +147,9 @@ export function OrderForm({ services, categories, discount, preselect, action, b
   const inCat = services.filter((s) => s.categoryId === catId);
   const [serviceId, setServiceId] = useState<number>(preselect || inCat[0]?.id);
   const [qty, setQty] = useState<number>(initialQty || 1000);
+  const [dripOn, setDripOn] = useState(false);
+  const [dripRuns, setDripRuns] = useState(10);
+  const [dripInterval, setDripInterval] = useState(60);
   const [link, setLink] = useState(initialLink || "");
   const [pasteMsg, setPasteMsg] = useState("");
   const service = services.find((s) => s.id === serviceId) || inCat[0];
@@ -233,6 +236,32 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             <input className="inp" name="minutes" type="number" min={1} placeholder="Vd: 30" />
           </div>
         )}
+        {service?.dripfeed && (
+          <div className="rounded-2xl border border-dashed border-brand-200 bg-brand-50/50 p-4">
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" name="dripfeed" value="1" checked={dripOn} onChange={(e) => setDripOn(e.target.checked)} className="w-4 h-4 accent-[#4680ff]" />
+              <span className="font-semibold text-slate-800 text-sm">Thả nhỏ giọt (drip-feed)</span>
+              <span className="text-xs text-slate-400">— chia tổng số lượng thành nhiều lượt thả đều theo thời gian, nhìn tự nhiên hơn</span>
+            </label>
+            {dripOn && (
+              <div className="grid grid-cols-2 gap-3 mt-3.5">
+                <div>
+                  <label className="lbl">Số lượt thả</label>
+                  <input className="inp" name="runs" type="number" min={2} max={100} value={dripRuns} onChange={(e) => setDripRuns(parseInt(e.target.value) || 2)} />
+                </div>
+                <div>
+                  <label className="lbl">Cách nhau (phút)</label>
+                  <input className="inp" name="interval" type="number" min={5} max={1440} value={dripInterval} onChange={(e) => setDripInterval(parseInt(e.target.value) || 60)} />
+                </div>
+                <p className="col-span-2 text-xs text-slate-500 leading-relaxed">
+                  {qty > 0 && dripRuns > 0 ? (
+                    <>Mỗi lượt khoảng <b>{num(Math.floor(qty / dripRuns))}</b> (lượt đầu cộng phần dư), tổng thời gian thả ≈ <b>{num(dripRuns * dripInterval)} phút</b>. Mỗi lượt phải ≥ {num(service.min)} theo giới hạn dịch vụ.</>
+                  ) : "Nhập số lượng và số lượt để xem lịch thả."}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
         <OrderSubmit disabled={notEnough} />
       </form>
       <div className="card p-6 lg:col-span-2 lg:sticky lg:top-24">
@@ -268,6 +297,73 @@ function Row({ k, v }: { k: string; v: string }) {
 function OrderSubmit({ disabled }: { disabled?: boolean }) {
   // submit về server action qua form cha (formAction được gắn ở page bằng cách bọc form) — xem dat-hang/page.tsx
   return <button type="submit" disabled={disabled} className="btn-primary w-full !py-3">{disabled ? "Chưa đủ số dư" : "Đặt đơn ngay"}</button>;
+}
+
+/* ---------- Đặt hàng loạt (bulk orders): dán nhiều dòng, xem trước tổng tiền rồi đặt tất cả ---------- */
+export function BulkOrderForm({ services, discount, balance, action }: {
+  services: ServiceDTO[];
+  discount: number;
+  balance: number;
+  action: (formData: FormData) => void;
+}) {
+  const [text, setText] = useState("");
+  const byId = useMemo(() => new Map(services.map((s) => [s.id, s])), [services]);
+  const parsed = useMemo(() => {
+    return text.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#")).slice(0, 60).map((line, i) => {
+      const parts = line.split("|").map((p) => p.trim());
+      const sid = parseInt(parts[0] || "0");
+      const link = parts[1] || "";
+      const qty = parseInt(parts[2] || "0");
+      const svc = byId.get(sid);
+      let error = "";
+      if (parts.length < 3 || !sid || !link || !qty) error = "Sai định dạng";
+      else if (!svc) error = `Không có dịch vụ ID ${sid}`;
+      else if (qty < svc.min) error = `Số lượng < tối thiểu ${num(svc.min)}`;
+      else if (qty > svc.max) error = `Số lượng > tối đa ${num(svc.max)}`;
+      const charge = svc && !error ? Math.round(Math.ceil((svc.rate * qty) / 1000) * (1 - discount / 100)) : 0;
+      return { n: i + 1, sid, link, qty, svc, error, charge };
+    });
+  }, [text, byId, discount]);
+  const valid = parsed.filter((p) => !p.error);
+  const total = valid.reduce((s, p) => s + p.charge, 0);
+  const notEnough = total > balance;
+  return (
+    <form action={action} className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+      <div className="card p-6 lg:col-span-3">
+        <label className="lbl">Danh sách đơn — mỗi dòng một đơn, định dạng: <code className="font-mono text-brand-700">id dịch vụ | link | số lượng</code></label>
+        <textarea className="inp font-mono !text-[13px] leading-relaxed" name="bulk" rows={12} value={text} onChange={(e) => setText(e.target.value)}
+          placeholder={"1 | https://facebook.com/trangcanhan | 1000\n6 | https://tiktok.com/@kenhcuaban | 5000\n# dòng bắt đầu bằng # là ghi chú, được bỏ qua"} />
+        <p className="text-xs text-slate-400 mt-2">Tối đa 50 dòng/lần. ID dịch vụ xem ở trang Bảng giá dịch vụ. Dòng lỗi được bỏ qua, các dòng đúng vẫn đặt bình thường.</p>
+        <button type="submit" disabled={valid.length === 0 || notEnough} className="btn-primary w-full mt-4 !py-3 disabled:opacity-50">
+          {valid.length === 0 ? "Nhập ít nhất 1 dòng hợp lệ" : notEnough ? "Chưa đủ số dư" : `Đặt ${valid.length} đơn — tổng ${vnd(total)}`}
+        </button>
+      </div>
+      <div className="card p-6 lg:col-span-2 lg:sticky lg:top-24">
+        <div className="font-bold text-slate-900 mb-3">Xem trước</div>
+        {parsed.length === 0 ? (
+          <p className="text-sm text-slate-400">Chưa có dòng nào. Dán danh sách vào ô bên trái để xem trước từng đơn và tổng tiền.</p>
+        ) : (
+          <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
+            {parsed.map((p) => (
+              <div key={p.n} className={`rounded-xl border px-3.5 py-2.5 text-xs leading-relaxed ${p.error ? "border-rose-200 bg-rose-50 text-rose-700" : "border-slate-200 bg-slate-50/60"}`}>
+                <div className="flex justify-between gap-3">
+                  <span className="font-bold">Dòng {p.n} · ID {p.sid || "?"}</span>
+                  {p.error ? <span className="font-semibold">{p.error}</span> : <span className="font-bold text-brand-700">{vnd(p.charge)}</span>}
+                </div>
+                {!p.error && p.svc && <div className="text-slate-500 mt-0.5 truncate">{p.svc.name} — {num(p.qty)} lượt</div>}
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="border-t border-dashed mt-4 pt-3.5 space-y-1.5 text-sm">
+          <div className="flex justify-between"><span className="text-slate-500">Đơn hợp lệ</span><b>{valid.length}/{parsed.length}</b></div>
+          <div className="flex justify-between"><span className="text-slate-500">Tổng tiền</span><b className="text-brand-700">{vnd(total)}</b></div>
+          <div className="flex justify-between"><span className="text-slate-500">Số dư hiện tại</span><b>{vnd(balance)}</b></div>
+          {notEnough && <p className="text-xs text-rose-600 font-medium">Còn thiếu {vnd(total - balance)} — nạp thêm hoặc bỏ bớt dòng.</p>}
+        </div>
+      </div>
+    </form>
+  );
 }
 
 /* ---------- Form mua premium ---------- */

@@ -18,6 +18,9 @@ export async function placeSmmOrderAction(formData: FormData) {
   const link = String(formData.get("link") || "");
   const quantity = parseInt(String(formData.get("quantity") || "0"));
   const note = String(formData.get("note") || "") || undefined;
+  const dripfeed = formData.get("dripfeed") === "1" && parseInt(String(formData.get("runs") || "0")) > 0 && parseInt(String(formData.get("interval") || "0")) > 0
+    ? { runs: parseInt(String(formData.get("runs"))), intervalMinutes: parseInt(String(formData.get("interval"))) }
+    : undefined;
   const extra: Record<string, any> = {};
   const comments = String(formData.get("comments") || "").trim();
   const reaction = String(formData.get("reaction") || "").trim();
@@ -27,11 +30,94 @@ export async function placeSmmOrderAction(formData: FormData) {
   if (minutes > 0) extra.minutes = minutes;
   try {
     const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-    const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, note, extra });
+    const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, note, extra, dripfeed });
     back("/dashboard/don-hang", "msg", `Đặt đơn ${order.code} thành công — trạng thái: ${order.status === "REFUNDED" ? "provider từ chối, đã hoàn tiền" : "đang xử lý"}`);
   } catch (e: any) {
     back("/dashboard/dat-hang", "err", String(e?.message || "Đặt đơn thất bại"));
   }
+}
+
+/**
+ * Đặt hàng loạt (bulk orders): mỗi dòng "service_id | link | quantity" là một đơn riêng.
+ * Xử lý từng dòng độc lập — dòng lỗi không chặn các dòng còn lại; trả về tóm tắt.
+ */
+export async function bulkPlaceOrdersAction(formData: FormData) {
+  const user = await requireUser();
+  const raw = String(formData.get("bulk") || "");
+  const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
+  if (lines.length === 0) back("/dashboard/dat-hang-loat", "err", "Chưa có dòng nào để đặt");
+  if (lines.length > 50) back("/dashboard/dat-hang-loat", "err", "Tối đa 50 dòng mỗi lần đặt hàng loạt");
+  const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
+  let ok = 0;
+  const errors: string[] = [];
+  const codes: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const parts = lines[i].split("|").map((p) => p.trim());
+    const [sidRaw, link, qtyRaw] = parts;
+    const serviceId = parseInt(sidRaw || "0");
+    const quantity = parseInt(qtyRaw || "0");
+    if (parts.length < 3 || !serviceId || !link || !quantity) {
+      errors.push(`dòng ${i + 1}: sai định dạng (cần: id dịch vụ | link | số lượng)`);
+      continue;
+    }
+    try {
+      const order = await createSmmOrder({ user: fresh, serviceId, link, quantity });
+      ok++;
+      codes.push(order.code);
+    } catch (e: any) {
+      errors.push(`dòng ${i + 1}: ${String(e?.message || "lỗi")}`);
+    }
+  }
+  await prisma.apiLog.create({ data: { kind: "bulk_order", ref: fresh.username, ok: errors.length === 0, detail: `ok=${ok}/${lines.length} codes=${codes.join(",")}` } });
+  if (ok === 0) back("/dashboard/dat-hang-loat", "err", `Không đặt được đơn nào. ${errors.slice(0, 3).join("; ")}`);
+  const tail = errors.length ? ` ${errors.length} dòng lỗi: ${errors.slice(0, 3).join("; ")}${errors.length > 3 ? "…" : ""}` : "";
+  back("/dashboard/don-hang", "msg", `Đặt hàng loạt xong: ${ok}/${lines.length} đơn thành công (${codes.slice(0, 5).join(", ")}${codes.length > 5 ? "…" : ""}).${tail}`);
+}
+
+/* ---------- Panel con (child panel) ---------- */
+const RESERVED_SLUGS = ["admin", "api", "dashboard", "cua-hang", "login", "register", "dich-vu", "premium", "manifest.webmanifest", "icon.svg"];
+const PANEL_ACCENTS = ["blue", "violet", "emerald", "orange", "rose", "teal"];
+
+function panelSlug(raw: string) {
+  return raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+}
+
+export async function createPanelAction(formData: FormData) {
+  const user = await requireUser();
+  const existing = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
+  if (existing) back("/dashboard/panel-cua-toi", "err", "Mỗi tài khoản chỉ tạo 1 panel con");
+  const name = String(formData.get("name") || "").trim();
+  const slug = panelSlug(String(formData.get("slug") || ""));
+  const markup = Math.min(200, Math.max(0, parseInt(String(formData.get("markup") || "20")) || 0));
+  const accent = PANEL_ACCENTS.includes(String(formData.get("accent"))) ? String(formData.get("accent")) : "blue";
+  const tagline = String(formData.get("tagline") || "").trim() || null;
+  const domainRaw = String(formData.get("domain") || "").trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0] || null;
+  if (name.length < 3) back("/dashboard/panel-cua-toi", "err", "Tên panel tối thiểu 3 ký tự");
+  if (slug.length < 3 || slug.length > 40) back("/dashboard/panel-cua-toi", "err", "Đường dẫn panel phải 3-40 ký tự (chữ thường, số, dấu -)");
+  if (RESERVED_SLUGS.includes(slug)) back("/dashboard/panel-cua-toi", "err", "Đường dẫn này đã được hệ thống dùng");
+  const dup = await prisma.childPanel.findFirst({ where: { OR: [{ slug }, ...(domainRaw ? [{ domain: domainRaw }] : [])] } });
+  if (dup) back("/dashboard/panel-cua-toi", "err", "Đường dẫn hoặc tên miền đã có panel khác dùng");
+  await prisma.childPanel.create({ data: { ownerId: user.id, name, slug, markup, accent, tagline, domain: domainRaw } });
+  back("/dashboard/panel-cua-toi", "msg", `Đã tạo panel ${name} — gian hàng của bạn: /cua-hang/${slug}`);
+}
+
+export async function updatePanelAction(formData: FormData) {
+  const user = await requireUser();
+  const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
+  if (!panel) back("/dashboard/panel-cua-toi", "err", "Bạn chưa có panel");
+  const name = String(formData.get("name") || "").trim();
+  const markup = Math.min(200, Math.max(0, parseInt(String(formData.get("markup") || "20")) || 0));
+  const accent = PANEL_ACCENTS.includes(String(formData.get("accent"))) ? String(formData.get("accent")) : panel.accent;
+  const tagline = String(formData.get("tagline") || "").trim() || null;
+  const domainRaw = String(formData.get("domain") || "").trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0] || null;
+  const status = formData.get("status") === "SUSPENDED" ? "SUSPENDED" : "ACTIVE";
+  if (name.length < 3) back("/dashboard/panel-cua-toi", "err", "Tên panel tối thiểu 3 ký tự");
+  if (domainRaw && domainRaw !== panel.domain) {
+    const dup = await prisma.childPanel.findFirst({ where: { domain: domainRaw, NOT: { id: panel.id } } });
+    if (dup) back("/dashboard/panel-cua-toi", "err", "Tên miền đã có panel khác dùng");
+  }
+  await prisma.childPanel.update({ where: { id: panel.id }, data: { name, markup, accent, tagline, domain: domainRaw, status } });
+  back("/dashboard/panel-cua-toi", "msg", "Đã cập nhật panel");
 }
 
 export async function buyPremiumAction(formData: FormData) {

@@ -72,7 +72,11 @@ async function handle(req: NextRequest) {
       if (get("duration")) extra.duration = parseInt(get("duration"));
       if (get("posts")) extra.posts = parseInt(get("posts"));
       const fresh = await prisma.user.findUnique({ where: { id: user.id } });
-      const order = await createSmmOrder({ user: fresh!, serviceId, link, quantity, viaApi: true, extra });
+      // Drip-feed kiểu panel chuẩn: dripfeed=1&runs=10&interval=60 (phút)
+      const dripfeed = get("dripfeed") && parseInt(get("runs")) > 0 && parseInt(get("interval")) > 0
+        ? { runs: parseInt(get("runs")), intervalMinutes: parseInt(get("interval")) }
+        : undefined;
+      const order = await createSmmOrder({ user: fresh!, serviceId, link, quantity, viaApi: true, extra, dripfeed });
       return NextResponse.json({ order: order.id });
     }
 

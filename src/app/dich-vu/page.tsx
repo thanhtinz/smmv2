@@ -14,7 +14,7 @@ export default async function ServicesPage() {
   });
   const dto: ServiceDTO[] = services.map((s) => ({
     id: s.id, name: s.name, description: s.description, rate: s.rate, min: s.min, max: s.max,
-    avgTime: s.avgTime, refill: s.refill, categoryId: s.categoryId, categoryName: s.category.name, platform: s.category.platform,
+    avgTime: s.avgTime, refill: s.refill, dripfeed: s.dripfeed, categoryId: s.categoryId, categoryName: s.category.name, platform: s.category.platform,
   }));
   return (
     <div className="min-h-screen flex flex-col">

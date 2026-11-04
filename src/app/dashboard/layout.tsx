@@ -21,12 +21,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const items = [
     { href: "/dashboard", label: "Tổng quan", icon: I.home },
     { href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },
+    { href: "/dashboard/dat-hang-loat", label: "Đặt hàng loạt", icon: I.list },
     { href: "/dashboard/don-hang", label: "Đơn SMM của tôi", icon: I.list },
     { href: "/premium", label: "Mua Premium", icon: I.gem },
     { href: "/dashboard/don-premium", label: "Đơn Premium", icon: I.box },
     { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
     { href: "/dashboard/giao-dich", label: "Lịch sử số dư", icon: I.chart },
     { href: "/dashboard/api", label: "API đại lý", icon: I.key },
+    { href: "/dashboard/panel-cua-toi", label: "Panel con của tôi", icon: I.server },
     { href: "/dashboard/ticket", label: "Hỗ trợ / Ticket", icon: I.ticket, badge: openTickets },
     { href: "/dashboard/ho-so", label: "Hồ sơ", icon: I.users },
   ];
