@@ -166,6 +166,43 @@ function PlatformIcon({ platform, size = 38 }: { platform: string; size?: number
     </span>
   );
 }
+/** Icon hãng nền màu thương hiệu (dùng ở thẻ Chi tiết đơn theo panel mẫu) */
+const PLATFORM_BRAND_BG: Record<string, string> = {
+  facebook: "#1877f2", instagram: "#e1306c", youtube: "#ff0000", tiktok: "#000000", telegram: "#229ed9", shopee: "#ee4d2d",
+};
+function PlatformBrandIcon({ platform, size = 40 }: { platform: string; size?: number }) {
+  return (
+    <span className="flex shrink-0 items-center justify-center rounded-[10px]" style={{ width: size, height: size, background: PLATFORM_BRAND_BG[platform] || "#0f172a" }}>
+      <svg width={size} height={size} viewBox="0 0 24 24">
+        {platform === "facebook" && <path d="M13.4 21.9v-6.8h2.3l.35-2.65h-2.65V10.7c0-.77.22-1.3 1.33-1.3h1.42V7.05c-.25-.03-1.1-.11-2.08-.11-2.06 0-3.47 1.26-3.47 3.57v1.94H8.25v2.65h2.35v6.8a10 10 0 0 0 2.8 0Z" fill="#fff" />}
+        {platform === "instagram" && <g fill="none" stroke="#fff" strokeWidth="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5" /><circle cx="12" cy="12" r="3.8" /><circle cx="17.1" cy="6.9" r="1.15" fill="#fff" stroke="none" /></g>}
+        {platform === "youtube" && <g><rect x="2.8" y="6" width="18.4" height="12.5" rx="3.5" fill="#fff" /><path d="M10.4 9.6v5.3l4.8-2.65z" fill="#e1306c" /></g>}
+        {platform === "tiktok" && <g fill="#fff"><ellipse cx="7.2" cy="17.2" rx="2.7" ry="2.1" /><ellipse cx="15.2" cy="15.2" rx="2.7" ry="2.1" /><path d="M9.9 17.2V6.2l8-1.9v10.9h-2.7V7.4l-5.3 1.3v8.5z" /></g>}
+        {platform === "telegram" && <g fill="none" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"><path d="M21 3 10.8 13.2" /><path d="M21 3 14.5 21l-3.7-7.8L3 9.5 21 3z" /></g>}
+        {platform === "shopee" && <g fill="none" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"><path d="M5 8h14l-1.2 12a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 8Z" /><path d="M8.5 10.5V6.5a3.5 3.5 0 0 1 7 0v4" /></g>}
+        {!PLATFORM_BRAND_BG[platform] && <text x="12" y="16.5" textAnchor="middle" fontSize="11" fontWeight="900" fill="#fff">{(PLATFORMS[platform] || platform || "?").charAt(0)}</text>}
+      </svg>
+    </span>
+  );
+}
+/** Một dòng thông tin trong hộp nét đứt của thẻ Chi tiết đơn */
+function DetailLine({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2.5 text-[15px] leading-relaxed text-slate-800">
+      <span className="mt-0.5 shrink-0">{icon}</span>
+      <span className="min-w-0">{children}</span>
+    </div>
+  );
+}
+/** Link mẫu theo nền tảng, hiện trong hộp chi tiết */
+const EXAMPLE_LINK: Record<string, string> = {
+  facebook: "Link Page / bài viết công khai",
+  instagram: "Link bài viết / reel công khai",
+  tiktok: "Link video công khai",
+  youtube: "Link video / kênh công khai",
+  telegram: "Link bài viết / kênh công khai",
+  shopee: "Link sản phẩm công khai",
+};
 function InfoCell({ icon, tone, label, value }: { icon: React.ReactNode; tone: string; label: string; value: string }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3.5">
@@ -370,14 +407,14 @@ export function OrderForm({ services, categories, discount, preselect, action, b
         )}
         <div className="relative rounded-[20px] border-2 border-dashed border-slate-300/70 px-5 pb-6 pt-9 sm:px-7">
           <div className="absolute -top-[13px] left-5 flex items-center gap-7 bg-white px-2 dark:bg-[#101a2e] sm:left-6">
-            {[{ v: false, t: "One" }, { v: true, t: "Multi" }].map((o) => (
+            {[{ v: false, t: "1 link" }, { v: true, t: "Nhiều link" }].map((o) => (
               <button key={o.t} type="button" onClick={() => setMultiOn(o.v)} aria-pressed={multiOn === o.v} className="flex items-center gap-2.5">
                 <span className={`flex h-[26px] w-[26px] items-center justify-center rounded-full transition ${multiOn === o.v ? "bg-brand-500" : "border-2 border-slate-300 bg-white hover:border-slate-400"}`}>{multiOn === o.v && <span className="h-2 w-2 rounded-full bg-white" />}</span>
                 <span className={`text-[15px] font-medium ${multiOn === o.v ? "text-slate-900" : "text-slate-500"}`}>{o.t}</span>
               </button>
             ))}
           </div>
-          <label className="lbl !text-[15px] !font-bold text-slate-700">Link</label>
+          <label className="lbl !text-[15px] !font-bold text-slate-700">Link cần tăng</label>
           {multiOn ? (
             <div className="relative">
               <textarea className="inp w-full font-mono !text-[13px] leading-relaxed !pr-20" name="links" required rows={4} placeholder={"Mỗi dòng 1 link:\nhttps://...\nhttps://..."} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
@@ -405,7 +442,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             <input className="inp flex-1 !h-[52px] !rounded-[14px] !text-[15px]" name="quantity" type="number" required min={service?.min} max={service?.max} value={qty || ""} onChange={(e) => setQty(parseInt(e.target.value) || 0)} />
             <div className="flex h-[52px] min-w-[104px] items-center justify-center rounded-[14px] bg-[linear-gradient(120deg,rgb(var(--b700)),rgb(var(--b500)))] px-4 text-base font-bold text-white shadow-md shadow-brand-600/25">{vnd(shownCharge)}</div>
           </div>
-          {service && <p className="mt-1.5 text-[13px] text-slate-400">Min: {num(service.min)} - Max: {num(service.max)}</p>}
+          {service && <p className="mt-1.5 text-[13px] text-slate-400">Tối thiểu: {num(service.min)} - Tối đa: {num(service.max)}</p>}
           {qtyChips.length > 1 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {qtyChips.map((n) => (
@@ -413,10 +450,6 @@ export function OrderForm({ services, categories, discount, preselect, action, b
               ))}
             </div>
           )}
-        </div>
-        <div>
-          <label className="lbl">Ghi chú (tuỳ chọn)</label>
-          <input className="inp" name="note" placeholder="Vd: chạy chậm tự nhiên, chia 3 ngày..." />
         </div>
         {service && /comment|bình luận/i.test(service.name) && (
           <div>
@@ -429,13 +462,13 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           <div>
             <label className="lbl">Loại cảm xúc</label>
             <select className="inp" name="reaction" defaultValue="like">
-              <option value="like">Thích (like)</option>
-              <option value="love">Yêu thích (love)</option>
+              <option value="like">Thích</option>
+              <option value="love">Yêu thích</option>
               <option value="haha">Haha</option>
               <option value="wow">Wow</option>
-              <option value="sad">Buồn (sad)</option>
-              <option value="angry">Phẫn nộ (angry)</option>
-              <option value="like|love|haha">Trộn: like + love + haha</option>
+              <option value="sad">Buồn</option>
+              <option value="angry">Phẫn nộ</option>
+              <option value="like|love|haha">Trộn: Thích + Yêu thích + Haha</option>
             </select>
           </div>
         )}
@@ -449,7 +482,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           <div className="rounded-2xl border border-dashed border-brand-200 bg-brand-50/50 p-4">
             <label className="flex items-center gap-2.5 cursor-pointer">
               <input type="checkbox" name="dripfeed" value="1" checked={dripOn} onChange={(e) => setDripOn(e.target.checked)} className="w-4 h-4 accent-[#4680ff]" />
-              <span className="font-semibold text-slate-800 text-sm">Thả nhỏ giọt (drip-feed)</span>
+              <span className="font-semibold text-slate-800 text-sm">Thả nhỏ giọt</span>
               <span className="text-xs text-slate-400">— chia tổng số lượng thành nhiều lượt thả đều theo thời gian, nhìn tự nhiên hơn</span>
             </label>
             {dripOn && (
@@ -476,92 +509,126 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           <input className="inp uppercase" name="promoCode" placeholder="VD: SALE10" autoComplete="off" />
           <p className="mt-1 text-xs text-slate-400">Mã hợp lệ sẽ được giảm trực tiếp vào tiền đơn khi đặt.</p>
         </div>
-        <div className="rounded-2xl border border-slate-200/80 px-5 py-1.5">
-          <div className="flex items-center justify-between gap-4 py-3">
-            <div>
-              <div className="text-[15px] font-semibold text-slate-800">Schedule</div>
-              <div className="text-xs text-slate-400">Hẹn giờ — đơn tự đặt vào thời gian bạn chọn, tiền trừ khi đơn chạy</div>
-            </div>
-            <button type="button" role="switch" aria-checked={schedOn} onClick={() => setSchedOn(!schedOn)} className={`relative h-[30px] w-[52px] shrink-0 rounded-full transition-colors ${schedOn ? "bg-brand-600" : "bg-slate-300"}`}>
-              <span className={`absolute top-[2px] h-[26px] w-[26px] rounded-full bg-white shadow transition-all ${schedOn ? "left-[24px]" : "left-[2px]"}`} />
-            </button>
-          </div>
-          {schedOn && (
-            <div className="pb-4">
-              <input type="hidden" name="schedule" value="1" />
-              <input className="inp" type="datetime-local" name="scheduleAt" required value={schedAt} onChange={(e) => setSchedAt(e.target.value)} />
-            </div>
-          )}
-          <div className="flex items-center justify-between gap-4 border-t border-slate-100 py-3">
-            <div>
-              <div className="text-[15px] font-semibold text-slate-800">Loop</div>
-              <div className="text-xs text-slate-400">Lặp lại — tự đặt lại đơn này nhiều lần theo chu kỳ</div>
-            </div>
-            <button type="button" role="switch" aria-checked={loopOn} onClick={() => setLoopOn(!loopOn)} className={`relative h-[30px] w-[52px] shrink-0 rounded-full transition-colors ${loopOn ? "bg-brand-600" : "bg-slate-300"}`}>
-              <span className={`absolute top-[2px] h-[26px] w-[26px] rounded-full bg-white shadow transition-all ${loopOn ? "left-[24px]" : "left-[2px]"}`} />
-            </button>
-          </div>
-          {loopOn && (
-            <div className="grid grid-cols-2 gap-3 pb-4">
-              <input type="hidden" name="loop" value="1" />
-              <div>
-                <label className="lbl">Số lần lặp</label>
-                <input className="inp" type="number" name="loopTimes" min={2} max={50} value={loopTimes} onChange={(e) => setLoopTimes(parseInt(e.target.value) || 2)} />
-              </div>
-              <div>
-                <label className="lbl">Mỗi lần cách nhau (phút)</label>
-                <input className="inp" type="number" name="loopInterval" min={5} max={10080} value={loopInterval} onChange={(e) => setLoopInterval(parseInt(e.target.value) || 60)} />
-              </div>
-              <p className="col-span-2 text-xs leading-relaxed text-slate-500">Tổng dự kiến <b>{vnd(shownCharge * (loopTimes || 0))}</b> cho {num(loopTimes || 0)} lần — tiền trừ dần mỗi lần đơn chạy, thiếu tiền gói sẽ tự dừng.</p>
-            </div>
-          )}
+        <div>
+          <label className="lbl !text-[17px] !font-bold text-slate-800">Ghi chú:</label>
+          <textarea className="w-full rounded-2xl border-0 bg-slate-100 px-5 py-4 text-[15px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 dark:bg-white/5" name="note" rows={3} placeholder="Nhập ghi chú nếu cần" />
         </div>
-        <OrderSubmit disabled={notEnough} label={schedOn || loopOn ? "Lên lịch đặt đơn" : undefined} />
+        <div className="space-y-4 pt-1">
+          <div>
+            <div className="flex items-center gap-3.5">
+              <button type="button" role="switch" aria-checked={schedOn} aria-label="Đặt lịch chạy" onClick={() => setSchedOn(!schedOn)} className={`relative h-9 w-16 shrink-0 rounded-full border transition-colors ${schedOn ? "border-brand-600 bg-brand-600" : "border-slate-300 bg-white"}`}>
+                <span className={`absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full shadow transition-all ${schedOn ? "left-[33px] bg-white" : "left-1 bg-slate-400"}`} />
+              </button>
+              <span className="text-[17px] font-bold text-slate-800">Đặt lịch chạy</span>
+            </div>
+            {schedOn && (
+              <div className="mt-3 pl-[76px]">
+                <input type="hidden" name="schedule" value="1" />
+                <input className="inp" type="datetime-local" name="scheduleAt" required value={schedAt} onChange={(e) => setSchedAt(e.target.value)} />
+                <p className="mt-1.5 text-xs text-slate-400">Đơn tự đặt vào thời gian bạn chọn, tiền trừ khi đơn chạy.</p>
+              </div>
+            )}
+          </div>
+          <div>
+            <div className="flex items-center gap-3.5">
+              <button type="button" role="switch" aria-checked={loopOn} aria-label="Đặt hàng lặp lại" onClick={() => setLoopOn(!loopOn)} className={`relative h-9 w-16 shrink-0 rounded-full border transition-colors ${loopOn ? "border-brand-600 bg-brand-600" : "border-slate-300 bg-white"}`}>
+                <span className={`absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full shadow transition-all ${loopOn ? "left-[33px] bg-white" : "left-1 bg-slate-400"}`} />
+              </button>
+              <span className="text-[17px] font-bold text-slate-800">Đặt hàng lặp lại</span>
+            </div>
+            {loopOn && (
+              <div className="mt-3 grid grid-cols-2 gap-3 pl-[76px]">
+                <input type="hidden" name="loop" value="1" />
+                <div>
+                  <label className="lbl">Số lần lặp</label>
+                  <input className="inp" type="number" name="loopTimes" min={2} max={50} value={loopTimes} onChange={(e) => setLoopTimes(parseInt(e.target.value) || 2)} />
+                </div>
+                <div>
+                  <label className="lbl">Mỗi lần cách nhau (phút)</label>
+                  <input className="inp" type="number" name="loopInterval" min={5} max={10080} value={loopInterval} onChange={(e) => setLoopInterval(parseInt(e.target.value) || 60)} />
+                </div>
+                <p className="col-span-2 text-xs leading-relaxed text-slate-500">Tổng dự kiến <b>{vnd(shownCharge * (loopTimes || 0))}</b> cho {num(loopTimes || 0)} lần — tiền trừ dần mỗi lần đơn chạy, thiếu tiền gói sẽ tự dừng.</p>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-4 rounded-[26px] border border-[#d9e6fd] bg-[#eaf1fe] px-5 py-5 dark:border-white/10 dark:bg-white/5">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#d3e4ff] text-brand-600">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7H5a2 2 0 0 1 0-4h13v4" /><path d="M3 5.5V18a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2Z" /><circle cx="17" cy="15" r="1.15" fill="currentColor" stroke="none" /></svg>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-bold uppercase tracking-wide text-slate-600">Tổng thanh toán</span>
+            <span className="block truncate text-[28px] font-extrabold leading-tight text-brand-600">{vnd(shownCharge)}{multiOn && orderCount === 0 && <span className="text-sm font-semibold text-slate-400"> / link</span>}</span>
+          </span>
+          <button type="submit" disabled={notEnough} className="shrink-0 rounded-[18px] bg-brand-500 px-7 py-3.5 text-lg font-semibold text-white shadow-md shadow-brand-500/30 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">Đặt hàng</button>
+        </div>
+        {notEnough && <p className="-mt-2 text-right text-xs font-medium text-rose-600">Chưa đủ số dư cho đơn này — nạp thêm để đặt hàng.</p>}
       </form>
       <div className="card p-6 lg:col-span-2 lg:sticky lg:top-24">
-        <div className="font-bold text-slate-900 mb-4">Chi tiết đơn</div>
         {service ? (
-          <div className="space-y-3 text-sm">
-            <Row k="Dịch vụ" v={service.name} />
-            <Row k="Đơn giá" v={`${vnd(service.rate)} / 1000`} />
-            <Row k="Số lượng" v={multiOn ? `${num(qty || 0)} / link` : num(qty || 0)} />
-            {multiOn && orderCount > 0 && <Row k="Số link" v={num(orderCount)} />}
-            {multiOn && orderCount > 0 && <Row k="Tổng số lượng" v={num((qty || 0) * orderCount)} />}
-            {discount > 0 && <Row k="Chiết khấu cấp bậc" v={`-${discount}%`} />}
-            <Row k="Thời gian dự kiến" v={service.avgTime || "—"} />
-            <Row k="Bảo hành bù (refill)" v={service.refill ? "Có" : "Không"} />
-            {(schedOn || loopOn) && <Row k="Chế độ" v={loopOn ? `Loop ×${num(loopTimes || 0)} lần, mỗi ${num(loopInterval || 0)} phút` : "Schedule — hẹn giờ 1 lần"} />}
-            {schedOn && schedAt && <Row k="Chạy lúc" v={schedAt.replace("T", " ")} />}
-            <div className="border-t border-dashed pt-3 flex justify-between items-center">
-              <span className="font-semibold">Tổng thanh toán</span>
-              <span className="text-2xl font-extrabold text-brand-700">{vnd(shownCharge)}{multiOn && orderCount === 0 && <span className="text-sm font-semibold text-slate-400"> / link</span>}</span>
+          <div>
+            <div className="flex items-center justify-center gap-2.5">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" className="text-slate-500"><path d="M12 3.5 14.9 9.4l6.5.9-4.7 4.6 1.1 6.5L12 18.3l-5.8 3.1 1.1-6.5L2.6 10.3l6.5-.9L12 3.5Z" /></svg>
+              <span className="text-[32px] font-extrabold leading-none text-slate-800">{service.id}</span>
+            </div>
+            <div className="mt-5 flex items-center gap-3">
+              <PlatformBrandIcon platform={service.platform} />
+              <p className="min-w-0 flex-1 text-center text-[17px] font-medium leading-snug text-slate-800">{service.name}</p>
+              <span className="w-10 shrink-0" />
+            </div>
+            {discount > 0 && (
+              <p className="mt-4 flex items-center justify-center gap-2 text-[15px] text-slate-700">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="#f59e0b"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z" /></svg>
+                Bạn đang được giảm {discount}% theo cấp bậc
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="#f59e0b"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z" /></svg>
+              </p>
+            )}
+            <div className="mt-6">
+              <div className="mb-2 text-[15px] font-bold text-slate-700">Thời gian trung bình</div>
+              <div className="rounded-xl border border-slate-200 px-4 py-3.5 text-[15px] text-slate-500">{service.avgTime || "—"}</div>
+            </div>
+            <div className="mt-5 space-y-3.5 rounded-2xl border-2 border-dashed border-slate-200 p-5">
+              <DetailLine icon={<span className="flex h-[22px] w-[22px] items-center justify-center rounded-md bg-emerald-500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg></span>}>
+                Link mẫu: {EXAMPLE_LINK[service.platform] || "Link công khai"}
+              </DetailLine>
+              <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-slate-400"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>}>
+                Thời gian bắt đầu: Ngay lập tức
+              </DetailLine>
+              <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M12 3v3" /><path d="M5.6 5.6l2.2 2.2" /><path d="M18.4 5.6l-2.2 2.2" /><path d="M8 21h8" /><path d="M12 6a6.5 6.5 0 0 0-4 11.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A6.5 6.5 0 0 0 12 6z" /></svg>}>
+                Tối thiểu/Tối đa: {num(service.min)}/{num(service.max)}
+              </DetailLine>
+              <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6" /><path d="M21 3v5h-5" /></svg>}>
+                Bảo hành: {service.refill ? "Có bảo hành" : "Không bảo hành"}
+              </DetailLine>
+              <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="text-slate-400"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z" /><path d="M3 7l9 4.5L21 7" /><path d="M12 11.5v10" /></svg>}>
+                Số lượng đơn này: {num(qty || 0)}{multiOn ? ` / link${orderCount > 0 ? ` × ${num(orderCount)} link` : ""}` : ""}
+              </DetailLine>
+              {(schedOn || loopOn) && (
+                <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-slate-400"><rect x="3.5" y="5" width="17" height="16" rx="2.5" /><path d="M3.5 10h17" /><path d="M8 3v4" /><path d="M16 3v4" /></svg>}>
+                  Chế độ: {loopOn ? `Đặt hàng lặp lại ×${num(loopTimes || 0)} lần, mỗi ${num(loopInterval || 0)} phút` : `Đặt lịch chạy${schedAt ? ` lúc ${schedAt.replace("T", " ")}` : ""}`}
+                </DetailLine>
+              )}
+              {service.notice && (
+                <div className="pt-1">
+                  <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5 22 20H2z" stroke="#f59e0b" strokeWidth="1.6" strokeLinejoin="round" /><path d="M12 10v4.2" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" /><circle cx="12" cy="17" r="1.25" fill="#fff" /></svg>}>
+                    <span className="font-semibold">Lưu ý:</span>
+                  </DetailLine>
+                  <p className="mt-1.5 whitespace-pre-line pl-8 text-[15px] leading-relaxed text-slate-700">{service.notice}</p>
+                </div>
+              )}
             </div>
             {balance !== undefined && (
-              <div className={`rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${notEnough ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
-                Số dư hiện tại: <b>{vnd(balance)}</b>
+              <div className={`mt-5 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${notEnough ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+                Số dư ví: <b>{vnd(balance)}</b>
                 {notEnough ? <> — còn thiếu <b>{vnd(shownCharge - balance)}</b>. <Link href="/dashboard/nap-tien" className="font-bold underline">Nạp thêm ngay</Link></> : <> — sau đơn này còn <b>{vnd(balance - shownCharge)}</b>.</>}
               </div>
             )}
-            {service.notice && (
-              <div className="rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-xs leading-relaxed text-amber-800 whitespace-pre-line">
-                <span className="font-bold">Thông báo: </span>{service.notice}
-              </div>
-            )}
-{/* Mô tả đã chuyển lên form (khung "Mô tả máy chủ") — ở đây chỉ giữ thông báo */}
           </div>
         ) : <p className="text-sm text-slate-400">Chưa có dịch vụ nào đang bán.</p>}
       </div>
     </div>
   );
 }
-function Row({ k, v }: { k: string; v: string }) {
-  return <div className="flex justify-between gap-4"><span className="text-slate-500">{k}</span><span className="font-medium text-slate-800 text-right">{v}</span></div>;
-}
-function OrderSubmit({ disabled, label }: { disabled?: boolean; label?: string }) {
-  // submit về server action qua form cha (formAction được gắn ở page bằng cách bọc form) — xem dat-hang/page.tsx
-  return <button type="submit" disabled={disabled} className="btn-primary w-full !py-3">{disabled ? "Chưa đủ số dư" : label || "Đặt đơn ngay"}</button>;
-}
-
 /* ---------- Đặt hàng loạt (bulk orders): dán nhiều dòng, xem trước tổng tiền rồi đặt tất cả ---------- */
 export function BulkOrderForm({ services, discount, balance, action }: {
   services: ServiceDTO[];
