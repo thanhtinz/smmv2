@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function ServicesPage() {
   const session = await getSession();
   const services = await prisma.smmService.findMany({
-    where: { active: true },
+    where: { active: true, panelId: null },
     include: { category: true },
     orderBy: [{ categoryId: "asc" }, { sort: "asc" }, { id: "asc" }],
   });

@@ -4,6 +4,7 @@ import { getSettings, depositContent, vietQrUrl } from "@/lib/settings";
 import { vietqrUrl } from "@/lib/vietqr";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { DepositCard } from "@/components/deposit-card";
+import { createPanelBankDepositAction } from "@/app/actions/user";
 import { vnd, num, DEP_STATUS, dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,10 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
     qr: b.qrImage || vietqrUrl(b.bankName, b.accountNumber, b.holder, content) || vietQrUrl(b.bankName, b.accountNumber, 0, content, b.holder),
     content, min: minDep,
   }));
+  const myPanel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;
+  const panelUsdt = myPanel && myPanel.status === "ACTIVE" && myPanel.usdtAddress
+    ? { address: myPanel.usdtAddress, network: myPanel.usdtNetwork || "TRC20", rate: myPanel.usdtRate || parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") }
+    : null;
   const paypalOn = s.paypal_enabled === "1" && !!s.paypal_client_id;
   const stripeOn = s.stripe_enabled === "1" && !!s.stripe_secret_key;
   return (
@@ -34,8 +39,18 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
           momo={s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}
           tiers={tiers}
           intl={paypalOn || stripeOn ? { rate: parseInt(s.usd_rate || "25000", 10) || 25000, paypal: paypalOn, stripe: stripeOn } : null}
-          usdt={s.usdt_enabled === "1" && s.usdt_address ? { address: s.usdt_address, network: s.usdt_network || "TRC20", rate: parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") } : null}
+          usdt={panelUsdt || (s.usdt_enabled === "1" && s.usdt_address ? { address: s.usdt_address, network: s.usdt_network || "TRC20", rate: parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") } : null)}
         />
+        {myPanel && myPanel.status === "ACTIVE" && myPanel.bankAccount && (
+          <form action={createPanelBankDepositAction} className="card p-5">
+            <div className="font-bold text-slate-900">Chuyển khoản cho shop {myPanel.name}</div>
+            <p className="mt-1 text-sm text-slate-500">{myPanel.bankName} · STK <b className="text-slate-700">{myPanel.bankAccount}</b>{myPanel.bankHolder ? ` · ${myPanel.bankHolder}` : ""}. Chuyển xong hãy gửi yêu cầu bên dưới — chủ shop duyệt và cộng tiền cho bạn.</p>
+            <div className="mt-3 flex gap-2">
+              <input name="amount" type="number" min={10000} step={1000} required placeholder="Số tiền đã chuyển (đ)" className="inp" />
+              <button className="btn-primary shrink-0 !py-2.5">Gửi yêu cầu duyệt</button>
+            </div>
+          </form>
+        )}
 
         <div className="card overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 font-bold text-slate-900">Lịch sử nạp</div>

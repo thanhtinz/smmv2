@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Modal, Switch } from "@/components/admin-catalog";
-import { panelSaveDiscountCode, panelDeleteDiscountCode, panelToggleDiscountCode, setPanelPremiumPriceAction, panelSavePost, panelDeletePost, panelTogglePost } from "@/app/actions/panel";
+import { panelSaveDiscountCode, panelDeleteDiscountCode, panelToggleDiscountCode, setPanelPremiumPriceAction, panelSavePost, panelDeletePost, panelTogglePost, panelSaveOwnService, panelDeleteOwnService, panelToggleOwnService } from "@/app/actions/panel";
 import { vnd, num, dt } from "@/lib/format";
 
 const inp = "inp";
@@ -240,6 +240,82 @@ export function PanelPostsClient({ posts, categories }: { posts: PanelPostDTO[];
             {posts.length === 0 && <tr><td colSpan={5} className="td py-10 text-center text-slate-400">Chưa có bài viết nào.</td></tr>}
           </tbody>
         </table>
+      </div>
+    </>
+  );
+}
+
+/* ================= DỊCH VỤ RIÊNG CỦA PANEL ================= */
+export type PanelOwnServiceDTO = {
+  id: number; name: string; rate: number; min: number; max: number;
+  description: string | null; active: boolean; categoryId: number; categoryName: string; platform: string; orderCount: number;
+};
+export type PanelCategoryDTO = { id: number; name: string; platform: string };
+
+export function PanelOwnServiceModal({ service, categories, onClose }: { service?: PanelOwnServiceDTO; categories: PanelCategoryDTO[]; onClose: () => void }) {
+  const c = service;
+  return (
+    <Modal title={c ? "Sửa dịch vụ riêng" : "Thêm dịch vụ riêng"} onClose={onClose}>
+      <form action={panelSaveOwnService}>
+        {c && <input type="hidden" name="id" value={c.id} />}
+        <div className="space-y-4 px-6 py-5">
+          <div><label className={lbl}>Tên dịch vụ</label><input name="name" required defaultValue={c?.name || ""} placeholder="VD: Follow TikTok thủ công — nguồn riêng" className={inp} /></div>
+          <div><label className={lbl}>Danh mục (nền tảng)</label>
+            <select name="categoryId" defaultValue={c?.categoryId || categories[0]?.id} className={inp}>
+              {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name} ({cat.platform})</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div><label className={lbl}>Giá bán / 1000</label><input name="rate" type="number" min={1} required defaultValue={c?.rate || 50000} className={inp} /></div>
+            <div><label className={lbl}>Tối thiểu</label><input name="min" type="number" min={1} defaultValue={c?.min || 100} className={inp} /></div>
+            <div><label className={lbl}>Tối đa</label><input name="max" type="number" min={1} defaultValue={c?.max || 100000} className={inp} /></div>
+          </div>
+          <div><label className={lbl}>Mô tả</label><textarea name="description" rows={3} defaultValue={c?.description || ""} className={inp} /></div>
+          <Switch name="active" label="Đang bán" defaultChecked={c ? c.active : true} />
+          <p className="text-xs text-slate-400">Giá này là giá khách của panel trả (giá cuối, không cộng thêm %). Toàn bộ tiền đơn là doanh thu của bạn — bạn tự xử lý các đơn này ở mục Đơn hàng.</p>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
+          <button type="button" onClick={onClose} className="btn-ghost !py-2">Huỷ</button>
+          <button className="btn-primary !py-2">Lưu dịch vụ</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+export function PanelOwnServicesClient({ services, categories }: { services: PanelOwnServiceDTO[]; categories: PanelCategoryDTO[] }) {
+  const [editing, setEditing] = useState<PanelOwnServiceDTO | undefined>(undefined);
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <div className="mb-4 flex justify-end"><button onClick={() => { setEditing(undefined); setOpen(true); }} className="btn-primary !py-2.5">+ Thêm dịch vụ riêng</button></div>
+      {open && <PanelOwnServiceModal service={editing} categories={categories} onClose={() => setOpen(false)} />}
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px]">
+            <thead className="bg-slate-50 border-b border-slate-200"><tr>
+              <th className="th">Dịch vụ</th><th className="th">Danh mục</th><th className="th">Giá / 1000</th><th className="th">Min – Max</th><th className="th">Đơn đã bán</th><th className="th">Trạng thái</th><th className="th !text-right">Thao tác</th>
+            </tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {services.map((sv) => (
+                <tr key={sv.id} className="hover:bg-slate-50/60">
+                  <td className="td"><div className="font-semibold text-slate-800 max-w-[320px] truncate" title={sv.name}>{sv.name}</div>{sv.description && <div className="text-xs text-slate-400 max-w-[320px] truncate">{sv.description}</div>}</td>
+                  <td className="td text-slate-500">{sv.categoryName}</td>
+                  <td className="td font-semibold">{vnd(sv.rate)}</td>
+                  <td className="td text-slate-500">{num(sv.min)} – {num(sv.max)}</td>
+                  <td className="td">{num(sv.orderCount)}</td>
+                  <td className="td"><span className={`badge ${sv.active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"}`}>{sv.active ? "Đang bán" : "Tắt"}</span></td>
+                  <td className="td"><div className="flex justify-end gap-1.5">
+                    <button className={iconBtn} title="Sửa" onClick={() => { setEditing(sv); setOpen(true); }}><Pencil /></button>
+                    <form action={panelToggleOwnService}><input type="hidden" name="id" value={sv.id} /><button className="btn-ghost btn-sm !px-3 !py-1.5">{sv.active ? "Tắt" : "Bật"}</button></form>
+                    <form action={panelDeleteOwnService}><input type="hidden" name="id" value={sv.id} /><button className={iconBtn} title="Xoá"><Trash /></button></form>
+                  </div></td>
+                </tr>
+              ))}
+              {services.length === 0 && <tr><td className="td text-slate-400" colSpan={7}>Chưa có dịch vụ riêng nào — bấm &quot;Thêm dịch vụ riêng&quot; để bán nguồn hàng của chính bạn cho khách của panel.</td></tr>}
+            </tbody>
+          </table>
+        </div>
       </div>
     </>
   );

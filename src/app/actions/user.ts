@@ -411,15 +411,34 @@ export async function startPaypalCheckoutAction(formData: FormData) {
 }
 
 /** Nạp USDT: khách khai số USDT + mã giao dịch (tx hash) — admin đối chiếu ví rồi duyệt ở /admin/nap-tien. */
+export async function createPanelBankDepositAction(formData: FormData) {
+  const user = await requireUser();
+  if (!user.panelId) back("/dashboard/nap-tien", "err", "Tài khoản không thuộc gian hàng nào");
+  const panel = await prisma.childPanel.findUnique({ where: { id: user.panelId } });
+  if (!panel || panel.status !== "ACTIVE" || !panel.bankAccount) back("/dashboard/nap-tien", "err", "Gian hàng chưa cài tài khoản ngân hàng riêng");
+  const amount = parseInt(String(formData.get("amount") || "0"));
+  if (!amount || amount < 10000) back("/dashboard/nap-tien", "err", "Số tiền tối thiểu 10.000đ");
+  const settings = await getSettings();
+  const bonus = calcBonus(amount, settings.deposit_bonus_tiers);
+  const dep = await prisma.deposit.create({
+    data: { code: "TMP", userId: user.id, method: "BANK", amount, bonus, status: "PENDING", content: `Chuyển khoản ngân hàng của shop ${panel.name} — chờ chủ shop duyệt` },
+  });
+  await prisma.deposit.update({ where: { id: dep.id }, data: { code: genCode("NAP", dep.id) } });
+  back("/dashboard/nap-tien", "msg", "Đã gửi yêu cầu — chủ gian hàng sẽ duyệt và cộng tiền sau khi nhận được chuyển khoản");
+}
+
 export async function createUsdtDepositAction(formData: FormData) {
   const user = await requireUser();
   const settings = await getSettings();
-  if (settings.usdt_enabled !== "1" || !settings.usdt_address) back("/dashboard/nap-tien", "err", "Nạp USDT đang tạm đóng");
+  // Khách panel: nếu chủ panel đã cài ví USDT riêng thì nạp về ví của panel (chủ panel duyệt)
+  const userPanel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;
+  const panelUsdt = userPanel && userPanel.status === "ACTIVE" && userPanel.usdtAddress ? userPanel : null;
+  if (!panelUsdt && (settings.usdt_enabled !== "1" || !settings.usdt_address)) back("/dashboard/nap-tien", "err", "Nạp USDT đang tạm đóng");
   const usdt = parseFloat(String(formData.get("usdt") || "0"));
   const txHash = String(formData.get("txHash") || "").trim();
   if (!usdt || usdt < 5) back("/dashboard/nap-tien", "err", "Số USDT tối thiểu là 5");
   if (txHash.length < 20) back("/dashboard/nap-tien", "err", "Mã giao dịch (tx hash) chưa hợp lệ");
-  const rate = parseInt(settings.usdt_rate || "") || parseInt(settings.usd_rate || "25400");
+  const rate = panelUsdt ? (panelUsdt.usdtRate || parseInt(settings.usdt_rate || "") || parseInt(settings.usd_rate || "25400")) : parseInt(settings.usdt_rate || "") || parseInt(settings.usd_rate || "25400");
   const amount = Math.round(usdt * rate);
   const bonus = calcBonus(amount, settings.deposit_bonus_tiers);
   try {

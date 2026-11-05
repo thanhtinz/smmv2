@@ -16,11 +16,11 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
   const panel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;
   const panelActive = panel && panel.status === "ACTIVE" ? panel : null;
   const [services, categories] = await Promise.all([
-    prisma.smmService.findMany({ where: { active: true }, include: { category: true }, orderBy: [{ categoryId: "asc" }, { sort: "asc" }] }),
+    prisma.smmService.findMany({ where: { active: true, OR: [{ panelId: null }, ...(user.panelId ? [{ panelId: user.panelId }] : [])] }, include: { category: true }, orderBy: [{ categoryId: "asc" }, { sort: "asc" }] }),
     prisma.smmCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } }),
   ]);
   const dto: ServiceDTO[] = services.map((s) => ({
-    id: s.id, name: s.name, description: s.description, rate: panelActive ? Math.round(s.rate * (1 + panelActive.markup / 100)) : s.rate, min: s.min, max: s.max,
+    id: s.id, name: s.name, description: s.description, rate: s.panelId ? s.rate : panelActive ? Math.round(s.rate * (1 + panelActive.markup / 100)) : s.rate, min: s.min, max: s.max,
     avgTime: s.avgTime, refill: s.refill, dripfeed: s.dripfeed, categoryId: s.categoryId, categoryName: s.category.name, platform: s.category.platform,
   }));
   const cats = categories.filter((c) => services.some((s) => s.categoryId === c.id)).map((c) => ({ id: c.id, name: c.name, platform: c.platform }));

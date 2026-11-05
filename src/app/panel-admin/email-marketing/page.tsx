@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 export default async function PanelEmailPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
   const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
-  const [ready, totalMembers, history] = await Promise.all([
+  const panelReady = !!(panel.smtpHost && panel.smtpUser && panel.smtpFrom);
+  const [globalReady, totalMembers, history] = await Promise.all([
     smtpConfigured(),
     prisma.user.count({ where: { panelId: panel.id, email: { not: "" } } }),
     prisma.apiLog.findMany({ where: { kind: "panel_email", ref: `panel:${panel.id}` }, orderBy: { createdAt: "desc" }, take: 10 }),
@@ -21,7 +22,8 @@ export default async function PanelEmailPage({ searchParams }: { searchParams: {
     <div>
       <PageHead title="Email marketing" desc="Gửi email quảng bá tới khách của gian hàng qua hệ thống thư chung." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      {!ready && <div className="card mb-6 border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">Hệ thống chưa cấu hình SMTP nên chưa gửi được email — phần cấu hình thư nằm ở Admin web chính (Cấu hình → Email).</div>}
+      {!globalReady && !panelReady && <div className="card mb-6 border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">Chưa gửi được email: hãy điền SMTP riêng của panel ở mục Cấu hình, hoặc nhờ Admin web chính cấu hình thư hệ thống (Cấu hình → Email).</div>}
+      {panelReady && <div className="card mb-6 border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">Đang dùng SMTP riêng của panel ({panel.smtpHost}) để gửi.</div>}
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
         <form action={panelSendMarketingEmail} className="card space-y-4 p-6">
           <div className="font-bold text-slate-900">Soạn chiến dịch</div>
@@ -35,7 +37,7 @@ export default async function PanelEmailPage({ searchParams }: { searchParams: {
           </div>
           <div><label className="lbl">Tiêu đề email</label><input name="subject" required maxLength={200} className="inp" placeholder="VD: Ưu đãi riêng cho khách của shop tuần này" /></div>
           <div><label className="lbl">Nội dung</label><textarea name="body" required rows={8} className="inp" placeholder="Nội dung email (văn bản thuần, giữ nguyên xuống dòng)..." /></div>
-          <button className="btn-primary !py-2.5" disabled={!ready}>Gửi chiến dịch</button>
+          <button className="btn-primary !py-2.5" disabled={!globalReady && !panelReady}>Gửi chiến dịch</button>
         </form>
         <div className="card p-6">
           <div className="mb-4 font-bold text-slate-900">Chiến dịch đã gửi</div>

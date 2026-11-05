@@ -19,10 +19,11 @@ export default async function PanelAdminLayout({ children }: { children: React.R
   if (!user) redirect("/login");
   const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
   if (!panel) redirect("/dashboard/panel-cua-toi/thiet-lap");
-  const [memberCount, orderCount, openTickets] = await Promise.all([
+  const [memberCount, orderCount, openTickets, pendingDeposits] = await Promise.all([
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.smmOrder.count({ where: { panelId: panel.id } }),
     prisma.ticket.count({ where: { user: { panelId: panel.id }, status: "OPEN" } }),
+    prisma.deposit.count({ where: { user: { panelId: panel.id }, status: "PENDING" } }),
   ]);
   const entries: AdminNavEntry[] = [
     { href: "/panel-admin", label: "Tổng quan", icon: "home" },
@@ -31,9 +32,11 @@ export default async function PanelAdminLayout({ children }: { children: React.R
       group: "Bán hàng", icon: "cart",
       children: [
         { href: "/panel-admin/dich-vu", label: "Dịch vụ & Giá", icon: "list" },
+        { href: "/panel-admin/dich-vu-rieng", label: "Dịch vụ riêng", icon: "box" },
         { href: "/panel-admin/don-hang", label: "Đơn hàng", icon: "cart", badge: orderCount },
         { href: "/panel-admin/ma-giam-gia", label: "Mã giảm giá", icon: "gift" },
         { href: "/panel-admin/hoa-hong", label: "Nhật ký hoa hồng", icon: "wallet" },
+        { href: "/panel-admin/nap-tien", label: "Nạp tiền của khách", icon: "money", badge: pendingDeposits || undefined },
         { href: "/panel-admin/rui-ro", label: "Đơn rủi ro", icon: "shield" },
       ],
     },
@@ -48,6 +51,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
     },
     { href: "/panel-admin/bai-viet", label: "Bài viết", icon: "file" },
     { href: "/panel-admin/ai", label: "AI tư vấn", icon: "cpu" },
+    { href: "/panel-admin/cau-hinh", label: "Cấu hình", icon: "key" },
     { href: "/panel-admin/cai-dat", label: "Cài đặt panel", icon: "gear" },
   ];
   const initial = (user.username || "A").slice(0, 1).toUpperCase();

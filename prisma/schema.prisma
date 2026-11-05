@@ -129,6 +129,8 @@ enum SmmOrderStatus {
 
 model SmmService {
   id               Int         @id @default(autoincrement())
+  panelId          Int? // dịch vụ riêng của 1 panel con; null = dịch vụ của web mẹ
+  panel            ChildPanel? @relation("PanelOwnServices", fields: [panelId], references: [id])
   categoryId       Int
   category         SmmCategory @relation(fields: [categoryId], references: [id])
   name             String      @db.VarChar(255)
@@ -483,6 +485,24 @@ model ChildPanel {
   aiBaseUrl  String? @db.VarChar(200)
   aiApiKey   String? @db.Text
   aiModel    String? @db.VarChar(80)
+  // Cấu hình riêng của panel (chủ panel tự cài): thanh toán / thư / báo tin / đăng nhập
+  bankName        String? @db.VarChar(120)
+  bankAccount     String? @db.VarChar(40)
+  bankHolder      String? @db.VarChar(120)
+  usdtAddress     String? @db.VarChar(120)
+  usdtNetwork     String? @db.VarChar(40)
+  usdtRate        Int? // tỉ giá 1 USDT = ? VND theo panel tự đặt
+  smtpHost        String? @db.VarChar(120)
+  smtpPort        String? @db.VarChar(10)
+  smtpUser        String? @db.VarChar(160)
+  smtpPass        String? @db.VarChar(200)
+  smtpFrom        String? @db.VarChar(160)
+  smtpSecure      Boolean @default(false)
+  telegramBotToken String? @db.VarChar(120)
+  telegramChatId   String? @db.VarChar(60)
+  googleClientId     String? @db.VarChar(200)
+  googleClientSecret String? @db.VarChar(200)
+  ownServices SmmService[] @relation("PanelOwnServices")
   status    String   @default("ACTIVE") @db.VarChar(20) // ACTIVE | SUSPENDED
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -11,7 +11,12 @@ import { randomKey } from "@/lib/format";
 export async function GET(req: NextRequest) {
   const fail = (text: string) => NextResponse.redirect(new URL(`/login?err=${encodeURIComponent(text)}`, req.url));
   const s = await getSettings();
-  if (s.google_enabled !== "1" || !s.google_client_id || !s.google_client_secret) return fail("Đăng nhập Google đang tắt");
+  const panelIdCookie = parseInt(cookies().get("g_oauth_panel")?.value || "");
+  const panel = panelIdCookie ? await prisma.childPanel.findUnique({ where: { id: panelIdCookie } }).catch(() => null) : null;
+  const panelGoogle = panel && panel.status === "ACTIVE" && panel.googleClientId && panel.googleClientSecret ? panel : null;
+  const clientId = panelGoogle ? panelGoogle.googleClientId! : s.google_client_id;
+  const clientSecret = panelGoogle ? panelGoogle.googleClientSecret! : s.google_client_secret;
+  if (!panelGoogle && (s.google_enabled !== "1" || !s.google_client_id || !s.google_client_secret)) return fail("Đăng nhập Google đang tắt");
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state");
   if (!code || !state || state !== cookies().get("g_oauth_state")?.value) return fail("Phiên đăng nhập Google không hợp lệ, thử lại");
@@ -22,7 +27,7 @@ export async function GET(req: NextRequest) {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         code,
-        client_id: s.google_client_id,
+        client_id: clientId,
         client_secret: s.google_client_secret,
         redirect_uri: redirectUri,
         grant_type: "authorization_code",
@@ -50,6 +55,7 @@ export async function GET(req: NextRequest) {
           passwordHash: await bcrypt.hash(randomKey(24), 10),
           fullName: String(info.name || "").slice(0, 80) || null,
           depositCode: randomKey(6).toUpperCase(),
+          ...(panelGoogle ? { panelId: panelGoogle.id } : {}),
           refCode: randomKey(8).toUpperCase(),
           apiKey: randomKey(32),
         },

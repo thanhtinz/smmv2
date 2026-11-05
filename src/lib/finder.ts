@@ -45,8 +45,9 @@ export async function findServices(opts: {
 }): Promise<{ mode: "ai" | "local"; picks: FinderPick[] }> {
   const q = opts.q.trim();
   const platform = (opts.platform || "").trim();
+  const scopePanelId = opts.viewer?.panelId || (opts.panelSlug ? (await prisma.childPanel.findUnique({ where: { slug: opts.panelSlug }, select: { id: true } }))?.id : null);
   const services = await prisma.smmService.findMany({
-    where: { active: true },
+    where: { active: true, OR: [{ panelId: null }, ...(scopePanelId ? [{ panelId: scopePanelId }] : [])] },
     include: { category: true },
     orderBy: { rate: "asc" },
     take: 200,
@@ -97,7 +98,9 @@ export async function findServices(opts: {
     const sv = byId.get(p.id);
     if (!sv) continue;
     let price: number;
-    if (panel) {
+    if (sv.panelId) {
+      price = sv.rate; // dịch vụ riêng của panel: giá chủ panel đặt là giá cuối
+    } else if (panel) {
       const ov = ovMap.get(sv.id);
       if (ov) price = ov;
       else {

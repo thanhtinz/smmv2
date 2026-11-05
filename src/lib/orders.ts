@@ -5,6 +5,7 @@ import { checkPromo, consumePromo } from "./promo";
 import { levelDiscountFromSettings } from "./settings";
 import { getSettings } from "./settings";
 import { orderEvent, orderTransition, notifyUser } from "./notify";
+import { notifyPanelTelegram } from "./telegram";
 import {
   providerAddOrder, providerOrderStatus, providerRefill, mapProviderStatus,
   providerBuyProduct, findPremiumOrderInHistory, extractDelivery,
@@ -68,6 +69,12 @@ export async function createSmmOrder(input: {
     include: { provider: true },
   });
   if (!service || !service.active) throw new Error("Dịch vụ không tồn tại hoặc đang tạm ngưng");
+  // Dịch vụ riêng của panel: chỉ khách của đúng panel đó (và chủ panel) mới đặt được
+  const isOwn = !!service.panelId;
+  if (isOwn && service.panelId !== input.user.panelId) {
+    const ownPanel = await prisma.childPanel.findUnique({ where: { ownerId: input.user.id }, select: { id: true } });
+    if (!ownPanel || ownPanel.id !== service.panelId) throw new Error("Dịch vụ không tồn tại hoặc đang tạm ngưng");
+  }
   if (!input.link.trim()) throw new Error("Thiếu link");
   if (input.quantity < service.min) throw new Error(`Số lượng tối thiểu là ${service.min}`);
   if (input.quantity > service.max) throw new Error(`Số lượng tối đa là ${service.max}`);
@@ -101,9 +108,9 @@ export async function createSmmOrder(input: {
     if (p && p.status === "ACTIVE") panel = p;
   }
   const settings = await getSettings();
-  const panelRate = panel ? Math.round(service.rate * (1 + panel.markup / 100)) : service.rate;
+  const panelRate = panel && !isOwn ? Math.round(service.rate * (1 + panel.markup / 100)) : service.rate;
   let effectiveRate = panelRate;
-  let discount = panel ? panelTierDiscount(panel, input.user.level) : levelDiscountFromSettings(settings, input.user.level);
+  let discount = isOwn ? 0 : panel ? panelTierDiscount(panel, input.user.level) : levelDiscountFromSettings(settings, input.user.level);
   if (panel) {
     // Giá riêng từng dịch vụ theo từng bậc (kiểu thatim: bảng giá có một cột giá cho mỗi cấp):
     // chủ panel đặt giá riêng cho đúng dịch vụ + bậc của khách thì giá đó là GIÁ CUỐI, không giảm thêm %.
@@ -116,7 +123,7 @@ export async function createSmmOrder(input: {
     }
   }
   const charge = Math.max(1, Math.round(smmCharge(effectiveRate, input.quantity) * (1 - discount / 100)));
-  const commission = panel ? Math.max(0, charge - smmCharge(service.rate, input.quantity)) : 0;
+  const commission = isOwn ? charge : panel ? Math.max(0, charge - smmCharge(service.rate, input.quantity)) : 0;
   const cost = smmCharge(service.costRate, input.quantity);
 
   // Profit Protection: không cho đặt đơn nếu giá bán (sau chiết khấu cấp bậc) thấp hơn giá vốn
@@ -188,6 +195,7 @@ export async function createSmmOrder(input: {
     return { ...o, code, charge: finalCharge };
   });
   await orderEvent(order.id, "PENDING", flagNote ? `Đã tạo đơn · Cờ: ${flagNote}` : "Đã tạo đơn");
+  if (panel) void notifyPanelTelegram(panel.id, `Đơn SMM mới ${order.code} qua gian hàng ${panel.name}: ${service.name} — ${finalCharge.toLocaleString("vi-VN")}đ`);
 
   // Đẩy qua provider nếu là đơn API — lỗi thì giữ PENDING để admin xử lý / cron thử lại, KHÔNG mất tiền khách vô ích:
   // nếu provider từ chối dứt khoát, hoàn tiền ngay.
@@ -503,6 +511,7 @@ export async function createPremiumOrder(input: {
     }
     return { ...o, code };
   });
+  if (panel) void notifyPanelTelegram(panel.id, `Đơn Premium mới ${created.code} qua gian hàng ${panel.name}: ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
 
   // Đấu API mua sản phẩm (kiểu ThaTim): gọi action=buy cho từng đơn vị
   if (variant.product.fulfillment === "API") {

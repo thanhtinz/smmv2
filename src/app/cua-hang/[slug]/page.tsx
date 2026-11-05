@@ -14,7 +14,7 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
   const user = await getCurrentUser().catch(() => null);
   const panelRate = (r: number) => Math.round(r * (1 + panel.markup / 100));
   const [services, categories, memberCount, panelOrderCount, panelPremiumCount, premiums, statusGroups] = await Promise.all([
-    prisma.smmService.findMany({ where: { active: true }, include: { category: true }, orderBy: [{ categoryId: "asc" }, { sort: "asc" }, { id: "asc" }] }),
+    prisma.smmService.findMany({ where: { active: true, OR: [{ panelId: null }, { panelId: panel.id }] }, include: { category: true }, orderBy: [{ categoryId: "asc" }, { sort: "asc" }, { id: "asc" }] }),
     prisma.smmCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } }),
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.smmOrder.count({ where: { panelId: panel.id } }),
@@ -25,9 +25,9 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
   const platformStats = Object.values(
     services.reduce<Record<string, { platform: string; count: number; from: number }>>((acc, sv) => {
       const p = sv.category.platform;
-      if (!acc[p]) acc[p] = { platform: p, count: 0, from: panelRate(sv.rate) };
+      if (!acc[p]) acc[p] = { platform: p, count: 0, from: sv.panelId ? sv.rate : panelRate(sv.rate) };
       acc[p].count += 1;
-      acc[p].from = Math.min(acc[p].from, panelRate(sv.rate));
+      acc[p].from = Math.min(acc[p].from, sv.panelId ? sv.rate : panelRate(sv.rate));
       return acc;
     }, {})
   ).sort((a, b) => b.count - a.count);
