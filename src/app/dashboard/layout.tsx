@@ -40,27 +40,33 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const homeModalContent = myPanelGate?.homeModalEnabled && myPanelGate.homeModalContent?.trim()
     ? myPanelGate.homeModalContent
     : s.home_modal_enabled === "1" && s.home_modal_content?.trim() ? s.home_modal_content : null;
-  const myPanelFlags = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sellSmm: true, sellPremium: true, moduleAffiliate: true } }) : null;
+  const myPanelFlags = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sellSmm: true, sellPremium: true, moduleAffiliate: true, moduleBulk: true, moduleSubscriptions: true, moduleCampaigns: true, moduleTickets: true, moduleApi: true } }) : null;
   const smmOn = s.module_smm !== "0" && (myPanelFlags ? myPanelFlags.sellSmm : true);
   const premiumOn = s.module_premium !== "0" && (myPanelFlags ? myPanelFlags.sellPremium : true);
   const affiliateOn = s.module_affiliate !== "0" && (myPanelFlags ? myPanelFlags.moduleAffiliate : true);
+  // Mô-đun tính năng: web mẹ tắt là tắt chung; panel tắt chỉ áp cho khách của panel đó
+  const bulkOn = s.module_bulk !== "0" && (myPanelFlags ? myPanelFlags.moduleBulk : true);
+  const subsOn = s.module_subscriptions !== "0" && (myPanelFlags ? myPanelFlags.moduleSubscriptions : true);
+  const campOn = s.module_campaigns !== "0" && (myPanelFlags ? myPanelFlags.moduleCampaigns : true);
+  const ticketsOn = s.module_tickets !== "0" && (myPanelFlags ? myPanelFlags.moduleTickets : true);
+  const apiOn = s.module_api !== "0" && (myPanelFlags ? myPanelFlags.moduleApi : true);
   const unreadNoti = await prisma.notification.count({ where: { userId: user.id, read: false } });
   const items = [
     { href: "/dashboard", label: "Tổng quan", icon: I.home },
     ...(smmOn ? [{ href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },] : []),
-    ...(smmOn ? [{ href: "/dashboard/dat-hang-loat", label: "Đặt hàng loạt", icon: I.layers },] : []),
+    ...(smmOn && bulkOn ? [{ href: "/dashboard/dat-hang-loat", label: "Đặt hàng loạt", icon: I.layers },] : []),
     ...(!user.panelId ? [{ href: "/dich-vu", label: "Bảng giá", icon: I.percent }] : []),
     { href: "/dashboard/don-hang", label: "Đơn hàng SMM", icon: I.list },
-    ...(smmOn ? [{ href: "/dashboard/dinh-ky", label: "Đăng ký định kỳ", icon: I.clock },] : []),
-    ...(smmOn ? [{ href: "/dashboard/chien-dich", label: "Chiến dịch", icon: I.megaphone },] : []),
+    ...(smmOn && subsOn ? [{ href: "/dashboard/dinh-ky", label: "Đăng ký định kỳ", icon: I.clock },] : []),
+    ...(smmOn && campOn ? [{ href: "/dashboard/chien-dich", label: "Chiến dịch", icon: I.megaphone },] : []),
     ...(premiumOn ? [{ href: "/premium", label: "Mua Premium", icon: I.gem },] : []),
     { href: "/dashboard/don-premium", label: "Đơn hàng Premium", icon: I.box },
     { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
     { href: "/dashboard/giao-dich", label: "Lịch sử số dư", icon: I.chart },
     ...(affiliateOn ? [{ href: "/dashboard/kiem-tien", label: "Kiếm tiền", icon: I.money }] : []),
-    { href: "/dashboard/api", label: "API đại lý", icon: I.key },
+    ...(apiOn ? [{ href: "/dashboard/api", label: "API đại lý", icon: I.key }] : []),
     ...(s.module_panels !== "0" ? [{ href: "/dashboard/panel-cua-toi", label: "Đăng ký panel con", icon: I.panels }] : []),
-    { href: "/dashboard/ticket", label: "Hỗ trợ / Ticket", icon: I.ticket, badge: openTickets },
+    ...(ticketsOn ? [{ href: "/dashboard/ticket", label: "Hỗ trợ / Ticket", icon: I.ticket, badge: openTickets }] : []),
     { href: "/dashboard/thong-bao", label: "Thông báo", icon: I.bell, badge: unreadNoti },
     { href: "/dashboard/ho-so", label: "Hồ sơ", icon: I.users },
   ];

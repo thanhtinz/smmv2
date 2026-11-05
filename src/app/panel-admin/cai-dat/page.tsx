@@ -67,7 +67,15 @@ export default async function PanelSettingsPage({ searchParams }: { searchParams
               <Switch name="sellPremium" label="Bán Premium" defaultChecked={panel.sellPremium} />
               <Switch name="moduleAffiliate" label="Kiếm tiền (hoa hồng giới thiệu cho khách)" defaultChecked={panel.moduleAffiliate} />
               <Switch name="moduleRegister" label="Cho phép đăng ký mới tại gian hàng" defaultChecked={panel.moduleRegister} />
+              <Switch name="moduleBulk" label="Đặt hàng loạt cho khách của panel" defaultChecked={panel.moduleBulk} />
+              <Switch name="moduleSubscriptions" label="Đăng ký định kỳ (hẹn giờ / lặp lại)" defaultChecked={panel.moduleSubscriptions} />
+              <Switch name="moduleCampaigns" label="Chiến dịch cho khách của panel" defaultChecked={panel.moduleCampaigns} />
+              <Switch name="modulePromo" label="Mã giảm giá cho khách của panel" defaultChecked={panel.modulePromo} />
+              <Switch name="moduleTickets" label="Hỗ trợ / Ticket cho khách của panel" defaultChecked={panel.moduleTickets} />
+              <Switch name="moduleApi" label="API đại lý cho khách của panel" defaultChecked={panel.moduleApi} />
+              <Switch name="moduleBlog" label="Bài viết trên gian hàng" defaultChecked={panel.moduleBlog} />
             </div>
+            <p className="mt-2 text-xs text-slate-400">Lưu ý: web mẹ tắt mô-đun nào ở trang Mô-đun hệ thống thì mô-đun đó tắt cho mọi gian hàng, kể cả khi ở đây đang bật.</p>
             <div className="mt-4">
               <label className="lbl">% hoa hồng giới thiệu riêng của panel (để trống = theo web mẹ)</label>
               <input name="affiliatePercent" type="number" min={0} max={100} defaultValue={panel.affiliatePercent ?? ""} placeholder="VD: 8" className="inp" />

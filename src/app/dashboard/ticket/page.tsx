@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { moduleOn } from "@/lib/modules";
 import { PageHead, Flash, Badge, Empty } from "@/components/ui";
 import { createTicketAction } from "@/app/actions/user";
 import { dt } from "@/lib/format";
@@ -14,6 +15,7 @@ const T_STATUS: Record<string, { label: string; cls: string }> = {
 
 export default async function TicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
+  if (!(await moduleOn("tickets", user.panelId))) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
   const tickets = await prisma.ticket.findMany({ where: { userId: user.id }, orderBy: { updatedAt: "desc" }, take: 30, include: { _count: { select: { messages: true } } } });
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">

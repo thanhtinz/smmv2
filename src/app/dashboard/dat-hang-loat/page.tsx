@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { moduleOn } from "@/lib/modules";
 import { PageHead, Flash } from "@/components/ui";
 import { BulkOrderForm, type ServiceDTO } from "@/components/client";
 import { bulkPlaceOrdersAction } from "@/app/actions/user";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function BulkOrderPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
+  if (!(await moduleOn("bulk", user.panelId))) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
   const settings = await getSettings();
   const panel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;
   const panelActive = panel && panel.status === "ACTIVE" ? panel : null;

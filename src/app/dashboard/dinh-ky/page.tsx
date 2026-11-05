@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
+import { moduleOn } from "@/lib/modules";
 import { prisma } from "@/lib/db";
 import { PageHead, Flash, Badge, Empty, Stat, I } from "@/components/ui";
 import { createSubscriptionAction, toggleSubscriptionAction, deleteSubscriptionAction } from "@/app/actions/growth";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SubscriptionsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
+  if (!(await moduleOn("subscriptions", user.panelId))) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
   const [subs, services] = await Promise.all([
     prisma.subscription.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, include: { service: true } }),
     prisma.smmService.findMany({ where: { active: true }, orderBy: { id: "asc" }, select: { id: true, name: true, rate: true, min: true, max: true } }),

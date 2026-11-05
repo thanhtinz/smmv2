@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import { moduleOn } from "@/lib/modules";
 import { prisma } from "@/lib/db";
 import { PageHead, Flash, Badge, Empty } from "@/components/ui";
 import { createCampaignAction } from "@/app/actions/growth";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CampaignsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
+  if (!(await moduleOn("campaigns", user.panelId))) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
   const campaigns = await prisma.campaign.findMany({
     where: { userId: user.id },
     orderBy: { id: "desc" },

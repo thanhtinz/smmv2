@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { getSettings } from "@/lib/settings";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PostsPage({ searchParams }: { searchParams: { cat?: string } }) {
   const s = await getSettings();
+  if (s.module_blog === "0") notFound();
   const catId = searchParams.cat ? parseInt(searchParams.cat) : undefined;
   const [cats, posts] = await Promise.all([
     prisma.postCategory.findMany({ where: { active: true }, orderBy: { id: "asc" }, include: { _count: { select: { posts: { where: { published: true } } } } } }),

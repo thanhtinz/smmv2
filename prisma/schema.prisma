@@ -591,6 +591,14 @@ model ChildPanel {
   termsButtonText   String? @db.VarChar(120)
   aiCheckEnabled Boolean @default(false) // AI quét link đơn của khách panel (dùng cấu hình AI riêng của panel)
   toolApiKey  String? @db.VarChar(120) // SMM Tool API riêng của panel — chỉ thấy đơn của panel
+  // Công tắc mô-đun riêng của panel (khách panel bị tắt theo panel mình; web mẹ tắt là tắt chung)
+  moduleBulk          Boolean @default(true)
+  moduleSubscriptions Boolean @default(true)
+  moduleCampaigns     Boolean @default(true)
+  modulePromo         Boolean @default(true)
+  moduleTickets       Boolean @default(true)
+  moduleApi           Boolean @default(true)
+  moduleBlog          Boolean @default(true)
   customHeadHtml String? @db.Text
   customBodyHtml String? @db.Text
   googleClientSecret String? @db.VarChar(200)

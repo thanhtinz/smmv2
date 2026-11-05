@@ -8,6 +8,7 @@ import { dshort } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function PostDetail({ params }: { params: { slug: string } }) {
+  if ((await getSettings()).module_blog === "0") notFound();
   const post = await prisma.post.findUnique({ where: { slug: params.slug }, include: { category: true } });
   if (!post || !post.published) notFound();
   await prisma.post.update({ where: { id: post.id }, data: { views: { increment: 1 } } });

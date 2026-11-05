@@ -63,18 +63,22 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
   const user = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { balance: true, role: true } }) : null;
   const name = panel?.name || s.site_name;
   const home = panel ? `/cua-hang/${panel.slug}` : "/";
+  // Mô-đun Bài viết / API đang tắt thì ẩn luôn liên kết trên header
+  const panelFlags = panel ? await prisma.childPanel.findUnique({ where: { slug: panel.slug }, select: { moduleBlog: true, moduleApi: true } }) : null;
+  const blogOn = s.module_blog !== "0" && (panelFlags ? panelFlags.moduleBlog : true);
+  const apiDocOn = s.module_api !== "0" && (panelFlags ? panelFlags.moduleApi : true);
   const links = panel
     ? [
         { href: home, label: "Trang chủ" },
         { href: `/cua-hang/${panel.slug}/premium`, label: "Premium" },
-        { href: `/cua-hang/${panel.slug}/bai-viet`, label: "Bài viết" },
-        { href: `/cua-hang/${panel.slug}/tai-lieu-api`, label: "Tài liệu API" },
+        ...(blogOn ? [{ href: `/cua-hang/${panel.slug}/bai-viet`, label: "Bài viết" }] : []),
+        ...(apiDocOn ? [{ href: `/cua-hang/${panel.slug}/tai-lieu-api`, label: "Tài liệu API" }] : []),
       ]
     : [
         { href: "/dich-vu", label: "Bảng giá" },
         { href: "/premium", label: "Premium" },
-        { href: "/bai-viet", label: "Bài viết" },
-        { href: "/api-docs", label: "Tài liệu API" },
+        ...(blogOn ? [{ href: "/bai-viet", label: "Bài viết" }] : []),
+        ...(apiDocOn ? [{ href: "/api-docs", label: "Tài liệu API" }] : []),
       ];
   const registerHref = panel ? `/cua-hang/${panel.slug}/dang-ky` : "/register";
   const note = announcement ?? s.announcement_bar;
@@ -162,8 +166,8 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
           <ul className="space-y-2">
             <li><Link href="/dich-vu" className="hover:text-white">Tăng tương tác SMM</Link></li>
             <li><Link href="/premium" className="hover:text-white">Tài khoản Premium</Link></li>
-            <li><Link href="/api-docs" className="hover:text-white">API cho đại lý</Link></li>
-            <li><Link href="/bai-viet" className="hover:text-white">Bài viết</Link></li>
+            {s.module_api !== "0" && <li><Link href="/api-docs" className="hover:text-white">API cho đại lý</Link></li>}
+            {s.module_blog !== "0" && <li><Link href="/bai-viet" className="hover:text-white">Bài viết</Link></li>}
           </ul>
         </div>
         <div>

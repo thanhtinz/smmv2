@@ -4,6 +4,7 @@ import { userByApiKey } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder, refundSmmOrder } from "@/lib/orders";
 import { LEVEL_DISCOUNT, smmCharge, vnd } from "@/lib/format";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
+import { moduleOn } from "@/lib/modules";
 import { providerCancel, providerRefill } from "@/lib/provider";
 
 /**
@@ -31,6 +32,9 @@ async function handle(req: NextRequest) {
   const action = get("action");
   const user = await userByApiKey(key);
   if (!user) return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
+  if (!(await moduleOn("api", user.panelId))) {
+    return NextResponse.json({ error: "API module is disabled" }, { status: 403 });
+  }
 
   try {
     if (action === "balance") {

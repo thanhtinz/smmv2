@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { PublicHeader, SiteFooter } from "@/components/site";
+import { getSettings } from "@/lib/settings";
 import { dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function PanelStorePosts({ params }: { params: { slug: string } }) {
   const panel = await prisma.childPanel.findUnique({ where: { slug: params.slug } });
   if (!panel) notFound();
+  if ((await getSettings()).module_blog === "0" || !panel.moduleBlog) notFound();
   const posts = await prisma.post.findMany({ where: { panelId: panel.id, published: true }, orderBy: { createdAt: "desc" }, take: 60, include: { category: true } });
   return (
     <div data-accent={panel.accent} className="dark pub-dark min-h-screen bg-[#07090d] text-slate-300">

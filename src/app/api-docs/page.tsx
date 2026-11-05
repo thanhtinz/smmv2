@@ -1,10 +1,13 @@
+import { notFound } from "next/navigation";
 import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { ApiDocsView } from "@/components/apidocs";
 import { getCurrentUser } from "@/lib/auth";
+import { getSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function ApiDocsPage() {
+  if ((await getSettings()).module_api === "0") notFound();
   const user = await getCurrentUser().catch(() => null);
   return (
     <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">

@@ -726,6 +726,13 @@ export async function panelSaveModulesAction(formData: FormData) {
       sellPremium: formData.has("sellPremium"),
       moduleAffiliate: formData.has("moduleAffiliate"),
       moduleRegister: formData.has("moduleRegister"),
+      moduleBulk: formData.has("moduleBulk"),
+      moduleSubscriptions: formData.has("moduleSubscriptions"),
+      moduleCampaigns: formData.has("moduleCampaigns"),
+      modulePromo: formData.has("modulePromo"),
+      moduleTickets: formData.has("moduleTickets"),
+      moduleApi: formData.has("moduleApi"),
+      moduleBlog: formData.has("moduleBlog"),
       affiliatePercent: affPct === undefined || String(affPct).trim() === "" ? panel.affiliatePercent : Math.max(0, Math.min(100, parseInt(String(affPct)) || 0)),
     },
   });

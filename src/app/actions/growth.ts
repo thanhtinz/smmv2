@@ -1,6 +1,7 @@
 "use server";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { moduleOn } from "@/lib/modules";
 import { redirect } from "next/navigation";
 
 function back(path: string, key: "msg" | "err", text: string): never {
@@ -12,6 +13,7 @@ const int = (fd: FormData, k: string) => parseInt(str(fd, k) || "0") || 0;
 /* ---------- Đăng ký định kỳ ---------- */
 export async function createSubscriptionAction(formData: FormData) {
   const user = await requireUser();
+  if (!(await moduleOn("subscriptions", user.panelId))) back("/dashboard/dinh-ky", "err", "Tính năng đăng ký định kỳ đang tắt");
   const serviceId = int(formData, "serviceId");
   const link = str(formData, "link");
   const quantity = int(formData, "quantity");
@@ -51,6 +53,7 @@ export async function deleteSubscriptionAction(formData: FormData) {
 /* ---------- Chiến dịch ---------- */
 export async function createCampaignAction(formData: FormData) {
   const user = await requireUser();
+  if (!(await moduleOn("campaigns", user.panelId))) back("/dashboard/chien-dich", "err", "Tính năng chiến dịch đang tắt");
   const name = str(formData, "name");
   if (!name) back("/dashboard/chien-dich", "err", "Chưa nhập tên chiến dịch");
   const c = await prisma.campaign.create({

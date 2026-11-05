@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder } from "@/lib/orders";
 import { applyBalance } from "@/lib/wallet";
 import { getSettings, calcBonus, bonusTiersFor } from "@/lib/settings";
+import { moduleOn } from "@/lib/modules";
 import { passwordError } from "@/lib/security";
 import { randomKey, genCode, parsePremiumFields } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -37,6 +38,7 @@ export async function placeSmmOrderAction(formData: FormData) {
   const schedOn = formData.get("schedule") === "1";
   const loopOn = formData.get("loop") === "1";
   if (schedOn || loopOn) {
+    if (!(await moduleOn("subscriptions", user.panelId))) back("/dashboard/dat-hang", "err", "Tính năng đặt hẹn giờ / lặp lại đang tắt");
     const atRaw = String(formData.get("scheduleAt") || "");
     const runAt = schedOn && atRaw ? new Date(atRaw) : new Date(Date.now() + 60000);
     if (schedOn && (!atRaw || isNaN(runAt.getTime()) || runAt.getTime() < Date.now() - 60000)) back("/dashboard/dat-hang", "err", "Giờ hẹn phải ở tương lai");
@@ -85,6 +87,7 @@ export async function placeSmmOrderAction(formData: FormData) {
  */
 export async function bulkPlaceOrdersAction(formData: FormData) {
   const user = await requireUser();
+  if (!(await moduleOn("bulk", user.panelId))) back("/dashboard/dat-hang-loat", "err", "Tính năng đặt hàng loạt đang tắt");
   const raw = String(formData.get("bulk") || "");
   const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
   if (lines.length === 0) back("/dashboard/dat-hang-loat", "err", "Chưa có dòng nào để đặt");
@@ -398,6 +401,7 @@ export async function createDepositAction(formData: FormData) {
 
 export async function createTicketAction(formData: FormData) {
   const user = await requireUser();
+  if (!(await moduleOn("tickets", user.panelId))) back("/dashboard/ticket", "err", "Tính năng hỗ trợ / ticket đang tắt");
   const subject = String(formData.get("subject") || "").trim();
   const category = String(formData.get("category") || "other");
   const body = String(formData.get("body") || "").trim();

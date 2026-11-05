@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
+import { moduleOn } from "@/lib/modules";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
@@ -6,6 +7,7 @@ import { regenApiKeyAction } from "@/app/actions/user";
 
 export default async function ApiPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
+  if (!(await moduleOn("api", user.panelId))) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
   const s = await getSettings();
   const endpoint = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/v2`;
   void s;
