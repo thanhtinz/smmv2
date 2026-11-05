@@ -123,7 +123,7 @@ export async function createSmmOrder(input: {
     }
   }
   const charge = Math.max(1, Math.round(smmCharge(effectiveRate, input.quantity) * (1 - discount / 100)));
-  const commission = isOwn ? charge : panel ? Math.max(0, charge - smmCharge(service.rate, input.quantity)) : 0;
+  const commission = isOwn ? Math.max(0, charge - smmCharge(service.costRate, input.quantity)) : panel ? Math.max(0, charge - smmCharge(service.rate, input.quantity)) : 0;
   const cost = smmCharge(service.costRate, input.quantity);
 
   // Profit Protection: không cho đặt đơn nếu giá bán (sau chiết khấu cấp bậc) thấp hơn giá vốn

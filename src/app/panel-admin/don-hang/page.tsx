@@ -25,7 +25,7 @@ export default async function PanelOrdersPage({ searchParams }: { searchParams: 
     where: { panelId: panel.id },
     orderBy: { createdAt: "desc" },
     take: 50,
-    include: { user: { select: { username: true } }, service: { select: { name: true, panelId: true } } },
+    include: { user: { select: { username: true } }, service: { select: { name: true, panelId: true, fulfillment: true } } },
   });
   const premiumOrders = await prisma.premiumOrder.findMany({
     where: { panelId: panel.id },
@@ -42,7 +42,7 @@ export default async function PanelOrdersPage({ searchParams }: { searchParams: 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px]">
             <thead className="bg-slate-50 border-b border-slate-200">
-              <tr><th className="th">Mã đơn</th><th className="th">Khách</th><th className="th">Dịch vụ</th><th className="th">Số lượng</th><th className="th">Khách trả</th><th className="th">Hoa hồng</th><th className="th">Trạng thái</th><th className="th">Xử lý (dịch vụ riêng)</th><th className="th">Thời gian</th></tr>
+              <tr><th className="th">Mã đơn</th><th className="th">Khách</th><th className="th">Dịch vụ</th><th className="th">Số lượng</th><th className="th">Khách trả</th><th className="th">Hoa hồng</th><th className="th">Trạng thái</th><th className="th">Xử lý đơn</th><th className="th">Thời gian</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {orders.map((o) => (
@@ -55,7 +55,7 @@ export default async function PanelOrdersPage({ searchParams }: { searchParams: 
                   <td className="td text-emerald-600 font-semibold">+{vnd(o.commission)}</td>
                   <td className="td"><Badge cls={STATUS_CLS[o.status] || "bg-slate-100 text-slate-500"}>{o.status}</Badge></td>
                   <td className="td whitespace-nowrap">
-                    {o.service.panelId === panel.id && (o.status === "PENDING" || o.status === "IN_PROGRESS") ? (
+                    {o.service.panelId === panel.id && o.service.fulfillment === "MANUAL" && (o.status === "PENDING" || o.status === "IN_PROGRESS") ? (
                       <span className="flex gap-1.5">
                         {o.status === "PENDING" && (
                           <form action={panelOwnOrderAction}><input type="hidden" name="orderId" value={o.id} /><input type="hidden" name="kind" value="start" /><button className="btn-ghost btn-sm !px-2.5 !py-1">Bắt đầu</button></form>

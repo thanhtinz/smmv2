@@ -245,62 +245,77 @@ export function PanelPostsClient({ posts, categories }: { posts: PanelPostDTO[];
   );
 }
 
-/* ================= DỊCH VỤ RIÊNG CỦA PANEL ================= */
-export type PanelOwnServiceDTO = {
+/* ================= DỊCH VỤ PANEL THÊM VÀO GIAN HÀNG ================= */
+export type PanelAddedServiceDTO = {
   id: number; name: string; rate: number; min: number; max: number;
-  description: string | null; active: boolean; categoryId: number; categoryName: string; platform: string; orderCount: number;
+  description: string | null; active: boolean; categoryName: string;
+  sourceName: string | null; sourceRate: number | null; fulfillment: string; orderCount: number;
 };
+export type PanelSourceServiceDTO = { id: number; name: string; rate: number; categoryName: string };
 export type PanelCategoryDTO = { id: number; name: string; platform: string };
 
-export function PanelOwnServiceModal({ service, categories, onClose }: { service?: PanelOwnServiceDTO; categories: PanelCategoryDTO[]; onClose: () => void }) {
+export function PanelAddServiceModal({ service, sources, categories, onClose }: { service?: PanelAddedServiceDTO; sources: PanelSourceServiceDTO[]; categories: PanelCategoryDTO[]; onClose: () => void }) {
   const c = service;
+  const [srcId, setSrcId] = useState(c ? -1 : 0);
+  const src = sources.find((x) => x.id === srcId);
   return (
-    <Modal title={c ? "Sửa dịch vụ riêng" : "Thêm dịch vụ riêng"} onClose={onClose}>
+    <Modal title={c ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ"} onClose={onClose}>
       <form action={panelSaveOwnService}>
         {c && <input type="hidden" name="id" value={c.id} />}
         <div className="space-y-4 px-6 py-5">
-          <div><label className={lbl}>Tên dịch vụ</label><input name="name" required defaultValue={c?.name || ""} placeholder="VD: Follow TikTok thủ công — nguồn riêng" className={inp} /></div>
-          <div><label className={lbl}>Danh mục (nền tảng)</label>
-            <select name="categoryId" defaultValue={c?.categoryId || categories[0]?.id} className={inp}>
-              {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name} ({cat.platform})</option>)}
-            </select>
-          </div>
+          {!c && (
+            <div><label className={lbl}>Nguồn dịch vụ *</label>
+              <select name="sourceServiceId" value={srcId} onChange={(e) => setSrcId(parseInt(e.target.value))} className={inp}>
+                <option value={0}>Thủ công — tự xử lý đơn</option>
+                {sources.map((sv) => <option key={sv.id} value={sv.id}>{sv.name} · {sv.categoryName} · giá web mẹ {vnd(sv.rate)}/1k</option>)}
+              </select>
+              <p className="mt-1 text-xs text-slate-400">{srcId === 0 ? "Đơn vào trạng thái chờ, bạn tự xử lý ở mục Đơn hàng." : "Đơn sẽ chạy đúng nguồn của dịch vụ web mẹ đã chọn; bạn hưởng phần chênh giữa giá bán của bạn và giá web mẹ."}</p>
+            </div>
+          )}
+          {c && <div><label className={lbl}>Nguồn dịch vụ</label><input disabled value={c.sourceName ? `${c.sourceName} (giá web mẹ ${vnd(c.sourceRate || 0)}/1k)` : "Thủ công — tự xử lý đơn"} className={inp} /></div>}
+          <div><label className={lbl}>Tên dịch vụ *</label><input name="name" required defaultValue={c?.name || (src ? src.name : "")} key={c ? "edit" : srcId} placeholder="Nhập tên dịch vụ" className={inp} /></div>
           <div className="grid grid-cols-3 gap-4">
-            <div><label className={lbl}>Giá bán / 1000</label><input name="rate" type="number" min={1} required defaultValue={c?.rate || 50000} className={inp} /></div>
+            <div><label className={lbl}>Giá bán (VNĐ/1k) *</label><input name="rate" type="number" min={1} required defaultValue={c?.rate || (src ? src.rate : 50000)} key={c ? "edit-r" : "r" + srcId} className={inp} /><p className="mt-1 text-xs text-blue-600">Giá bán tính cho 1000 đơn vị.</p></div>
             <div><label className={lbl}>Tối thiểu</label><input name="min" type="number" min={1} defaultValue={c?.min || 100} className={inp} /></div>
             <div><label className={lbl}>Tối đa</label><input name="max" type="number" min={1} defaultValue={c?.max || 100000} className={inp} /></div>
           </div>
+          {srcId === 0 && !c && (
+            <div><label className={lbl}>Danh mục</label>
+              <select name="categoryId" className={inp}>
+                {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name} ({cat.platform})</option>)}
+              </select>
+            </div>
+          )}
           <div><label className={lbl}>Mô tả</label><textarea name="description" rows={3} defaultValue={c?.description || ""} className={inp} /></div>
           <Switch name="active" label="Đang bán" defaultChecked={c ? c.active : true} />
-          <p className="text-xs text-slate-400">Giá này là giá khách của panel trả (giá cuối, không cộng thêm %). Toàn bộ tiền đơn là doanh thu của bạn — bạn tự xử lý các đơn này ở mục Đơn hàng.</p>
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
           <button type="button" onClick={onClose} className="btn-ghost !py-2">Huỷ</button>
-          <button className="btn-primary !py-2">Lưu dịch vụ</button>
+          <button className="btn-primary !py-2">{c ? "Cập nhật dịch vụ" : "Lưu dịch vụ"}</button>
         </div>
       </form>
     </Modal>
   );
 }
 
-export function PanelOwnServicesClient({ services, categories }: { services: PanelOwnServiceDTO[]; categories: PanelCategoryDTO[] }) {
-  const [editing, setEditing] = useState<PanelOwnServiceDTO | undefined>(undefined);
+export function PanelAddedServicesClient({ services, sources, categories }: { services: PanelAddedServiceDTO[]; sources: PanelSourceServiceDTO[]; categories: PanelCategoryDTO[] }) {
+  const [editing, setEditing] = useState<PanelAddedServiceDTO | undefined>(undefined);
   const [open, setOpen] = useState(false);
   return (
     <>
-      <div className="mb-4 flex justify-end"><button onClick={() => { setEditing(undefined); setOpen(true); }} className="btn-primary !py-2.5">+ Thêm dịch vụ riêng</button></div>
-      {open && <PanelOwnServiceModal service={editing} categories={categories} onClose={() => setOpen(false)} />}
+      <div className="mb-4 flex items-center justify-end"><button onClick={() => { setEditing(undefined); setOpen(true); }} className="btn-primary !py-2.5">+ Thêm dịch vụ</button></div>
+      {open && <PanelAddServiceModal service={editing} sources={sources} categories={categories} onClose={() => setOpen(false)} />}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px]">
+          <table className="w-full min-w-[860px]">
             <thead className="bg-slate-50 border-b border-slate-200"><tr>
-              <th className="th">Dịch vụ</th><th className="th">Danh mục</th><th className="th">Giá / 1000</th><th className="th">Min – Max</th><th className="th">Đơn đã bán</th><th className="th">Trạng thái</th><th className="th !text-right">Thao tác</th>
+              <th className="th">Dịch vụ</th><th className="th">Nguồn</th><th className="th">Giá bán / 1k</th><th className="th">Min – Max</th><th className="th">Đơn đã bán</th><th className="th">Trạng thái</th><th className="th !text-right">Thao tác</th>
             </tr></thead>
             <tbody className="divide-y divide-slate-100">
               {services.map((sv) => (
                 <tr key={sv.id} className="hover:bg-slate-50/60">
-                  <td className="td"><div className="font-semibold text-slate-800 max-w-[320px] truncate" title={sv.name}>{sv.name}</div>{sv.description && <div className="text-xs text-slate-400 max-w-[320px] truncate">{sv.description}</div>}</td>
-                  <td className="td text-slate-500">{sv.categoryName}</td>
+                  <td className="td"><div className="font-semibold text-slate-800 max-w-[300px] truncate" title={sv.name}>{sv.name}</div><div className="text-xs text-slate-400">{sv.categoryName}</div></td>
+                  <td className="td text-slate-500"><div className="max-w-[240px] truncate" title={sv.sourceName || ""}>{sv.sourceName || "Thủ công"}</div>{sv.sourceRate != null && <div className="text-xs text-slate-400">giá mẹ {vnd(sv.sourceRate)}/1k</div>}</td>
                   <td className="td font-semibold">{vnd(sv.rate)}</td>
                   <td className="td text-slate-500">{num(sv.min)} – {num(sv.max)}</td>
                   <td className="td">{num(sv.orderCount)}</td>
@@ -312,7 +327,7 @@ export function PanelOwnServicesClient({ services, categories }: { services: Pan
                   </div></td>
                 </tr>
               ))}
-              {services.length === 0 && <tr><td className="td text-slate-400" colSpan={7}>Chưa có dịch vụ riêng nào — bấm &quot;Thêm dịch vụ riêng&quot; để bán nguồn hàng của chính bạn cho khách của panel.</td></tr>}
+              {services.length === 0 && <tr><td className="td text-slate-400" colSpan={7}>Chưa thêm dịch vụ nào — bấm “+ Thêm dịch vụ” và chọn nguồn từ các dịch vụ có sẵn của web mẹ, hoặc tạo dịch vụ thủ công tự xử lý.</td></tr>}
             </tbody>
           </table>
         </div>

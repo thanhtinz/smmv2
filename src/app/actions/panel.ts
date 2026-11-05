@@ -253,51 +253,66 @@ export async function panelTestAiAction(formData: FormData) {
   }
 }
 
-/* ---------- Dịch vụ riêng của panel (chủ panel tự thêm, tự xử lý đơn) ---------- */
+/* ---------- Thêm dịch vụ cho panel — nguồn lấy từ dịch vụ có sẵn của web mẹ ---------- */
 export async function panelSaveOwnService(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/dich-vu-rieng");
+  const { panel } = await ownPanel("/panel-admin/dich-vu");
   const id = int(formData, "id");
   const name = str(formData, "name");
-  if (!name) back("/panel-admin/dich-vu-rieng", "err", "Chưa nhập tên dịch vụ");
-  const categoryId = int(formData, "categoryId");
-  if (!categoryId) back("/panel-admin/dich-vu-rieng", "err", "Chưa chọn danh mục");
-  if (id) {
-    const owned = await prisma.smmService.findFirst({ where: { id, panelId: panel.id } });
-    if (!owned) back("/panel-admin/dich-vu-rieng", "err", "Dịch vụ không thuộc panel của bạn");
-  }
-  const data = {
-    panelId: panel.id,
+  if (!name) back("/panel-admin/dich-vu", "err", "Chưa nhập tên dịch vụ");
+  const rate = Math.max(1, int(formData, "rate"));
+  const min = Math.max(1, int(formData, "min") || 1);
+  const base = {
     name,
-    categoryId,
-    rate: Math.max(1, int(formData, "rate")),
-    costRate: 0,
-    min: Math.max(1, int(formData, "min") || 1),
-    max: Math.max(Math.max(1, int(formData, "min") || 1), int(formData, "max") || 100000),
+    rate,
+    min,
+    max: Math.max(min, int(formData, "max") || 100000),
     description: str(formData, "description") || null,
-    fulfillment: "MANUAL",
-    providerId: null,
-    providerServiceId: null,
     active: formData.get("active") === "on",
   };
-  if (id) await prisma.smmService.update({ where: { id }, data: data as any });
-  else await prisma.smmService.create({ data: data as any });
-  done("/panel-admin/dich-vu-rieng", id ? "Đã cập nhật dịch vụ riêng" : "Đã thêm dịch vụ riêng — khách của panel đã đặt được");
+  if (id) {
+    // Sửa: giữ nguyên nguồn đã nối, chỉ đổi thông tin bán
+    const owned = await prisma.smmService.findFirst({ where: { id, panelId: panel.id } });
+    if (!owned) back("/panel-admin/dich-vu", "err", "Dịch vụ không thuộc panel của bạn");
+    await prisma.smmService.update({ where: { id }, data: base as any });
+    done("/panel-admin/dich-vu", "Đã cập nhật dịch vụ");
+  }
+  // Thêm mới: nguồn là một dịch vụ có sẵn của web mẹ (nối đúng nguồn đó), hoặc thủ công tự xử lý
+  const sourceId = int(formData, "sourceServiceId");
+  let data: any = { ...base, panelId: panel.id };
+  if (sourceId) {
+    const src = await prisma.smmService.findFirst({ where: { id: sourceId, panelId: null, active: true } });
+    if (!src) back("/panel-admin/dich-vu", "err", "Dịch vụ nguồn không còn trên web mẹ");
+    data = {
+      ...data,
+      categoryId: src.categoryId,
+      fulfillment: src.fulfillment,
+      providerId: src.providerId,
+      providerServiceId: src.providerServiceId,
+      costRate: src.rate, // giá tính cho panel = giá bán chuẩn của web mẹ; chủ panel hưởng phần chênh
+    };
+  } else {
+    const categoryId = int(formData, "categoryId");
+    if (!categoryId) back("/panel-admin/dich-vu", "err", "Chưa chọn danh mục");
+    data = { ...data, categoryId, fulfillment: "MANUAL", providerId: null, providerServiceId: null, costRate: 0 };
+  }
+  await prisma.smmService.create({ data });
+  done("/panel-admin/dich-vu", "Đã thêm dịch vụ vào gian hàng");
 }
 
 export async function panelDeleteOwnService(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/dich-vu-rieng");
+  const { panel } = await ownPanel("/panel-admin/dich-vu");
   const id = int(formData, "id");
   const used = await prisma.smmOrder.count({ where: { serviceId: id } });
-  if (used > 0) back("/panel-admin/dich-vu-rieng", "err", "Dịch vụ đã có đơn — hãy tắt bán thay vì xoá");
+  if (used > 0) back("/panel-admin/dich-vu", "err", "Dịch vụ đã có đơn — hãy tắt bán thay vì xoá");
   await prisma.smmService.deleteMany({ where: { id, panelId: panel.id } });
-  done("/panel-admin/dich-vu-rieng", "Đã xoá dịch vụ riêng");
+  done("/panel-admin/dich-vu", "Đã xoá dịch vụ");
 }
 
 export async function panelToggleOwnService(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/dich-vu-rieng");
+  const { panel } = await ownPanel("/panel-admin/dich-vu");
   const row = await prisma.smmService.findFirst({ where: { id: int(formData, "id"), panelId: panel.id } });
   if (row) await prisma.smmService.update({ where: { id: row.id }, data: { active: !row.active } });
-  done("/panel-admin/dich-vu-rieng", row?.active ? "Đã tắt bán dịch vụ" : "Đã mở bán dịch vụ");
+  done("/panel-admin/dich-vu", row?.active ? "Đã tắt bán dịch vụ" : "Đã mở bán dịch vụ");
 }
 
 /* ---------- Xử lý đơn dịch vụ riêng (chủ panel tự giao) ---------- */
@@ -306,6 +321,7 @@ export async function panelOwnOrderAction(formData: FormData) {
   const orderId = int(formData, "orderId");
   const kind = str(formData, "kind");
   const order = await prisma.smmOrder.findFirst({ where: { id: orderId, panelId: panel.id, service: { panelId: panel.id } } });
+  if (order && kind !== "cancel" && order.fulfillment !== "MANUAL") back("/panel-admin/don-hang", "err", "Đơn này chạy qua nguồn API — hệ thống tự xử lý, chủ panel chỉ huỷ được");
   if (!order) back("/panel-admin/don-hang", "err", "Đơn này không phải đơn dịch vụ riêng của panel bạn");
   if (kind === "start") {
     if (order.status !== "PENDING") back("/panel-admin/don-hang", "err", "Đơn không còn ở trạng thái chờ");

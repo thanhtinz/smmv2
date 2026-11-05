@@ -2,26 +2,26 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { PageHead, Flash } from "@/components/ui";
 import { PanelServicesClient, type PanelServiceDTO } from "@/components/panel-admin-client";
-import { PanelPremiumTable, type PanelPremiumRowDTO } from "@/components/panel-features";
+import { PanelPremiumTable, PanelAddedServicesClient, type PanelPremiumRowDTO, type PanelAddedServiceDTO, type PanelSourceServiceDTO, type PanelCategoryDTO } from "@/components/panel-features";
 import { updatePanelAction } from "@/app/actions/user";
 import { num } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-/** Dịch vụ & Giá — dịch vụ CHỈ đồng bộ từ web mẹ (không thêm/sửa nguồn ở đây);
- *  chủ panel chỉ chỉnh GIÁ: phụ phí chung, % giảm theo bậc, giá riêng từng dịch vụ theo bậc. */
+/** Dịch vụ & Giá — dịch vụ đồng bộ từ web mẹ (chủ panel chỉnh giá bán) cộng với
+ *  các dịch vụ chủ panel thêm vào gian hàng, nguồn lấy từ dịch vụ có sẵn của web mẹ. */
 export default async function PanelServicesPage({ searchParams }: { searchParams: { msg?: string; err?: string; q?: string } }) {
   const user = (await getCurrentUser())!;
   const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
   const q = (searchParams.q || "").trim();
   const [services, overrides, totalServices, premiumVariants, premiumOverrides] = await Promise.all([
     prisma.smmService.findMany({
-      where: { active: true, ...(q ? { name: { contains: q } } : {}) },
+      where: { active: true, panelId: null, ...(q ? { name: { contains: q } } : {}) },
       orderBy: { id: "asc" }, take: 200,
       select: { id: true, name: true, rate: true, min: true, max: true, category: { select: { name: true } } },
     }),
     prisma.panelServicePrice.findMany({ where: { panelId: panel.id }, orderBy: { id: "asc" } }),
-    prisma.smmService.count({ where: { active: true } }),
+    prisma.smmService.count({ where: { active: true, panelId: null } }),
     prisma.premiumVariant.findMany({ where: { active: true, product: { active: true } }, orderBy: [{ productId: "asc" }, { sort: "asc" }], include: { product: { select: { name: true } } } }),
     prisma.panelPremiumPrice.findMany({ where: { panelId: panel.id } }),
   ]);
@@ -31,6 +31,30 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
     const memberFinal = Math.max(1, Math.round(memberUnit * (1 - panel.discountMember / 100)));
     return { variantId: v.id, productName: v.product.name, variantName: v.name, motherPrice: v.price, panelPrice: memberFinal, override: preOvMap.get(v.id) ?? null };
   });
+  const [addedRows, sourceRows, categoryRows] = await Promise.all([
+    prisma.smmService.findMany({
+      where: { panelId: panel.id },
+      include: { category: true, _count: { select: { orders: true } } },
+      orderBy: { id: "desc" },
+    }),
+    prisma.smmService.findMany({
+      where: { active: true, panelId: null },
+      orderBy: { id: "asc" }, take: 300,
+      select: { id: true, name: true, rate: true, providerId: true, providerServiceId: true, category: { select: { name: true } } },
+    }),
+    prisma.smmCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } }),
+  ]);
+  const srcByKey = new Map(sourceRows.filter((x) => x.providerId && x.providerServiceId).map((x) => [`${x.providerId}:${x.providerServiceId}`, x]));
+  const addedDtos: PanelAddedServiceDTO[] = addedRows.map((sv) => {
+    const src = sv.providerId && sv.providerServiceId ? srcByKey.get(`${sv.providerId}:${sv.providerServiceId}`) : undefined;
+    return {
+      id: sv.id, name: sv.name, rate: sv.rate, min: sv.min, max: sv.max, description: sv.description, active: sv.active,
+      categoryName: sv.category.name, sourceName: sv.fulfillment === "MANUAL" && !sv.providerId ? null : (src?.name || "Nguồn API web mẹ"),
+      sourceRate: src ? src.rate : (sv.costRate > 0 ? sv.costRate : null), fulfillment: sv.fulfillment, orderCount: sv._count.orders,
+    };
+  });
+  const sourceDtos: PanelSourceServiceDTO[] = sourceRows.map((x) => ({ id: x.id, name: x.name, rate: x.rate, categoryName: x.category.name }));
+  const categoryDtos: PanelCategoryDTO[] = categoryRows.map((c) => ({ id: c.id, name: c.name, platform: c.platform }));
   const panelRate = (r: number) => Math.round(r * (1 + panel.markup / 100));
   const discountOf: Record<string, number> = { MEMBER: panel.discountMember, RESELLER: panel.discountReseller, AGENCY: panel.discountAgency, VIP: panel.discountVip };
   const ovByService = new Map<number, Record<string, number>>();
@@ -47,7 +71,7 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
   });
   return (
     <div>
-      <PageHead title="Dịch vụ & Giá" desc={`Dịch vụ đồng bộ từ web mẹ — chỉ chỉnh giá bán. Đang có ${num(totalServices)} dịch vụ đang bán.`} />
+      <PageHead title="Dịch vụ & Giá" desc={`Dịch vụ đồng bộ từ web mẹ — chỉnh giá bán tại đây. Đang có ${num(totalServices)} dịch vụ của web mẹ.`} />
       <Flash msg={searchParams.msg} err={searchParams.err} />
 
       <div className="card mb-6 p-6">
@@ -72,6 +96,12 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
       </form>
 
       <PanelServicesClient services={dtos} />
+
+      <div className="mb-4 mt-10 flex flex-wrap items-center gap-3">
+        <h2 className="text-lg font-extrabold text-slate-900">Dịch vụ đã thêm</h2>
+        <span className="text-sm text-slate-400">Thêm dịch vụ vào gian hàng của bạn — nguồn lấy từ dịch vụ có sẵn của web mẹ, hoặc dịch vụ thủ công do bạn tự xử lý đơn.</span>
+      </div>
+      <PanelAddedServicesClient services={addedDtos} sources={sourceDtos} categories={categoryDtos} />
 
       <div className="mb-4 mt-10 flex flex-wrap items-center gap-3">
         <h2 className="text-lg font-extrabold text-slate-900">Giá gói Premium</h2>

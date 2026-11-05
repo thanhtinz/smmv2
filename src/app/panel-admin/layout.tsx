@@ -32,7 +32,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
       group: "Bán hàng", icon: "cart",
       children: [
         { href: "/panel-admin/dich-vu", label: "Dịch vụ & Giá", icon: "list" },
-        { href: "/panel-admin/dich-vu-rieng", label: "Dịch vụ riêng", icon: "box" },
+        { href: "/panel-admin/nguon-api", label: "Nguồn API", icon: "server" },
         { href: "/panel-admin/don-hang", label: "Đơn hàng", icon: "cart", badge: orderCount },
         { href: "/panel-admin/ma-giam-gia", label: "Mã giảm giá", icon: "gift" },
         { href: "/panel-admin/hoa-hong", label: "Nhật ký hoa hồng", icon: "wallet" },
