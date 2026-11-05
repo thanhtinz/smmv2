@@ -162,7 +162,9 @@ export function OrderForm({ services, categories, discount, preselect, action, b
   const linkLines = Array.from(new Set(multiLinks.split("\n").map((l) => l.trim()).filter(Boolean)));
   const orderCount = multiOn ? linkLines.length : 1;
   const totalCharge = charge * orderCount;
-  const notEnough = balance !== undefined && totalCharge > balance;
+  // Chế độ nhiều link mà chưa nhập link nào: thẻ bên phải hiện giá của 1 link thay vì 0đ
+  const shownCharge = multiOn && orderCount === 0 ? charge : totalCharge;
+  const notEnough = balance !== undefined && shownCharge > balance;
   const linkHost = (() => { try { return new URL(link).hostname.replace(/^www\./, ""); } catch { return ""; } })();
   const platformHosts: Record<string, string[]> = {
     facebook: ["facebook.com", "fb.watch", "fb.com"], tiktok: ["tiktok.com"], instagram: ["instagram.com"],
@@ -199,20 +201,25 @@ export function OrderForm({ services, categories, discount, preselect, action, b
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="lbl !mb-0">Link cần tăng</label>
-            <span className="flex items-center gap-2 select-none">
-              <span className="text-xs font-semibold text-slate-600">Nhiều link</span>
-              <button type="button" role="switch" aria-checked={multiOn} title="Bật để đặt cùng lúc cho nhiều link — mỗi dòng 1 link, mỗi link thành 1 đơn riêng với cùng số lượng" onClick={() => setMultiOn(!multiOn)} className={`relative h-[22px] w-10 shrink-0 rounded-full transition-colors ${multiOn ? "bg-brand-600" : "bg-slate-300"}`}>
-                <span className={`absolute top-[3px] h-4 w-4 rounded-full bg-white shadow transition-all ${multiOn ? "left-[21px]" : "left-[3px]"}`} />
-              </button>
-            </span>
+            <div className="flex rounded-full bg-slate-100 p-0.5 text-xs font-semibold" role="tablist" aria-label="Chế độ link">
+              <button type="button" onClick={() => setMultiOn(false)} className={`rounded-full px-3 py-1 transition ${!multiOn ? "bg-brand-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>1 link</button>
+              <button type="button" onClick={() => setMultiOn(true)} className={`rounded-full px-3 py-1 transition ${multiOn ? "bg-brand-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Nhiều link</button>
+            </div>
           </div>
           {multiOn ? (
             <>
-              <div className="flex gap-2 items-start">
-                <textarea className="inp flex-1 font-mono !text-[13px]" name="links" required rows={5} placeholder={"Mỗi dòng 1 link:\nhttps://...\nhttps://..."} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
-                <button type="button" onClick={pasteLink} className="btn-ghost shrink-0">Dán link</button>
+              <textarea className="inp w-full font-mono !text-[13px] leading-relaxed" name="links" required rows={5} placeholder={"Mỗi dòng 1 link:\nhttps://...\nhttps://..."} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-xs text-slate-400">
+                  {linkLines.length > 0
+                    ? <><b className="text-brand-700">{num(linkLines.length)} link</b> — mỗi link 1 đơn riêng, số lượng {num(qty || 0)} áp cho từng link.</>
+                    : "Mỗi link 1 đơn riêng với cùng số lượng — tối đa 50 link/lần, dòng trùng tự gộp."}
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <button type="button" onClick={pasteLink} className="btn-sm rounded-full bg-slate-100 px-3 font-semibold text-slate-600 hover:bg-slate-200">Dán link</button>
+                  {multiLinks.trim() && <button type="button" onClick={() => setMultiLinks("")} className="btn-sm rounded-full bg-slate-100 px-3 font-semibold text-slate-600 hover:bg-rose-100 hover:text-rose-600">Xoá hết</button>}
+                </span>
               </div>
-              <p className="text-xs text-slate-400 mt-1.5">{linkLines.length > 0 ? <><b className="text-slate-600">{num(linkLines.length)} link</b> — mỗi link là 1 đơn riêng, số lượng {num(qty || 0)} áp cho từng link (tối đa 50 link/lần).</> : "Mỗi dòng 1 link — mỗi link là 1 đơn riêng với cùng số lượng (tối đa 50 link/lần)."}</p>
             </>
           ) : (
             <div className="flex gap-2">
@@ -312,12 +319,12 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             <Row k="Bảo hành bù (refill)" v={service.refill ? "Có" : "Không"} />
             <div className="border-t border-dashed pt-3 flex justify-between items-center">
               <span className="font-semibold">Tổng thanh toán</span>
-              <span className="text-2xl font-extrabold text-brand-700">{vnd(totalCharge)}</span>
+              <span className="text-2xl font-extrabold text-brand-700">{vnd(shownCharge)}{multiOn && orderCount === 0 && <span className="text-sm font-semibold text-slate-400"> / link</span>}</span>
             </div>
             {balance !== undefined && (
               <div className={`rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${notEnough ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
                 Số dư hiện tại: <b>{vnd(balance)}</b>
-                {notEnough ? <> — còn thiếu <b>{vnd(totalCharge - balance)}</b>. <Link href="/dashboard/nap-tien" className="font-bold underline">Nạp thêm ngay</Link></> : <> — sau đơn này còn <b>{vnd(balance - totalCharge)}</b>.</>}
+                {notEnough ? <> — còn thiếu <b>{vnd(shownCharge - balance)}</b>. <Link href="/dashboard/nap-tien" className="font-bold underline">Nạp thêm ngay</Link></> : <> — sau đơn này còn <b>{vnd(balance - shownCharge)}</b>.</>}
               </div>
             )}
             {service.notice && (
