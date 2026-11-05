@@ -125,3 +125,32 @@ src/app/api/cron         Cron đồng bộ
 src/app/dashboard        Khu khách hàng
 src/app/admin            Admin panel riêng
 ```
+
+## Tính năng bổ sung (các đợt sau)
+
+**Kinh doanh & vận hành**
+- **Mã giảm giá**: % hoặc số tiền cố định, trần giảm, đơn tối thiểu, giới hạn lượt, khoảng áp dụng, phạm vi SMM/Premium — khách nhập tại form đặt đơn, form mua Premium và qua API đại lý (`promo_code`).
+- **Đăng ký định kỳ**: khách tạo gói tự đặt đơn theo lịch; trần chi mỗi ngày; tự dừng khi đạt mục tiêu tổng hoặc khi thiếu số dư (có thông báo). Cron xử lý chung với các tác vụ nền khác.
+- **Chiến dịch**: gom đơn theo chiến dịch, đặt ngân sách và theo dõi tiến độ chi.
+- **So sánh dịch vụ**: bảng đối chiếu dịch vụ cùng danh mục theo giá sau chiết khấu của chính khách.
+- **Affiliate**: hoa hồng % trên giao dịch mua của người được giới thiệu; thu hồi tự động và đúng bằng phần đã cộng khi đơn bị hoàn.
+- **Giá thông minh** (Admin): chỉnh giá hàng loạt theo phạm vi (nguồn/danh mục/thủ công/toàn bộ) × chế độ (giá vốn + % lãi | +/− % giá hiện tại).
+
+**Admin**
+- **Phân tích**: doanh thu/lợi nhuận 30 ngày, dịch vụ và khách chi tiêu cao nhất, hiệu quả theo nhà cung cấp, phễu đăng ký → nạp → đặt đơn.
+- **CRM**: trang chi tiết khách 360° (số dư, tổng nạp/chi 2 mảng, đơn gần nhất, ticket, lịch sử nạp, sổ giao dịch) kèm cộng/trừ tiền và sửa cấp bậc tại chỗ.
+- **Phát hiện rủi ro**: đơn gắn cờ (trùng đơn/lặp link/số lượng lớn), đặt đơn dày bất thường, link dùng chung nhiều tài khoản, hoàn tiền nhiều lần, nạp lớn chờ duyệt.
+- **Biến động số dư** toàn hệ thống + xuất CSV; **Ngân hàng** dạng thẻ (trang nạp hiển thị chọn ngân hàng khi có nhiều tài khoản); **Cấp bậc** sửa được % giảm từng bậc; **Bài viết** + trang public `/bai-viet`; **Email Marketing** qua SMTP (gửi lô BCC theo nhóm khách, có gửi thử); **Bảo mật nâng cao** (chặn IP khi đăng nhập/đăng ký, độ dài mật khẩu tối thiểu, nhật ký hoạt động); **Hệ thống** (thông tin môi trường + dọn dữ liệu cũ).
+- **Mô-đun**: bật/tắt 5 mảng (Đặt đơn SMM, Premium, Panel con, Affiliate, Đăng ký) — chặn thật ở cả giao diện và xử lý phía server.
+
+**Cổng nạp & đăng nhập mở rộng** (đều cấu hình trong Admin → Cấu hình, không cần sửa code)
+- **PayPal / Stripe**: nạp USD quy đổi theo tỉ giá, cộng tự động qua return + webhook.
+- **USDT**: khách chuyển tới ví đã cấu hình (TRC20/BEP20/ERC20) rồi khai tx hash — chờ admin duyệt; chống khai trùng một hash hai lần.
+- **Telegram**: bot báo tin khi có nạp thành công hoặc ticket mới.
+- **Đăng nhập Google**: OAuth theo email; cần Client ID/Secret từ Google Cloud, Redirect URI là `https://<domain>/api/auth/google/callback`.
+- **AI**: tab AI trong Cấu hình (OpenAI hoặc endpoint tương thích, hoặc Google Gemini) + nút kiểm tra kết nối. Trang khách **Tìm dịch vụ bằng AI** (`/dashboard/tim-dich-vu`) gợi ý dịch vụ từ mô tả tự nhiên; chưa có key hoặc AI lỗi thì tự chuyển về tìm kiếm thường.
+- **Tỉ giá hiển thị**: khách đổi tiền tệ hiển thị theo tỉ giá admin đặt (`/api/display-config`), tiền thật vẫn là VND.
+- **Script tuỳ chỉnh**: chèn HTML vào `<head>`/cuối `<body>` (chat widget, thống kê...) từ Cấu hình.
+
+**Panel con trên domain riêng**
+- Domain của panel (CNAME về cùng server): `/` mở gian hàng, `/admin` mở thẳng Panel Admin của panel đó, `/login` đăng nhập tại chỗ. Trên domain chính, Panel Admin vẫn ở `/panel-admin`.
