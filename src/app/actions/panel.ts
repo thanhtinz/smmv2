@@ -2,6 +2,8 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { notifyUser } from "@/lib/notify";
+import { sendMail, smtpConfigured } from "@/lib/mailer";
 
 /** Actions riêng của chủ panel con — mọi thao tác đều khoá theo panel của chính
  *  người gọi (tra panel bằng ownerId, kiểm tra quyền sở hữu trên từng bản ghi). */
@@ -150,4 +152,51 @@ export async function panelTogglePost(formData: FormData) {
   const row = await prisma.post.findFirst({ where: { id: int(formData, "id"), panelId: panel.id } });
   if (row) await prisma.post.update({ where: { id: row.id }, data: { published: !row.published } });
   done("/panel-admin/bai-viet", row?.published ? "Đã ẩn bài viết" : "Đã đăng bài viết");
+}
+
+/* ---------- Hỗ trợ: ticket của khách panel ---------- */
+async function ownPanelTicket(panelId: number, ticketId: number) {
+  return prisma.ticket.findFirst({ where: { id: ticketId, user: { panelId } }, include: { user: { select: { id: true, username: true } } } });
+}
+
+export async function panelReplyTicket(formData: FormData) {
+  const { panel } = await ownPanel("/panel-admin/ho-tro");
+  const ticketId = int(formData, "ticketId");
+  const ticket = await ownPanelTicket(panel.id, ticketId);
+  if (!ticket) back("/panel-admin/ho-tro", "err", "Ticket này không thuộc khách của panel bạn");
+  const body = str(formData, "body");
+  const close = formData.get("close") === "on";
+  if (body) await prisma.ticketMessage.create({ data: { ticketId, body, fromAdmin: true } });
+  await prisma.ticket.update({ where: { id: ticketId }, data: { status: close ? "CLOSED" : "ANSWERED" } });
+  if (body) await notifyUser(ticket.user.id, "Ticket của bạn có phản hồi mới", `"${ticket.subject}" — chủ gian hàng đã trả lời.`, `/dashboard/ho-tro/${ticketId}`);
+  done(`/panel-admin/ho-tro/${ticketId}`, close ? "Đã trả lời và đóng ticket" : "Đã gửi phản hồi");
+}
+
+export async function panelToggleTicket(formData: FormData) {
+  const { panel } = await ownPanel("/panel-admin/ho-tro");
+  const ticketId = int(formData, "ticketId");
+  const ticket = await ownPanelTicket(panel.id, ticketId);
+  if (!ticket) back("/panel-admin/ho-tro", "err", "Ticket này không thuộc khách của panel bạn");
+  await prisma.ticket.update({ where: { id: ticketId }, data: { status: ticket.status === "CLOSED" ? "OPEN" : "CLOSED" } });
+  done("/panel-admin/ho-tro", ticket.status === "CLOSED" ? "Đã mở lại ticket" : "Đã đóng ticket");
+}
+
+/* ---------- Email marketing tới khách panel ---------- */
+export async function panelSendMarketingEmail(formData: FormData) {
+  const { panel } = await ownPanel("/panel-admin/email-marketing");
+  const subject = str(formData, "subject").slice(0, 200);
+  const body = str(formData, "body");
+  const segment = str(formData, "segment");
+  if (!subject || !body) back("/panel-admin/email-marketing", "err", "Nhập đủ tiêu đề và nội dung email");
+  if (!(await smtpConfigured())) back("/panel-admin/email-marketing", "err", "Hệ thống chưa cấu hình SMTP — nhờ admin web chính cấu hình ở Cấu hình → Email");
+  const where: any = { panelId: panel.id, email: { not: "" } };
+  if (segment === "deposited") where.deposits = { some: { status: "APPROVED" } };
+  if (segment === "ordered") where.smmOrders = { some: { panelId: panel.id } };
+  const members = await prisma.user.findMany({ where, select: { email: true }, take: 5000 });
+  const emails = Array.from(new Set(members.map((m) => m.email).filter(Boolean)));
+  if (!emails.length) back("/panel-admin/email-marketing", "err", "Không có khách nào khớp nhóm đã chọn");
+  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1e293b"><h2 style="font-size:20px">${subject}</h2><div style="white-space:pre-wrap;line-height:1.6">${body.replace(/</g, "&lt;")}</div><p style="color:#94a3b8;font-size:12px;margin-top:24px">Email từ gian hàng ${panel.name}</p></div>`;
+  const sent = await sendMail(emails, subject, html);
+  await prisma.apiLog.create({ data: { kind: "panel_email", ref: `panel:${panel.id}`, detail: `${subject} → ${sent} khách (nhóm: ${segment || "all"})` } });
+  done("/panel-admin/email-marketing", `Đã gửi email tới ${sent} khách của panel`);
 }

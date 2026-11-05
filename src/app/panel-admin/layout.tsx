@@ -19,9 +19,10 @@ export default async function PanelAdminLayout({ children }: { children: React.R
   if (!user) redirect("/login");
   const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
   if (!panel) redirect("/dashboard/panel-cua-toi/thiet-lap");
-  const [memberCount, orderCount] = await Promise.all([
+  const [memberCount, orderCount, openTickets] = await Promise.all([
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.smmOrder.count({ where: { panelId: panel.id } }),
+    prisma.ticket.count({ where: { user: { panelId: panel.id }, status: "OPEN" } }),
   ]);
   const entries: AdminNavEntry[] = [
     { href: "/panel-admin", label: "Tổng quan", icon: "home" },
@@ -33,13 +34,16 @@ export default async function PanelAdminLayout({ children }: { children: React.R
         { href: "/panel-admin/don-hang", label: "Đơn hàng", icon: "cart", badge: orderCount },
         { href: "/panel-admin/ma-giam-gia", label: "Mã giảm giá", icon: "gift" },
         { href: "/panel-admin/hoa-hong", label: "Nhật ký hoa hồng", icon: "wallet" },
+        { href: "/panel-admin/rui-ro", label: "Đơn rủi ro", icon: "shield" },
       ],
     },
     {
       group: "Khách hàng", icon: "users",
       children: [
         { href: "/panel-admin/khach-hang", label: "Khách hàng", icon: "users", badge: memberCount },
+        { href: "/panel-admin/ho-tro", label: "Hỗ trợ / Ticket", icon: "ticket", badge: openTickets },
         { href: "/panel-admin/thong-bao", label: "Thông báo khách", icon: "megaphone" },
+        { href: "/panel-admin/email-marketing", label: "Email marketing", icon: "mail" },
       ],
     },
     { href: "/panel-admin/bai-viet", label: "Bài viết", icon: "file" },
