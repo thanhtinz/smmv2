@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { PageHead, Flash } from "@/components/ui";
 import { PanelServicesClient, type PanelServiceDTO } from "@/components/panel-admin-client";
+import { PanelPremiumTable, type PanelPremiumRowDTO } from "@/components/panel-features";
 import { updatePanelAction } from "@/app/actions/user";
 import { num } from "@/lib/format";
 
@@ -13,7 +14,7 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
   const user = (await getCurrentUser())!;
   const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
   const q = (searchParams.q || "").trim();
-  const [services, overrides, totalServices] = await Promise.all([
+  const [services, overrides, totalServices, premiumVariants, premiumOverrides] = await Promise.all([
     prisma.smmService.findMany({
       where: { active: true, ...(q ? { name: { contains: q } } : {}) },
       orderBy: { id: "asc" }, take: 200,
@@ -21,7 +22,15 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
     }),
     prisma.panelServicePrice.findMany({ where: { panelId: panel.id }, orderBy: { id: "asc" } }),
     prisma.smmService.count({ where: { active: true } }),
+    prisma.premiumVariant.findMany({ where: { active: true, product: { active: true } }, orderBy: [{ productId: "asc" }, { sort: "asc" }], include: { product: { select: { name: true } } } }),
+    prisma.panelPremiumPrice.findMany({ where: { panelId: panel.id } }),
   ]);
+  const preOvMap = new Map(premiumOverrides.map((o) => [o.variantId, o.price]));
+  const premiumRows: PanelPremiumRowDTO[] = premiumVariants.map((v) => {
+    const memberUnit = Math.round(v.price * (1 + panel.markup / 100));
+    const memberFinal = Math.max(1, Math.round(memberUnit * (1 - panel.discountMember / 100)));
+    return { variantId: v.id, productName: v.product.name, variantName: v.name, motherPrice: v.price, panelPrice: memberFinal, override: preOvMap.get(v.id) ?? null };
+  });
   const panelRate = (r: number) => Math.round(r * (1 + panel.markup / 100));
   const discountOf: Record<string, number> = { MEMBER: panel.discountMember, RESELLER: panel.discountReseller, AGENCY: panel.discountAgency, VIP: panel.discountVip };
   const ovByService = new Map<number, Record<string, number>>();
@@ -63,6 +72,12 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
       </form>
 
       <PanelServicesClient services={dtos} />
+
+      <div className="mb-4 mt-10 flex flex-wrap items-center gap-3">
+        <h2 className="text-lg font-extrabold text-slate-900">Giá gói Premium</h2>
+        <span className="text-sm text-slate-400">Giá công thức = giá mẹ + phụ phí, trừ % giảm của khách Thành viên. Đặt giá riêng thì giá riêng là giá cuối cho mọi bậc.</span>
+      </div>
+      <PanelPremiumTable rows={premiumRows} />
     </div>
   );
 }

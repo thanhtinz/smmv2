@@ -6,6 +6,7 @@ import { logoutAction } from "@/app/actions/auth";
 import { vnd } from "@/lib/format";
 import { prisma } from "@/lib/db";
 import { DisplaySettings } from "@/components/display";
+import { LiveChat } from "@/components/livechat";
 
 export async function SiteHeader() {
   const session = await getSession();
@@ -65,6 +66,7 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
     ? [
         { href: home, label: "Trang chủ" },
         { href: `/cua-hang/${panel.slug}/premium`, label: "Premium" },
+        { href: `/cua-hang/${panel.slug}/bai-viet`, label: "Bài viết" },
         { href: `/cua-hang/${panel.slug}/tai-lieu-api`, label: "Tài liệu API" },
       ]
     : [
@@ -118,6 +120,7 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
 
 export type FooterBrand = {
   name: string;
+  slug?: string;
   tagline?: string | null;
   zalo?: string | null;
   telegram?: string | null;
@@ -142,6 +145,7 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
   return (
     <>
     <FloatingSupport s={merged} />
+    <LiveChat panelSlug={brand?.slug} />
     <footer className="bg-slate-950 text-slate-400 mt-20">
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm">
         <div>

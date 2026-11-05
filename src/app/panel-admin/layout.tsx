@@ -25,9 +25,24 @@ export default async function PanelAdminLayout({ children }: { children: React.R
   ]);
   const entries: AdminNavEntry[] = [
     { href: "/panel-admin", label: "Tổng quan", icon: "home" },
-    { href: "/panel-admin/dich-vu", label: "Dịch vụ & Giá", icon: "list" },
-    { href: "/panel-admin/don-hang", label: "Đơn hàng", icon: "cart", badge: orderCount },
-    { href: "/panel-admin/khach-hang", label: "Khách hàng", icon: "users", badge: memberCount },
+    { href: "/panel-admin/phan-tich", label: "Phân tích", icon: "chart" },
+    {
+      group: "Bán hàng", icon: "cart",
+      children: [
+        { href: "/panel-admin/dich-vu", label: "Dịch vụ & Giá", icon: "list" },
+        { href: "/panel-admin/don-hang", label: "Đơn hàng", icon: "cart", badge: orderCount },
+        { href: "/panel-admin/ma-giam-gia", label: "Mã giảm giá", icon: "gift" },
+        { href: "/panel-admin/hoa-hong", label: "Nhật ký hoa hồng", icon: "wallet" },
+      ],
+    },
+    {
+      group: "Khách hàng", icon: "users",
+      children: [
+        { href: "/panel-admin/khach-hang", label: "Khách hàng", icon: "users", badge: memberCount },
+        { href: "/panel-admin/thong-bao", label: "Thông báo khách", icon: "megaphone" },
+      ],
+    },
+    { href: "/panel-admin/bai-viet", label: "Bài viết", icon: "file" },
     { href: "/panel-admin/cai-dat", label: "Cài đặt panel", icon: "gear" },
   ];
   const initial = (user.username || "A").slice(0, 1).toUpperCase();

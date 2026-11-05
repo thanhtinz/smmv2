@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { PageHead, Flash, Badge } from "@/components/ui";
@@ -24,7 +25,9 @@ export default async function PanelMembersPage({ searchParams }: { searchParams:
   const stats = new Map(orderCounts.map((o) => [o.userId, o]));
   return (
     <div>
-      <PageHead title="Khách hàng của panel" desc="Khách đăng ký tại gian hàng của bạn." />
+      <PageHead title="Khách hàng của panel" desc="Khách đăng ký tại gian hàng của bạn. Bấm vào tên khách để xem chi tiết.">
+        <a href="/panel-admin/khach-hang/csv" className="btn-ghost btn-sm !px-4 !py-2">Xuất CSV</a>
+      </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
@@ -35,7 +38,7 @@ export default async function PanelMembersPage({ searchParams }: { searchParams:
             <tbody className="divide-y divide-slate-100">
               {members.map((m) => (
                 <tr key={m.id} className="hover:bg-slate-50/60">
-                  <td className="td"><div className="font-medium text-slate-800">{m.username}</div><div className="text-xs text-slate-400">{m.email}</div></td>
+                  <td className="td"><Link href={`/panel-admin/khach-hang/${m.id}`} className="font-medium text-brand-700 hover:underline">{m.username}</Link><div className="text-xs text-slate-400">{m.email}</div></td>
                   <td className="td">{vnd(m.balance)}</td>
                   <td className="td">{num(stats.get(m.id)?._count || 0)}</td>
                   <td className="td">{vnd(stats.get(m.id)?._sum.charge || 0)}</td>

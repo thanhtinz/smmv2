@@ -4,6 +4,7 @@ import type { ChildPanel, User } from "@prisma/client";
 import { logoutAction } from "@/app/actions/auth";
 import { SideNav } from "@/components/nav";
 import { DisplaySettings } from "@/components/display";
+import { LiveChat } from "@/components/livechat";
 import { I } from "@/components/ui";
 import { vnd, LEVEL_NAME } from "@/lib/format";
 
@@ -46,6 +47,7 @@ export function PanelShell({ panel, user, children }: { panel: ChildPanel; user:
         </aside>
         <main className="min-w-0 pb-20 lg:pb-0">{children}</main>
       </div>
+      <LiveChat panelSlug={panel.slug} />
     </div>
   );
 }

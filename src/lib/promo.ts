@@ -1,11 +1,13 @@
 import { prisma } from "./db";
 
 /** Kiểm tra mã giảm giá cho một đơn có tổng tiền `amount`. Trả số tiền được giảm hoặc ném lỗi hiển thị cho khách. */
-export async function checkPromo(rawCode: string, scope: "SMM" | "PREMIUM", amount: number) {
+export async function checkPromo(rawCode: string, scope: "SMM" | "PREMIUM", amount: number, panelId?: number | null) {
   const code = rawCode.trim().toUpperCase();
   if (!code) return null;
   const row = await prisma.discountCode.findUnique({ where: { code } });
   if (!row || !row.active) throw new Error(`Mã giảm giá "${code}" không hợp lệ`);
+  // Mã riêng của panel con chỉ áp dụng cho đơn mua qua đúng panel đó
+  if (row.panelId !== null && row.panelId !== (panelId ?? null)) throw new Error(`Mã giảm giá "${code}" không hợp lệ`);
   if (row.scope !== "ALL" && row.scope !== scope) throw new Error(`Mã "${code}" không áp dụng cho loại đơn này`);
   const now = new Date();
   if (row.startsAt && row.startsAt > now) throw new Error(`Mã "${code}" chưa đến thời gian áp dụng`);

@@ -6,6 +6,7 @@ import { logoutAction } from "@/app/actions/auth";
 import { SideNav } from "@/components/nav";
 import { DisplaySettings } from "@/components/display";
 import TabBar from "@/components/tabbar";
+import { LiveChat } from "@/components/livechat";
 import { I } from "@/components/ui";
 import { vnd, LEVEL_NAME } from "@/lib/format";
 import { prisma } from "@/lib/db";
@@ -26,8 +27,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/don-hang", label: "Đơn hàng SMM", icon: I.list },
     { href: "/dashboard/dinh-ky", label: "Đăng ký định kỳ", icon: I.clock },
     { href: "/dashboard/chien-dich", label: "Chiến dịch", icon: I.megaphone },
-    { href: "/dashboard/so-sanh", label: "So sánh dịch vụ", icon: I.chart },
-    { href: "/dashboard/tim-dich-vu", label: "Tìm dịch vụ bằng AI", icon: I.cpu },
     { href: "/premium", label: "Mua Premium", icon: I.gem },
     { href: "/dashboard/don-premium", label: "Đơn hàng Premium", icon: I.box },
     { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
@@ -64,6 +63,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </div>
       {/* Menu footer kiểu webapp cho điện thoại */}
       <TabBar variant="app" />
+      <LiveChat />
     </div>
   );
 }

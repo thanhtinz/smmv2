@@ -12,7 +12,7 @@ const fmtDtLocal = (d: Date | null) => (d ? new Date(d.getTime() - d.getTimezone
 
 export default async function AdminDiscountCodes({ searchParams }: { searchParams: { edit?: string; q?: string; msg?: string; err?: string } }) {
   await requireAdminPage();
-  const codes = await prisma.discountCode.findMany({ orderBy: { id: "desc" }, take: 200 });
+  const codes = await prisma.discountCode.findMany({ where: { panelId: null }, orderBy: { id: "desc" }, take: 200 });
   const edit = searchParams.edit ? codes.find((c) => c.id === parseInt(searchParams.edit || "0")) : undefined;
   return (
     <div>

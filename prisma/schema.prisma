@@ -263,12 +263,24 @@ model PremiumVariant {
   sort        Int            @default(0)
 
   stocks PremiumStock[]
+  panelPrices PanelPremiumPrice[]
   orders PremiumOrder[]
 }
 
 enum StockStatus {
   AVAILABLE
   SOLD
+}
+
+model PanelPremiumPrice {
+  id        Int            @id @default(autoincrement())
+  panelId   Int
+  panel     ChildPanel     @relation(fields: [panelId], references: [id])
+  variantId Int
+  variant   PremiumVariant @relation(fields: [variantId], references: [id])
+  price     Int // giá cuối mỗi đơn vị do chủ panel đặt
+
+  @@unique([panelId, variantId])
 }
 
 model PremiumStock {
@@ -473,6 +485,9 @@ model ChildPanel {
   orders  SmmOrder[]
   premiumOrders PremiumOrder[]
   servicePrices PanelServicePrice[]
+  premiumPrices PanelPremiumPrice[]
+  discountCodes DiscountCode[]
+  posts         Post[]
 }
 
 // Giá riêng của panel cho TỪNG dịch vụ theo TỪNG cấp bậc khách (kiểu thatim:
@@ -522,6 +537,8 @@ model Notification {
 // Mã giảm giá: áp khi đặt đơn SMM / mua Premium (kiểu panel mẫu)
 model DiscountCode {
   id          Int       @id @default(autoincrement())
+  panelId     Int? // mã riêng của 1 panel con; null = mã toàn hệ thống
+  panel       ChildPanel? @relation(fields: [panelId], references: [id])
   code        String    @unique @db.VarChar(40)
   type        String    @default("PERCENT") @db.VarChar(10) // PERCENT | FIXED
   value       Int // % giảm hoặc số tiền giảm
@@ -560,6 +577,8 @@ model PostCategory {
 }
 
 model Post {
+  panelId     Int? // bài viết riêng của 1 panel con; null = bài của web mẹ
+  panel       ChildPanel? @relation(fields: [panelId], references: [id])
   id         Int           @id @default(autoincrement())
   title      String        @db.VarChar(200)
   slug       String        @unique @db.VarChar(220)

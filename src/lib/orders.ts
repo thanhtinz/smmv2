@@ -128,7 +128,7 @@ export async function createSmmOrder(input: {
   let finalCharge = charge;
   let promo: Awaited<ReturnType<typeof checkPromo>> = null;
   if (input.promoCode?.trim()) {
-    promo = await checkPromo(input.promoCode, "SMM", charge);
+    promo = await checkPromo(input.promoCode, "SMM", charge, input.user.panelId ?? null);
     if (promo) finalCharge = charge - promo.discount;
   }
 
@@ -426,9 +426,15 @@ export async function createPremiumOrder(input: {
   let total = variant.price * input.quantity;
   let commission = 0;
   if (panel) {
-    const unit = Math.round(variant.price * (1 + panel.markup / 100));
-    const disc = panelTierDiscount(panel, input.user.level);
-    total = Math.max(1, Math.round(unit * input.quantity * (1 - disc / 100)));
+    // Giá riêng từng gói do chủ panel đặt (nếu có) là giá cuối, thay cho công thức markup + giảm bậc
+    const override = await prisma.panelPremiumPrice.findUnique({ where: { panelId_variantId: { panelId: panel.id, variantId: variant.id } } });
+    if (override) {
+      total = Math.max(1, override.price * input.quantity);
+    } else {
+      const unit = Math.round(variant.price * (1 + panel.markup / 100));
+      const disc = panelTierDiscount(panel, input.user.level);
+      total = Math.max(1, Math.round(unit * input.quantity * (1 - disc / 100)));
+    }
     commission = Math.max(0, total - variant.price * input.quantity);
   }
   const cost = variant.cost * input.quantity;
@@ -436,7 +442,7 @@ export async function createPremiumOrder(input: {
   // Mã giảm giá: tính trên tổng tiền sau giá panel (nếu có)
   let promo: Awaited<ReturnType<typeof checkPromo>> = null;
   if (input.promoCode?.trim()) {
-    promo = await checkPromo(input.promoCode, "PREMIUM", total);
+    promo = await checkPromo(input.promoCode, "PREMIUM", total, input.user.panelId ?? null);
     if (promo) total -= promo.discount;
   }
 
