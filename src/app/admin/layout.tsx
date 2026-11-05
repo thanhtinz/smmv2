@@ -33,7 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/premium", label: "Sản phẩm Premium", icon: I.gem, adminOnly: true },
     { href: "/admin/kho-premium", label: "Kho Premium", icon: I.db, adminOnly: true },
     { href: "/admin/nguoi-dung", label: "Người dùng", icon: I.users, adminOnly: true },
-    { href: "/admin/panel-con", label: "Panel con", icon: I.server, adminOnly: true },
+    { href: "/admin/panel-con", label: "Panel con", icon: I.panels, adminOnly: true },
     { href: "/admin/ticket", label: "Ticket", icon: I.ticket, badge: ticketOpen },
     { href: "/admin/thong-bao", label: "Thông báo", icon: I.megaphone, adminOnly: true },
     { href: "/admin/nhat-ky", label: "Nhật ký API", icon: I.clock },
