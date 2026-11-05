@@ -134,6 +134,15 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
 }
 
 /* ---------- Form đặt đơn SMM (chọn danh mục -> dịch vụ, tính tiền trực tiếp) ---------- */
+/* Nút dán link dạng icon, nằm bên trong khung input của form đặt đơn */
+function PasteIconBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" title="Dán link" aria-label="Dán link" onClick={onClick} className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-brand-300 hover:text-brand-600">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6" /><path d="M9 16h4" /></svg>
+    </button>
+  );
+}
+
 export function OrderForm({ services, categories, discount, preselect, action, balance, initialLink, initialQty, campaignId }: {
   services: ServiceDTO[];
   categories: { id: number; name: string; platform: string }[];
@@ -180,8 +189,9 @@ export function OrderForm({ services, categories, discount, preselect, action, b
     try {
       const t = await navigator.clipboard.readText();
       if (t) {
-        if (multiOn) { setMultiLinks((prev) => (prev.trim() ? prev.replace(/\s+$/, "") + "\n" + t.trim() : t.trim())); setPasteMsg("Đã dán link từ bộ nhớ tạm."); }
-        else { setLink(t.trim()); setPasteMsg("Đã dán link từ bộ nhớ tạm."); }
+        if (multiOn) { setMultiLinks((prev) => (prev.trim() ? prev.replace(/\s+$/, "") + "\n" + t.trim() : t.trim())); }
+        else { setLink(t.trim()); }
+        setPasteMsg("");
       } else setPasteMsg("Bộ nhớ tạm đang trống.");
     } catch { setPasteMsg("Trình duyệt chưa cho đọc bộ nhớ tạm — hãy dán thủ công (Ctrl+V)."); }
   }
@@ -214,22 +224,25 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           </div>
           <label className="lbl !text-[15px] !font-bold text-slate-700">Link</label>
           {multiOn ? (
-            <textarea className="inp w-full font-mono !text-[13px] leading-relaxed" name="links" required rows={4} placeholder={"Mỗi dòng 1 link:\nhttps://...\nhttps://..."} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
+            <div className="relative">
+              <textarea className="inp w-full font-mono !text-[13px] leading-relaxed !pr-20" name="links" required rows={4} placeholder={"Mỗi dòng 1 link:\nhttps://...\nhttps://..."} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
+              <span className="absolute right-2 top-2 flex gap-1.5">
+                <PasteIconBtn onClick={pasteLink} />
+                {multiLinks.trim() && (
+                  <button type="button" title="Xoá hết" aria-label="Xoá hết" onClick={() => setMultiLinks("")} className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-rose-300 hover:text-rose-600">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>
+                  </button>
+                )}
+              </span>
+            </div>
           ) : (
-            <input className="inp w-full !h-[52px] !rounded-[14px] !text-[15px]" name="link" required placeholder="https://... (link công khai, không cần mật khẩu)" value={link} onChange={(e) => setLink(e.target.value)} />
+            <div className="relative">
+              <input className="inp w-full !h-[52px] !rounded-[14px] !text-[15px] !pr-12" name="link" required placeholder="https://... (link công khai, không cần mật khẩu)" value={link} onChange={(e) => setLink(e.target.value)} />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2"><PasteIconBtn onClick={pasteLink} /></span>
+            </div>
           )}
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-slate-400">
-            {pasteMsg ? pasteMsg : multiOn
-              ? (linkLines.length > 0 ? <><b className="text-brand-700">{num(linkLines.length)} link</b> — mỗi link 1 đơn riêng, số lượng {num(qty || 0)} áp cho từng link.</> : "Mỗi link 1 đơn riêng với cùng số lượng — tối đa 50 link/lần, dòng trùng tự gộp.")
-              : "Dán link công khai cần tăng vào ô trên."}
-          </span>
-          <span className="flex shrink-0 items-center gap-1.5">
-            <button type="button" onClick={pasteLink} className="btn-sm rounded-full bg-slate-100 px-3 font-semibold text-slate-600 hover:bg-slate-200">Dán link</button>
-            {multiOn && multiLinks.trim() && <button type="button" onClick={() => setMultiLinks("")} className="btn-sm rounded-full bg-slate-100 px-3 font-semibold text-slate-600 hover:bg-rose-100 hover:text-rose-600">Xoá hết</button>}
-          </span>
-        </div>
+        {pasteMsg && <p className="text-xs text-slate-400">{pasteMsg}</p>}
         {!multiOn && linkMismatch && <p className="text-xs font-medium text-amber-600">Link này có vẻ không thuộc {PLATFORMS[service!.platform] || service!.platform} — kiểm tra lại dịch vụ đã chọn nhé.</p>}
         <div>
           <label className="lbl">Số lượng {multiOn && <span className="text-brand-600 font-semibold">(cho mỗi link)</span>}</label>
