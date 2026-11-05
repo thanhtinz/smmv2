@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { applyBalance } from "@/lib/wallet";
-import { getSettings, calcBonus, pickBonusTiers } from "@/lib/settings";
+import { getSettings, calcBonus, bonusTiersFor } from "@/lib/settings";
 import { genCode } from "@/lib/format";
 
 /**
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
   const settings = await getSettings();
   const matchedPanel = matched.panelId ? await prisma.childPanel.findUnique({ where: { id: matched.panelId }, select: { depositBonusTiers: true } }) : null;
-  const bonus = calcBonus(amount, pickBonusTiers(matchedPanel?.depositBonusTiers, settings.deposit_bonus_tiers));
+  const bonus = calcBonus(amount, bonusTiersFor(matchedPanel?.depositBonusTiers, !!matched.panelId, settings.deposit_bonus_tiers));
   const dep = await prisma.$transaction(async (tx) => {
     const d = await tx.deposit.create({
       data: { code: "TMP", userId: matched.id, method: isMomo ? "MOMO" : "BANK", amount, bonus, status: "APPROVED", content, auto: true },

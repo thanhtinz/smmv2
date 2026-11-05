@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { headers } from "next/headers";
 import { prisma } from "./db";
 import { applyBalance } from "./wallet";
-import { getSettings, calcBonus, pickBonusTiers } from "./settings";
+import { getSettings, calcBonus, bonusTiersFor } from "./settings";
 import { genCode } from "./format";
 
 /** Nạp tiền qua cổng quốc tế (PayPal / Stripe): khách trả USD, hệ thống cộng VND theo tỉ giá usd_rate.
@@ -91,7 +91,7 @@ export async function creditExternalDeposit(externalId: string, paidUsdCents?: n
   const settings = await getSettings();
   const depUser = await prisma.user.findUnique({ where: { id: dep.userId }, select: { panelId: true } });
   const depPanel = depUser?.panelId ? await prisma.childPanel.findUnique({ where: { id: depUser.panelId }, select: { depositBonusTiers: true } }) : null;
-  const bonus = calcBonus(dep.amount, pickBonusTiers(depPanel?.depositBonusTiers, settings.deposit_bonus_tiers));
+  const bonus = calcBonus(dep.amount, bonusTiersFor(depPanel?.depositBonusTiers, !!depUser?.panelId, settings.deposit_bonus_tiers));
   const credited = await prisma.$transaction(async (tx) => {
     const claim = await tx.deposit.updateMany({ where: { id: dep.id, status: "PENDING" }, data: { status: "APPROVED", bonus } });
     if (claim.count !== 1) return false;

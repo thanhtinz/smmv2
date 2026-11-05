@@ -37,7 +37,7 @@ export default async function PanelDepositsPage({ searchParams }: { searchParams
       <form action={panelSaveDepositSettingsAction} className="card mb-6 space-y-4 p-5">
         <div>
           <div className="font-bold text-slate-900">Chính sách nạp riêng của panel</div>
-          <p className="mt-0.5 text-sm text-slate-400">Mốc thưởng nạp + số tiền nạp tối thiểu áp cho khách của panel (mọi kênh: ngân hàng, USDT, PayPal, Stripe). Để trống = dùng chính sách của web mẹ.</p>
+          <p className="mt-0.5 text-sm text-slate-400">Mốc thưởng nạp + số tiền nạp tối thiểu do panel TỰ SET cho khách của mình (mọi kênh: ngân hàng, USDT, PayPal, Stripe) — nạp của panel là riêng, không tính chung với web mẹ. Để trống mốc = khách của panel không có thưởng nạp.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           {[1, 2, 3].map((i) => (

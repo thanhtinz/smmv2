@@ -414,7 +414,7 @@ export async function panelSaveDepositSettingsAction(formData: FormData) {
     where: { id: panel.id },
     data: { depositBonusTiers: tiers.length ? JSON.stringify(tiers) : null, depositMin: depositMin > 0 ? depositMin : null },
   });
-  done("/panel-admin/nap-tien", tiers.length ? `Đã lưu chính sách nạp riêng: ${tiers.length} mốc thưởng${depositMin > 0 ? ` · tối thiểu ${depositMin.toLocaleString("vi-VN")}đ` : ""}` : "Đã xoá chính sách nạp riêng — khách của bạn dùng mốc thưởng của web mẹ");
+  done("/panel-admin/nap-tien", tiers.length ? `Đã lưu chính sách nạp riêng: ${tiers.length} mốc thưởng${depositMin > 0 ? ` · tối thiểu ${depositMin.toLocaleString("vi-VN")}đ` : ""}` : "Đã xoá mốc thưởng — khách của panel hiện không có thưởng nạp (không dùng mốc của web mẹ)");
 }
 
 /* ---------- Widget Liên hệ của panel (đồng bộ với web mẹ, phạm vi của panel) ---------- */

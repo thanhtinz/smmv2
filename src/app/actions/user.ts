@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder } from "@/lib/orders";
-import { getSettings, calcBonus, pickBonusTiers } from "@/lib/settings";
+import { getSettings, calcBonus, bonusTiersFor } from "@/lib/settings";
 import { randomKey, genCode, parsePremiumFields } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -269,7 +269,7 @@ export async function createDepositAction(formData: FormData) {
   const myPanelCfg = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { depositMin: true, depositBonusTiers: true } }) : null;
   const min = myPanelCfg?.depositMin || parseInt(settings.deposit_min || "10000");
   if (!amount || amount < min) back("/dashboard/nap-tien", "err", `Số tiền nạp tối thiểu là ${min.toLocaleString("vi-VN")}đ`);
-  const bonus = calcBonus(amount, pickBonusTiers(myPanelCfg?.depositBonusTiers, settings.deposit_bonus_tiers));
+  const bonus = calcBonus(amount, bonusTiersFor(myPanelCfg?.depositBonusTiers, !!user.panelId, settings.deposit_bonus_tiers));
   const dep = await prisma.deposit.create({
     data: { code: "TMP", userId: user.id, method, amount, bonus, status: "PENDING", content: `SMM ${user.depositCode}` },
   });
@@ -431,7 +431,7 @@ export async function createPanelBankDepositAction(formData: FormData) {
   const minBank = panel.depositMin || 10000;
   if (!amount || amount < minBank) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu ${minBank.toLocaleString("vi-VN")}đ`);
   const settings = await getSettings();
-  const bonus = calcBonus(amount, pickBonusTiers(panel.depositBonusTiers, settings.deposit_bonus_tiers));
+  const bonus = calcBonus(amount, bonusTiersFor(panel.depositBonusTiers, true, settings.deposit_bonus_tiers));
   const dep = await prisma.deposit.create({
     data: { code: "TMP", userId: user.id, method: "BANK", amount, bonus, status: "PENDING", content: `Chuyển khoản ngân hàng của shop ${panel.name} — chờ chủ shop duyệt` },
   });
@@ -454,7 +454,7 @@ export async function createUsdtDepositAction(formData: FormData) {
   if (txHash.length < 20) back("/dashboard/nap-tien", "err", "Mã giao dịch (tx hash) chưa hợp lệ");
   const rate = panelUsdt ? (panelUsdt.usdtRate || parseInt(settings.usdt_rate || "") || parseInt(settings.usd_rate || "25400")) : parseInt(settings.usdt_rate || "") || parseInt(settings.usd_rate || "25400");
   const amount = Math.round(usdt * rate);
-  const bonus = calcBonus(amount, pickBonusTiers(panelUsdt?.depositBonusTiers, settings.deposit_bonus_tiers));
+  const bonus = calcBonus(amount, bonusTiersFor(userPanel?.depositBonusTiers, !!user.panelId, settings.deposit_bonus_tiers));
   try {
     const dep = await prisma.deposit.create({
       data: { code: "TMP", userId: user.id, method: "USDT", amount, bonus, status: "PENDING", content: txHash, externalId: `usdt:${txHash.toLowerCase()}`, usdCents: Math.round(usdt * 100) },

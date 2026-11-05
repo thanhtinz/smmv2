@@ -113,9 +113,12 @@ export function depositContent(code: string) {
   return `SMM ${code}`;
 }
 
-/** Mốc thưởng nạp HIỆU LỰC: panel của khách có mốc riêng thì dùng của panel, không thì của web mẹ. */
-export function pickBonusTiers(panelTiers: string | null | undefined, globalJson: string): string {
-  if (panelTiers && panelTiers.trim() && panelTiers.trim() !== "[]") return panelTiers;
+/** Mốc thưởng nạp của một khách — NẠP LÀ RIÊNG, KHÔNG TÍNH CHUNG (luật của Tín):
+ *  khách thuộc panel nào thì CHỈ dùng % thưởng của panel đó do chủ panel tự set
+ *  (panel chưa set mốc = khách của panel không có thưởng, KHÔNG mượn mốc của web mẹ);
+ *  khách của web mẹ dùng mốc của web mẹ. */
+export function bonusTiersFor(panelTiers: string | null | undefined, isPanelMember: boolean, globalJson: string): string {
+  if (isPanelMember) return panelTiers && panelTiers.trim() ? panelTiers : "[]";
   return globalJson;
 }
 

@@ -27,8 +27,12 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
   // Panel đã nối SePay RIÊNG → nạp ngân hàng của khách panel TỰ ĐỘNG như web mẹ (QR là ngân hàng của panel, hết duyệt tay)
   const panelSepayOn = !!(myPanel && myPanel.status === "ACTIVE" && myPanel.sepayEnabled && myPanel.sepaySecret && myPanelBanks.length > 0);
   const effMin = myPanel?.depositMin || minDep;
+  // Thưởng nạp là RIÊNG: khách panel chỉ thấy mốc của panel mình (chưa set = không có ô thưởng), khách mẹ thấy mốc của mẹ
   const effTiers = (() => {
-    if (myPanel?.depositBonusTiers) { try { const t = JSON.parse(myPanel.depositBonusTiers) as { from: number; percent: number }[]; if (t.length) return t; } catch { /* dùng mốc của mẹ */ } }
+    if (user.panelId) {
+      if (myPanel?.depositBonusTiers) { try { return JSON.parse(myPanel.depositBonusTiers) as { from: number; percent: number }[]; } catch { return []; } }
+      return [];
+    }
     return tiers;
   })();
   const panelUsdt = myPanel && myPanel.status === "ACTIVE" && myPanel.usdtAddress
