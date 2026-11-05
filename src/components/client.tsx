@@ -235,7 +235,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           <label className="lbl">Số lượng {multiOn && <span className="text-brand-600 font-semibold">(cho mỗi link)</span>}</label>
           <div className="flex gap-3">
             <input className="inp flex-1 !h-[52px] !rounded-[14px] !text-[15px]" name="quantity" type="number" required min={service?.min} max={service?.max} value={qty || ""} onChange={(e) => setQty(parseInt(e.target.value) || 0)} />
-            <div className="flex h-[52px] min-w-[104px] items-center justify-center rounded-[14px] bg-teal-600 px-4 text-base font-bold text-white">{vnd(shownCharge)}</div>
+            <div className="flex h-[52px] min-w-[104px] items-center justify-center rounded-[14px] bg-[linear-gradient(120deg,rgb(var(--b700)),rgb(var(--b500)))] px-4 text-base font-bold text-white shadow-md shadow-brand-600/25">{vnd(shownCharge)}</div>
           </div>
           {service && <p className="mt-1.5 text-[13px] text-slate-400">Min: {num(service.min)} - Max: {num(service.max)}</p>}
           {qtyChips.length > 1 && (
