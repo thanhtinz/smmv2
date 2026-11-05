@@ -40,8 +40,6 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <div><label className="lbl">Facebook hỗ trợ</label><input className="inp" name="support_facebook" defaultValue={s.support_facebook} /></div>
           <div><label className="lbl">Hotline</label><input className="inp" name="support_hotline" defaultValue={s.support_hotline} /></div>
           <div><label className="lbl">Email liên hệ</label><input className="inp" name="contact_email" defaultValue={s.contact_email} placeholder="support@domain.vn" /></div>
-          <div><label className="lbl">NameServer 1 cho website con</label><input className="inp" name="child_ns1" defaultValue={s.child_ns1} placeholder="vd: ns1.yourdomain.vn" /></div>
-          <div><label className="lbl">NameServer 2 cho website con</label><input className="inp" name="child_ns2" defaultValue={s.child_ns2} placeholder="vd: ns2.yourdomain.vn" /></div>
         </div>
         <div>
           <label className="lbl">Chế độ bảo trì (chặn khách, admin vẫn vào được)</label>
@@ -49,6 +47,22 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
             <option value="0">Tắt — site hoạt động bình thường</option>
             <option value="1">Bật — đang bảo trì</option>
           </select>
+        </div>
+      </section>
+      <section className="card p-6 space-y-4">
+        <div className="font-bold text-slate-900">NameServer cho website con</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div><label className="lbl">NameServer 1 (NS1)</label><input className="inp" name="child_ns1" defaultValue={s.child_ns1} placeholder="vd: ns1.tenmienchinh.vn" /></div>
+          <div><label className="lbl">NameServer 2 (NS2)</label><input className="inp" name="child_ns2" defaultValue={s.child_ns2} placeholder="vd: ns2.tenmienchinh.vn" /></div>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-4 text-[13px] leading-relaxed text-slate-600">
+          <div className="mb-1.5 font-semibold text-slate-800">Cách cấu hình NameServer:</div>
+          <ol className="list-decimal space-y-1 pl-5">
+            <li>Đây là cặp nameserver của hệ thống. Lấy giá trị từ nơi đang quản lý DNS của tên miền chính (Cloudflare hoặc nhà đăng ký tên miền) — dùng đúng cặp NS mà tên miền chính của bạn đang trỏ tới.</li>
+            <li>Sau khi lưu, khách đăng ký website con sẽ thấy đúng 2 giá trị này trong thẻ &quot;Thông tin NameServer&quot; ở trang Đăng ký website con và trỏ tên miền của họ về đây.</li>
+            <li>Khách trỏ xong, tên miền cần khoảng 15 phút – 24 giờ để cập nhật; sau đó website con tự chạy trên tên miền của khách, hệ thống nhận diện theo tên miền nên bạn không cần thao tác gì thêm.</li>
+            <li>Nếu để trống, trang của khách sẽ hiện &quot;—&quot; và khách chưa trỏ được tên miền — hãy điền 2 giá trị này trước khi mở cho khách đăng ký website con.</li>
+          </ol>
         </div>
       </section>
       <section className="card p-6 space-y-4">

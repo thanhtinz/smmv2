@@ -26,8 +26,8 @@ export default async function ChildSiteRegisterPage({ searchParams }: { searchPa
   const totalOrders = (smmAgg?._count || 0) + (preAgg?._count || 0);
   const totalRevenue = (smmAgg?._sum.charge || 0) + (preAgg?._sum.total || 0);
   const totalProfit = (smmAgg?._sum.commission || 0) + (preAgg?._sum.commission || 0);
-  const ns1 = settings.child_ns1 || "—";
-  const ns2 = settings.child_ns2 || "—";
+  const ns1 = settings.child_ns1 || "";
+  const ns2 = settings.child_ns2 || "";
   const stats = [
     { label: "Tổng website con", value: panel ? "1" : "0", icon: I.panels },
     { label: "Tổng đơn hàng", value: String(totalOrders), icon: I.list },
@@ -142,18 +142,32 @@ export default async function ChildSiteRegisterPage({ searchParams }: { searchPa
 }
 
 function NsCard({ ns1, ns2 }: { ns1: string; ns2: string }) {
+  const configured = Boolean(ns1 || ns2);
+  const rows: Array<[string, string]> = [["NS1", ns1], ["NS2", ns2]];
   return (
     <div className="card p-6">
       <div className="font-bold text-slate-900">Thông tin NameServer</div>
       <p className="mt-1 text-[13px] leading-relaxed text-slate-500">Trỏ tên miền của bạn về 2 NameServer dưới đây. Nhấn để sao chép.</p>
       <div className="mt-4 space-y-2.5">
-        {[["NS1", ns1], ["NS2", ns2]].map(([k, v]) => (
+        {rows.map(([k, v]) => (
           <div key={k} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3.5 py-2.5">
             <span className="w-9 shrink-0 text-xs font-extrabold tracking-wide text-slate-400">{k}</span>
-            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">{v}</span>
-            {v !== "—" && <CopyBtn text={v} />}
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">{v || "—"}</span>
+            {v && <CopyBtn text={v} />}
           </div>
         ))}
+      </div>
+      {!configured && (
+        <p className="mt-3 rounded-xl bg-amber-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-amber-700">NameServer đang được hệ thống cập nhật. Nếu bạn cần trỏ tên miền ngay, hãy liên hệ hỗ trợ để được cấp thông tin.</p>
+      )}
+      <div className="mt-4 border-t border-slate-100 pt-4">
+        <div className="text-sm font-bold text-slate-800">Cách trỏ NameServer</div>
+        <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-[13px] leading-relaxed text-slate-500">
+          <li>Đăng nhập trang quản lý tên miền nơi bạn đã mua tên miền (vd: inet.vn, tenten.vn).</li>
+          <li>Mở tên miền vừa đăng ký tại đây, vào mục <b className="text-slate-700">NameServer</b> (có nơi gọi là Máy chủ tên miền / DNS).</li>
+          <li>Xoá các nameserver mặc định và thay bằng đúng <b className="text-slate-700">NS1</b> và <b className="text-slate-700">NS2</b> ở trên, rồi bấm lưu.</li>
+          <li>Chờ hệ thống cập nhật (thường 15 phút – 24 giờ), sau đó truy cập website con bằng chính tên miền của bạn.</li>
+        </ol>
       </div>
     </div>
   );
