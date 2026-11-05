@@ -75,6 +75,27 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
             <div><label className="lbl">Google Client Secret {panel.googleClientSecret && <span className="font-semibold text-emerald-600">— đã lưu</span>}</label><input name="googleClientSecret" type="password" autoComplete="off" placeholder={mask(panel.googleClientSecret)} className="inp" /></div>
             <button className="btn-primary !py-2.5">Lưu Google</button>
           </form>
+
+          <form action={panelSaveConfigAction} className="card space-y-4 p-6">
+            <input type="hidden" name="section" value="paypal" />
+            <div className="font-bold text-slate-900">PayPal của panel</div>
+            <p className="text-sm text-slate-400">Method nạp như web mẹ nhưng bằng tài khoản của bạn: khách của panel nạp PayPal sẽ trả tiền vào tài khoản PayPal này và được cộng số dư tự động. Chưa bật thì khách dùng cổng của web mẹ (nếu mẹ có bật).</p>
+            <label className="flex items-center justify-between gap-4"><span className="text-sm text-slate-600">Bật nạp PayPal của panel</span><input type="checkbox" name="paypalEnabled" defaultChecked={panel.paypalEnabled} className="h-5 w-5 accent-slate-900" /></label>
+            <div><label className="lbl">Client ID</label><input name="paypalClientId" defaultValue={panel.paypalClientId || ""} className="inp" /></div>
+            <div><label className="lbl">Client Secret {panel.paypalSecret && <span className="font-semibold text-emerald-600">— đã lưu</span>}</label><input name="paypalSecret" type="password" autoComplete="off" placeholder={mask(panel.paypalSecret)} className="inp" /></div>
+            <div><label className="lbl">Môi trường</label><select name="paypalMode" defaultValue={panel.paypalMode || "sandbox"} className="inp"><option value="sandbox">Sandbox (thử nghiệm)</option><option value="live">Live (thật)</option></select></div>
+            <button className="btn-primary !py-2.5">Lưu PayPal</button>
+          </form>
+
+          <form action={panelSaveConfigAction} className="card space-y-4 p-6">
+            <input type="hidden" name="section" value="stripe" />
+            <div className="font-bold text-slate-900">Stripe của panel</div>
+            <p className="text-sm text-slate-400">Khách của panel nạp Stripe sẽ trả vào tài khoản Stripe này. Trong Stripe Dashboard, trỏ webhook về <b className="text-slate-600">/api/webhooks/stripe</b> của website và dán Webhook Secret vào đây — hệ thống tự nhận diện theo chữ ký.</p>
+            <label className="flex items-center justify-between gap-4"><span className="text-sm text-slate-600">Bật nạp Stripe của panel</span><input type="checkbox" name="stripeEnabled" defaultChecked={panel.stripeEnabled} className="h-5 w-5 accent-slate-900" /></label>
+            <div><label className="lbl">Secret Key (sk_...) {panel.stripeSecretKey && <span className="font-semibold text-emerald-600">— đã lưu</span>}</label><input name="stripeSecretKey" type="password" autoComplete="off" placeholder={mask(panel.stripeSecretKey)} className="inp" /></div>
+            <div><label className="lbl">Webhook Secret (whsec_...) {panel.stripeWebhookSecret && <span className="font-semibold text-emerald-600">— đã lưu</span>}</label><input name="stripeWebhookSecret" type="password" autoComplete="off" placeholder={mask(panel.stripeWebhookSecret)} className="inp" /></div>
+            <button className="btn-primary !py-2.5">Lưu Stripe</button>
+          </form>
         </div>
       </div>
     </div>

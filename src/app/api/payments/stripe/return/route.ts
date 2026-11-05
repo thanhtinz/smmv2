@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSettings } from "@/lib/settings";
-import { stripeGetSession, creditExternalDeposit } from "@/lib/payments";
+import { stripeGetSession, creditExternalDeposit, resolveIntlConfigByExternalId } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 
-/** Khách quay về từ Stripe Checkout: kiểm tra phiên đã trả tiền thì cộng tiền (webhook cũng cộng — claim nguyên tử nên chỉ 1 lần) */
+/** Khách quay về từ Stripe Checkout: kiểm tra phiên đã trả tiền thì cộng tiền (webhook cũng cộng — claim nguyên tử nên chỉ 1 lần).
+ *  Dùng secret key của đúng chủ tài khoản đã tạo phiên: web mẹ hoặc panel của khách. */
 export async function GET(req: NextRequest) {
   const origin = req.nextUrl.origin;
   const dest = (ok: boolean, text: string) => NextResponse.redirect(new URL(`/dashboard/nap-tien?${ok ? "msg" : "err"}=${encodeURIComponent(text)}`, origin));
   const sid = req.nextUrl.searchParams.get("session_id") || "";
-  const s = await getSettings();
-  if (!sid || s.stripe_enabled !== "1" || !s.stripe_secret_key) return dest(false, "Phiên thanh toán Stripe không hợp lệ");
+  if (!sid) return dest(false, "Phiên thanh toán Stripe không hợp lệ");
+  const cfg = await resolveIntlConfigByExternalId(sid).catch(() => null);
+  if (!cfg?.stripe) return dest(false, "Phiên thanh toán Stripe không hợp lệ");
   try {
-    const sess = await stripeGetSession(s.stripe_secret_key, sid);
+    const sess = await stripeGetSession(cfg.stripe.secretKey, sid);
     if (sess.payment_status === "paid") {
       const r = await creditExternalDeposit(sid, sess.amount_total);
       if (r.ok) return dest(true, "Nạp tiền thành công qua Stripe — số dư đã được cộng");

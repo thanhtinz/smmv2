@@ -27,8 +27,11 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
   const panelUsdt = myPanel && myPanel.status === "ACTIVE" && myPanel.usdtAddress
     ? { address: myPanel.usdtAddress, network: myPanel.usdtNetwork || "TRC20", rate: myPanel.usdtRate || parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") }
     : null;
-  const paypalOn = s.paypal_enabled === "1" && !!s.paypal_client_id;
-  const stripeOn = s.stripe_enabled === "1" && !!s.stripe_secret_key;
+  // Method quốc tế theo cấu hình HIỆU LỰC: panel của khách có key riêng thì dùng key panel, không thì của web mẹ
+  const { resolveIntlConfig } = await import("@/lib/payments");
+  const intlCfg = await resolveIntlConfig(user.id);
+  const paypalOn = !!intlCfg.paypal;
+  const stripeOn = !!intlCfg.stripe;
   return (
     <div>
       <PageHead title="Nạp tiền" desc="Chọn phương thức nạp bên dưới. QR ngân hàng (ngân hàng & MoMo) cộng tự động khi đúng nội dung; PayPal/Stripe cộng tự động theo tỉ giá ngay khi thanh toán thành công." />
@@ -39,7 +42,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
           bank={s.bank_account ? { name: s.bank_name, account: s.bank_account, holder: s.bank_holder, qr: vietQrUrl(s.bank_name, s.bank_account, 0, content, s.bank_holder), content, min: parseInt(s.deposit_min || "10000", 10) || 10000 } : null}
           momo={s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}
           tiers={tiers}
-          intl={paypalOn || stripeOn ? { rate: parseInt(s.usd_rate || "25000", 10) || 25000, paypal: paypalOn, stripe: stripeOn } : null}
+          intl={paypalOn || stripeOn ? { rate: intlCfg.rate, paypal: paypalOn, stripe: stripeOn } : null}
           usdt={panelUsdt || (s.usdt_enabled === "1" && s.usdt_address ? { address: s.usdt_address, network: s.usdt_network || "TRC20", rate: parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") } : null)}
         />
         {myPanel && myPanel.status === "ACTIVE" && (myPanel.bankAccount || myPanelBanks.length > 0) && (

@@ -541,6 +541,15 @@ model ChildPanel {
   rateKrw String? @db.VarChar(20)
   // Danh mục bị ẩn trên gian hàng của panel (id danh mục SMM, cách nhau dấu phẩy)
   hiddenCats String? @db.VarChar(300)
+  // Method nạp quốc tế RIÊNG của panel (như web mẹ): khách panel trả qua tài khoản
+  // PayPal/Stripe CỦA CHỦ PANEL; panel chưa cấu hình thì dùng cổng của web mẹ.
+  paypalEnabled Boolean @default(false)
+  paypalClientId String? @db.VarChar(200)
+  paypalSecret   String? @db.VarChar(200)
+  paypalMode     String? @db.VarChar(10) // sandbox | live
+  stripeEnabled Boolean @default(false)
+  stripeSecretKey String? @db.VarChar(200)
+  stripeWebhookSecret String? @db.VarChar(200)
   googleClientSecret String? @db.VarChar(200)
   ownServices SmmService[] @relation("PanelOwnServices")
   status    String   @default("ACTIVE") @db.VarChar(20) // ACTIVE | SUSPENDED

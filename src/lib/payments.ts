@@ -11,6 +11,55 @@ import { genCode } from "./format";
  *  trang quay về gọi cùng lúc cũng chỉ cộng đúng 1 lần. */
 export const MIN_USD = 5;
 
+/** Cấu hình cổng quốc tế HIỆU LỰC cho một khách: khách thuộc panel nào thì dùng
+ *  PayPal/Stripe RIÊNG của panel đó nếu chủ panel đã bật + điền key (tiền về tài khoản
+ *  của chủ panel); chưa cấu hình thì dùng cổng của web mẹ. Tỉ giá cũng ưu tiên tỉ giá
+ *  riêng của panel (trang Tiền tệ). Dùng cho cả lúc tạo checkout, trang quay về và webhook. */
+export type IntlConfig = {
+  source: "panel" | "mother";
+  rate: number;
+  paypal: { clientId: string; secret: string; mode: string } | null;
+  stripe: { secretKey: string; webhookSecret: string | null } | null;
+};
+
+export async function resolveIntlConfig(userId: number): Promise<IntlConfig> {
+  const s = await getSettings();
+  let rate = parseInt(s.usd_rate || "25000", 10) || 25000;
+  let paypal: IntlConfig["paypal"] =
+    s.paypal_enabled === "1" && s.paypal_client_id && s.paypal_client_secret
+      ? { clientId: s.paypal_client_id, secret: s.paypal_client_secret, mode: s.paypal_mode || "sandbox" }
+      : null;
+  let stripe: IntlConfig["stripe"] =
+    s.stripe_enabled === "1" && s.stripe_secret_key
+      ? { secretKey: s.stripe_secret_key, webhookSecret: s.stripe_webhook_secret || null }
+      : null;
+  let source: IntlConfig["source"] = "mother";
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { panelId: true } });
+  const panel = user?.panelId
+    ? await prisma.childPanel.findUnique({ where: { id: user.panelId } })
+    : await prisma.childPanel.findUnique({ where: { ownerId: userId } });
+  if (panel) {
+    const pr = parseFloat(panel.rateUsd || "");
+    if (Number.isFinite(pr) && pr > 0) rate = Math.round(pr);
+    if (panel.paypalEnabled && panel.paypalClientId && panel.paypalSecret) {
+      paypal = { clientId: panel.paypalClientId, secret: panel.paypalSecret, mode: panel.paypalMode || "sandbox" };
+      source = "panel";
+    }
+    if (panel.stripeEnabled && panel.stripeSecretKey) {
+      stripe = { secretKey: panel.stripeSecretKey, webhookSecret: panel.stripeWebhookSecret || null };
+      source = "panel";
+    }
+  }
+  return { source, rate, paypal, stripe };
+}
+
+/** Như resolveIntlConfig nhưng tra từ externalId của Deposit (trang quay về / capture). */
+export async function resolveIntlConfigByExternalId(externalId: string): Promise<IntlConfig | null> {
+  const dep = await prisma.deposit.findUnique({ where: { externalId }, select: { userId: true } });
+  if (!dep) return null;
+  return resolveIntlConfig(dep.userId);
+}
+
 export async function siteOrigin(): Promise<string> {
   const h = headers();
   const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";

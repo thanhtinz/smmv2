@@ -472,6 +472,29 @@ export async function panelSaveConfigAction(formData: FormData) {
     await prisma.childPanel.update({ where: { id: panel.id }, data: { googleClientId: str(formData, "googleClientId") || null, googleClientSecret: keep(str(formData, "googleClientSecret"), panel.googleClientSecret) } });
     done("/panel-admin/cau-hinh", "Đã lưu Google đăng nhập của panel");
   }
+  if (section === "paypal") {
+    await prisma.childPanel.update({
+      where: { id: panel.id },
+      data: {
+        paypalEnabled: formData.get("paypalEnabled") === "on",
+        paypalClientId: str(formData, "paypalClientId") || null,
+        paypalSecret: keep(str(formData, "paypalSecret"), panel.paypalSecret),
+        paypalMode: str(formData, "paypalMode") === "live" ? "live" : "sandbox",
+      },
+    });
+    done("/panel-admin/cau-hinh", "Đã lưu PayPal của panel — khách của bạn nạp PayPal sẽ trả vào tài khoản này");
+  }
+  if (section === "stripe") {
+    await prisma.childPanel.update({
+      where: { id: panel.id },
+      data: {
+        stripeEnabled: formData.get("stripeEnabled") === "on",
+        stripeSecretKey: keep(str(formData, "stripeSecretKey"), panel.stripeSecretKey),
+        stripeWebhookSecret: keep(str(formData, "stripeWebhookSecret"), panel.stripeWebhookSecret),
+      },
+    });
+    done("/panel-admin/cau-hinh", "Đã lưu Stripe của panel — khách của bạn nạp Stripe sẽ trả vào tài khoản này");
+  }
   back("/panel-admin/cau-hinh", "err", "Mục cấu hình không hợp lệ");
 }
 

@@ -364,18 +364,18 @@ export async function warrantyAction(formData: FormData) {
 /* ---------- Nạp tiền qua cổng quốc tế (PayPal / Stripe) ---------- */
 export async function startStripeCheckoutAction(formData: FormData) {
   const user = await requireUser();
-  const s = await getSettings();
-  const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, stripeCreateCheckout, siteOrigin } = await import("@/lib/payments");
-  if (s.stripe_enabled !== "1" || !s.stripe_secret_key) back("/dashboard/nap-tien", "err", "Stripe chưa được cấu hình");
+  const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, stripeCreateCheckout, siteOrigin, resolveIntlConfig } = await import("@/lib/payments");
+  const cfg = await resolveIntlConfig(user.id);
+  if (!cfg.stripe) back("/dashboard/nap-tien", "err", "Stripe chưa được cấu hình");
   const usd = parseFloat(String(formData.get("usd") || "0"));
   if (!usd || usd < MIN_USD) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${MIN_USD}`);
   const usdCents = Math.round(usd * 100);
-  const amountVnd = Math.round(usd * (parseInt(s.usd_rate || "25000", 10) || 25000));
+  const amountVnd = Math.round(usd * cfg.rate);
   const dep = await createPendingDeposit(user.id, "STRIPE", amountVnd, usdCents);
   const origin = await siteOrigin();
   let url = "";
   try {
-    const sess = await stripeCreateCheckout(s.stripe_secret_key, {
+    const sess = await stripeCreateCheckout(cfg.stripe.secretKey, {
       amountCents: usdCents,
       depositCode: dep.code,
       successUrl: `${origin}/api/payments/stripe/return?session_id={CHECKOUT_SESSION_ID}`,
@@ -392,19 +392,19 @@ export async function startStripeCheckoutAction(formData: FormData) {
 
 export async function startPaypalCheckoutAction(formData: FormData) {
   const user = await requireUser();
-  const s = await getSettings();
-  const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, paypalAccessToken, paypalCreateOrder, siteOrigin } = await import("@/lib/payments");
-  if (s.paypal_enabled !== "1" || !s.paypal_client_id || !s.paypal_client_secret) back("/dashboard/nap-tien", "err", "PayPal chưa được cấu hình");
+  const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, paypalAccessToken, paypalCreateOrder, siteOrigin, resolveIntlConfig } = await import("@/lib/payments");
+  const cfg = await resolveIntlConfig(user.id);
+  if (!cfg.paypal) back("/dashboard/nap-tien", "err", "PayPal chưa được cấu hình");
   const usd = parseFloat(String(formData.get("usd") || "0"));
   if (!usd || usd < MIN_USD) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${MIN_USD}`);
   const usdCents = Math.round(usd * 100);
-  const amountVnd = Math.round(usd * (parseInt(s.usd_rate || "25000", 10) || 25000));
+  const amountVnd = Math.round(usd * cfg.rate);
   const dep = await createPendingDeposit(user.id, "PAYPAL", amountVnd, usdCents);
   const origin = await siteOrigin();
   let url = "";
   try {
-    const token = await paypalAccessToken(s.paypal_client_id, s.paypal_client_secret, s.paypal_mode || "sandbox");
-    const order = await paypalCreateOrder(token, s.paypal_mode || "sandbox", {
+    const token = await paypalAccessToken(cfg.paypal.clientId, cfg.paypal.secret, cfg.paypal.mode);
+    const order = await paypalCreateOrder(token, cfg.paypal.mode, {
       amountUsd: (usdCents / 100).toFixed(2),
       depositCode: dep.code,
       returnUrl: `${origin}/api/payments/paypal/return`,
