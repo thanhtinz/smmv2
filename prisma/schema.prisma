@@ -748,6 +748,9 @@ model Subscription {
   link          String     @db.VarChar(500)
   quantity      Int
   intervalDays  Int        @default(1) // cách bao nhiêu ngày chạy 1 lần
+  intervalMinutes Int      @default(0) // chu kỳ theo phút cho gói Loop (0 = dùng intervalDays)
+  totalRuns     Int        @default(0) // tổng số lượt sẽ chạy rồi tự dừng (0 = không giới hạn; gói Schedule = 1)
+  kind          String     @default("RECURRING") @db.VarChar(20) // RECURRING | SCHEDULE | LOOP
   dailyBudget   Int        @default(0) // trần chi cho các đơn định kỳ trong 1 ngày (0 = không giới hạn)
   targetTotal   Int        @default(0) // tổng số lượng mục tiêu — đạt là tự tạm dừng (0 = không đặt)
   deliveredQty  Int        @default(0) // tổng số lượng đã đặt qua gói này

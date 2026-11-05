@@ -21,6 +21,12 @@ export async function processSubscriptions(limit = 20) {
 
   for (const sub of due) {
     try {
+      // Đủ số lượt (gói Schedule/Loop): đã chạy hết → tự dừng
+      if (sub.totalRuns > 0 && sub.runs >= sub.totalRuns) {
+        await prisma.subscription.update({ where: { id: sub.id }, data: { active: false, lastError: "Đã chạy đủ số lượt — tự tạm dừng" } });
+        result.paused++;
+        continue;
+      }
       // Mục tiêu tổng: đã đạt → tự dừng
       if (sub.targetTotal > 0 && sub.deliveredQty >= sub.targetTotal) {
         await prisma.subscription.update({ where: { id: sub.id }, data: { active: false, lastError: "Đã đạt mục tiêu tổng — tự tạm dừng" } });
@@ -57,6 +63,8 @@ export async function processSubscriptions(limit = 20) {
         note: "Đơn tự động từ gói định kỳ",
       });
       const reachedTarget = sub.targetTotal > 0 && sub.deliveredQty + qty >= sub.targetTotal;
+      const reachedRuns = sub.totalRuns > 0 && sub.runs + 1 >= sub.totalRuns;
+      const stepMs = sub.intervalMinutes > 0 ? sub.intervalMinutes * 60000 : sub.intervalDays * 86400000;
       await prisma.subscription.update({
         where: { id: sub.id },
         data: {
@@ -64,8 +72,8 @@ export async function processSubscriptions(limit = 20) {
           deliveredQty: { increment: qty },
           lastRunAt: now,
           lastError: null,
-          active: !reachedTarget,
-          nextRunAt: new Date(now.getTime() + sub.intervalDays * 86400000),
+          active: !(reachedTarget || reachedRuns),
+          nextRunAt: new Date(now.getTime() + stepMs),
         },
       });
       await notifyUser(sub.userId, "Gói định kỳ đã đặt đơn", `Đơn ${order.code} (${qty.toLocaleString("vi-VN")} × ${sub.service.name}) vừa được đặt tự động, trừ ${vnd(order.charge)}.`, `/dashboard/don-hang/${order.id}`);

@@ -152,6 +152,11 @@ export function OrderForm({ services, categories, discount, preselect, action, b
   const [dripOn, setDripOn] = useState(false);
   const [dripRuns, setDripRuns] = useState(10);
   const [dripInterval, setDripInterval] = useState(60);
+  const [schedOn, setSchedOn] = useState(false);
+  const [schedAt, setSchedAt] = useState("");
+  const [loopOn, setLoopOn] = useState(false);
+  const [loopTimes, setLoopTimes] = useState(5);
+  const [loopInterval, setLoopInterval] = useState(60);
   const [link, setLink] = useState(initialLink || "");
   const [multiOn, setMultiOn] = useState(false);
   const [multiLinks, setMultiLinks] = useState("");
@@ -198,47 +203,41 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             {inCat.map((s) => <option key={s.id} value={s.id}>[{s.id}] {s.name} — {vnd(s.rate)}/1000</option>)}
           </select>
         </div>
-        <div className="rounded-2xl border-2 border-dashed border-slate-200 p-4 sm:p-5">
-          <div className="flex items-center gap-6">
-            {[{ v: false, t: "Một link" }, { v: true, t: "Nhiều link" }].map((o) => (
-              <button key={o.t} type="button" onClick={() => setMultiOn(o.v)} aria-pressed={multiOn === o.v} className="flex items-center gap-2">
-                <span className={`flex h-[22px] w-[22px] items-center justify-center rounded-full border-[3px] transition ${multiOn === o.v ? "border-brand-500 bg-brand-500" : "border-slate-300 bg-white hover:border-slate-400"}`}>{multiOn === o.v && <span className="h-2 w-2 rounded-full bg-white" />}</span>
-                <span className={`text-sm font-semibold ${multiOn === o.v ? "text-slate-900" : "text-slate-500"}`}>{o.t}</span>
+        <div className="relative rounded-[20px] border-2 border-dashed border-slate-300/70 px-5 pb-6 pt-9 sm:px-7">
+          <div className="absolute -top-[13px] left-5 flex items-center gap-7 bg-white px-2 dark:bg-[#101a2e] sm:left-6">
+            {[{ v: false, t: "One" }, { v: true, t: "Multi" }].map((o) => (
+              <button key={o.t} type="button" onClick={() => setMultiOn(o.v)} aria-pressed={multiOn === o.v} className="flex items-center gap-2.5">
+                <span className={`flex h-[26px] w-[26px] items-center justify-center rounded-full transition ${multiOn === o.v ? "bg-brand-500" : "border-2 border-slate-300 bg-white hover:border-slate-400"}`}>{multiOn === o.v && <span className="h-2 w-2 rounded-full bg-white" />}</span>
+                <span className={`text-[15px] font-medium ${multiOn === o.v ? "text-slate-900" : "text-slate-500"}`}>{o.t}</span>
               </button>
             ))}
           </div>
-          <div className="mt-4">
-            <label className="lbl">Link cần tăng</label>
+          <label className="lbl !text-[15px] !font-bold text-slate-700">Link</label>
           {multiOn ? (
-            <>
-              <textarea className="inp w-full font-mono !text-[13px] leading-relaxed" name="links" required rows={4} placeholder={"Mỗi dòng 1 link:\nhttps://...\nhttps://..."} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <span className="text-xs text-slate-400">
-                  {linkLines.length > 0
-                    ? <><b className="text-brand-700">{num(linkLines.length)} link</b> — mỗi link 1 đơn riêng, số lượng {num(qty || 0)} áp cho từng link.</>
-                    : "Mỗi link 1 đơn riêng với cùng số lượng — tối đa 50 link/lần, dòng trùng tự gộp."}
-                </span>
-                <span className="flex shrink-0 items-center gap-1.5">
-                  <button type="button" onClick={pasteLink} className="btn-sm rounded-full bg-slate-100 px-3 font-semibold text-slate-600 hover:bg-slate-200">Dán link</button>
-                  {multiLinks.trim() && <button type="button" onClick={() => setMultiLinks("")} className="btn-sm rounded-full bg-slate-100 px-3 font-semibold text-slate-600 hover:bg-rose-100 hover:text-rose-600">Xoá hết</button>}
-                </span>
-              </div>
-            </>
+            <textarea className="inp w-full font-mono !text-[13px] leading-relaxed" name="links" required rows={4} placeholder={"Mỗi dòng 1 link:\nhttps://...\nhttps://..."} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
           ) : (
-            <>
-              <input className="inp w-full" name="link" required placeholder="https://... (link công khai, không cần mật khẩu)" value={link} onChange={(e) => setLink(e.target.value)} />
-              <div className="mt-2 flex items-center justify-end">
-                <button type="button" onClick={pasteLink} className="btn-sm rounded-full bg-slate-100 px-3 font-semibold text-slate-600 hover:bg-slate-200">Dán link</button>
-              </div>
-            </>
+            <input className="inp w-full !h-[52px] !rounded-[14px] !text-[15px]" name="link" required placeholder="https://... (link công khai, không cần mật khẩu)" value={link} onChange={(e) => setLink(e.target.value)} />
           )}
-          {pasteMsg && <p className="text-xs text-slate-400 mt-1.5">{pasteMsg}</p>}
-          {!multiOn && linkMismatch && <p className="text-xs text-amber-600 font-medium mt-1.5">Link này có vẻ không thuộc {PLATFORMS[service!.platform] || service!.platform} — kiểm tra lại dịch vụ đã chọn nhé.</p>}
-          </div>
         </div>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-slate-400">
+            {pasteMsg ? pasteMsg : multiOn
+              ? (linkLines.length > 0 ? <><b className="text-brand-700">{num(linkLines.length)} link</b> — mỗi link 1 đơn riêng, số lượng {num(qty || 0)} áp cho từng link.</> : "Mỗi link 1 đơn riêng với cùng số lượng — tối đa 50 link/lần, dòng trùng tự gộp.")
+              : "Dán link công khai cần tăng vào ô trên."}
+          </span>
+          <span className="flex shrink-0 items-center gap-1.5">
+            <button type="button" onClick={pasteLink} className="btn-sm rounded-full bg-slate-100 px-3 font-semibold text-slate-600 hover:bg-slate-200">Dán link</button>
+            {multiOn && multiLinks.trim() && <button type="button" onClick={() => setMultiLinks("")} className="btn-sm rounded-full bg-slate-100 px-3 font-semibold text-slate-600 hover:bg-rose-100 hover:text-rose-600">Xoá hết</button>}
+          </span>
+        </div>
+        {!multiOn && linkMismatch && <p className="text-xs font-medium text-amber-600">Link này có vẻ không thuộc {PLATFORMS[service!.platform] || service!.platform} — kiểm tra lại dịch vụ đã chọn nhé.</p>}
         <div>
-          <label className="lbl">Số lượng {multiOn && <span className="text-brand-600 font-semibold">(cho mỗi link)</span>} {service && <span className="text-slate-400 font-normal">(từ {num(service.min)} đến {num(service.max)})</span>}</label>
-          <input className="inp" name="quantity" type="number" required min={service?.min} max={service?.max} value={qty || ""} onChange={(e) => setQty(parseInt(e.target.value) || 0)} />
+          <label className="lbl">Số lượng {multiOn && <span className="text-brand-600 font-semibold">(cho mỗi link)</span>}</label>
+          <div className="flex gap-3">
+            <input className="inp flex-1 !h-[52px] !rounded-[14px] !text-[15px]" name="quantity" type="number" required min={service?.min} max={service?.max} value={qty || ""} onChange={(e) => setQty(parseInt(e.target.value) || 0)} />
+            <div className="flex h-[52px] min-w-[104px] items-center justify-center rounded-[14px] bg-teal-600 px-4 text-base font-bold text-white">{vnd(shownCharge)}</div>
+          </div>
+          {service && <p className="mt-1.5 text-[13px] text-slate-400">Min: {num(service.min)} - Max: {num(service.max)}</p>}
           {qtyChips.length > 1 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {qtyChips.map((n) => (
@@ -309,7 +308,47 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           <input className="inp uppercase" name="promoCode" placeholder="VD: SALE10" autoComplete="off" />
           <p className="mt-1 text-xs text-slate-400">Mã hợp lệ sẽ được giảm trực tiếp vào tiền đơn khi đặt.</p>
         </div>
-        <OrderSubmit disabled={notEnough} />
+        <div className="rounded-2xl border border-slate-200/80 px-5 py-1.5">
+          <div className="flex items-center justify-between gap-4 py-3">
+            <div>
+              <div className="text-[15px] font-semibold text-slate-800">Schedule</div>
+              <div className="text-xs text-slate-400">Hẹn giờ — đơn tự đặt vào thời gian bạn chọn, tiền trừ khi đơn chạy</div>
+            </div>
+            <button type="button" role="switch" aria-checked={schedOn} onClick={() => setSchedOn(!schedOn)} className={`relative h-[30px] w-[52px] shrink-0 rounded-full transition-colors ${schedOn ? "bg-brand-600" : "bg-slate-300"}`}>
+              <span className={`absolute top-[2px] h-[26px] w-[26px] rounded-full bg-white shadow transition-all ${schedOn ? "left-[24px]" : "left-[2px]"}`} />
+            </button>
+          </div>
+          {schedOn && (
+            <div className="pb-4">
+              <input type="hidden" name="schedule" value="1" />
+              <input className="inp" type="datetime-local" name="scheduleAt" required value={schedAt} onChange={(e) => setSchedAt(e.target.value)} />
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-4 border-t border-slate-100 py-3">
+            <div>
+              <div className="text-[15px] font-semibold text-slate-800">Loop</div>
+              <div className="text-xs text-slate-400">Lặp lại — tự đặt lại đơn này nhiều lần theo chu kỳ</div>
+            </div>
+            <button type="button" role="switch" aria-checked={loopOn} onClick={() => setLoopOn(!loopOn)} className={`relative h-[30px] w-[52px] shrink-0 rounded-full transition-colors ${loopOn ? "bg-brand-600" : "bg-slate-300"}`}>
+              <span className={`absolute top-[2px] h-[26px] w-[26px] rounded-full bg-white shadow transition-all ${loopOn ? "left-[24px]" : "left-[2px]"}`} />
+            </button>
+          </div>
+          {loopOn && (
+            <div className="grid grid-cols-2 gap-3 pb-4">
+              <input type="hidden" name="loop" value="1" />
+              <div>
+                <label className="lbl">Số lần lặp</label>
+                <input className="inp" type="number" name="loopTimes" min={2} max={50} value={loopTimes} onChange={(e) => setLoopTimes(parseInt(e.target.value) || 2)} />
+              </div>
+              <div>
+                <label className="lbl">Mỗi lần cách nhau (phút)</label>
+                <input className="inp" type="number" name="loopInterval" min={5} max={10080} value={loopInterval} onChange={(e) => setLoopInterval(parseInt(e.target.value) || 60)} />
+              </div>
+              <p className="col-span-2 text-xs leading-relaxed text-slate-500">Tổng dự kiến <b>{vnd(shownCharge * (loopTimes || 0))}</b> cho {num(loopTimes || 0)} lần — tiền trừ dần mỗi lần đơn chạy, thiếu tiền gói sẽ tự dừng.</p>
+            </div>
+          )}
+        </div>
+        <OrderSubmit disabled={notEnough} label={schedOn || loopOn ? "Lên lịch đặt đơn" : undefined} />
       </form>
       <div className="card p-6 lg:col-span-2 lg:sticky lg:top-24">
         <div className="font-bold text-slate-900 mb-4">Chi tiết đơn</div>
@@ -323,6 +362,8 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             {discount > 0 && <Row k="Chiết khấu cấp bậc" v={`-${discount}%`} />}
             <Row k="Thời gian dự kiến" v={service.avgTime || "—"} />
             <Row k="Bảo hành bù (refill)" v={service.refill ? "Có" : "Không"} />
+            {(schedOn || loopOn) && <Row k="Chế độ" v={loopOn ? `Loop ×${num(loopTimes || 0)} lần, mỗi ${num(loopInterval || 0)} phút` : "Schedule — hẹn giờ 1 lần"} />}
+            {schedOn && schedAt && <Row k="Chạy lúc" v={schedAt.replace("T", " ")} />}
             <div className="border-t border-dashed pt-3 flex justify-between items-center">
               <span className="font-semibold">Tổng thanh toán</span>
               <span className="text-2xl font-extrabold text-brand-700">{vnd(shownCharge)}{multiOn && orderCount === 0 && <span className="text-sm font-semibold text-slate-400"> / link</span>}</span>
@@ -348,9 +389,9 @@ export function OrderForm({ services, categories, discount, preselect, action, b
 function Row({ k, v }: { k: string; v: string }) {
   return <div className="flex justify-between gap-4"><span className="text-slate-500">{k}</span><span className="font-medium text-slate-800 text-right">{v}</span></div>;
 }
-function OrderSubmit({ disabled }: { disabled?: boolean }) {
+function OrderSubmit({ disabled, label }: { disabled?: boolean; label?: string }) {
   // submit về server action qua form cha (formAction được gắn ở page bằng cách bọc form) — xem dat-hang/page.tsx
-  return <button type="submit" disabled={disabled} className="btn-primary w-full !py-3">{disabled ? "Chưa đủ số dư" : "Đặt đơn ngay"}</button>;
+  return <button type="submit" disabled={disabled} className="btn-primary w-full !py-3">{disabled ? "Chưa đủ số dư" : label || "Đặt đơn ngay"}</button>;
 }
 
 /* ---------- Đặt hàng loạt (bulk orders): dán nhiều dòng, xem trước tổng tiền rồi đặt tất cả ---------- */

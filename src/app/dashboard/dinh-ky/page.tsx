@@ -34,12 +34,14 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
                     <div className="truncate font-bold text-slate-900">{sub.service.name}</div>
                     <div className="mt-0.5 truncate text-sm text-slate-400">{sub.link}</div>
                   </div>
+                  {sub.kind === "SCHEDULE" && <Badge cls="bg-sky-100 text-sky-700">Hẹn giờ</Badge>}
+                  {sub.kind === "LOOP" && <Badge cls="bg-violet-100 text-violet-700">Loop</Badge>}
                   {sub.active ? <Badge cls="bg-emerald-100 text-emerald-700">Đang chạy</Badge> : <Badge cls="bg-slate-200 text-slate-500">Tạm dừng</Badge>}
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-4">
                   <div><span className="text-slate-400">Mỗi lượt:</span> <b>{num(sub.quantity)}</b></div>
-                  <div><span className="text-slate-400">Chu kỳ:</span> <b>{sub.intervalDays} ngày/lần</b></div>
-                  <div><span className="text-slate-400">Đã chạy:</span> <b>{num(sub.runs)} lượt</b></div>
+                  <div><span className="text-slate-400">Chu kỳ:</span> <b>{sub.intervalMinutes > 0 ? (sub.intervalMinutes % 60 === 0 ? `mỗi ${sub.intervalMinutes / 60} giờ` : `mỗi ${sub.intervalMinutes} phút`) : `${sub.intervalDays} ngày/lần`}</b></div>
+                  <div><span className="text-slate-400">Đã chạy:</span> <b>{num(sub.runs)} lượt{sub.totalRuns > 0 ? ` / ${num(sub.totalRuns)}` : ""}</b></div>
                   <div><span className="text-slate-400">Đã đặt:</span> <b>{num(sub.deliveredQty)}</b></div>
                   <div><span className="text-slate-400">Trần/ngày:</span> <b>{sub.dailyBudget > 0 ? vnd(sub.dailyBudget) : "Không đặt"}</b></div>
                   <div><span className="text-slate-400">Lượt sau:</span> <b>{sub.active ? dt(sub.nextRunAt) : "—"}</b></div>
