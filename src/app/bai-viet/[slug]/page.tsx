@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { SiteHeader, SiteFooter } from "@/components/site";
+import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { getSettings } from "@/lib/settings";
 import { dshort } from "@/lib/format";
 
@@ -18,8 +18,8 @@ export default async function PostDetail({ params }: { params: { slug: string } 
   });
   const blocks = post.content.split(/\n+/).map((x) => x.trim()).filter(Boolean);
   return (
-    <div className="min-h-screen flex flex-col">
-      <SiteHeader />
+    <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
+      <PublicHeader />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
         <Link href="/bai-viet" className="text-sm font-medium text-brand-600">← Tất cả bài viết</Link>
         <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">

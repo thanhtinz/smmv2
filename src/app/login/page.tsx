@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SiteHeader, SiteFooter } from "@/components/site";
+import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { Flash } from "@/components/ui";
 import { loginAction } from "@/app/actions/auth";
 import { getSettings } from "@/lib/settings";
@@ -8,8 +8,8 @@ export default async function LoginPage({ searchParams }: { searchParams: { msg?
   const settings = await getSettings().catch(() => null);
   const googleOn = settings?.google_enabled === "1" && !!settings?.google_client_id;
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <SiteHeader />
+    <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
+      <PublicHeader />
       <main className="flex-1 flex items-center justify-center px-4 py-14">
         <div className="card p-8 w-full max-w-md">
           <h1 className="text-2xl font-extrabold text-slate-900">Đăng nhập</h1>

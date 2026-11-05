@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { SiteHeader, SiteFooter, PremiumInfoSections } from "@/components/site";
+import { SiteHeader, SiteFooter, PublicHeader, PremiumInfoSections } from "@/components/site";
 import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
 import { getSession } from "@/lib/auth";
@@ -32,9 +32,8 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
   });
 
   return (
-    <div data-accent={panel.accent} className="min-h-screen flex flex-col">
-      <SiteHeader />
-      {panel.announcement && <div className="bg-brand-600 text-white text-center text-sm font-medium px-4 py-2.5">{panel.announcement}</div>}
+    <div data-accent={panel.accent} className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
+      <PublicHeader panel={{ name: panel.name, slug: panel.slug }} announcement={panel.announcement} />
       <main className="flex-1 max-w-5xl mx-auto px-4 py-12 w-full">
         <Link href={base} className="text-sm font-medium text-brand-600">← Tất cả sản phẩm Premium của {panel.name}</Link>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-6 items-start">

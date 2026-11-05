@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SiteHeader, SiteFooter } from "@/components/site";
+import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { Flash } from "@/components/ui";
 import { registerAction } from "@/app/actions/auth";
 import { prisma } from "@/lib/db";
@@ -8,8 +8,8 @@ export default async function RegisterPage({ searchParams }: { searchParams: { m
   const ref = (searchParams.ref || "").trim().toUpperCase();
   const referrer = ref ? await prisma.user.findUnique({ where: { refCode: ref }, select: { username: true } }) : null;
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <SiteHeader />
+    <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
+      <PublicHeader />
       <main className="flex-1 flex items-center justify-center px-4 py-14">
         <div className="card p-8 w-full max-w-md">
           <h1 className="text-2xl font-extrabold text-slate-900">Đăng ký tài khoản</h1>

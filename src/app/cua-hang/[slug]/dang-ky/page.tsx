@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { SiteHeader, SiteFooter } from "@/components/site";
+import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { Flash } from "@/components/ui";
 import { panelRegisterAction } from "@/app/actions/auth";
 
@@ -12,8 +12,8 @@ export default async function PanelRegister({ params, searchParams }: { params: 
   const panel = await prisma.childPanel.findUnique({ where: { slug: params.slug } });
   if (!panel || panel.status !== "ACTIVE") notFound();
   return (
-    <div data-accent={panel.accent} className="min-h-screen flex flex-col bg-slate-50">
-      <SiteHeader />
+    <div data-accent={panel.accent} className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
+      <PublicHeader panel={{ name: panel.name, slug: panel.slug }} announcement={panel.announcement} />
       <main className="flex-1 flex items-center justify-center px-4 py-14">
         <div className="card p-8 w-full max-w-md">
           <h1 className="text-2xl font-extrabold text-slate-900">Đăng ký tài khoản</h1>

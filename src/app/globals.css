@@ -113,6 +113,19 @@ input:focus, select:focus, textarea:focus { @apply ring-2 ring-brand-500/40 bord
   .dark .lg\:bg-white { background-color: #101a2e; }
 }
 
+
+/* Trang công khai dùng tông tối trung tính khớp landing (thay vì navy của .dark) */
+.dark.pub-dark .card, .dark.pub-dark .bg-white { background-color: #0d1017; border-color: rgba(255,255,255,.08); }
+.dark.pub-dark .bg-slate-50 { background-color: #090b10; }
+.dark.pub-dark .bg-slate-100 { background-color: #141824; }
+.dark.pub-dark .bg-slate-200 { background-color: #1b2130; }
+.dark.pub-dark .inp { background: #0a0c11; border-color: rgba(255,255,255,.14); color: #e6edf7; }
+.dark.pub-dark .btn-ghost { background: #141824; border-color: rgba(255,255,255,.12); color: #dbe4f0; }
+.dark.pub-dark .btn-ghost:hover { background: #1b2130; }
+.dark.pub-dark .border-slate-100, .dark.pub-dark .border-slate-200, .dark.pub-dark .border-slate-300 { border-color: rgba(255,255,255,.09); }
+.dark.pub-dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]), .dark.pub-dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255,255,255,.08); }
+.dark.pub-dark .hover\:bg-slate-50:hover, .dark.pub-dark .hover\:bg-white:hover { background-color: #141824; }
+
 /* Nền hero trang chủ: sáng thoáng / tối sâu theo chế độ */
 .hero-bg {
   background:

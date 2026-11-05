@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { SiteHeader, SiteFooter } from "@/components/site";
+import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { getSettings } from "@/lib/settings";
 import { dshort } from "@/lib/format";
 
@@ -14,8 +14,8 @@ export default async function PostsPage({ searchParams }: { searchParams: { cat?
     prisma.post.findMany({ where: { published: true, ...(catId ? { categoryId: catId } : {}) }, orderBy: { id: "desc" }, take: 60, include: { category: true } }),
   ]);
   return (
-    <div className="min-h-screen flex flex-col">
-      <SiteHeader />
+    <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
+      <PublicHeader />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
         <h1 className="text-3xl font-extrabold text-slate-900">Bài viết</h1>
         <p className="mt-2 text-slate-500">Tin tức, hướng dẫn sử dụng và chương trình khuyến mãi mới nhất từ {s.site_name}.</p>

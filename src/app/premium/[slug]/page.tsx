@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { SiteHeader, SiteFooter, PremiumInfoSections } from "@/components/site";
+import { SiteHeader, SiteFooter, PublicHeader, PremiumInfoSections } from "@/components/site";
 import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
 import { getSession } from "@/lib/auth";
@@ -26,8 +26,8 @@ export default async function PremiumDetail({ params, searchParams }: { params: 
   });
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <SiteHeader />
+    <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
+      <PublicHeader />
       <main className="flex-1 max-w-5xl mx-auto px-4 py-12 w-full">
         <Link href="/premium" className="text-sm font-medium text-brand-600">← Tất cả sản phẩm Premium</Link>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-6 items-start">

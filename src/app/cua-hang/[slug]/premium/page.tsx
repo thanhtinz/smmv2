@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { SiteHeader, SiteFooter } from "@/components/site";
+import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { vnd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -26,9 +26,8 @@ export default async function PanelPremiumPage({ params, searchParams }: { param
   const stockMap = new Map(stockByVariant.map((x) => [x.variantId, x._count]));
 
   return (
-    <div data-accent={panel.accent} className="min-h-screen flex flex-col">
-      <SiteHeader />
-      {panel.announcement && <div className="bg-brand-600 text-white text-center text-sm font-medium px-4 py-2.5">{panel.announcement}</div>}
+    <div data-accent={panel.accent} className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
+      <PublicHeader panel={{ name: panel.name, slug: panel.slug }} announcement={panel.announcement} />
       <main className="flex-1 max-w-7xl mx-auto px-4 py-12 w-full">
         <Link href={`/cua-hang/${panel.slug}`} className="text-sm font-medium text-brand-600">← Về trang chủ {panel.name}</Link>
         <h1 className="text-3xl font-extrabold text-slate-900 mt-4">Tài khoản Premium</h1>
