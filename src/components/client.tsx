@@ -726,8 +726,15 @@ export function PremiumFieldsEditor({ initial }: { initial: PremiumCustomField[]
 export function CopyBtn({ text, label = "Sao chép" }: { text: string; label?: string }) {
   const [ok, setOk] = useState(false);
   return (
-    <button type="button" onClick={() => { navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 1500); }}
-      className="btn-ghost btn-sm">{ok ? "Đã chép" : label}</button>
+    <button type="button" title={label} aria-label={label}
+      onClick={() => { navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 1500); }}
+      className={`inline-flex items-center justify-center w-[30px] h-[30px] shrink-0 rounded-lg border transition ${ok ? "border-emerald-300 bg-emerald-50 text-emerald-600" : "border-slate-200 bg-white text-slate-500 hover:text-brand-600 hover:border-brand-300"}`}>
+      {ok ? (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+      ) : (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+      )}
+    </button>
   );
 }
 
