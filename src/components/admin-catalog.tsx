@@ -274,7 +274,7 @@ export function ProvidersClient({ providers }: { providers: ProviderDTO[] }) {
 
 /* ================= DỊCH VỤ ================= */
 export type ServiceDTO2 = {
-  id: number; categoryId: number; categoryName: string; platform: string; name: string; description: string | null;
+  id: number; categoryId: number; categoryName: string; platform: string; name: string; description: string | null; notice: string | null;
   rate: number; costRate: number; min: number; max: number; avgTime: string | null; type: string; customMarkup: number | null;
   refill: boolean; cancelable: boolean; dripfeed: boolean; autoRefill: boolean; active: boolean;
   autoSyncPrice: boolean; qtyAdjustPercent: number; autoUid: boolean; telegramBot: string | null; sort: number;
@@ -376,6 +376,7 @@ export function ServiceModal({ service, categories, providers, bots, onClose }: 
             </div>
           </div>
           <div><label className={lbl}>Ghi chú / Mô tả</label><textarea name="description" rows={3} defaultValue={s?.description || ""} className={inp} placeholder="Nhập mô tả chi tiết về dịch vụ..." /></div>
+          <div><label className={lbl}>Thông báo dịch vụ</label><textarea name="notice" rows={2} defaultValue={s?.notice || ""} className={inp} placeholder="VD: Dịch vụ đang chạy chậm 12–24h, cân nhắc trước khi đặt..." /><p className="mt-1 text-xs text-slate-400">Hiện nổi bật màu vàng cho khách ở trang đặt đơn khi chọn dịch vụ này. Để trống = không hiện.</p></div>
           <div className="grid grid-cols-3 gap-3 rounded-xl border border-slate-200 px-4 py-2">
             <Switch name="refill" defaultChecked={s?.refill ?? true} label="Hỗ trợ Refill" />
             <Switch name="cancelable" defaultChecked={s?.cancelable ?? true} label="Hỗ trợ hủy" />

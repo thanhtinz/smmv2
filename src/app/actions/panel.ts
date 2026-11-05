@@ -276,6 +276,7 @@ export async function panelSaveOwnService(formData: FormData) {
     min,
     max: Math.max(min, int(formData, "max") || 100000),
     description: str(formData, "description") || null,
+    notice: str(formData, "notice") || null,
     active: formData.get("active") === "on",
   };
   if (id) {

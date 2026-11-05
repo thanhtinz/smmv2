@@ -248,7 +248,7 @@ export function PanelPostsClient({ posts, categories }: { posts: PanelPostDTO[];
 /* ================= DỊCH VỤ PANEL THÊM VÀO GIAN HÀNG ================= */
 export type PanelAddedServiceDTO = {
   id: number; name: string; rate: number; min: number; max: number;
-  description: string | null; active: boolean; categoryName: string;
+  description: string | null; notice: string | null; active: boolean; categoryName: string;
   sourceName: string | null; sourceRate: number | null; fulfillment: string; orderCount: number;
 };
 export type PanelSourceServiceDTO = { id: number; name: string; rate: number; categoryName: string };
@@ -287,6 +287,7 @@ export function PanelAddServiceModal({ service, sources, categories, onClose }: 
             </div>
           )}
           <div><label className={lbl}>Mô tả</label><textarea name="description" rows={3} defaultValue={c?.description || ""} className={inp} /></div>
+          <div><label className={lbl}>Thông báo dịch vụ</label><textarea name="notice" rows={2} defaultValue={c?.notice || ""} className={inp} placeholder="Hiện nổi bật cho khách khi đặt đơn. Để trống = không hiện." /></div>
           <Switch name="active" label="Đang bán" defaultChecked={c ? c.active : true} />
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">

@@ -91,7 +91,7 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
             {services.map((sv) => {
               const dto: ServiceDTO2 = {
                 id: sv.id, categoryId: sv.categoryId, categoryName: sv.category.name, platform: sv.category.platform,
-                name: sv.name, description: sv.description, rate: sv.rate, costRate: sv.costRate, min: sv.min, max: sv.max,
+                name: sv.name, description: sv.description, notice: sv.notice, rate: sv.rate, costRate: sv.costRate, min: sv.min, max: sv.max,
                 avgTime: sv.avgTime, type: sv.type, customMarkup: sv.customMarkup, refill: sv.refill, cancelable: sv.cancelable,
                 dripfeed: sv.dripfeed, autoRefill: sv.autoRefill, active: sv.active, providerId: sv.providerId,
                 autoSyncPrice: sv.autoSyncPrice, qtyAdjustPercent: sv.qtyAdjustPercent, autoUid: sv.autoUid, telegramBot: sv.telegramBot, sort: sv.sort,

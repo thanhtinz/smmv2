@@ -142,6 +142,7 @@ model SmmService {
   category         SmmCategory @relation(fields: [categoryId], references: [id])
   name             String      @db.VarChar(255)
   description      String?     @db.Text
+  notice           String?     @db.Text // thông báo dịch vụ: hiện nổi bật cho khách khi đặt đơn (vd đang chậm, bảo trì)
   rate             Int // giá bán / 1000 (VND, trước chiết khấu cấp khách)
   costRate         Int         @default(0) // giá vốn / 1000 (VND)
   min              Int         @default(10)

@@ -48,7 +48,7 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
   const addedDtos: PanelAddedServiceDTO[] = addedRows.map((sv) => {
     const src = sv.providerId && sv.providerServiceId ? srcByKey.get(`${sv.providerId}:${sv.providerServiceId}`) : undefined;
     return {
-      id: sv.id, name: sv.name, rate: sv.rate, min: sv.min, max: sv.max, description: sv.description, active: sv.active,
+      id: sv.id, name: sv.name, rate: sv.rate, min: sv.min, max: sv.max, description: sv.description, notice: sv.notice, active: sv.active,
       categoryName: sv.category.name, sourceName: sv.fulfillment === "MANUAL" && !sv.providerId ? null : (src?.name || "Nguồn API web mẹ"),
       sourceRate: src ? src.rate : (sv.costRate > 0 ? sv.costRate : null), fulfillment: sv.fulfillment, orderCount: sv._count.orders,
     };

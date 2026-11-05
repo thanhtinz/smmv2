@@ -84,6 +84,7 @@ export async function adminSaveService(formData: FormData) {
     categoryId: parseInt(String(formData.get("categoryId"))),
     name: String(formData.get("name") || "").trim(),
     description: String(formData.get("description") || "") || null,
+    notice: String(formData.get("notice") || "").trim() || null,
     rate: parseInt(String(formData.get("rate") || "0")),
     costRate: parseInt(String(formData.get("costRate") || "0")),
     min: parseInt(String(formData.get("min") || "10")),

@@ -6,7 +6,7 @@ import { PLATFORM_COLORS } from "@/components/ui";
 import { warrantyAction } from "@/app/actions/user";
 
 export type ServiceDTO = {
-  id: number; name: string; description: string | null; rate: number; min: number; max: number;
+  id: number; name: string; description: string | null; notice?: string | null; rate: number; min: number; max: number;
   avgTime: string | null; refill: boolean; dripfeed?: boolean; categoryId: number; categoryName: string; platform: string;
 };
 
@@ -290,6 +290,11 @@ export function OrderForm({ services, categories, discount, preselect, action, b
               <div className={`rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${notEnough ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
                 Số dư hiện tại: <b>{vnd(balance)}</b>
                 {notEnough ? <> — còn thiếu <b>{vnd(charge - balance)}</b>. <Link href="/dashboard/nap-tien" className="font-bold underline">Nạp thêm ngay</Link></> : <> — sau đơn này còn <b>{vnd(balance - charge)}</b>.</>}
+              </div>
+            )}
+            {service.notice && (
+              <div className="rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-xs leading-relaxed text-amber-800 whitespace-pre-line">
+                <span className="font-bold">Thông báo: </span>{service.notice}
               </div>
             )}
             {service.description && <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-line bg-slate-50 rounded-xl p-3">{service.description}</p>}
