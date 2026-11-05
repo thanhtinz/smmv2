@@ -198,17 +198,20 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             {inCat.map((s) => <option key={s.id} value={s.id}>[{s.id}] {s.name} — {vnd(s.rate)}/1000</option>)}
           </select>
         </div>
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="lbl !mb-0">Link cần tăng</label>
-            <div className="flex rounded-full bg-slate-100 p-0.5 text-xs font-semibold" role="tablist" aria-label="Chế độ link">
-              <button type="button" onClick={() => setMultiOn(false)} className={`rounded-full px-3 py-1 transition ${!multiOn ? "bg-brand-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>1 link</button>
-              <button type="button" onClick={() => setMultiOn(true)} className={`rounded-full px-3 py-1 transition ${multiOn ? "bg-brand-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Nhiều link</button>
-            </div>
+        <div className="rounded-2xl border-2 border-dashed border-slate-200 p-4 sm:p-5">
+          <div className="flex items-center gap-6">
+            {[{ v: false, t: "Một link" }, { v: true, t: "Nhiều link" }].map((o) => (
+              <button key={o.t} type="button" onClick={() => setMultiOn(o.v)} aria-pressed={multiOn === o.v} className="flex items-center gap-2">
+                <span className={`flex h-[22px] w-[22px] items-center justify-center rounded-full border-[3px] transition ${multiOn === o.v ? "border-brand-500 bg-brand-500" : "border-slate-300 bg-white hover:border-slate-400"}`}>{multiOn === o.v && <span className="h-2 w-2 rounded-full bg-white" />}</span>
+                <span className={`text-sm font-semibold ${multiOn === o.v ? "text-slate-900" : "text-slate-500"}`}>{o.t}</span>
+              </button>
+            ))}
           </div>
+          <div className="mt-4">
+            <label className="lbl">Link cần tăng</label>
           {multiOn ? (
             <>
-              <textarea className="inp w-full font-mono !text-[13px] leading-relaxed" name="links" required rows={5} placeholder={"Mỗi dòng 1 link:\nhttps://...\nhttps://..."} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
+              <textarea className="inp w-full font-mono !text-[13px] leading-relaxed" name="links" required rows={4} placeholder={"Mỗi dòng 1 link:\nhttps://...\nhttps://..."} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
               <div className="mt-2 flex items-center justify-between gap-3">
                 <span className="text-xs text-slate-400">
                   {linkLines.length > 0
@@ -222,13 +225,16 @@ export function OrderForm({ services, categories, discount, preselect, action, b
               </div>
             </>
           ) : (
-            <div className="flex gap-2">
-              <input className="inp flex-1" name="link" required placeholder="https://... (link công khai, không cần mật khẩu)" value={link} onChange={(e) => setLink(e.target.value)} />
-              <button type="button" onClick={pasteLink} className="btn-ghost shrink-0">Dán link</button>
-            </div>
+            <>
+              <input className="inp w-full" name="link" required placeholder="https://... (link công khai, không cần mật khẩu)" value={link} onChange={(e) => setLink(e.target.value)} />
+              <div className="mt-2 flex items-center justify-end">
+                <button type="button" onClick={pasteLink} className="btn-sm rounded-full bg-slate-100 px-3 font-semibold text-slate-600 hover:bg-slate-200">Dán link</button>
+              </div>
+            </>
           )}
           {pasteMsg && <p className="text-xs text-slate-400 mt-1.5">{pasteMsg}</p>}
           {!multiOn && linkMismatch && <p className="text-xs text-amber-600 font-medium mt-1.5">Link này có vẻ không thuộc {PLATFORMS[service!.platform] || service!.platform} — kiểm tra lại dịch vụ đã chọn nhé.</p>}
+          </div>
         </div>
         <div>
           <label className="lbl">Số lượng {multiOn && <span className="text-brand-600 font-semibold">(cho mỗi link)</span>} {service && <span className="text-slate-400 font-normal">(từ {num(service.min)} đến {num(service.max)})</span>}</label>
