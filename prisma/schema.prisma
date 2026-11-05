@@ -436,6 +436,19 @@ model Announcement {
 
 // Cấu hình site dạng key-value: site_name, bank_*, momo_*, deposit_bonus_tiers,
 // support_*, maintenance...
+model ContactWidget {
+  id        Int         @id @default(autoincrement())
+  panelId   Int?
+  panel     ChildPanel? @relation("PanelContactWidgets", fields: [panelId], references: [id], onDelete: Cascade)
+  name      String      @db.VarChar(120)
+  link      String      @db.VarChar(500)
+  image     String?     @db.Text
+  active    Boolean     @default(true)
+  sort      Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
 model Setting {
   key   String @id @db.VarChar(80)
   value String @db.Text
@@ -517,6 +530,7 @@ model ChildPanel {
   premiumPrices PanelPremiumPrice[]
   discountCodes DiscountCode[]
   posts         Post[]
+  contactWidgets ContactWidget[] @relation("PanelContactWidgets")
 }
 
 // Giá riêng của panel cho TỪNG dịch vụ theo TỪNG cấp bậc khách (kiểu thatim:

@@ -4,7 +4,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash } from "@/components/ui";
 import { updatePanelAction } from "@/app/actions/user";
-import { panelSaveSellAction } from "@/app/actions/panel";
+import { panelSaveSellAction, panelSaveContactWidgetAction, panelDeleteContactWidgetAction, panelToggleContactWidgetAction, panelSeedContactWidgetsAction } from "@/app/actions/panel";
+import { ContactWidgetsManager } from "@/components/contact-widgets";
+import { listContactWidgets } from "@/lib/contact";
 import { Switch } from "@/components/admin-catalog";
 import { vnd } from "@/lib/format";
 
@@ -24,6 +26,8 @@ export default async function PanelSettingsPage({ searchParams }: { searchParams
   const user = (await getCurrentUser())!;
   const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
   const linked = panel.apiUserId ? await prisma.user.findUnique({ where: { id: panel.apiUserId }, select: { username: true } }) : null;
+  const contactItems = await listContactWidgets(panel.id);
+  const panelHasLegacy = !!(panel.supportZalo || panel.supportTelegram || panel.supportFacebook || panel.supportHotline);
   const s = await getSettings();
   return (
     <div>
@@ -80,6 +84,20 @@ export default async function PanelSettingsPage({ searchParams }: { searchParams
             <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">Muốn chỉnh lại toàn bộ theo từng bước (thông tin → giá & cấp bậc → API key → tên miền & hỗ trợ), mở lại trang cấu hình lần đầu.</p>
             <Link href="/dashboard/panel-cua-toi/thiet-lap" className="btn-ghost w-full mt-4">Mở trang cấu hình lần đầu</Link>
           </div>
+        </div>
+      </div>
+      <div className="card mt-6 p-6">
+        <div className="font-bold text-slate-900">Widget Liên hệ</div>
+        <p className="mt-1 text-sm text-slate-400">Các kênh liên hệ hiển thị trên gian hàng của bạn. Để trống thì khách thấy widget của web chính.</p>
+        <div className="mt-4 max-w-xl">
+          <ContactWidgetsManager
+            items={contactItems}
+            saveAction={panelSaveContactWidgetAction}
+            deleteAction={panelDeleteContactWidgetAction}
+            toggleAction={panelToggleContactWidgetAction}
+            seedAction={panelSeedContactWidgetsAction}
+            hasLegacy={panelHasLegacy}
+          />
         </div>
       </div>
     </div>

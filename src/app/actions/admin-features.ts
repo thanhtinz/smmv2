@@ -180,12 +180,81 @@ export async function cleanupSystemAction(formData: FormData) {
 /* ---------- Liên hệ: kênh hỗ trợ + widget nổi + AI tư vấn ---------- */
 export async function saveContactAction(formData: FormData) {
   await requireAdmin();
-  for (const k of ["support_zalo", "support_telegram", "support_facebook", "support_hotline"]) {
-    await setSetting(k, str(formData, k).slice(0, 300));
-  }
   await setSetting("support_widget_enabled", formData.get("support_widget_enabled") === "on" ? "1" : "0");
   await setSetting("livechat_enabled", formData.get("livechat_enabled") === "on" ? "1" : "0");
-  done("/admin/lien-he", "Đã lưu cấu hình liên hệ");
+  done("/admin/lien-he", "Đã lưu công tắc widget");
+}
+
+/* ---------- Widget Liên hệ: danh sách kênh hiển thị trên website ---------- */
+function widgetData(formData: FormData) {
+  const name = str(formData, "name").slice(0, 120);
+  const link = str(formData, "link").slice(0, 500);
+  const imageRaw = String(formData.get("image") || "");
+  const image = imageRaw.startsWith("data:image/") && imageRaw.length < 14_000_000 ? imageRaw : null;
+  return { name, link, image, active: formData.get("active") === "on" };
+}
+export async function saveContactWidgetAction(formData: FormData) {
+  await requireAdmin();
+  const id = int(formData, "id");
+  const d = widgetData(formData);
+  if (!d.name) back("/admin/lien-he", "err", "Tên hiển thị không được trống");
+  if (id) {
+    const old = await prisma.contactWidget.findFirst({ where: { id, panelId: null } });
+    if (!old) back("/admin/lien-he", "err", "Không tìm thấy liên hệ");
+    await prisma.contactWidget.update({ where: { id }, data: { ...d, image: formData.get("image") === "" ? null : d.image ?? old!.image } });
+  } else {
+    const last = await prisma.contactWidget.findFirst({ where: { panelId: null }, orderBy: { sort: "desc" } });
+    await prisma.contactWidget.create({ data: { panelId: null, ...d, sort: (last?.sort ?? 0) + 1 } });
+  }
+  done("/admin/lien-he", id ? "Đã sửa liên hệ" : "Đã thêm liên hệ");
+}
+export async function deleteContactWidgetAction(formData: FormData) {
+  await requireAdmin();
+  await prisma.contactWidget.deleteMany({ where: { id: int(formData, "id"), panelId: null } });
+  done("/admin/lien-he", "Đã xoá liên hệ");
+}
+export async function toggleContactWidgetAction(formData: FormData) {
+  await requireAdmin();
+  const w = await prisma.contactWidget.findFirst({ where: { id: int(formData, "id"), panelId: null } });
+  if (w) await prisma.contactWidget.update({ where: { id: w.id }, data: { active: !w.active } });
+  done("/admin/lien-he", w ? `Đã ${w.active ? "ẩn" : "hiện"} liên hệ ${w.name}` : "Đã lưu");
+}
+export async function seedContactWidgetsAction() {
+  await requireAdmin();
+  const { getSettings } = await import("@/lib/settings");
+  const s = await getSettings();
+  const legacy: [string, string][] = [["Zalo", s.support_zalo], ["Telegram", s.support_telegram], ["Facebook", s.support_facebook], ["Hotline", s.support_hotline]];
+  let n = 0;
+  for (const [name, value] of legacy) {
+    if (value && value.trim()) { await prisma.contactWidget.create({ data: { panelId: null, name, link: value.trim(), sort: ++n } }); }
+  }
+  done("/admin/lien-he", n ? `Đã đưa ${n} kênh cũ vào danh sách widget` : "Không có kênh cũ nào để đưa vào");
+}
+
+/* ---------- Dọn dẹp: xoá cache (trang / route / số dư nguồn đệm) ---------- */
+export async function clearCacheAction(formData: FormData) {
+  await requireAdmin();
+  const { revalidatePath } = await import("next/cache");
+  const kind = str(formData, "kind");
+  const from = str(formData, "from") || "/admin/don-dep";
+  if (kind === "pages" || kind === "all") {
+    for (const p of ["/", "/dich-vu", "/premium", "/bai-viet", "/cua-hang/[slug]", "/api/display-config"]) revalidatePath(p);
+  }
+  if (kind === "routes" || kind === "all") revalidatePath("/", "layout");
+  if (kind === "providers" || kind === "all") await prisma.provider.updateMany({ data: { balanceCache: 0 } });
+  if (!["pages", "routes", "providers", "all"].includes(kind)) back(from, "err", "Loại cache không hợp lệ");
+  done(from, kind === "all" ? "Đã xoá toàn bộ cache" : "Đã xoá cache");
+}
+
+/* ---------- Dọn dẹp: chạy tất cả việc dọn dữ liệu cũ một lượt ---------- */
+export async function cleanupAllAction(formData: FormData) {
+  await requireAdmin();
+  const from = str(formData, "from") || "/admin/don-dep";
+  const d30 = new Date(Date.now() - 30 * 86400000);
+  const a = (await prisma.apiLog.deleteMany({ where: { createdAt: { lt: d30 } } })).count;
+  const b = (await prisma.notification.deleteMany({ where: { read: true, createdAt: { lt: d30 } } })).count;
+  const c = (await prisma.orderEvent.deleteMany({ where: { createdAt: { lt: d30 } } })).count;
+  done(from, `Đã dọn dẹp hệ thống: ${a + b + c} bản ghi cũ (nhật ký API ${a} · thông báo ${b} · dòng thời gian đơn ${c})`);
 }
 
 /* ---------- Tiền tệ: tỉ giá quy đổi hiển thị ---------- */

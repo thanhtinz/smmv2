@@ -7,6 +7,7 @@ import { vnd } from "@/lib/format";
 import { prisma } from "@/lib/db";
 import { DisplaySettings } from "@/components/display";
 import { LiveChat } from "@/components/livechat";
+import { getFloatingContacts, type FloatingContact } from "@/lib/contact";
 
 export async function SiteHeader() {
   const session = await getSession();
@@ -142,9 +143,13 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
         support_hotline: brand.hotline || s.support_hotline,
       }
     : s;
+  const panelRow = brand?.slug
+    ? await prisma.childPanel.findUnique({ where: { slug: brand.slug }, select: { id: true, supportZalo: true, supportTelegram: true, supportFacebook: true, supportHotline: true } }).catch(() => null)
+    : null;
+  const contacts = merged.support_widget_enabled !== "0" ? await getFloatingContacts(panelRow).catch(() => []) : [];
   return (
     <>
-    {merged.support_widget_enabled !== "0" && <FloatingSupport s={merged} />}
+    {contacts.length > 0 && <FloatingSupport items={contacts} />}
     {merged.livechat_enabled !== "0" && <LiveChat panelSlug={brand?.slug} />}
     <footer className="bg-slate-950 text-slate-400 mt-20">
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm">
@@ -187,34 +192,31 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
   );
 }
 
-/* Nút liên hệ nổi góc phải dưới — kiểu thatim: Zalo / Telegram / Fanpage / Hotline luôn trong tầm tay */
-function FloatingSupport({ s }: { s: Record<string, string> }) {
-  const zalo = s.support_zalo ? (s.support_zalo.startsWith("http") ? s.support_zalo : `https://zalo.me/${s.support_zalo.replace(/\s/g, "")}`) : "";
-  const tele = s.support_telegram ? (s.support_telegram.startsWith("http") ? s.support_telegram : `https://t.me/${s.support_telegram.replace(/^@/, "")}`) : "";
-  const fb = s.support_facebook ? (s.support_facebook.startsWith("http") ? s.support_facebook : `https://facebook.com/${s.support_facebook}`) : "";
-  const items: { href: string; label: string; bg: string; icon: React.ReactNode }[] = [];
-  if (zalo) items.push({ href: zalo, label: "Chat Zalo", bg: "#0068ff", icon: <span className="font-black text-[15px] leading-none">Z</span> });
-  if (tele) items.push({
-    href: tele, label: "Telegram hỗ trợ", bg: "#229ed9",
-    icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>),
-  });
-  if (fb) items.push({
-    href: fb, label: "Fanpage Facebook", bg: "#1877f2",
-    icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5h1.3V4.9c-.3 0-1.1-.1-2.1-.1-2.1 0-3.6 1.3-3.6 3.7V11H8.2v3h2.5v7h2.8Z" /></svg>),
-  });
-  if (s.support_hotline) items.push({
-    href: `tel:${s.support_hotline.replace(/\s/g, "")}`, label: `Hotline ${s.support_hotline}`, bg: "#059669",
-    icon: (<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.13.96.36 1.9.7 2.8a2 2 0 0 1-.45 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.45c.9.34 1.84.57 2.8.7A2 2 0 0 1 22 16.9Z" /></svg>),
-  });
+/* Nút liên hệ nổi góc phải dưới — dựng từ danh sách Widget Liên hệ admin quản lý
+ * (ảnh tải lên nếu có, không thì icon theo tên kênh / chữ cái đầu) */
+function FloatingSupport({ items }: { items: FloatingContact[] }) {
+  const glyph = (name: string) => {
+    const lower = name.toLowerCase();
+    if (lower.includes("zalo")) return <span className="font-black text-[15px] leading-none">Z</span>;
+    if (lower.includes("telegram")) return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>);
+    if (lower.includes("facebook") || lower.includes("fanpage") || lower.includes("messenger")) return (<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5h1.3V4.9c-.3 0-1.1-.1-2.1-.1-2.1 0-3.6 1.3-3.6 3.7V11H8.2v3h2.5v7h2.8Z" /></svg>);
+    if (lower.includes("hotline") || lower.includes("điện thoại") || lower.includes("phone")) return (<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.13.96.36 1.9.7 2.8a2 2 0 0 1-.45 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.45c.9.34 1.84.57 2.8.7A2 2 0 0 1 22 16.9Z" /></svg>);
+    return <span className="font-black text-[15px] leading-none">{name.trim().charAt(0).toUpperCase() || "?"}</span>;
+  };
   if (items.length === 0) return null;
   return (
     <div className="fixed bottom-[5.5rem] lg:bottom-5 right-4 sm:right-5 z-50 flex flex-col gap-2.5">
-      {items.map((it) => (
-        <a key={it.label} href={it.href} target={it.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" title={it.label}
+      {items.map((it, i) => (
+        <a key={i} href={it.href} target={it.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" title={it.name}
           className="group flex items-center gap-0 hover:gap-2.5 flex-row-reverse transition-all">
-          <span className="w-12 h-12 rounded-full text-white flex items-center justify-center shadow-lg shrink-0 transition-transform group-hover:scale-105" style={{ background: it.bg }}>{it.icon}</span>
+          {it.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={it.image} alt={it.name} className="w-12 h-12 rounded-full object-cover shadow-lg shrink-0 transition-transform group-hover:scale-105 bg-white" />
+          ) : (
+            <span className="w-12 h-12 rounded-full text-white flex items-center justify-center shadow-lg shrink-0 transition-transform group-hover:scale-105" style={{ background: it.bg }}>{glyph(it.name)}</span>
+          )}
           <span className="max-w-0 overflow-hidden group-hover:max-w-[180px] transition-all duration-300">
-            <span className="whitespace-nowrap text-xs font-semibold bg-slate-900 text-white rounded-full px-3 py-1.5 inline-block">{it.label}</span>
+            <span className="whitespace-nowrap text-xs font-semibold bg-slate-900 text-white rounded-full px-3 py-1.5 inline-block">{it.name}</span>
           </span>
         </a>
       ))}
