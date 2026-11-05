@@ -24,7 +24,7 @@ export async function SiteHeader() {
           <span className="font-extrabold text-lg text-slate-900 hidden min-[420px]:inline">{s.site_name}</span>
         </Link>
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-          <Link href="/dich-vu" className="hover:text-brand-600">Dịch vụ SMM</Link>
+          <Link href="/dich-vu" className="hover:text-brand-600">Bảng giá</Link>
           <Link href="/premium" className="hover:text-brand-600">Tài khoản Premium</Link>
           <Link href="/api-docs" className="hover:text-brand-600">API đại lý</Link>
         </nav>
@@ -71,7 +71,7 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
         { href: `/cua-hang/${panel.slug}/tai-lieu-api`, label: "Tài liệu API" },
       ]
     : [
-        { href: "/dich-vu", label: "Dịch vụ" },
+        { href: "/dich-vu", label: "Bảng giá" },
         { href: "/premium", label: "Premium" },
         { href: "/bai-viet", label: "Bài viết" },
         { href: "/api-docs", label: "Tài liệu API" },

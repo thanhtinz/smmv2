@@ -32,7 +32,7 @@ type Item = { href: string; label: string; icon: React.ReactNode; center?: boole
 const VARIANTS: Record<string, Item[]> = {
   site: [
     { href: "/", label: "Trang chủ", icon: ICONS.home, exact: true },
-    { href: "/dich-vu", label: "Dịch vụ", icon: ICONS.grid },
+    { href: "/dich-vu", label: "Bảng giá", icon: ICONS.grid },
     { href: "/dich-vu", label: "Đặt đơn", icon: ICONS.plus, center: true },
     { href: "/premium", label: "Premium", icon: ICONS.gem },
     { href: "/login", label: "Tài khoản", icon: ICONS.user },
