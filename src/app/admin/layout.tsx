@@ -5,8 +5,8 @@ import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { DisplaySettings } from "@/components/display";
 import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
+import AdminRealtime from "@/components/admin-realtime";
 import TabBar from "@/components/tabbar";
-import { I } from "@/components/ui";
 import { prisma } from "@/lib/db";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -60,6 +60,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/lien-he", label: "Liên hệ", icon: "megaphone", adminOnly: true },
     { href: "/admin/nguoi-dung", label: "Người dùng", icon: "users", adminOnly: true },
     { href: "/admin/phan-tich", label: "Phân tích", icon: "chart", adminOnly: true },
+    { href: "/admin/bao-cao", label: "Báo cáo & Thông báo", icon: "bell", adminOnly: true },
     { href: "/admin/rui-ro", label: "Phát hiện rủi ro", icon: "shield", adminOnly: true },
     { href: "/admin/panel-con", label: "Panel con", icon: "panels", adminOnly: true },
     { href: "/admin/ticket", label: "Ticket", icon: "ticket", badge: ticketOpen },
@@ -102,10 +103,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               </div>
             </form>
             <div className="ml-auto flex items-center gap-2.5">
-              <Link href="/admin/ticket" className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700" title="Ticket đang mở">
-                {I.bell}
-                {ticketOpen > 0 && <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-rose-500 px-1 text-center text-[10px] font-bold leading-[18px] text-white">{ticketOpen}</span>}
-              </Link>
+              <AdminRealtime endpoint="/api/admin/realtime" suffix="mother" />
               <DisplaySettings />
               <Link href="/" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Xem website</Link>
               <span className="hidden items-center gap-2 rounded-full bg-slate-100 py-1 pl-1 pr-3 sm:flex">

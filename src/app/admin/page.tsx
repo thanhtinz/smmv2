@@ -189,7 +189,7 @@ export default async function AdminHome() {
           {buckets.map((b) => (
             <div key={b.label} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
               <div className="w-full truncate text-center text-[10px] text-slate-400">{b.value ? vnd(b.value) : ""}</div>
-              <div className="w-full rounded-t-md bg-brand-500/85" style={{ height: `${Math.max(3, (b.value / maxBar) * 90)}px` }} />
+              <div className="w-full rounded-t-md bg-gradient-to-t from-brand-600 to-brand-400" style={{ height: `${Math.max(3, (b.value / maxBar) * 90)}px` }} />
               <div className="text-[10px] text-slate-500">{b.label}</div>
             </div>
           ))}

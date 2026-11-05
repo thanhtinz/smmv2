@@ -513,6 +513,17 @@ model ChildPanel {
   smtpSecure      Boolean @default(false)
   telegramBotToken String? @db.VarChar(120)
   telegramChatId   String? @db.VarChar(60)
+  // Báo tin & báo cáo của panel (chủ panel tự cấu hình, bật/tắt từng kênh)
+  alertTelegram  Boolean @default(true) // gửi báo tin qua Telegram của panel
+  alertDiscord   Boolean @default(false)
+  discordWebhook String? @db.VarChar(300)
+  alertEmailOn   Boolean @default(false)
+  alertEmail     String? @db.VarChar(160) // email nhận báo tin của chủ panel
+  alertEvents    String? @db.VarChar(200) // danh sách sự kiện bật, cách nhau dấu phẩy; trống = tất cả
+  reportDaily    Boolean @default(false) // gửi báo cáo ngày tự động
+  reportTime     String? @db.VarChar(5) // giờ gửi báo cáo ngày "HH:MM"
+  reportChannels String? @db.VarChar(60) // kênh gửi báo cáo: email,telegram,discord
+  reportLastSent String? @db.VarChar(10) // ngày đã gửi báo cáo gần nhất (yyyy-mm-dd)
   googleClientId     String? @db.VarChar(200)
   // Công tắc bán hàng của panel: bán mảng nào thì bật mảng đó
   sellSmm     Boolean @default(true)

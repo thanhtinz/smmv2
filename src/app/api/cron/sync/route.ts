@@ -51,6 +51,30 @@ export async function GET(req: NextRequest) {
     }
   } catch {}
 
+  // Cảnh báo số dư nhà cung cấp thấp (mỗi nhà cung cấp tối đa 1 lần/ngày)
+  try {
+    const { alertMother } = await import("@/lib/alerts");
+    const { getSettings, setSetting } = await import("@/lib/settings");
+    const st = await getSettings();
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const lowProviders = await prisma.provider.findMany({ where: { active: true } });
+    for (const p of lowProviders) {
+      const threshold = p.minBalanceAlert || 200000;
+      if (p.balanceCache > 0 && p.balanceCache < threshold && st[`lb_alert_${p.id}`] !== todayKey) {
+        await alertMother("low_balance", "Số dư nhà cung cấp sắp hết", `${p.name} còn ${p.balanceCache.toLocaleString("vi-VN")}đ (ngưỡng cảnh báo ${threshold.toLocaleString("vi-VN")}đ)`);
+        await setSetting(`lb_alert_${p.id}`, todayKey);
+      }
+    }
+  } catch {}
+
+  // Báo cáo ngày tự động (đến giờ cấu hình thì gửi qua Email/Telegram/Discord)
+  try {
+    const { maybeSendDailyReports } = await import("@/lib/report");
+    result.dailyReports = await maybeSendDailyReports();
+  } catch (e: any) {
+    result.dailyReportsError = String(e?.message || e);
+  }
+
   // Auto Refill: tự gửi bảo hành cho đơn đã hoàn thành thuộc dịch vụ bật auto-refill
   try {
     result.autoRefill = await processAutoRefills(20);

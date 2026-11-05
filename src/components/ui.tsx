@@ -7,35 +7,54 @@ export function Badge({ children, cls }: { children: ReactNode; cls: string }) {
 export function PageHead({ title, desc, children }: { title: string; desc?: string; children?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-        {desc && <p className="text-sm text-slate-500 mt-1">{desc}</p>}
+      <div className="flex items-start gap-3">
+        <span className="mt-1 hidden h-10 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-brand-500 via-violet-500 to-fuchsia-500 sm:block" />
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+          {desc && <p className="text-sm text-slate-500 mt-1">{desc}</p>}
+        </div>
       </div>
       {children}
     </div>
   );
 }
-const STAT_TONES: Record<string, string> = {
-  brand: "bg-brand-50 text-brand-600",
-  blue: "bg-blue-50 text-blue-600",
-  emerald: "bg-emerald-50 text-emerald-600",
-  rose: "bg-rose-50 text-rose-600",
-  orange: "bg-orange-50 text-orange-600",
-  violet: "bg-violet-50 text-violet-600",
-  cyan: "bg-cyan-50 text-cyan-600",
-  amber: "bg-amber-50 text-amber-600",
+const STAT_TONES: Record<string, { tile: string; bar: string }> = {
+  brand: { tile: "bg-gradient-to-br from-brand-500 to-brand-700 shadow-brand-500/30", bar: "from-brand-500 to-brand-300" },
+  blue: { tile: "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/30", bar: "from-blue-500 to-sky-300" },
+  emerald: { tile: "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30", bar: "from-emerald-500 to-teal-300" },
+  rose: { tile: "bg-gradient-to-br from-rose-500 to-pink-600 shadow-rose-500/30", bar: "from-rose-500 to-pink-300" },
+  orange: { tile: "bg-gradient-to-br from-orange-500 to-amber-600 shadow-orange-500/30", bar: "from-orange-500 to-amber-300" },
+  violet: { tile: "bg-gradient-to-br from-violet-500 to-purple-700 shadow-violet-500/30", bar: "from-violet-500 to-purple-300" },
+  cyan: { tile: "bg-gradient-to-br from-cyan-500 to-sky-600 shadow-cyan-500/30", bar: "from-cyan-500 to-sky-300" },
+  amber: { tile: "bg-gradient-to-br from-amber-500 to-yellow-600 shadow-amber-500/30", bar: "from-amber-500 to-yellow-300" },
 };
 export function Stat({ label, value, sub, icon, tone = "brand" }: { label: string; value: string; sub?: ReactNode; icon: ReactNode; tone?: string }) {
+  const t = STAT_TONES[tone] || STAT_TONES.brand;
   return (
-    <div className="card p-5 flex items-start gap-4">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${STAT_TONES[tone] || STAT_TONES.brand}`}>{icon}</div>
-      <div className="min-w-0">
-        <div className="text-xs font-medium text-slate-500">{label}</div>
-        <div className="text-xl font-bold text-slate-900 truncate">{value}</div>
-        {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
+    <div className="card relative overflow-hidden p-5">
+      <span className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${t.bar}`} />
+      <div className="flex items-start gap-4">
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-lg ${t.tile}`}>{icon}</div>
+        <div className="min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+          <div className="truncate text-xl font-extrabold text-slate-900">{value}</div>
+          {sub && <div className="mt-0.5 text-xs text-slate-400">{sub}</div>}
+        </div>
       </div>
     </div>
   );
+}
+
+/** Huy hiệu hạng 1/2/3 cho các bảng xếp hạng (vàng / bạc / đồng). */
+export function RankBadge({ rank }: { rank: number }) {
+  const cls = rank === 1
+    ? "bg-gradient-to-br from-amber-400 to-yellow-600 text-white shadow-amber-500/40"
+    : rank === 2
+      ? "bg-gradient-to-br from-slate-300 to-slate-500 text-white shadow-slate-400/40"
+      : rank === 3
+        ? "bg-gradient-to-br from-orange-400 to-amber-700 text-white shadow-orange-500/40"
+        : "bg-slate-100 text-slate-500 shadow-none";
+  return <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-extrabold shadow-md ${cls}`}>{rank}</span>;
 }
 export function Empty({ text }: { text: string }) {
   return <div className="card p-10 text-center text-sm text-slate-400">{text}</div>;

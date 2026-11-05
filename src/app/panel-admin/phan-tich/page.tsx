@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { PageHead, Flash, Stat, I } from "@/components/ui";
+import { PageHead, Flash, Stat, I, RankBadge } from "@/components/ui";
 import { vnd, num } from "@/lib/format";
+import { getStats } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export default async function PanelAnalyticsPage({ searchParams }: { searchParam
   const orderedMembers = new Set(topCustomers.map((t) => t.userId)).size;
   void orderedMembers;
   const orderedCount = await prisma.smmOrder.groupBy({ by: ["userId"], where: { panelId: panel.id } });
+  const full = await getStats({ panelId: panel.id });
   return (
     <div>
       <PageHead title="Phân tích panel" desc="Số liệu 30 ngày gần nhất, chỉ tính trên gian hàng của bạn." />
@@ -56,7 +58,7 @@ export default async function PanelAnalyticsPage({ searchParams }: { searchParam
           {days.map((d) => (
             <div key={d.label} className="flex h-full flex-1 flex-col">
               <div className="flex flex-1 items-end">
-                <div className="w-full rounded-t bg-brand-500/80 transition hover:bg-brand-600" style={{ height: `${Math.max(2, (d.value / maxDay) * 100)}%` }} title={`${d.label}: ${vnd(d.value)}`} />
+                <div className="w-full rounded-t bg-gradient-to-t from-brand-600 to-brand-400 transition hover:from-brand-700 hover:to-brand-500" style={{ height: `${Math.max(2, (d.value / maxDay) * 100)}%` }} title={`${d.label}: ${vnd(d.value)}`} />
               </div>
               <div className="mt-1.5 hidden text-center text-[10px] text-slate-400 md:block">{d.label}</div>
             </div>
@@ -87,6 +89,23 @@ export default async function PanelAnalyticsPage({ searchParams }: { searchParam
             ))}
             {topCustomers.length === 0 && <p className="py-3 text-sm text-slate-400">Chưa có dữ liệu.</p>}
           </div>
+        </div>
+      </div>
+
+      <div className="card mt-6 overflow-hidden">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white">{I.gem}</span>
+          <span className="font-bold text-slate-900">Premium bán chạy qua panel — 30 ngày</span>
+        </div>
+        <div className="grid grid-cols-1 gap-x-8 px-5 md:grid-cols-2">
+          {full.bestPremium.map((b, i) => (
+            <div key={b.name} className="flex items-center gap-3 border-b border-slate-50 py-3">
+              <RankBadge rank={i + 1} />
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{b.name}</span>
+              <span className="shrink-0 text-sm"><b className="text-slate-900">{vnd(b.revenue)}</b> <span className="text-slate-400">· {num(b.quantity)} gói</span></span>
+            </div>
+          ))}
+          {full.bestPremium.length === 0 && <p className="py-5 text-sm text-slate-400">Chưa có đơn Premium nào qua panel trong 30 ngày.</p>}
         </div>
       </div>
     </div>

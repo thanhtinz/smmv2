@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { PageHead, Stat, I } from "@/components/ui";
-import { vnd, num } from "@/lib/format";
+import { PageHead, Stat, I, RankBadge, Badge } from "@/components/ui";
+import { vnd, num, LEVEL_NAME } from "@/lib/format";
+import { getStats } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export default async function AdminAnalytics() {
       prisma.smmOrder.groupBy({ by: ["userId"], where: { status: notRefunded } }).then((r) => r.length),
     ]),
   ]);
+  const full = await getStats({});
   const serviceRows = await prisma.smmService.findMany({ where: { id: { in: topServices.map((t) => t.serviceId) } }, select: { id: true, name: true } });
   const serviceName = new Map(serviceRows.map((x) => [x.id, x.name]));
   const userRows = await prisma.user.findMany({ where: { id: { in: topCustomers.map((t) => t.userId) } }, select: { id: true, username: true } });
@@ -46,7 +48,13 @@ export default async function AdminAnalytics() {
 
   return (
     <div>
-      <PageHead title="Phân tích" desc="Doanh thu, lợi nhuận và hành vi khách hàng trong 30 ngày gần nhất (đơn SMM)." />
+      <PageHead title="Phân tích" desc="Thu nhập tổng (SMM + Premium), mặt hàng bán chạy, top khách và hành vi khách hàng." />
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat label="Thu nhập hôm nay" value={vnd(full.today.revenue)} sub={`Lãi ${vnd(full.today.profit)} · ${num(full.today.orders)} đơn`} icon={I.money} tone="blue" />
+        <Stat label="Thu nhập 7 ngày" value={vnd(full.last7.revenue)} sub={`Lãi ${vnd(full.last7.profit)} · ${num(full.last7.orders)} đơn`} icon={I.chart} tone="cyan" />
+        <Stat label="Thu nhập 30 ngày" value={vnd(full.last30.revenue)} sub={`Lãi ${vnd(full.last30.profit)} · ${num(full.last30.orders)} đơn`} icon={I.chart} tone="violet" />
+        <Stat label="Thu nhập tháng này" value={vnd(full.month.revenue)} sub={`Lãi ${vnd(full.month.profit)} · Nạp ${vnd(full.month.deposits)}`} icon={I.wallet} tone="emerald" />
+      </div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat label="Doanh thu SMM 30 ngày" value={vnd(monthRev)} icon={I.chart} tone="blue" />
         <Stat label="Lợi nhuận SMM 30 ngày" value={vnd(monthProfit)} icon={I.money} tone="emerald" sub={monthRev > 0 ? `Biên lợi nhuận ${Math.round((monthProfit / monthRev) * 100)}%` : undefined} />
@@ -58,7 +66,7 @@ export default async function AdminAnalytics() {
         <div className="flex h-40 items-end gap-1">
           {buckets.map((b) => (
             <div key={b.label} className="group flex min-w-0 flex-1 flex-col items-center gap-1.5" title={`${b.label}: ${vnd(b.rev)}`}>
-              <div className="w-full rounded-t bg-brand-500/85 transition group-hover:bg-brand-600" style={{ height: `${Math.max(2, (b.rev / maxBar) * 120)}px` }} />
+              <div className="w-full rounded-t bg-gradient-to-t from-brand-600 to-brand-400 transition group-hover:from-brand-700 group-hover:to-brand-500" style={{ height: `${Math.max(2, (b.rev / maxBar) * 120)}px` }} />
               <div className="hidden text-[9px] text-slate-400 xl:block">{b.label}</div>
             </div>
           ))}
@@ -113,10 +121,48 @@ export default async function AdminAnalytics() {
               ].map((f, i, arr) => (
                 <div key={f.label}>
                   <div className="mb-1 flex justify-between text-sm"><span className="text-slate-600">{f.label}</span><b>{num(f.value)}</b></div>
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-brand-500" style={{ width: `${arr[0].value ? Math.round((f.value / arr[0].value) * 100) : 0}%` }} /></div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-brand-400" style={{ width: `${arr[0].value ? Math.round((f.value / arr[0].value) * 100) : 0}%` }} /></div>
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+        <div className="card overflow-hidden">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white">{I.gem}</span>
+            <span className="font-bold text-slate-900">Premium bán chạy — 30 ngày</span>
+          </div>
+          <div className="divide-y divide-slate-50 px-5">
+            {full.bestPremium.map((b, i) => (
+              <div key={b.name} className="flex items-center gap-3 py-3">
+                <RankBadge rank={i + 1} />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{b.name}</span>
+                <span className="shrink-0 text-sm"><b className="text-slate-900">{vnd(b.revenue)}</b> <span className="text-slate-400">· {num(b.quantity)} gói</span></span>
+              </div>
+            ))}
+            {full.bestPremium.length === 0 && <p className="py-5 text-sm text-slate-400">Chưa có đơn Premium nào trong 30 ngày.</p>}
+          </div>
+        </div>
+        <div className="card overflow-hidden">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white">{I.users}</span>
+            <span className="font-bold text-slate-900">Top khách chi tiêu — SMM + Premium</span>
+          </div>
+          <div className="divide-y divide-slate-50 px-5">
+            {full.topUsers.map((u, i) => (
+              <div key={u.id} className="flex items-center gap-3 py-3">
+                <RankBadge rank={i + 1} />
+                <span className="flex min-w-0 flex-1 items-center gap-2">
+                  <Link href={`/admin/nguoi-dung/${u.id}`} className="truncate text-sm font-semibold text-slate-800 hover:text-brand-700">{u.username}</Link>
+                  <Badge cls={u.level === "VIP" ? "bg-amber-100 text-amber-800" : u.level === "AGENCY" ? "bg-violet-100 text-violet-800" : u.level === "RESELLER" ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-600"}>{LEVEL_NAME[u.level] || u.level}</Badge>
+                </span>
+                <span className="shrink-0 text-sm"><b className="text-slate-900">{vnd(u.spend)}</b> <span className="text-slate-400">· {num(u.orders)} đơn</span></span>
+              </div>
+            ))}
+            {full.topUsers.length === 0 && <p className="py-5 text-sm text-slate-400">Chưa có dữ liệu khách.</p>}
           </div>
         </div>
       </div>

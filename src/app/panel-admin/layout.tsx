@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/actions/auth";
 import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
+import AdminRealtime from "@/components/admin-realtime";
 import { DisplaySettings } from "@/components/display";
 import TabBar from "@/components/tabbar";
 import { prisma } from "@/lib/db";
@@ -28,6 +29,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
   const entries: AdminNavEntry[] = [
     { href: "/panel-admin", label: "Tổng quan", icon: "home" },
     { href: "/panel-admin/phan-tich", label: "Phân tích", icon: "chart" },
+    { href: "/panel-admin/bao-cao", label: "Báo cáo & Thông báo", icon: "bell" },
     {
       group: "Bán hàng", icon: "cart",
       children: [
@@ -74,6 +76,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
               </div>
             </form>
             <div className="ml-auto flex items-center gap-2.5">
+              <AdminRealtime endpoint="/api/panel-admin/realtime" suffix={`panel-${panel.id}`} />
               <DisplaySettings />
               <Link href={`/cua-hang/${panel.slug}`} className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Xem gian hàng</Link>
               <Link href="/dashboard" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Khu khách hàng</Link>

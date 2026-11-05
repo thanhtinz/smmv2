@@ -5,7 +5,7 @@ import { checkPromo, consumePromo } from "./promo";
 import { levelDiscountFromSettings } from "./settings";
 import { getSettings } from "./settings";
 import { orderEvent, orderTransition, notifyUser } from "./notify";
-import { notifyPanelTelegram } from "./telegram";
+import { alertMother, alertPanelOwner } from "./alerts";
 import {
   providerAddOrder, providerOrderStatus, providerRefill, mapProviderStatus,
   providerBuyProduct, findPremiumOrderInHistory, extractDelivery,
@@ -200,7 +200,12 @@ export async function createSmmOrder(input: {
     return { ...o, code, charge: finalCharge };
   });
   await orderEvent(order.id, "PENDING", flagNote ? `Đã tạo đơn · Cờ: ${flagNote}` : "Đã tạo đơn");
-  if (panel) void notifyPanelTelegram(panel.id, `Đơn SMM mới ${order.code} qua gian hàng ${panel.name}: ${service.name} — ${finalCharge.toLocaleString("vi-VN")}đ`);
+  void alertMother("smm_order", `Đơn SMM mới ${order.code}`, `${input.user.username} đặt ${service.name} — ${finalCharge.toLocaleString("vi-VN")}đ`);
+  if (flagNote) void alertMother("risk", `Đơn rủi ro ${order.code}`, flagNote);
+  if (panel) {
+    void alertPanelOwner(panel.id, "smm_order", `Đơn SMM mới ${order.code}`, `Qua gian hàng ${panel.name}: ${service.name} — ${finalCharge.toLocaleString("vi-VN")}đ`);
+    if (flagNote) void alertPanelOwner(panel.id, "risk", `Đơn rủi ro ${order.code}`, flagNote);
+  }
 
   // Đẩy qua provider nếu là đơn API — lỗi thì giữ PENDING để admin xử lý / cron thử lại, KHÔNG mất tiền khách vô ích:
   // nếu provider từ chối dứt khoát, hoàn tiền ngay.
@@ -521,7 +526,8 @@ export async function createPremiumOrder(input: {
     }
     return { ...o, code };
   });
-  if (panel) void notifyPanelTelegram(panel.id, `Đơn Premium mới ${created.code} qua gian hàng ${panel.name}: ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
+  void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
+  if (panel) void alertPanelOwner(panel.id, "premium_order", `Đơn Premium mới ${created.code}`, `Qua gian hàng ${panel.name}: ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
 
   // Đấu API mua sản phẩm (kiểu ThaTim): gọi action=buy cho từng đơn vị
   if (variant.product.fulfillment === "API") {

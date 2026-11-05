@@ -465,3 +465,70 @@ export async function panelSaveConfigAction(formData: FormData) {
   }
   back("/panel-admin/cau-hinh", "err", "Mục cấu hình không hợp lệ");
 }
+
+/* ---------- Báo tin & báo cáo của panel (Email / Telegram / Discord) ---------- */
+const REPORT_PAGE = "/panel-admin/bao-cao";
+
+export async function panelSaveAlertsAction(formData: FormData) {
+  const { panel } = await ownPanel(REPORT_PAGE);
+  const events = formData.getAll("ev").map(String).filter(Boolean);
+  const channels = formData.getAll("rch").map(String).filter(Boolean);
+  const keep = (v: string, old: string | null) => (v.includes("•") ? old : v || null);
+  await prisma.childPanel.update({
+    where: { id: panel.id },
+    data: {
+      alertTelegram: formData.get("alertTelegram") === "on",
+      telegramBotToken: keep(str(formData, "telegramBotToken"), panel.telegramBotToken),
+      telegramChatId: str(formData, "telegramChatId") || null,
+      alertDiscord: formData.get("alertDiscord") === "on",
+      discordWebhook: str(formData, "discordWebhook") || null,
+      alertEmailOn: formData.get("alertEmailOn") === "on",
+      alertEmail: str(formData, "alertEmail") || null,
+      alertEvents: events.join(","),
+      reportDaily: formData.get("reportDaily") === "on",
+      reportTime: str(formData, "reportTime") || "21:00",
+      reportChannels: channels.join(",") || "telegram",
+    },
+  });
+  done(REPORT_PAGE, "Đã lưu cấu hình báo tin & báo cáo của panel");
+}
+
+export async function panelTestChannelAction(formData: FormData) {
+  const { panel } = await ownPanel(REPORT_PAGE);
+  const channel = str(formData, "channel");
+  const { sendDiscord, sendTelegramTo, alertEmailHtml } = await import("@/lib/alerts");
+  const text = `Tin nhắn thử từ gian hàng ${panel.name} — kênh báo tin của bạn đã hoạt động.`;
+  try {
+    if (channel === "telegram") {
+      if (!panel.telegramBotToken || !panel.telegramChatId) back(REPORT_PAGE, "err", "Panel chưa có Bot Token / Chat ID — điền và Lưu trước khi gửi thử");
+      await sendTelegramTo(panel.telegramBotToken!, panel.telegramChatId!, text);
+    } else if (channel === "discord") {
+      if (!panel.discordWebhook) back(REPORT_PAGE, "err", "Panel chưa có Discord Webhook — điền và Lưu trước khi gửi thử");
+      await sendDiscord(panel.discordWebhook!, text);
+    } else if (channel === "email") {
+      if (!panel.alertEmail) back(REPORT_PAGE, "err", "Panel chưa nhập email nhận — điền và Lưu trước khi gửi thử");
+      const override = panel.smtpHost && panel.smtpUser && panel.smtpFrom
+        ? { host: panel.smtpHost, port: panel.smtpPort, user: panel.smtpUser, pass: panel.smtpPass, from: panel.smtpFrom, secure: panel.smtpSecure }
+        : null;
+      await sendMail([panel.alertEmail!], "Tin nhắn thử — gian hàng của bạn", alertEmailHtml("Tin nhắn thử", text), override);
+    } else {
+      back(REPORT_PAGE, "err", "Kênh không hợp lệ");
+    }
+    done(REPORT_PAGE, `Đã gửi tin thử qua ${channel} — kiểm tra nơi nhận nhé`);
+  } catch (e: any) {
+    back(REPORT_PAGE, "err", `Gửi thử thất bại: ${String(e?.message || e)}`);
+  }
+}
+
+export async function panelSendReportNowAction() {
+  const { panel } = await ownPanel(REPORT_PAGE);
+  const { sendReport } = await import("@/lib/report");
+  const channels = (panel.reportChannels || "telegram").split(",").map((x) => x.trim()).filter(Boolean) as any[];
+  if (!channels.length) back(REPORT_PAGE, "err", "Chưa chọn kênh gửi báo cáo nào");
+  const results = await sendReport({ panelId: panel.id }, channels);
+  const ok = results.filter((r) => r.ok);
+  const fail = results.filter((r) => !r.ok);
+  if (ok.length && !fail.length) done(REPORT_PAGE, `Đã gửi báo cáo qua: ${ok.map((r) => r.channel).join(", ")}`);
+  if (ok.length && fail.length) done(REPORT_PAGE, `Đã gửi qua ${ok.map((r) => r.channel).join(", ")}; lỗi: ${fail.map((r) => `${r.channel} (${r.note})`).join("; ")}`);
+  back(REPORT_PAGE, "err", `Gửi báo cáo thất bại: ${fail.map((r) => `${r.channel} (${r.note})`).join("; ")}`);
+}

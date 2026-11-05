@@ -271,7 +271,13 @@ export async function createDepositAction(formData: FormData) {
   const dep = await prisma.deposit.create({
     data: { code: "TMP", userId: user.id, method, amount, bonus, status: "PENDING", content: `SMM ${user.depositCode}` },
   });
-  await prisma.deposit.update({ where: { id: dep.id }, data: { code: genCode("NAP", dep.id) } });
+  const depCode = genCode("NAP", dep.id);
+  await prisma.deposit.update({ where: { id: dep.id }, data: { code: depCode } });
+  void (async () => {
+    const { alertMother, alertPanelOwner } = await import("@/lib/alerts");
+    await alertMother("deposit_pending", `Yêu cầu nạp chờ duyệt ${depCode}`, `${user.username} · ${method} · ${amount.toLocaleString("vi-VN")}đ`);
+    if (user.panelId) await alertPanelOwner(user.panelId, "deposit_pending", `Yêu cầu nạp chờ duyệt ${depCode}`, `${user.username} · ${method} · ${amount.toLocaleString("vi-VN")}đ`);
+  })();
   back(
     "/dashboard/nap-tien",
     "msg",
@@ -287,11 +293,14 @@ export async function createTicketAction(formData: FormData) {
   const category = String(formData.get("category") || "other");
   const body = String(formData.get("body") || "").trim();
   if (!subject || !body) back("/dashboard/ticket", "err", "Nhập đủ tiêu đề và nội dung");
-  const { notifyTelegram } = await import("@/lib/telegram");
   const t = await prisma.ticket.create({
     data: { userId: user.id, subject, category, messages: { create: { body } } },
   });
-  await notifyTelegram(`Ticket mới #${t.id} từ ${user.username}: ${subject}`);
+  void (async () => {
+    const { alertMother, alertPanelOwner } = await import("@/lib/alerts");
+    await alertMother("ticket", `Ticket mới #${t.id}`, `${user.username}: ${subject}`);
+    if (user.panelId) await alertPanelOwner(user.panelId, "ticket", `Ticket mới #${t.id}`, `${user.username}: ${subject}`);
+  })();
   redirect(`/dashboard/ticket/${t.id}`);
 }
 
@@ -423,7 +432,9 @@ export async function createPanelBankDepositAction(formData: FormData) {
   const dep = await prisma.deposit.create({
     data: { code: "TMP", userId: user.id, method: "BANK", amount, bonus, status: "PENDING", content: `Chuyển khoản ngân hàng của shop ${panel.name} — chờ chủ shop duyệt` },
   });
-  await prisma.deposit.update({ where: { id: dep.id }, data: { code: genCode("NAP", dep.id) } });
+  const depCode2 = genCode("NAP", dep.id);
+  await prisma.deposit.update({ where: { id: dep.id }, data: { code: depCode2 } });
+  void (async () => { const { alertPanelOwner } = await import("@/lib/alerts"); await alertPanelOwner(panel.id, "deposit_pending", `Yêu cầu nạp chờ duyệt ${depCode2}`, `${user.username} · BANK · ${amount.toLocaleString("vi-VN")}đ — khách chuyển vào ngân hàng của panel`); })();
   back("/dashboard/nap-tien", "msg", "Đã gửi yêu cầu — chủ gian hàng sẽ duyệt và cộng tiền sau khi nhận được chuyển khoản");
 }
 
@@ -445,7 +456,14 @@ export async function createUsdtDepositAction(formData: FormData) {
     const dep = await prisma.deposit.create({
       data: { code: "TMP", userId: user.id, method: "USDT", amount, bonus, status: "PENDING", content: txHash, externalId: `usdt:${txHash.toLowerCase()}`, usdCents: Math.round(usdt * 100) },
     });
-    await prisma.deposit.update({ where: { id: dep.id }, data: { code: genCode("NAP", dep.id) } });
+    const depCode3 = genCode("NAP", dep.id);
+    await prisma.deposit.update({ where: { id: dep.id }, data: { code: depCode3 } });
+    void (async () => {
+      const { alertMother, alertPanelOwner } = await import("@/lib/alerts");
+      const msg = `${user.username} · USDT · ${amount.toLocaleString("vi-VN")}đ`;
+      if (panelUsdt) await alertPanelOwner(panelUsdt.id, "deposit_pending", `Yêu cầu nạp USDT chờ duyệt ${depCode3}`, msg);
+      else await alertMother("deposit_pending", `Yêu cầu nạp USDT chờ duyệt ${depCode3}`, msg);
+    })();
   } catch {
     back("/dashboard/nap-tien", "err", "Mã giao dịch này đã được khai báo trước đó");
   }

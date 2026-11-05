@@ -51,6 +51,7 @@ export async function registerAction(formData: FormData) {
       referredById: referrer?.id ?? null,
     },
   });
+  void (async () => { const { alertMother } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản`); })();
   await createSession({ id: user.id, role: user.role, username: user.username });
   redirect("/dashboard");
 }
@@ -87,6 +88,7 @@ export async function panelRegisterAction(formData: FormData) {
       panelId: panel.id,
     },
   });
+  void (async () => { const { alertMother, alertPanelOwner } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản qua panel ${panel.name}`); await alertPanelOwner(panel.id, "new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản tại gian hàng của bạn`); })();
   await createSession({ id: user.id, role: user.role, username: user.username });
   redirect("/dashboard");
 }

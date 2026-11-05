@@ -57,6 +57,17 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   telegram_bot_token: "",
   telegram_chat_id: "",
   telegram_notify: "0",
+  // Báo tin & báo cáo đa kênh cho admin (Email / Discord + sự kiện + báo cáo ngày)
+  alert_email_enabled: "0",
+  alert_email_to: "",
+  alert_discord_enabled: "0",
+  alert_discord_webhook: "",
+  alert_events: "",
+  report_daily_enabled: "0",
+  report_time: "21:00",
+  report_channels: "telegram",
+  report_email_to: "",
+  report_last_sent: "",
   // Script tuỳ chỉnh chèn vào trang (kiểu panel mẫu)
   custom_head_html: "",
   custom_body_html: "",

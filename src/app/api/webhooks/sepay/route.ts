@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Tìm mã nạp trong nội dung: mã 6 ký tự sau "SMM" hoặc đứng một mình
-  const users = await prisma.user.findMany({ select: { id: true, depositCode: true } });
+  const users = await prisma.user.findMany({ select: { id: true, depositCode: true, panelId: true } });
   const norm = content.toUpperCase().replace(/[^A-Z0-9]/g, "");
   const matched = users.find((u) => norm.includes(u.depositCode.toUpperCase()));
   if (!matched) {
@@ -57,7 +57,8 @@ export async function POST(req: NextRequest) {
     return { ...d, code };
   });
   await prisma.apiLog.create({ data: { kind: "webhook", ref: txId || dep.code, detail: `user=${matched.id} amount=${amount} bonus=${bonus} deposit=${dep.code}` } });
-  const { notifyTelegram } = await import("@/lib/telegram");
-  await notifyTelegram(`Nạp tiền thành công: +${amount.toLocaleString("vi-VN")}đ${bonus > 0 ? ` (+${bonus.toLocaleString("vi-VN")}đ thưởng)` : ""} — khách #${matched.id}, mã ${dep.code}`);
+  const { alertMother, alertPanelOwner } = await import("@/lib/alerts");
+  await alertMother("deposit_success", "Nạp tiền thành công", `+${amount.toLocaleString("vi-VN")}đ${bonus > 0 ? ` (+${bonus.toLocaleString("vi-VN")}đ thưởng)` : ""} — khách #${matched.id}, mã ${dep.code}`);
+  if (matched.panelId) await alertPanelOwner(matched.panelId, "deposit_success", "Khách của panel nạp tiền thành công", `+${amount.toLocaleString("vi-VN")}đ — khách #${matched.id}, mã ${dep.code}`);
   return NextResponse.json({ success: true, deposit: dep.code });
 }
