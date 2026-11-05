@@ -30,7 +30,7 @@ export async function placeSmmOrderAction(formData: FormData) {
   if (minutes > 0) extra.minutes = minutes;
   try {
     const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-    const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, note, extra, dripfeed, promoCode: String(formData.get("promoCode") || "") || undefined });
+    const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, note, extra, dripfeed, promoCode: String(formData.get("promoCode") || "") || undefined, campaignId: parseInt(String(formData.get("campaignId") || "0")) || undefined });
     back("/dashboard/don-hang", "msg", `Đặt đơn ${order.code} thành công — trạng thái: ${order.status === "REFUNDED" ? "provider từ chối, đã hoàn tiền" : "đang xử lý"}`);
   } catch (e: any) {
     back("/dashboard/dat-hang", "err", String(e?.message || "Đặt đơn thất bại"));

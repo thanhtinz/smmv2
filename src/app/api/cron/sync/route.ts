@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { syncSmmOrderStatus, syncPremiumOrderStatus, processDripfeedOrders, processAutoRefills } from "@/lib/orders";
 import { syncProviderServices, syncProviderPremium, providerBalance } from "@/lib/provider";
+import { processSubscriptions } from "@/lib/subscriptions";
 
 /**
  * Cron đồng bộ (gọi mỗi 5-10 phút bởi crontab / Vercel Cron):
@@ -26,6 +27,13 @@ export async function GET(req: NextRequest) {
     result.dripfeed = await processDripfeedOrders(10);
   } catch (e: any) {
     result.dripfeedError = String(e?.message || e);
+  }
+
+  // Đăng ký định kỳ: đặt đơn tự động cho các gói đến hạn
+  try {
+    result.subscriptions = await processSubscriptions(20);
+  } catch (e: any) {
+    result.subscriptionsError = String(e?.message || e);
   }
 
   // Service Health Monitor: kiểm tra số dư/kết nối mọi provider đang bật; lỗi thì ghi log cảnh báo

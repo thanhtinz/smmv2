@@ -55,6 +55,8 @@ model User {
 
   smmOrders     SmmOrder[]
   premiumOrders PremiumOrder[]
+  campaigns     Campaign[]
+  subscriptions Subscription[]
   deposits      Deposit[]
   transactions  Transaction[]
   tickets       Ticket[]
@@ -148,6 +150,7 @@ model SmmService {
   sort             Int         @default(0)
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+  subscriptions    Subscription[]
 
   orders SmmOrder[]
   panelPrices PanelServicePrice[]
@@ -175,6 +178,10 @@ model SmmOrder {
   providerOrderId String?       @db.VarChar(50)
   viaApi         Boolean        @default(false) // đặt qua API reseller
   panelId        Int? // đơn đặt qua panel con — chủ panel hưởng commission
+  campaignId     Int?
+  campaign       Campaign?  @relation(fields: [campaignId], references: [id])
+  subscriptionId Int?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
   panel          ChildPanel?    @relation(fields: [panelId], references: [id])
   commission     Int            @default(0) // hoa hồng đã trả cho chủ panel (VND)
   params         String?        @db.Text // JSON tham số phụ kiểu ThaTim: comments, reaction, minutes, duration, posts
@@ -563,4 +570,42 @@ model IpBan {
   ip        String   @unique @db.VarChar(64)
   reason    String?  @db.VarChar(255)
   createdAt DateTime @default(now())
+}
+
+
+// Đăng ký định kỳ (Smart Subscription): hệ thống tự đặt đơn theo lịch của khách
+model Subscription {
+  id            Int        @id @default(autoincrement())
+  userId        Int
+  user          User       @relation(fields: [userId], references: [id])
+  serviceId     Int
+  service       SmmService @relation(fields: [serviceId], references: [id])
+  link          String     @db.VarChar(500)
+  quantity      Int
+  intervalDays  Int        @default(1) // cách bao nhiêu ngày chạy 1 lần
+  dailyBudget   Int        @default(0) // trần chi cho các đơn định kỳ trong 1 ngày (0 = không giới hạn)
+  targetTotal   Int        @default(0) // tổng số lượng mục tiêu — đạt là tự tạm dừng (0 = không đặt)
+  deliveredQty  Int        @default(0) // tổng số lượng đã đặt qua gói này
+  runs          Int        @default(0)
+  active        Boolean    @default(true)
+  lastRunAt     DateTime?
+  nextRunAt     DateTime
+  lastError     String?    @db.VarChar(255)
+  createdAt     DateTime   @default(now())
+  orders        SmmOrder[]
+
+  @@index([active, nextRunAt])
+}
+
+// Chiến dịch (Campaign Manager): gom đơn theo chiến dịch + ngân sách
+model Campaign {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  user      User       @relation(fields: [userId], references: [id])
+  name      String     @db.VarChar(120)
+  budget    Int        @default(0) // ngân sách dự kiến (0 = không đặt)
+  note      String?    @db.VarChar(255)
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  orders    SmmOrder[]
 }

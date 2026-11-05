@@ -32,6 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/dich-vu", label: "Dịch vụ SMM", icon: "list", adminOnly: true } as any,
         { href: "/admin/nha-cung-cap", label: "Nhà cung cấp API", icon: "server", adminOnly: true } as any,
         { href: "/admin/cap-bac", label: "Cấp bậc", icon: "percent", adminOnly: true } as any,
+        { href: "/admin/gia-thong-minh", label: "Giá thông minh", icon: "money", adminOnly: true } as any,
       ],
     } as any,
     {
@@ -55,6 +56,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     } as any,
     { href: "/admin/email-marketing", label: "Email Marketing", icon: "mail", adminOnly: true },
     { href: "/admin/nguoi-dung", label: "Người dùng", icon: "users", adminOnly: true },
+    { href: "/admin/phan-tich", label: "Phân tích", icon: "chart", adminOnly: true },
+    { href: "/admin/rui-ro", label: "Phát hiện rủi ro", icon: "shield", adminOnly: true },
     { href: "/admin/panel-con", label: "Panel con", icon: "panels", adminOnly: true },
     { href: "/admin/ticket", label: "Ticket", icon: "ticket", badge: ticketOpen },
     { href: "/admin/thong-bao", label: "Thông báo", icon: "megaphone", adminOnly: true },

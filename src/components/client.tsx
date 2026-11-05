@@ -134,7 +134,7 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
 }
 
 /* ---------- Form đặt đơn SMM (chọn danh mục -> dịch vụ, tính tiền trực tiếp) ---------- */
-export function OrderForm({ services, categories, discount, preselect, action, balance, initialLink, initialQty }: {
+export function OrderForm({ services, categories, discount, preselect, action, balance, initialLink, initialQty, campaignId }: {
   services: ServiceDTO[];
   categories: { id: number; name: string; platform: string }[];
   discount: number;
@@ -143,6 +143,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
   balance?: number;
   initialLink?: string;
   initialQty?: number;
+  campaignId?: number;
 }) {
   const [catId, setCatId] = useState<number>(preselect ? services.find((s) => s.id === preselect)?.categoryId || categories[0]?.id : categories[0]?.id);
   const inCat = services.filter((s) => s.categoryId === catId);
@@ -173,6 +174,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
       <form action={action} className="card p-6 lg:col-span-3 space-y-4" id="order-form">
+        {campaignId ? <input type="hidden" name="campaignId" value={campaignId} /> : null}
         <input type="hidden" name="serviceId" value={service?.id || ""} />
         <div>
           <label className="lbl">Danh mục</label>

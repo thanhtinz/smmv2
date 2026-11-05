@@ -200,3 +200,33 @@ export async function sendMarketingEmailAction(formData: FormData) {
     back("/admin/email-marketing", "err", "Gửi thất bại: " + (e?.message || "lỗi SMTP"));
   }
 }
+
+/* ---------- Giá thông minh: chỉnh giá bán hàng loạt ---------- */
+export async function bulkPriceAction(formData: FormData) {
+  await requireAdmin();
+  const scope = str(formData, "scope"); // all | provider:<id> | category:<id> | manual
+  const mode = str(formData, "mode"); // markup | percent
+  const value = int(formData, "value");
+  const where: any = {};
+  if (scope.startsWith("provider:")) where.providerId = parseInt(scope.slice(9));
+  else if (scope.startsWith("category:")) where.categoryId = parseInt(scope.slice(9));
+  else if (scope === "manual") where.fulfillment = "MANUAL";
+  const services = await prisma.smmService.findMany({ where });
+  if (!services.length) back("/admin/gia-thong-minh", "err", "Không có dịch vụ nào trong phạm vi đã chọn");
+  let updated = 0;
+  for (const sv of services) {
+    let rate: number;
+    if (mode === "markup") {
+      if (sv.costRate <= 0) continue;
+      rate = Math.max(100, Math.round((sv.costRate * (100 + value)) / 100 / 10) * 10);
+    } else {
+      rate = Math.max(100, Math.round((sv.rate * (100 + value)) / 100 / 10) * 10);
+    }
+    if (rate !== sv.rate) {
+      await prisma.smmService.update({ where: { id: sv.id }, data: { rate } });
+      updated++;
+    }
+  }
+  await prisma.apiLog.create({ data: { kind: "bulk_price", ok: true, ref: scope, detail: `mode=${mode} value=${value} updated=${updated}/${services.length}` } });
+  done("/admin/gia-thong-minh", `Đã cập nhật giá cho ${updated}/${services.length} dịch vụ`);
+}

@@ -60,6 +60,8 @@ export async function createSmmOrder(input: {
   extra?: SmmExtraParams;
   dripfeed?: { runs: number; intervalMinutes: number };
   promoCode?: string;
+  campaignId?: number;
+  subscriptionId?: number;
 }) {
   const service = await prisma.smmService.findUnique({
     where: { id: input.serviceId },
@@ -162,6 +164,8 @@ export async function createSmmOrder(input: {
         providerId: service.providerId,
         viaApi: !!input.viaApi,
         panelId: panel?.id,
+        campaignId: input.campaignId,
+        subscriptionId: input.subscriptionId,
         commission,
         note: input.note,
         flagNote,
