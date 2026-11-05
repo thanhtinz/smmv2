@@ -269,12 +269,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
   const cron = (
     <div className="card space-y-4 p-6">
       <div className="font-bold text-slate-900">Công việc tự động của panel</div>
-      <p className="text-sm leading-relaxed text-slate-500">Các việc nền của gian hàng chạy chung theo lịch của hệ thống — bạn không cần cấu hình thêm:</p>
-      <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-slate-500">
-        <li>Đồng bộ trạng thái đơn của khách panel về nguồn mỗi vài phút.</li>
-        <li>Báo cáo ngày và cảnh báo (đơn mới, số dư thấp, đơn rủi ro) theo cấu hình ở mục Báo cáo &amp; Thông báo của panel.</li>
-        <li>Chạy các đơn hẹn giờ / lặp lại của khách panel đúng lịch đã đặt.</li>
-      </ul>
+      <p className="text-sm text-slate-500">Đồng bộ đơn, báo cáo và đơn hẹn giờ của gian hàng chạy tự động theo lịch hệ thống.</p>
       <a href="/panel-admin/bao-cao" className="btn-ghost btn-sm inline-block">Mở Báo cáo &amp; Thông báo</a>
     </div>
   );
@@ -369,15 +364,6 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
         <p className="text-xs text-slate-400">Đang áp dụng: {panel.panelFee > 0 ? vnd(panel.panelFee) : "Miễn phí"} cho mỗi website con khách của bạn tạo.</p>
         <button className="btn-primary !py-2.5">Lưu phí tạo website con</button>
       </form>
-      <div className="card space-y-3 p-6">
-        <div className="font-bold text-slate-900">Website con lồng nhau — cách hệ thống vận hành</div>
-        <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-slate-500">
-          <li>Khách của bạn đăng ký website con bằng chính tên miền của họ, tối đa 1 website mỗi tài khoản.</li>
-          <li>Website con đó là gian hàng riêng của họ: khách, đơn hàng, tiền nạp đều tách riêng — bạn không xem được số dư hay tài khoản của họ, giống cách web mẹ đối với panel của bạn.</li>
-          <li>Nguồn dịch vụ của mọi website con vẫn đấu về web mẹ qua API — không ai phải quản lý khoá nguồn ngoài web mẹ.</li>
-          <li>Chủ website con quản trị ngay trên tên miền của họ (đường dẫn /admin trên tên miền đó).</li>
-        </ul>
-      </div>
     </>
   );
 
