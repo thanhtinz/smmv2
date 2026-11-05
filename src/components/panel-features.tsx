@@ -269,7 +269,7 @@ export function PanelAddServiceModal({ service, sources, categories, onClose }: 
                 <option value={0}>Thủ công — tự xử lý đơn</option>
                 {sources.map((sv) => <option key={sv.id} value={sv.id}>{sv.name} · {sv.categoryName} · giá web mẹ {vnd(sv.rate)}/1k</option>)}
               </select>
-              <p className="mt-1 text-xs text-slate-400">{srcId === 0 ? "Đơn vào trạng thái chờ, bạn tự xử lý ở mục Đơn hàng." : "Đơn sẽ chạy đúng nguồn của dịch vụ web mẹ đã chọn; bạn hưởng phần chênh giữa giá bán của bạn và giá web mẹ."}</p>
+              <p className="mt-1 text-xs text-slate-400">{srcId === 0 ? "Đơn vào trạng thái chờ, bạn tự xử lý ở mục Đơn hàng." : "Đơn sẽ chạy qua web chính, đúng dịch vụ đã chọn; bạn hưởng phần chênh giữa giá bán của bạn và giá web chính."}</p>
             </div>
           )}
           {c && <div><label className={lbl}>Nguồn dịch vụ</label><input disabled value={c.sourceName ? `${c.sourceName} (giá web mẹ ${vnd(c.sourceRate || 0)}/1k)` : "Thủ công — tự xử lý đơn"} className={inp} /></div>}
