@@ -134,6 +134,50 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
 }
 
 /* ---------- Form đặt đơn SMM (chọn danh mục -> dịch vụ, tính tiền trực tiếp) ---------- */
+/* ---------- Mảnh giao diện cho phần đầu form đặt đơn (kiểu panel mẫu: tìm nhanh / nền tảng / dịch vụ / máy chủ) ---------- */
+function ChevUD() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-slate-400"><path d="m7 9 5-5 5 5" /><path d="m7 15 5 5 5-5" /></svg>
+  );
+}
+function IdBadge({ id }: { id: number }) {
+  return <span className="shrink-0 rounded-lg bg-brand-500 px-2 py-0.5 text-[13px] font-bold leading-5 text-white">{id}</span>;
+}
+/** Giá cho 1 tương tác từ giá /1000: 45000 -> "45₫", 2260 -> "2,26₫" */
+function perUnitVnd(rate: number) {
+  const v = rate / 1000;
+  return (Number.isInteger(v) ? String(v) : v.toLocaleString("vi-VN", { maximumFractionDigits: 2 })) + "₫";
+}
+function PlatformIcon({ platform, size = 38 }: { platform: string; size?: number }) {
+  const glyph = (() => {
+    switch (platform) {
+      case "facebook": return <path d="M13.4 21.9v-6.8h2.3l.35-2.65h-2.65V10.7c0-.77.22-1.3 1.33-1.3h1.42V7.05c-.25-.03-1.1-.11-2.08-.11-2.06 0-3.47 1.26-3.47 3.57v1.94H8.25v2.65h2.35v6.8a10 10 0 0 0 2.8 0Z" fill="#fff" />;
+      case "instagram": return <g fill="none" stroke="#fff" strokeWidth="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5" /><circle cx="12" cy="12" r="3.8" /><circle cx="17.1" cy="6.9" r="1.15" fill="#fff" stroke="none" /></g>;
+      case "youtube": return <g><rect x="2.8" y="6" width="18.4" height="12.5" rx="3.5" fill="#fff" /><path d="M10.4 9.6v5.3l4.8-2.65z" fill="#000" /></g>;
+      case "tiktok": return <g fill="#fff"><ellipse cx="7.2" cy="17.2" rx="2.7" ry="2.1" /><ellipse cx="15.2" cy="15.2" rx="2.7" ry="2.1" /><path d="M9.9 17.2V6.2l8-1.9v10.9h-2.7V7.4l-5.3 1.3v8.5z" /></g>;
+      case "telegram": return <g fill="none" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"><path d="M21 3 10.8 13.2" /><path d="M21 3 14.5 21l-3.7-7.8L3 9.5 21 3z" /></g>;
+      case "shopee": return <g fill="none" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"><path d="M5 8h14l-1.2 12a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 8Z" /><path d="M8.5 10.5V6.5a3.5 3.5 0 0 1 7 0v4" /></g>;
+      default: return <text x="12" y="16.5" textAnchor="middle" fontSize="11" fontWeight="900" fill="#fff">{(PLATFORMS[platform] || platform || "?").charAt(0)}</text>;
+    }
+  })();
+  return (
+    <span className="flex shrink-0 items-center justify-center rounded-[10px] bg-slate-900" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox="0 0 24 24">{glyph}</svg>
+    </span>
+  );
+}
+function InfoCell({ icon, tone, label, value }: { icon: React.ReactNode; tone: string; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3.5">
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${tone}`}>{icon}</span>
+      <span className="min-w-0">
+        <span className="block text-[13px] text-slate-500">{label}</span>
+        <span className="block truncate text-[15px] font-bold text-slate-800">{value}</span>
+      </span>
+    </div>
+  );
+}
+
 /* Nút dán link dạng icon, nằm bên trong khung input của form đặt đơn */
 function PasteIconBtn({ onClick }: { onClick: () => void }) {
   return (
@@ -167,6 +211,15 @@ export function OrderForm({ services, categories, discount, preselect, action, b
   const [loopTimes, setLoopTimes] = useState(5);
   const [loopInterval, setLoopInterval] = useState(60);
   const [link, setLink] = useState(initialLink || "");
+  const [platform, setPlatform] = useState<string>(() => (preselect ? services.find((s) => s.id === preselect)?.platform : undefined) || categories[0]?.platform || "");
+  const [openMenu, setOpenMenu] = useState<null | "quick" | "platform" | "cat" | "svc">(null);
+  const [quickQ, setQuickQ] = useState("");
+  const platformList = Array.from(new Set(categories.map((c) => c.platform)));
+  const catsOfPlatform = categories.filter((c) => c.platform === platform);
+  const quickResults = services.filter((s) => { const q = quickQ.trim().toLowerCase(); return !q || s.name.toLowerCase().includes(q) || s.categoryName.toLowerCase().includes(q) || String(s.id) === q; }).slice(0, 8);
+  const pickPlatform = (p: string) => { setPlatform(p); const c = categories.find((x) => x.platform === p); if (c) { setCatId(c.id); const f = services.find((s) => s.categoryId === c.id); if (f) setServiceId(f.id); } setOpenMenu(null); };
+  const pickCategory = (c: { id: number; platform: string }) => { setCatId(c.id); setPlatform(c.platform); const f = services.find((s) => s.categoryId === c.id); if (f) setServiceId(f.id); setOpenMenu(null); };
+  const pickService = (s: ServiceDTO) => { setServiceId(s.id); setCatId(s.categoryId); setPlatform(s.platform); setOpenMenu(null); setQuickQ(""); };
   const [multiOn, setMultiOn] = useState(false);
   const [multiLinks, setMultiLinks] = useState("");
   const [pasteMsg, setPasteMsg] = useState("");
@@ -201,18 +254,120 @@ export function OrderForm({ services, categories, discount, preselect, action, b
       <form action={action} className="card p-6 lg:col-span-3 space-y-4" id="order-form">
         {campaignId ? <input type="hidden" name="campaignId" value={campaignId} /> : null}
         <input type="hidden" name="serviceId" value={service?.id || ""} />
-        <div>
-          <label className="lbl">Danh mục</label>
-          <select className="inp" value={catId} onChange={(e) => { const c = parseInt(e.target.value); setCatId(c); const f = services.find((s) => s.categoryId === c); if (f) setServiceId(f.id); }}>
-            {categories.map((c) => <option key={c.id} value={c.id}>{PLATFORMS[c.platform] || c.platform} — {c.name}</option>)}
-          </select>
+        <div className="flex items-center gap-3 border-b border-dashed border-slate-200 pb-4">
+          <span className="h-7 w-1.5 rounded-full bg-brand-600" />
+          <h3 className="text-base font-extrabold uppercase tracking-wide text-slate-800 sm:text-lg">Khởi tạo đơn hàng tăng tương tác nhanh</h3>
         </div>
-        <div>
-          <label className="lbl">Dịch vụ</label>
-          <select className="inp" value={service?.id} onChange={(e) => setServiceId(parseInt(e.target.value))}>
-            {inCat.map((s) => <option key={s.id} value={s.id}>[{s.id}] {s.name} — {vnd(s.rate)}/1000</option>)}
-          </select>
+        <div className="relative">
+          <label className="lbl !text-[15px] !font-bold text-slate-800">Tìm nhanh dịch vụ</label>
+          {openMenu === "quick" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
+          <button type="button" onClick={() => setOpenMenu(openMenu === "quick" ? null : "quick")} className="relative z-10 flex h-[56px] w-full items-center gap-3 rounded-2xl bg-slate-100 px-4 text-left transition hover:bg-slate-200/70">
+            {service ? <><IdBadge id={service.id} /><span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-slate-800">{service.name}</span></> : <span className="flex-1 text-[15px] text-slate-400">Chọn dịch vụ...</span>}
+            <ChevUD />
+          </button>
+          {openMenu === "quick" && (
+            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+              <input autoFocus className="inp mb-1.5" placeholder="Gõ tên hoặc mã dịch vụ..." value={quickQ} onChange={(e) => setQuickQ(e.target.value)} />
+              <div className="max-h-64 overflow-auto">
+                {quickResults.map((s) => (
+                  <button key={s.id} type="button" onClick={() => pickService(s)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50 ${s.id === service?.id ? "bg-brand-50" : ""}`}>
+                    <IdBadge id={s.id} />
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-800">{s.name}</span><span className="block text-xs text-slate-400">{s.categoryName} · {vnd(s.rate)}/1000</span></span>
+                  </button>
+                ))}
+                {quickResults.length === 0 && <p className="px-3 py-4 text-center text-sm text-slate-400">Không tìm thấy dịch vụ nào.</p>}
+              </div>
+            </div>
+          )}
         </div>
+        <div className="relative">
+          <label className="lbl !text-[15px] !font-bold text-slate-800">Chọn nền tảng</label>
+          {openMenu === "platform" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
+          <button type="button" onClick={() => setOpenMenu(openMenu === "platform" ? null : "platform")} className="relative z-10 flex h-[56px] w-full items-center gap-3 rounded-2xl bg-slate-100 px-4 text-left transition hover:bg-slate-200/70">
+            <PlatformIcon platform={platform} />
+            <span className="flex-1 text-[15px] font-semibold text-slate-800">{PLATFORMS[platform] || platform}</span>
+            <ChevUD />
+          </button>
+          {openMenu === "platform" && (
+            <div className="absolute left-0 right-0 top-full z-30 mt-2 max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+              {platformList.map((p) => (
+                <button key={p} type="button" onClick={() => pickPlatform(p)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50 ${p === platform ? "bg-brand-50" : ""}`}>
+                  <PlatformIcon platform={p} size={32} />
+                  <span className="flex-1 text-sm font-semibold text-slate-800">{PLATFORMS[p] || p}</span>
+                  <span className="text-xs text-slate-400">{services.filter((s) => s.platform === p).length} dịch vụ</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="relative">
+          <label className="lbl !text-[15px] !font-bold text-slate-800">Chọn dịch vụ</label>
+          {openMenu === "cat" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
+          <button type="button" onClick={() => setOpenMenu(openMenu === "cat" ? null : "cat")} className="relative z-10 flex h-[56px] w-full items-center gap-3 rounded-2xl bg-slate-100 px-4 text-left transition hover:bg-slate-200/70">
+            <PlatformIcon platform={platform} />
+            <span className="flex-1 truncate text-[15px] font-semibold text-slate-800">{categories.find((c) => c.id === catId)?.name || "Chọn dịch vụ"}</span>
+            <ChevUD />
+          </button>
+          {openMenu === "cat" && (
+            <div className="absolute left-0 right-0 top-full z-30 mt-2 max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+              {catsOfPlatform.map((c) => (
+                <button key={c.id} type="button" onClick={() => pickCategory(c)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50 ${c.id === catId ? "bg-brand-50" : ""}`}>
+                  <PlatformIcon platform={c.platform} size={32} />
+                  <span className="flex-1 text-sm font-semibold text-slate-800">{c.name}</span>
+                  <span className="text-xs text-slate-400">{services.filter((s) => s.categoryId === c.id).length} máy chủ</span>
+                </button>
+              ))}
+              {catsOfPlatform.length === 0 && <p className="px-3 py-4 text-center text-sm text-slate-400">Nền tảng này chưa có dịch vụ.</p>}
+            </div>
+          )}
+        </div>
+        <div className="relative">
+          <label className="lbl !text-[15px] !font-bold text-slate-800">Chọn máy chủ</label>
+          {openMenu === "svc" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
+          <button type="button" onClick={() => setOpenMenu(openMenu === "svc" ? null : "svc")} className="relative z-10 flex w-full items-start gap-3 rounded-2xl bg-slate-100 px-4 py-3.5 text-left transition hover:bg-slate-200/70">
+            {service ? (
+              <span className="min-w-0 flex-1">
+                <span className="flex items-start gap-2.5">
+                  <IdBadge id={service.id} />
+                  <span className="min-w-0 flex-1 text-[15px] font-semibold leading-snug text-slate-800">{service.name}</span>
+                </span>
+                <span className="mt-2.5 flex flex-wrap gap-1.5">
+                  <span className="rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-bold text-white">{perUnitVnd(service.rate)}</span>
+                  {service.refill && <span className="rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-bold text-teal-700">Có bảo hành</span>}
+                  {service.dripfeed && <span className="rounded-lg bg-violet-100 px-2.5 py-1 text-xs font-bold text-violet-700">Thả nhỏ giọt</span>}
+                  {service.avgTime && <span className="rounded-lg bg-slate-200 px-2.5 py-1 text-xs font-bold text-slate-600">{service.avgTime}</span>}
+                </span>
+              </span>
+            ) : <span className="flex-1 py-1.5 text-[15px] text-slate-400">Chọn máy chủ...</span>}
+            <ChevUD />
+          </button>
+          {openMenu === "svc" && (
+            <div className="absolute left-0 right-0 top-full z-30 mt-2 max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+              {inCat.map((s) => (
+                <button key={s.id} type="button" onClick={() => pickService(s)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50 ${s.id === service?.id ? "bg-brand-50" : ""}`}>
+                  <IdBadge id={s.id} />
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">{s.name}</span>
+                  <span className="shrink-0 text-xs font-bold text-emerald-600">{perUnitVnd(s.rate)}</span>
+                </button>
+              ))}
+              {inCat.length === 0 && <p className="px-3 py-4 text-center text-sm text-slate-400">Chưa có máy chủ nào.</p>}
+            </div>
+          )}
+        </div>
+        {service && (
+          <div className="grid grid-cols-2 gap-3">
+            <InfoCell label="Mã gói" value={String(service.id)} tone="bg-emerald-100 text-emerald-600" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z" /><path d="M3 7l9 4.5L21 7" /><path d="M12 11.5v10" /></svg>} />
+            <InfoCell label="Giá 1 tương tác" value={perUnitVnd(service.rate)} tone="bg-blue-100 text-blue-600" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 6.5v11" /><path d="M15 8.8c-.6-.8-1.7-1.2-3-1.2-1.7 0-3 .9-3 2.2 0 2.9 6 1.5 6 4.3 0 1.3-1.3 2.2-3 2.2-1.3 0-2.4-.5-3-1.3" /></svg>} />
+            <InfoCell label="Mua tối thiểu" value={num(service.min)} tone="bg-orange-100 text-orange-500" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" fill="currentColor" /></svg>} />
+            <InfoCell label="Mua tối đa" value={num(service.max)} tone="bg-amber-100 text-amber-500" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z" /></svg>} />
+          </div>
+        )}
+        {service?.description && (
+          <div className="rounded-2xl border border-slate-200/80 p-5">
+            <div className="mb-2 text-[13px] font-bold uppercase tracking-wider text-slate-500">Mô tả máy chủ:</div>
+            <p className="whitespace-pre-line text-[15px] leading-relaxed text-slate-700">{service.description}</p>
+          </div>
+        )}
         <div className="relative rounded-[20px] border-2 border-dashed border-slate-300/70 px-5 pb-6 pt-9 sm:px-7">
           <div className="absolute -top-[13px] left-5 flex items-center gap-7 bg-white px-2 dark:bg-[#101a2e] sm:left-6">
             {[{ v: false, t: "One" }, { v: true, t: "Multi" }].map((o) => (
@@ -392,7 +547,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
                 <span className="font-bold">Thông báo: </span>{service.notice}
               </div>
             )}
-            {service.description && <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-line bg-slate-50 rounded-xl p-3">{service.description}</p>}
+{/* Mô tả đã chuyển lên form (khung "Mô tả máy chủ") — ở đây chỉ giữ thông báo */}
           </div>
         ) : <p className="text-sm text-slate-400">Chưa có dịch vụ nào đang bán.</p>}
       </div>
