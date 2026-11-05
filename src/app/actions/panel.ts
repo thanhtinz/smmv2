@@ -524,6 +524,11 @@ export async function panelSaveConfigAction(formData: FormData) {
     });
     done("/panel-admin/cau-hinh", "Đã lưu Stripe của panel — khách của bạn nạp Stripe sẽ trả vào tài khoản này");
   }
+  if (section === "panelfee") {
+    const fee = Math.max(0, int(formData, "panelFee"));
+    await prisma.childPanel.update({ where: { id: panel.id }, data: { panelFee: fee } });
+    done("/panel-admin/cau-hinh", fee > 0 ? `Đã đặt phí tạo website con cho khách của panel: ${fee.toLocaleString("vi-VN")}₫ — tiền phí thuộc về bạn` : "Đã đặt tạo website con cho khách của panel là MIỄN PHÍ");
+  }
   back("/panel-admin/cau-hinh", "err", "Mục cấu hình không hợp lệ");
 }
 

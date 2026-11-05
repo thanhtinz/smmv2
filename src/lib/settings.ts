@@ -130,6 +130,8 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   ai_check_enabled: "0",
   // SMM Tool API: key cho tool ngoài lấy đơn thủ công chờ xử lý + cập nhật trạng thái (tab SMM Tool API)
   tool_api_key: "",
+  // Phí tạo website con cho khách của WEB MẸ (VNĐ, 0 = miễn phí) — panel con tự đặt phí riêng cho khách của mình
+  panel_fee: "0",
   ai_provider: "openai",
   ai_base_url: "",
   ai_api_key: "",

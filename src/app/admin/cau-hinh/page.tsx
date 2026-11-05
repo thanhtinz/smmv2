@@ -164,7 +164,8 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Chính sách nạp tiền</div>
         <div><label className="lbl">Nạp tối thiểu (VND)</label><input className="inp" name="deposit_min" type="number" defaultValue={s.deposit_min} /></div>
-        <p className="text-xs text-slate-400">Mốc thưởng nạp chỉnh ở tab <b>Khuyến mãi</b>, hoa hồng giới thiệu ở tab <b>Giới thiệu</b>, nạp USDT ở tab <b>USDT</b>.</p>
+        <div><label className="lbl">Phí tạo website con (VNĐ) — áp dụng cho khách của web mẹ</label><input className="inp" name="panel_fee" type="number" min="0" defaultValue={s.panel_fee} placeholder="0 = miễn phí" /></div>
+        <p className="text-xs text-slate-400">Khách đăng ký website con sẽ bị trừ đúng số này vào số dư khi đăng ký thành công (0 = miễn phí như mặc định). Chủ panel con tự đặt phí riêng cho khách của họ trong Panel Admin — khách panel tạo website con thì phí đó thuộc về chủ panel. Mốc thưởng nạp chỉnh ở tab <b>Khuyến mãi</b>, hoa hồng giới thiệu ở tab <b>Giới thiệu</b>, nạp USDT ở tab <b>USDT</b>.</p>
         <div>
           <label className="lbl">Bảo vệ lợi nhuận (chặn đặt đơn khi giá bán sau chiết khấu thấp hơn giá vốn)</label>
           <select className="inp" name="profit_protection" defaultValue={s.profit_protection === "0" ? "0" : "1"}><option value="1">Bật</option><option value="0">Tắt</option></select>

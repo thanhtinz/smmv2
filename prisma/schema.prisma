@@ -393,6 +393,7 @@ enum TxType {
   BONUS
   PANEL_COMMISSION
   REFERRAL_COMMISSION
+  PANEL_FEE
 }
 
 model Transaction {
@@ -569,6 +570,8 @@ model ChildPanel {
   depositBonusTiers String? @db.Text // JSON [{from, percent}] như web mẹ
   depositMin Int? // nạp tối thiểu riêng (VNĐ)
   affiliatePercent Int? // % hoa hồng giới thiệu riêng cho khách của panel
+  panelFee    Int  @default(0) // phí khách của panel phải trả để tạo website con của riêng họ (VNĐ, 0 = miễn phí)
+  parentPanelId Int? // website con này được tạo từ trong panel nào (null = tạo từ web mẹ)
   googleClientSecret String? @db.VarChar(200)
   ownServices SmmService[] @relation("PanelOwnServices")
   status    String   @default("ACTIVE") @db.VarChar(20) // ACTIVE | SUSPENDED

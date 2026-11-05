@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder } from "@/lib/orders";
+import { applyBalance } from "@/lib/wallet";
 import { getSettings, calcBonus, bonusTiersFor } from "@/lib/settings";
 import { passwordError } from "@/lib/security";
 import { randomKey, genCode, parsePremiumFields } from "@/lib/format";
@@ -142,6 +143,28 @@ function panelDiscounts(formData: FormData) {  const clamp = (v: FormDataEntryVa
   };
 }
 
+/** Phí tạo website con áp cho một tài khoản: khách của panel nào thì theo phí panel
+ *  đó tự đặt (tiền thuộc về chủ panel); khách web mẹ thì theo phí trong Cấu hình của mẹ. */
+export async function panelCreationFeeFor(userId: number) {
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { panelId: true, balance: true } });
+  if (u?.panelId) {
+    const parent = await prisma.childPanel.findUnique({ where: { id: u.panelId }, select: { id: true, panelFee: true, ownerId: true, name: true } });
+    if (parent) return { fee: Math.max(0, parent.panelFee || 0), parent, balance: u.balance };
+  }
+  const settings = await getSettings();
+  return { fee: Math.max(0, parseInt(settings.panel_fee || "0") || 0), parent: null as null | { id: number; panelFee: number; ownerId: number; name: string }, balance: u?.balance ?? 0 };
+}
+
+/** Trừ phí tạo website con trong cùng giao dịch tạo panel; khách panel tạo thì chủ
+ *  panel được cộng đúng số phí đó (loại giao dịch PANEL_FEE). */
+export async function chargePanelCreation(tx: any, user: { id: number; username: string }, feeInfo: { fee: number; parent: { id: number; ownerId: number } | null }, panelId: number, label: string) {
+  if (feeInfo.fee <= 0) return;
+  await applyBalance(tx, user.id, -feeInfo.fee, "PANEL_FEE", `PANEL-${panelId}`, `Phí tạo website con ${label}`);
+  if (feeInfo.parent) {
+    await applyBalance(tx, feeInfo.parent.ownerId, feeInfo.fee, "PANEL_FEE", `PANEL-${panelId}`, `Thu phí tạo website con từ khách ${user.username}`);
+  }
+}
+
 export async function createPanelAction(formData: FormData) {
   const user = await requireUser();
   if ((await getSettings()).module_panels === "0") back("/dashboard", "err", "Tính năng mở panel con đang tạm đóng");
@@ -162,13 +185,18 @@ export async function createPanelAction(formData: FormData) {
   const me = await prisma.user.findUnique({ where: { id: user.id }, select: { apiKey: true } });
   const link = await panelApiLink(formData, { apiKey: me?.apiKey || null, apiUserId: user.id });
   if (!link) back("/dashboard/panel-cua-toi/thiet-lap", "err", "API key không hợp lệ — hãy dán key của tài khoản mẹ (lấy tại mục API đại lý)");
-  await prisma.childPanel.create({
+  const feeInfo = await panelCreationFeeFor(user.id);
+  if (feeInfo.fee > feeInfo.balance) back("/dashboard/panel-cua-toi/thiet-lap", "err", `Số dư không đủ để tạo website con — phí tạo là ${feeInfo.fee.toLocaleString("vi-VN")}₫, số dư hiện tại ${feeInfo.balance.toLocaleString("vi-VN")}₫`);
+  await prisma.$transaction(async (tx) => {
+    const created = await tx.childPanel.create({
     data: {
-      ownerId: user.id, name, slug, markup, accent, tagline, support, domain: domainRaw,
+      ownerId: user.id, name, slug, markup, accent, tagline, support, domain: domainRaw, parentPanelId: feeInfo.parent?.id ?? null,
       apiKey: link.apiKey, apiUserId: link.apiUserId,
       ...panelDiscounts(formData),
       setupDone: formData.get("setupDone") === "1",
     },
+    });
+    await chargePanelCreation(tx, user, feeInfo, created.id, name);
   });
   back("/panel-admin", "msg", `Đã tạo panel ${name} — gian hàng của bạn: /cua-hang/${slug}`);
 }
@@ -196,13 +224,18 @@ export async function registerChildSiteAction(formData: FormData) {
   if (!link) back("/dashboard/panel-cua-toi", "err", "Không liên kết được API — vui lòng thử lại sau");
   const linkedKey = link ? link.apiKey : null;
   const linkedUser = link ? link.apiUserId : null;
-  await prisma.childPanel.create({
+  const feeInfo = await panelCreationFeeFor(user.id);
+  if (feeInfo.fee > feeInfo.balance) back("/dashboard/panel-cua-toi", "err", `Số dư không đủ để tạo website con — phí tạo là ${feeInfo.fee.toLocaleString("vi-VN")}₫, số dư hiện tại ${feeInfo.balance.toLocaleString("vi-VN")}₫`);
+  await prisma.$transaction(async (tx) => {
+    const created = await tx.childPanel.create({
     data: {
-      ownerId: user.id, name: domain, slug, markup: 20, accent: "blue", domain,
+      ownerId: user.id, name: domain, slug, markup: 20, accent: "blue", domain, parentPanelId: feeInfo.parent?.id ?? null,
       apiKey: linkedKey, apiUserId: linkedUser,
       discountMember: 0, discountReseller: 5, discountAgency: 10, discountVip: 15,
       setupDone: false,
     },
+    });
+    await chargePanelCreation(tx, user, feeInfo, created.id, domain);
   });
   back("/dashboard/panel-cua-toi", "msg", `Đã đăng ký website con ${domain} — trỏ NameServer của tên miền theo thông tin trên trang này, rồi đăng nhập website con để tuỳ chỉnh`);
 }
