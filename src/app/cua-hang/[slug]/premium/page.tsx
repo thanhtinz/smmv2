@@ -11,6 +11,21 @@ export const dynamic = "force-dynamic";
 export default async function PanelPremiumPage({ params, searchParams }: { params: { slug: string }; searchParams: { cat?: string; q?: string } }) {
   const panel = await prisma.childPanel.findUnique({ where: { slug: params.slug } });
   if (!panel || panel.status !== "ACTIVE") notFound();
+  if (!panel.sellPremium || (await (await import("@/lib/settings")).getSettings()).module_premium === "0") {
+    return (
+      <div className="dark pub-dark bg-[#07090d] text-slate-300 flex min-h-screen flex-col">
+        <PublicHeader panel={{ name: panel.name, slug: panel.slug }} announcement={panel.announcement} />
+        <main className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-12">
+          <div className="card max-w-md p-8 text-center">
+            <div className="text-lg font-bold text-slate-900">Mảng Premium đang tắt</div>
+            <p className="mt-2 text-sm text-slate-500">Gian hàng hiện không bán tài khoản Premium. Vui lòng quay lại sau.</p>
+            <Link href={`/cua-hang/${panel.slug}`} className="btn-primary mt-5 inline-block">Về gian hàng</Link>
+          </div>
+        </main>
+        <SiteFooter brand={{ name: panel.name, slug: panel.slug }} />
+      </div>
+    );
+  }
   const panelRate = (r: number) => Math.round(r * (1 + panel.markup / 100));
   const base = `/cua-hang/${panel.slug}/premium`;
   const cats = await prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } });

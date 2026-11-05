@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { ServicesExplorer, ServiceDTO } from "@/components/client";
@@ -6,6 +7,21 @@ import { getSession } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export default async function ServicesPage() {
+  if ((await (await import("@/lib/settings")).getSettings()).module_smm === "0") {
+    return (
+      <div className="dark pub-dark bg-[#07090d] text-slate-300 flex min-h-screen flex-col">
+        <PublicHeader />
+        <main className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-12">
+          <div className="card max-w-md p-8 text-center">
+            <div className="text-lg font-bold text-slate-900">Mảng dịch vụ SMM đang tạm ngưng</div>
+            <p className="mt-2 text-sm text-slate-500">Khu vực dịch vụ SMM hiện không mở bán. Vui lòng quay lại sau hoặc xem mảng Premium.</p>
+            <Link href="/premium" className="btn-primary mt-5 inline-block">Xem Premium</Link>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
   const session = await getSession();
   const services = await prisma.smmService.findMany({
     where: { active: true, panelId: null },

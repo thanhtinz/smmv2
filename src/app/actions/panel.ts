@@ -381,6 +381,15 @@ export async function panelManualDepositAction(formData: FormData) {
   done("/panel-admin/nap-tien", `Đã cộng ${amount.toLocaleString("vi-VN")}đ cho ${member.username}`);
 }
 
+/* ---------- Công tắc bán hàng của panel: bán mảng nào bật mảng đó ---------- */
+export async function panelSaveSellAction(formData: FormData) {
+  const { panel } = await ownPanel("/panel-admin/cai-dat");
+  const sellSmm = formData.get("sellSmm") === "on";
+  const sellPremium = formData.get("sellPremium") === "on";
+  await prisma.childPanel.update({ where: { id: panel.id }, data: { sellSmm, sellPremium } });
+  done("/panel-admin/cai-dat", `Đã lưu mảng đang bán: SMM ${sellSmm ? "BẬT" : "TẮT"} · Premium ${sellPremium ? "BẬT" : "TẮT"}`);
+}
+
 /* ---------- Cấu hình riêng của panel ---------- */
 export async function panelSaveConfigAction(formData: FormData) {
   const { panel } = await ownPanel("/panel-admin/cau-hinh");

@@ -41,6 +41,8 @@ export default async function HomePage() {
 
   return (
     <LandingView
+      showSmm={s.module_smm !== "0"}
+      showPremium={s.module_premium !== "0"}
       brandName={s.site_name}
       tagline={s.site_tagline}
       loggedIn={!!user}

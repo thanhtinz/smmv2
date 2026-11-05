@@ -13,9 +13,9 @@ import { vnd, LEVEL_NAME } from "@/lib/format";
 export function PanelShell({ panel, user, children }: { panel: ChildPanel; user: User; children: ReactNode }) {
   const items = [
     { href: `/cua-hang/${panel.slug}`, label: "Gian hàng", icon: I.home },
-    { href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },
+    ...(panel.sellSmm ? [{ href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },] : []),
     { href: `/cua-hang/${panel.slug}/don-hang`, label: "Đơn hàng SMM", icon: I.list },
-    { href: `/cua-hang/${panel.slug}/premium`, label: "Mua Premium", icon: I.gem },
+    ...(panel.sellPremium ? [{ href: `/cua-hang/${panel.slug}/premium`, label: "Mua Premium", icon: I.gem },] : []),
     { href: `/cua-hang/${panel.slug}/don-premium`, label: "Đơn hàng Premium", icon: I.box },
     { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
     { href: `/cua-hang/${panel.slug}/giao-dich`, label: "Dòng tiền", icon: I.chart },

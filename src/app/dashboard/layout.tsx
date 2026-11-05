@@ -19,15 +19,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return <div className="min-h-screen flex items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold mb-2">Hệ thống đang bảo trì</h1><p className="text-slate-500">Vui lòng quay lại sau ít phút.</p></div></div>;
   }
   const openTickets = await prisma.ticket.count({ where: { userId: user.id, status: "ANSWERED" } });
+  const myPanelFlags = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sellSmm: true, sellPremium: true } }) : null;
+  const smmOn = s.module_smm !== "0" && (myPanelFlags ? myPanelFlags.sellSmm : true);
+  const premiumOn = s.module_premium !== "0" && (myPanelFlags ? myPanelFlags.sellPremium : true);
   const unreadNoti = await prisma.notification.count({ where: { userId: user.id, read: false } });
   const items = [
     { href: "/dashboard", label: "Tổng quan", icon: I.home },
-    { href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },
-    { href: "/dashboard/dat-hang-loat", label: "Đặt hàng loạt", icon: I.layers },
+    ...(smmOn ? [{ href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },] : []),
+    ...(smmOn ? [{ href: "/dashboard/dat-hang-loat", label: "Đặt hàng loạt", icon: I.layers },] : []),
     { href: "/dashboard/don-hang", label: "Đơn hàng SMM", icon: I.list },
-    { href: "/dashboard/dinh-ky", label: "Đăng ký định kỳ", icon: I.clock },
-    { href: "/dashboard/chien-dich", label: "Chiến dịch", icon: I.megaphone },
-    { href: "/premium", label: "Mua Premium", icon: I.gem },
+    ...(smmOn ? [{ href: "/dashboard/dinh-ky", label: "Đăng ký định kỳ", icon: I.clock },] : []),
+    ...(smmOn ? [{ href: "/dashboard/chien-dich", label: "Chiến dịch", icon: I.megaphone },] : []),
+    ...(premiumOn ? [{ href: "/premium", label: "Mua Premium", icon: I.gem },] : []),
     { href: "/dashboard/don-premium", label: "Đơn hàng Premium", icon: I.box },
     { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
     { href: "/dashboard/giao-dich", label: "Lịch sử số dư", icon: I.chart },

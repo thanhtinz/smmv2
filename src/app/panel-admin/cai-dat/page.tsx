@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash } from "@/components/ui";
 import { updatePanelAction } from "@/app/actions/user";
+import { panelSaveSellAction } from "@/app/actions/panel";
+import { Switch } from "@/components/admin-catalog";
 import { vnd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +55,15 @@ export default async function PanelSettingsPage({ searchParams }: { searchParams
           <button className="btn-primary w-full !py-2.5" type="submit">Lưu cài đặt</button>
         </form>
         <div className="lg:col-span-2 space-y-6">
+          <form action={panelSaveSellAction} className="card p-6">
+            <div className="font-bold text-slate-900">Mảng đang bán</div>
+            <p className="mt-1 text-sm text-slate-400">Bán mảng nào thì bật mảng đó — tắt đi thì khách không thấy và không đặt được mảng đó tại gian hàng.</p>
+            <div className="mt-4 space-y-1">
+              <Switch name="sellSmm" label="Bán dịch vụ SMM" defaultChecked={panel.sellSmm} />
+              <Switch name="sellPremium" label="Bán Premium" defaultChecked={panel.sellPremium} />
+            </div>
+            <button className="btn-primary w-full mt-4 !py-2.5">Lưu mảng bán</button>
+          </form>
           <div className="card p-6">
             <div className="font-bold text-slate-900">Thanh toán SePay — cấu hình chung</div>
             <dl className="mt-4 space-y-2 text-sm">

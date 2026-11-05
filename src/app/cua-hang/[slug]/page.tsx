@@ -44,6 +44,8 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
   return (
     <div data-accent={panel.accent}>
       <LandingView
+        showSmm={panel.sellSmm}
+        showPremium={panel.sellPremium}
         brandName={panel.name}
         tagline={panel.tagline}
         loggedIn={!!user}

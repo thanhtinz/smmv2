@@ -64,6 +64,11 @@ export async function createSmmOrder(input: {
   campaignId?: number;
   subscriptionId?: number;
 }) {
+  if ((await getSettings()).module_smm === "0") throw new Error("Mảng dịch vụ SMM đang tạm tắt");
+  if (input.user.panelId) {
+    const pf = await prisma.childPanel.findUnique({ where: { id: input.user.panelId }, select: { sellSmm: true } });
+    if (pf && !pf.sellSmm) throw new Error("Gian hàng đang tắt bán dịch vụ SMM");
+  }
   const service = await prisma.smmService.findUnique({
     where: { id: input.serviceId },
     include: { provider: true },
@@ -406,6 +411,11 @@ export async function createPremiumOrder(input: {
   customData?: Record<string, string>; // giá trị các trường tuỳ chỉnh theo label (form web gửi)
   promoCode?: string;
 }) {
+  if ((await getSettings()).module_premium === "0") throw new Error("Mảng Premium đang tạm tắt");
+  if (input.user.panelId) {
+    const pf = await prisma.childPanel.findUnique({ where: { id: input.user.panelId }, select: { sellPremium: true } });
+    if (pf && !pf.sellPremium) throw new Error("Gian hàng đang tắt bán Premium");
+  }
   const variant = await prisma.premiumVariant.findUnique({
     where: { id: input.variantId },
     include: { product: true },

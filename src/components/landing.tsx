@@ -18,10 +18,14 @@ export function LandingView(props: {
   premiums: LandingPremium[];
   sampleService?: string | null;
   links: { login: string; register: string; dashboard: string; order: string; services: string; api: string };
+  showSmm?: boolean;
+  showPremium?: boolean;
   announcement?: string | null;
   footer: React.ReactNode;
 }) {
   const { brandName, stats, platforms, premiums, links } = props;
+  const showSmm = props.showSmm !== false;
+  const showPremium = props.showPremium !== false;
   const badgeFor = (p: string, i: number) => (i === 0 ? "Phổ biến" : p === "tiktok" ? "Xu hướng" : p === "instagram" ? "Cao cấp" : "Đại lý");
   return (
     <div className="min-h-screen bg-[#07090d] text-slate-300 antialiased">
@@ -100,7 +104,7 @@ export function LandingView(props: {
               <div className="grid gap-4 p-5 sm:grid-cols-[1fr_220px]">
                 <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-5">
                   <div className="flex flex-wrap gap-2">
-                    {platforms.slice(0, 5).map((p, i) => (
+                    {showSmm && platforms.slice(0, 5).map((p, i) => (
                       <span key={p.platform} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${i === 0 ? "bg-rose-600 text-white" : "bg-white/5 text-slate-300"}`}>
                         {(PLATFORMS as any)[p.platform] || p.platform}{i < 2 ? " · HOT" : ""}
                       </span>
@@ -167,13 +171,13 @@ export function LandingView(props: {
         </section>
 
         {/* ===== Dịch vụ theo nền tảng ===== */}
-        <section id="dich-vu" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-16 lg:py-20">
+        {(showSmm || (showPremium && premiums.length > 0)) && (<section id="dich-vu" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-16 lg:py-20">
           <div className="mb-10 text-center">
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-rose-400">Dịch vụ toàn diện</div>
             <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Mọi nền tảng lớn trong một nơi.</h2>
             <p className="mx-auto mt-3 max-w-2xl text-slate-400">Giá dưới đây lấy trực tiếp từ dịch vụ đang bán — bấm vào nền tảng để xem toàn bộ bảng giá.</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {showSmm && (<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {platforms.slice(0, 4).map((p, i) => (
               <div key={p.platform} className="flex flex-col rounded-[24px] border border-white/10 bg-white/[0.04] p-6">
                 <div className="flex items-center justify-between">
@@ -195,8 +199,8 @@ export function LandingView(props: {
                 </div>
               </div>
             ))}
-          </div>
-          {premiums.length > 0 && (
+          </div>)}
+          {showPremium && premiums.length > 0 && (
             <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {premiums.slice(0, 4).map((pr) => (
                 <Link key={pr.name} href={pr.href} className="group rounded-[24px] border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-6 transition hover:border-rose-500/40">
@@ -208,7 +212,7 @@ export function LandingView(props: {
               ))}
             </div>
           )}
-        </section>
+        </section>)}
 
         {/* ===== Quy trình + dải số liệu ===== */}
         <section id="quy-trinh" className="scroll-mt-28 border-y border-white/5 bg-white/[0.02] px-4 py-16 lg:py-20">
