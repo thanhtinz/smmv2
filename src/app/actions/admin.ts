@@ -86,6 +86,10 @@ export async function adminSaveService(formData: FormData) {
     fulfillment,
     providerId: fulfillment === "API" && formData.get("providerId") ? parseInt(String(formData.get("providerId"))) : null,
     providerServiceId: fulfillment === "API" ? String(formData.get("providerServiceId") || "") || null : null,
+    backupProviderId: fulfillment === "API" && formData.get("backupProviderId") ? parseInt(String(formData.get("backupProviderId"))) : null,
+    backupProviderServiceId: fulfillment === "API" ? String(formData.get("backupProviderServiceId") || "") || null : null,
+    backupCostRate: parseInt(String(formData.get("backupCostRate") || "0")),
+    autoRefill: formData.get("autoRefill") === "on",
     active: formData.get("active") === "on",
     sort: parseInt(String(formData.get("sort") || "0")),
   };

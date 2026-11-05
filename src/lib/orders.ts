@@ -2,9 +2,9 @@ import { prisma } from "./db";
 import { applyBalance, creditReferralCommission, clawbackReferralCommission } from "./wallet";
 import { LEVEL_DISCOUNT, smmCharge, genCode, parsePremiumFields, vnd } from "./format";
 import { getSettings } from "./settings";
-import { orderEvent, orderTransition } from "./notify";
+import { orderEvent, orderTransition, notifyUser } from "./notify";
 import {
-  providerAddOrder, providerOrderStatus, mapProviderStatus,
+  providerAddOrder, providerOrderStatus, providerRefill, mapProviderStatus,
   providerBuyProduct, findPremiumOrderInHistory, extractDelivery,
   type SmmExtraParams,
 } from "./provider";
@@ -175,24 +175,44 @@ export async function createSmmOrder(input: {
   // nếu provider từ chối dứt khoát, hoàn tiền ngay.
   // Đơn drip-feed KHÔNG đẩy ngay: cron thả từng lượt theo lịch (xem processDripfeedOrders).
   if (!drip && service.fulfillment === "API" && service.provider && service.providerServiceId) {
-    try {
-      const pid = await providerAddOrder(service.provider, service.providerServiceId, order.link, order.quantity, input.extra);
-      await prisma.smmOrder.update({
-        where: { id: order.id },
-        data: { providerOrderId: pid, status: "PROCESSING" },
-      });
-      await prisma.apiLog.create({
-        data: { kind: "provider_out", ref: order.code, detail: `providerOrder=${pid} provider=${service.provider.name}` },
-      });
-      await orderEvent(order.id, "PROCESSING", `Đã đẩy sang nhà cung cấp ${service.provider.name} (mã ${pid})`);
-      return { ...order, providerOrderId: pid, status: "PROCESSING" as const };
-    } catch (e: any) {
-      await prisma.apiLog.create({
-        data: { kind: "provider_out", ref: order.code, ok: false, detail: String(e?.message || e) },
-      });
-      await refundSmmOrder(order.id, order.charge, "Provider từ chối đơn — hoàn tiền tự động");
-      return { ...order, status: "REFUNDED" as const };
+    // Smart Provider Routing + Failover: thử lần lượt các đích — chính trước, dự phòng sau
+    // (hoặc ngược lại khi dự phòng rẻ hơn hẳn / chính sắp hết tiền); tất cả đều lỗi mới hoàn tiền.
+    type Target = { provider: NonNullable<typeof service.provider>; psid: string; costRate: number; isBackup: boolean };
+    const primary: Target = { provider: service.provider, psid: service.providerServiceId, costRate: service.costRate, isBackup: false };
+    let backup: Target | null = null;
+    if (service.backupProviderId && service.backupProviderServiceId) {
+      const bp = await prisma.provider.findUnique({ where: { id: service.backupProviderId } });
+      if (bp && bp.active) backup = { provider: bp, psid: service.backupProviderServiceId, costRate: service.backupCostRate, isBackup: true };
     }
+    let targets: Target[] = backup ? [primary, backup] : [primary];
+    if (backup && ((backup.costRate > 0 && backup.costRate < primary.costRate) || (primary.provider.balanceCache > 0 && primary.provider.balanceCache < cost))) {
+      targets = [backup, primary];
+    }
+    let lastErr: any = null;
+    for (const t of targets) {
+      try {
+        const pid = await providerAddOrder(t.provider, t.psid, order.link, order.quantity, input.extra);
+        const newCost = t.costRate > 0 ? smmCharge(t.costRate, order.quantity) : order.cost;
+        await prisma.smmOrder.update({
+          where: { id: order.id },
+          data: { providerOrderId: pid, status: "PROCESSING", providerId: t.provider.id, cost: newCost },
+        });
+        await prisma.apiLog.create({
+          data: { kind: "provider_out", ref: order.code, detail: `providerOrder=${pid} provider=${t.provider.name}${t.isBackup ? " (backup)" : ""}` },
+        });
+        await orderEvent(order.id, "PROCESSING",
+          `Đã đẩy sang nhà cung cấp ${t.provider.name} (mã ${pid})` +
+          (lastErr ? " — chuyển dự phòng vì nhà cung cấp trước lỗi" : t.isBackup ? " — định tuyến sang nguồn giá tốt hơn" : ""));
+        return { ...order, providerOrderId: pid, status: "PROCESSING" as const, providerId: t.provider.id, cost: newCost };
+      } catch (e: any) {
+        lastErr = e;
+        await prisma.apiLog.create({
+          data: { kind: "provider_out", ref: order.code, ok: false, detail: `${t.provider.name}: ${String(e?.message || e)}` },
+        });
+      }
+    }
+    await refundSmmOrder(order.id, order.charge, "Nhà cung cấp từ chối đơn — hoàn tiền tự động");
+    return { ...order, status: "REFUNDED" as const };
   }
   if (drip && service.fulfillment === "API") {
     await prisma.smmOrder.update({ where: { id: order.id }, data: { status: "PROCESSING" } });
@@ -563,4 +583,50 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
     await clawbackReferralCommission(order.userId, order.total, order.code);
   }
   return prisma.premiumOrder.findUnique({ where: { id: order.id } });
+}
+
+/**
+ * Auto Refill: với dịch vụ bật autoRefill (+ provider hỗ trợ refill), hệ thống TỰ gửi yêu cầu
+ * bảo hành 1 lần cho mỗi đơn API đã hoàn thành (sau 30 phút, trong cửa sổ 7 ngày) thay vì chờ
+ * khách bấm. Provider tự kiểm chứng tụt số thật khi xử lý refill. Cron gọi định kỳ.
+ */
+export async function processAutoRefills(limit = 20) {
+  const since = new Date(Date.now() - 7 * 86400000);
+  const settleBefore = new Date(Date.now() - 30 * 60000);
+  const orders = await prisma.smmOrder.findMany({
+    where: {
+      fulfillment: "API", status: "COMPLETED", providerOrderId: { not: null }, providerId: { not: null },
+      createdAt: { gte: since }, updatedAt: { lte: settleBefore },
+    },
+    include: { service: { select: { autoRefill: true, refill: true } } },
+    take: 100,
+    orderBy: { updatedAt: "asc" },
+  });
+  let refilled = 0, checked = 0;
+  for (const o of orders) {
+    if (refilled >= limit) break;
+    if (!o.service.autoRefill || !o.service.refill) continue;
+    let p: any = {};
+    try { p = JSON.parse(o.params || "{}"); } catch {}
+    if ((p.autoRefillCount || 0) >= 1) continue;
+    const provider = await prisma.provider.findUnique({ where: { id: o.providerId! } });
+    if (!provider) continue;
+    checked++;
+    try {
+      const rid = await providerRefill(provider, o.providerOrderId!);
+      p.autoRefillCount = 1;
+      p.lastRefillId = rid;
+      await prisma.smmOrder.update({ where: { id: o.id }, data: { params: JSON.stringify(p) } });
+      await orderEvent(o.id, "COMPLETED", `Tự động bảo hành: đã gửi refill #${rid} tới ${provider.name}`);
+      await notifyUser(o.userId, "Đơn đã được tự động bảo hành", `Đơn ${o.code}: hệ thống đã tự gửi yêu cầu refill #${rid} tới nhà cung cấp`, `/dashboard/don-hang/${o.id}`);
+      await prisma.apiLog.create({ data: { kind: "auto_refill", ref: o.code, detail: `refill=${rid} provider=${provider.name}` } });
+      refilled++;
+    } catch (e: any) {
+      p.autoRefillCount = 1; // lỗi dứt khoát (provider không nhận refill) thì không thử lại vô hạn
+      p.autoRefillError = String(e?.message || e).slice(0, 150);
+      await prisma.smmOrder.update({ where: { id: o.id }, data: { params: JSON.stringify(p) } });
+      await prisma.apiLog.create({ data: { kind: "auto_refill", ref: o.code, ok: false, detail: p.autoRefillError } });
+    }
+  }
+  return { checked, refilled };
 }

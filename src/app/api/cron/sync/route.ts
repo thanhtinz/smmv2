@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { syncSmmOrderStatus, syncPremiumOrderStatus, processDripfeedOrders } from "@/lib/orders";
+import { syncSmmOrderStatus, syncPremiumOrderStatus, processDripfeedOrders, processAutoRefills } from "@/lib/orders";
 import { syncProviderServices, syncProviderPremium, providerBalance } from "@/lib/provider";
 
 /**
@@ -26,6 +26,28 @@ export async function GET(req: NextRequest) {
     result.dripfeed = await processDripfeedOrders(10);
   } catch (e: any) {
     result.dripfeedError = String(e?.message || e);
+  }
+
+  // Service Health Monitor: kiểm tra số dư/kết nối mọi provider đang bật; lỗi thì ghi log cảnh báo
+  try {
+    const providers = await prisma.provider.findMany({ where: { active: true } });
+    result.providerHealth = [];
+    for (const p of providers) {
+      try {
+        const bal = await providerBalance(p);
+        result.providerHealth.push({ name: p.name, ok: true, balanceVnd: bal.vnd });
+      } catch (e: any) {
+        result.providerHealth.push({ name: p.name, ok: false });
+        await prisma.apiLog.create({ data: { kind: "provider_health", ref: p.name, ok: false, detail: String(e?.message || e) } });
+      }
+    }
+  } catch {}
+
+  // Auto Refill: tự gửi bảo hành cho đơn đã hoàn thành thuộc dịch vụ bật auto-refill
+  try {
+    result.autoRefill = await processAutoRefills(20);
+  } catch (e: any) {
+    result.autoRefillError = String(e?.message || e);
   }
 
   const orders = await prisma.smmOrder.findMany({

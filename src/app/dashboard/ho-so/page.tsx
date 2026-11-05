@@ -17,6 +17,11 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
         </div>
         <div><label className="lbl">Email</label><input className="inp" value={user.email} disabled /></div>
         <div><label className="lbl">Mã nạp tiền của bạn</label><input className="inp font-mono" value={`SMM ${user.depositCode}`} disabled /></div>
+        <div>
+          <label className="lbl">Webhook URL — nhận thông báo khi đơn đổi trạng thái (không bắt buộc)</label>
+          <input className="inp font-mono" name="webhookUrl" defaultValue={user.webhookUrl || ""} placeholder="https://he-thong-cua-ban.vn/webhook" />
+          <p className="text-xs text-slate-400 mt-1.5">Hệ thống POST JSON {"{ event, code, status, note, at }"} tới URL này mỗi khi đơn SMM của bạn chuyển trạng thái.</p>
+        </div>
         <button className="btn-primary">Lưu thay đổi</button>
       </form>
       <form action={changePasswordAction} className="card p-6 space-y-4">

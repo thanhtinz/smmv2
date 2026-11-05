@@ -58,8 +58,23 @@ export default async function AdminServiceForm({ params, searchParams }: { param
           </div>
         </div>
         <div><label className="lbl">ID dịch vụ phía nhà cung cấp (khi chọn API)</label><input className="inp" name="providerServiceId" defaultValue={s?.providerServiceId || ""} placeholder="Vd: 1234" /></div>
+        <div className="rounded-2xl border border-dashed border-slate-200 p-4 space-y-4">
+          <div className="font-semibold text-sm text-slate-800">Nhà cung cấp dự phòng (Failover — tự chuyển khi nguồn chính lỗi / đắt hơn / sắp hết tiền)</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="lbl">Provider dự phòng</label>
+              <select className="inp" name="backupProviderId" defaultValue={s?.backupProviderId || ""}>
+                <option value="">— Không dùng —</option>
+                {providers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div><label className="lbl">ID dịch vụ tại provider dự phòng</label><input className="inp" name="backupProviderServiceId" defaultValue={s?.backupProviderServiceId || ""} placeholder="Vd: 5678" /></div>
+            <div><label className="lbl">Giá vốn /1000 tại dự phòng</label><input className="inp" name="backupCostRate" type="number" defaultValue={s?.backupCostRate ?? 0} /></div>
+          </div>
+        </div>
         <div className="flex flex-wrap gap-5 text-sm">
           <label className="flex items-center gap-2"><input type="checkbox" name="refill" defaultChecked={s?.refill} className="w-4 h-4" /> Có bảo hành bù (refill)</label>
+          <label className="flex items-center gap-2"><input type="checkbox" name="autoRefill" defaultChecked={s?.autoRefill} className="w-4 h-4" /> Tự động refill cho đơn hoàn thành</label>
           <label className="flex items-center gap-2"><input type="checkbox" name="cancelable" defaultChecked={s?.cancelable} className="w-4 h-4" /> Cho phép huỷ</label>
           <label className="flex items-center gap-2"><input type="checkbox" name="dripfeed" defaultChecked={s?.dripfeed} className="w-4 h-4" /> Hỗ trợ drip-feed</label>
           <label className="flex items-center gap-2"><input type="checkbox" name="active" defaultChecked={s ? s.active : true} className="w-4 h-4" /> Đang bán</label>

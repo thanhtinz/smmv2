@@ -200,6 +200,12 @@ export async function syncProviderServices(provider: Provider) {
       providerServiceId: String(sv.service),
     };
     if (existing) {
+      // Price Monitor: giá vốn thay đổi -> ghi log để admin theo dõi biến động giá của provider
+      if (existing.costRate !== costVnd) {
+        await prisma.apiLog.create({
+          data: { kind: "price_change", ref: `${provider.name}/${sv.service}`, detail: `service=${existing.id} "${existing.name}" costRate ${existing.costRate} -> ${costVnd}` },
+        });
+      }
       await prisma.smmService.update({ where: { id: existing.id }, data });
       updated++;
     } else {

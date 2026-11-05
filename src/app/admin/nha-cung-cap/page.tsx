@@ -9,6 +9,16 @@ export const dynamic = "force-dynamic";
 export default async function AdminProviders({ searchParams }: { searchParams: { msg?: string; err?: string; edit?: string; preset?: string } }) {
   await requireAdminPage();
   const providers = await prisma.provider.findMany({ orderBy: { id: "asc" }, include: { _count: { select: { services: true, orders: true } } } });
+  // Service Health: đơn qua từng provider trong 7 ngày + tỷ lệ hoàn thành + lỗi đẩy đơn gần nhất
+  const since7 = new Date(Date.now() - 7 * 86400000);
+  const healthRows = await prisma.smmOrder.groupBy({ by: ["providerId", "status"], where: { providerId: { not: null }, createdAt: { gte: since7 } }, _count: true });
+  const healthOf = (pid: number) => {
+    const rows = healthRows.filter((r) => r.providerId === pid);
+    const total = rows.reduce((s, r) => s + r._count, 0);
+    const done = rows.find((r) => r.status === "COMPLETED")?._count || 0;
+    const terminal = rows.filter((r) => ["COMPLETED", "PARTIAL", "CANCELED", "REFUNDED"].includes(r.status)).reduce((s, r) => s + r._count, 0);
+    return { total, rate: terminal > 0 ? Math.round((done / terminal) * 100) : null };
+  };
   const editFound = searchParams.edit ? providers.find((p) => p.id === parseInt(searchParams.edit!)) : undefined;
   const presetThatim = !editFound && searchParams.preset === "thatim";
   const edit: any = editFound || (presetThatim ? { name: "ThaTim", apiUrl: "https://thatim.vn/api/v2", kind: "BOTH", currency: "VND", exchangeRate: 1, markupPercent: 20, active: true, apiKey: "", note: "Nguồn ThaTim: hỗ trợ cả SMM v2 (services/add/status/refill + comments/reaction/minutes) và API mua sản phẩm (category/buy/history). Dán API key của tài khoản ThaTim của bạn vào ô API Key." } : undefined);
@@ -29,6 +39,11 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
                   <div className="text-sm text-slate-500 mt-2">
                     Số dư ≈ <b className="text-slate-800">{vnd(p.balanceCache)}</b> · Tiền gốc {p.currency} × {p.exchangeRate.toLocaleString("vi-VN")} · Markup {p.markupPercent}% · {p._count.services} dịch vụ · {p._count.orders} đơn
                     {p.lastSyncAt && <> · Đồng bộ gần nhất {dt(p.lastSyncAt)}</>}
+                  </div>
+                  <div className="text-sm mt-1.5">
+                    {(() => { const h = healthOf(p.id); return h.total > 0 ? (
+                      <span className="text-slate-500">Sức khoẻ 7 ngày: <b className="text-slate-700">{h.total} đơn</b> · hoàn thành <b className={h.rate !== null && h.rate >= 90 ? "text-emerald-600" : h.rate !== null && h.rate >= 70 ? "text-amber-600" : "text-rose-600"}>{h.rate === null ? "—" : `${h.rate}%`}</b></span>
+                    ) : <span className="text-slate-400">Sức khoẻ 7 ngày: chưa có đơn</span>; })()}
                   </div>
                   {p.note && <p className="text-xs text-slate-400 mt-1">{p.note}</p>}
                 </div>

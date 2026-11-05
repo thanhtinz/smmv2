@@ -45,6 +45,7 @@ model User {
   apiKey         String     @unique @db.VarChar(64)
   depositCode    String     @unique @db.VarChar(12) // nội dung CK: SMM <code>
   refCode        String?    @unique @db.VarChar(12) // mã giới thiệu (trang Kiếm tiền)
+  webhookUrl     String?    @db.VarChar(255) // URL nhận thông báo trạng thái đơn (Webhook ra hệ thống ngoài của khách)
   referredById   Int? // người đã giới thiệu tài khoản này
   referredBy     User?      @relation("Referral", fields: [referredById], references: [id])
   referrals      User[]     @relation("Referral")
@@ -92,7 +93,8 @@ model Provider {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  services      SmmService[]
+  services      SmmService[] @relation("SmmMainProvider")
+  backupServices SmmService[] @relation("SmmBackupProvider")
   orders        SmmOrder[]
   premiumProducts PremiumProduct[]
   premiumOrders   PremiumOrder[]
@@ -134,8 +136,14 @@ model SmmService {
   dripfeed         Boolean     @default(false)
   fulfillment      Fulfillment @default(MANUAL)
   providerId       Int?
-  provider         Provider?   @relation(fields: [providerId], references: [id])
+  provider         Provider?   @relation("SmmMainProvider", fields: [providerId], references: [id])
   providerServiceId String?    @db.VarChar(50)
+  // Smart Routing + Failover: nhà cung cấp dự phòng (đẩy sang khi chính lỗi / đắt hơn / sắp hết tiền)
+  backupProviderId       Int?
+  backupProvider         Provider? @relation("SmmBackupProvider", fields: [backupProviderId], references: [id])
+  backupProviderServiceId String?  @db.VarChar(50)
+  backupCostRate         Int       @default(0) // giá vốn / 1000 tại provider dự phòng
+  autoRefill             Boolean   @default(false) // tự động refill khi phát hiện tụt số sau khi hoàn thành
   active           Boolean     @default(true)
   sort             Int         @default(0)
   createdAt        DateTime    @default(now())

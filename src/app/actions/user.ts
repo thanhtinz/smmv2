@@ -310,11 +310,14 @@ export async function regenApiKeyAction() {
 
 export async function updateProfileAction(formData: FormData) {
   const user = await requireUser();
+  const webhookUrl = String(formData.get("webhookUrl") || "").trim();
+  if (webhookUrl && !/^https?:\/\/.+/i.test(webhookUrl)) back("/dashboard/ho-so", "err", "Webhook URL phải bắt đầu bằng http:// hoặc https://");
   await prisma.user.update({
     where: { id: user.id },
     data: {
       fullName: String(formData.get("fullName") || "").trim() || null,
       phone: String(formData.get("phone") || "").trim() || null,
+      webhookUrl: webhookUrl || null,
     },
   });
   back("/dashboard/ho-so", "msg", "Đã cập nhật hồ sơ");
