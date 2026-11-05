@@ -47,6 +47,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/nap-tien", label: "Nạp tiền", icon: "wallet", badge: depPending, adminOnly: true },
     { href: "/admin/bien-dong", label: "Biến động số dư", icon: "money", adminOnly: true },
     { href: "/admin/ngan-hang", label: "Ngân hàng", icon: "landmark", adminOnly: true },
+    { href: "/admin/tien-te", label: "Tiền tệ", icon: "money", adminOnly: true },
     { href: "/admin/ma-giam-gia", label: "Mã giảm giá", icon: "gift", adminOnly: true },
     {
       group: "Bài viết", icon: "file",
@@ -56,6 +57,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ],
     } as any,
     { href: "/admin/email-marketing", label: "Email Marketing", icon: "mail", adminOnly: true },
+    { href: "/admin/lien-he", label: "Liên hệ", icon: "megaphone", adminOnly: true },
     { href: "/admin/nguoi-dung", label: "Người dùng", icon: "users", adminOnly: true },
     { href: "/admin/phan-tich", label: "Phân tích", icon: "chart", adminOnly: true },
     { href: "/admin/rui-ro", label: "Phát hiện rủi ro", icon: "shield", adminOnly: true },
@@ -65,6 +67,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/nhat-ky", label: "Nhật ký API", icon: "clock" },
     { href: "/admin/bao-mat", label: "Bảo mật nâng cao", icon: "shield", adminOnly: true },
     { href: "/admin/he-thong", label: "Hệ thống", icon: "cpu", adminOnly: true },
+    { href: "/admin/don-dep", label: "Dọn dẹp hệ thống", icon: "file", adminOnly: true },
     { href: "/admin/mo-dun", label: "Mô-đun", icon: "layers", adminOnly: true },
     { href: "/admin/cau-hinh", label: "Cấu hình", icon: "gear", adminOnly: true },
   ];

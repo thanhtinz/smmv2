@@ -144,8 +144,8 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
     : s;
   return (
     <>
-    <FloatingSupport s={merged} />
-    <LiveChat panelSlug={brand?.slug} />
+    {merged.support_widget_enabled !== "0" && <FloatingSupport s={merged} />}
+    {merged.livechat_enabled !== "0" && <LiveChat panelSlug={brand?.slug} />}
     <footer className="bg-slate-950 text-slate-400 mt-20">
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm">
         <div>

@@ -173,8 +173,29 @@ export async function cleanupSystemAction(formData: FormData) {
   if (kind === "apilog") n = (await prisma.apiLog.deleteMany({ where: { createdAt: { lt: d30 } } })).count;
   else if (kind === "notifications") n = (await prisma.notification.deleteMany({ where: { read: true, createdAt: { lt: d30 } } })).count;
   else if (kind === "events") n = (await prisma.orderEvent.deleteMany({ where: { createdAt: { lt: d30 } } })).count;
-  else back("/admin/he-thong", "err", "Loại dọn dẹp không hợp lệ");
-  done("/admin/he-thong", `Đã dọn ${n} bản ghi cũ`);
+  else back(str(formData, "from") || "/admin/he-thong", "err", "Loại dọn dẹp không hợp lệ");
+  done(str(formData, "from") || "/admin/he-thong", `Đã dọn ${n} bản ghi cũ`);
+}
+
+/* ---------- Liên hệ: kênh hỗ trợ + widget nổi + AI tư vấn ---------- */
+export async function saveContactAction(formData: FormData) {
+  await requireAdmin();
+  for (const k of ["support_zalo", "support_telegram", "support_facebook", "support_hotline"]) {
+    await setSetting(k, str(formData, k).slice(0, 300));
+  }
+  await setSetting("support_widget_enabled", formData.get("support_widget_enabled") === "on" ? "1" : "0");
+  await setSetting("livechat_enabled", formData.get("livechat_enabled") === "on" ? "1" : "0");
+  done("/admin/lien-he", "Đã lưu cấu hình liên hệ");
+}
+
+/* ---------- Tiền tệ: tỉ giá quy đổi hiển thị ---------- */
+export async function saveRatesAction(formData: FormData) {
+  await requireAdmin();
+  for (const k of ["usd_rate", "rate_eur", "rate_cny", "rate_thb", "rate_jpy", "rate_krw"]) {
+    const v = parseFloat(str(formData, k).replace(",", "."));
+    if (!isNaN(v) && v > 0) await setSetting(k, String(v));
+  }
+  done("/admin/tien-te", "Đã lưu tỉ giá hiển thị");
 }
 
 /* ---------- Email Marketing ---------- */

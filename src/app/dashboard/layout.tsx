@@ -66,7 +66,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </div>
       {/* Menu footer kiểu webapp cho điện thoại */}
       <TabBar variant="app" />
-      <LiveChat />
+      {s.livechat_enabled !== "0" && <LiveChat />}
     </div>
   );
 }

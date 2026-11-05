@@ -10,7 +10,8 @@ import { vnd, LEVEL_NAME } from "@/lib/format";
 
 /** Khung khu tài khoản của PANEL CON — dựng đúng khung dashboard web mẹ
  *  (header trắng dính + thẻ sidebar + chip số dư), chỉ thay thương hiệu/màu của panel */
-export function PanelShell({ panel, user, children }: { panel: ChildPanel; user: User; children: ReactNode }) {
+export async function PanelShell({ panel, user, children }: { panel: ChildPanel; user: User; children: ReactNode }) {
+  const motherSettings = await (await import("@/lib/settings")).getSettings();
   const items = [
     { href: `/cua-hang/${panel.slug}`, label: "Gian hàng", icon: I.home },
     ...(panel.sellSmm ? [{ href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },] : []),
@@ -47,7 +48,7 @@ export function PanelShell({ panel, user, children }: { panel: ChildPanel; user:
         </aside>
         <main className="min-w-0 pb-20 lg:pb-0">{children}</main>
       </div>
-      <LiveChat panelSlug={panel.slug} />
+      {motherSettings.livechat_enabled !== "0" && <LiveChat panelSlug={panel.slug} />}
     </div>
   );
 }

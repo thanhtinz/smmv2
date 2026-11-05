@@ -4,6 +4,8 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   site_name: "SMMv2",
   site_tagline: "SMM Panel & Tài khoản Premium — tự động 24/7",
   site_logo_text: "S",
+  support_widget_enabled: "1",
+  livechat_enabled: "1",
   support_telegram: "",
   support_facebook: "",
   support_zalo: "",
