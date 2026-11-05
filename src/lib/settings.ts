@@ -126,6 +126,10 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   module_premium: "1",
   module_smm: "1",
   ai_enabled: "0",
+  // AI Kiểm tra: quét link đơn hàng bằng AI, gắn cờ rủi ro nếu vi phạm (tab AI Kiểm tra)
+  ai_check_enabled: "0",
+  // SMM Tool API: key cho tool ngoài lấy đơn thủ công chờ xử lý + cập nhật trạng thái (tab SMM Tool API)
+  tool_api_key: "",
   ai_provider: "openai",
   ai_base_url: "",
   ai_api_key: "",

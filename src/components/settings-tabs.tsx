@@ -1,18 +1,20 @@
 "use client";
 import { useState, type ReactNode } from "react";
 
-export default function SettingsTabs({ tabs }: { tabs: { id: string; label: string; content: ReactNode }[] }) {
+/** Thanh tab kiểu panel mẫu: hàng ngang cuộn được, tab đang chọn chữ xanh + gạch chân xanh. */
+export default function SettingsTabs({ tabs }: { tabs: { id: string; label: string; icon?: ReactNode; content: ReactNode }[] }) {
   const [active, setActive] = useState(tabs[0]?.id);
   return (
     <div>
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-slate-200 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setActive(t.id)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${active === t.id ? "bg-brand-600 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
+            className={`relative -mb-px flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-semibold transition ${active === t.id ? "border-brand-600 text-brand-600" : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800"}`}
           >
+            {t.icon}
             {t.label}
           </button>
         ))}
