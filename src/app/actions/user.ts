@@ -17,7 +17,9 @@ export async function placeSmmOrderAction(formData: FormData) {
   const user = await requireUser();
   if ((await getSettings()).module_smm === "0") back("/dashboard/dat-hang", "err", "Đặt đơn SMM đang tạm ngưng");
   const serviceId = parseInt(String(formData.get("serviceId") || "0"));
-  const link = String(formData.get("link") || "");
+  // Toggle "Nhiều link": mỗi dòng của ô links là 1 đơn riêng (trùng dòng thì gộp 1)
+  const multiLinks = Array.from(new Set(String(formData.get("links") || "").split("\n").map((l) => l.trim()).filter(Boolean)));
+  const link = String(formData.get("link") || "") || multiLinks[0] || "";
   const quantity = parseInt(String(formData.get("quantity") || "0"));
   const note = String(formData.get("note") || "") || undefined;
   const dripfeed = formData.get("dripfeed") === "1" && parseInt(String(formData.get("runs") || "0")) > 0 && parseInt(String(formData.get("interval") || "0")) > 0
@@ -30,6 +32,23 @@ export async function placeSmmOrderAction(formData: FormData) {
   if (comments) extra.comments = comments;
   if (reaction) extra.reaction = reaction;
   if (minutes > 0) extra.minutes = minutes;
+  // Chế độ nhiều link: tạo lần lượt từng đơn độc lập; mã giảm giá chỉ áp cho đơn đầu tiên
+  if (multiLinks.length > 1) {
+    if (multiLinks.length > 50) back("/dashboard/dat-hang", "err", "Tối đa 50 link mỗi lần đặt");
+    const codes: string[] = [];
+    const errors: string[] = [];
+    for (let i = 0; i < multiLinks.length; i++) {
+      try {
+        const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
+        const order = await createSmmOrder({ user: fresh, serviceId, link: multiLinks[i], quantity, note, extra, dripfeed, promoCode: i === 0 ? String(formData.get("promoCode") || "") || undefined : undefined, campaignId: parseInt(String(formData.get("campaignId") || "0")) || undefined });
+        codes.push(order.code);
+      } catch (e: any) {
+        errors.push(`link ${i + 1}: ${String(e?.message || "lỗi")}`);
+      }
+    }
+    if (codes.length === 0) back("/dashboard/dat-hang", "err", `Đặt thất bại cả ${multiLinks.length} link — ${errors[0] || ""}`);
+    back("/dashboard/don-hang", "msg", `Đã đặt ${codes.length}/${multiLinks.length} đơn: ${codes.join(", ")}${errors.length ? ` — lỗi ở ${errors.slice(0, 3).join("; ")}` : ""}`);
+  }
   try {
     const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
     const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, note, extra, dripfeed, promoCode: String(formData.get("promoCode") || "") || undefined, campaignId: parseInt(String(formData.get("campaignId") || "0")) || undefined });

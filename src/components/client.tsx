@@ -153,11 +153,16 @@ export function OrderForm({ services, categories, discount, preselect, action, b
   const [dripRuns, setDripRuns] = useState(10);
   const [dripInterval, setDripInterval] = useState(60);
   const [link, setLink] = useState(initialLink || "");
+  const [multiOn, setMultiOn] = useState(false);
+  const [multiLinks, setMultiLinks] = useState("");
   const [pasteMsg, setPasteMsg] = useState("");
   const service = services.find((s) => s.id === serviceId) || inCat[0];
   const raw = service ? Math.ceil((service.rate * (qty || 0)) / 1000) : 0;
   const charge = Math.max(0, Math.round(raw * (1 - discount / 100)));
-  const notEnough = balance !== undefined && charge > balance;
+  const linkLines = Array.from(new Set(multiLinks.split("\n").map((l) => l.trim()).filter(Boolean)));
+  const orderCount = multiOn ? linkLines.length : 1;
+  const totalCharge = charge * orderCount;
+  const notEnough = balance !== undefined && totalCharge > balance;
   const linkHost = (() => { try { return new URL(link).hostname.replace(/^www\./, ""); } catch { return ""; } })();
   const platformHosts: Record<string, string[]> = {
     facebook: ["facebook.com", "fb.watch", "fb.com"], tiktok: ["tiktok.com"], instagram: ["instagram.com"],
@@ -167,7 +172,10 @@ export function OrderForm({ services, categories, discount, preselect, action, b
   async function pasteLink() {
     try {
       const t = await navigator.clipboard.readText();
-      if (t) { setLink(t.trim()); setPasteMsg("Đã dán link từ bộ nhớ tạm."); } else setPasteMsg("Bộ nhớ tạm đang trống.");
+      if (t) {
+        if (multiOn) { setMultiLinks((prev) => (prev.trim() ? prev.replace(/\s+$/, "") + "\n" + t.trim() : t.trim())); setPasteMsg("Đã dán link từ bộ nhớ tạm."); }
+        else { setLink(t.trim()); setPasteMsg("Đã dán link từ bộ nhớ tạm."); }
+      } else setPasteMsg("Bộ nhớ tạm đang trống.");
     } catch { setPasteMsg("Trình duyệt chưa cho đọc bộ nhớ tạm — hãy dán thủ công (Ctrl+V)."); }
   }
   const qtyChips = service ? Array.from(new Set([service.min, 500, 1000, 5000, 10000, 50000, service.max].filter((n) => n >= service.min && n <= service.max))) : [];
@@ -189,16 +197,34 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           </select>
         </div>
         <div>
-          <label className="lbl">Link cần tăng</label>
-          <div className="flex gap-2">
-            <input className="inp flex-1" name="link" required placeholder="https://... (link công khai, không cần mật khẩu)" value={link} onChange={(e) => setLink(e.target.value)} />
-            <button type="button" onClick={pasteLink} className="btn-ghost shrink-0">Dán link</button>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="lbl !mb-0">Link cần tăng</label>
+            <span className="flex items-center gap-2 select-none">
+              <span className="text-xs font-semibold text-slate-600">Nhiều link</span>
+              <button type="button" role="switch" aria-checked={multiOn} title="Bật để đặt cùng lúc cho nhiều link — mỗi dòng 1 link, mỗi link thành 1 đơn riêng với cùng số lượng" onClick={() => setMultiOn(!multiOn)} className={`relative h-[22px] w-10 shrink-0 rounded-full transition-colors ${multiOn ? "bg-brand-600" : "bg-slate-300"}`}>
+                <span className={`absolute top-[3px] h-4 w-4 rounded-full bg-white shadow transition-all ${multiOn ? "left-[21px]" : "left-[3px]"}`} />
+              </button>
+            </span>
           </div>
+          {multiOn ? (
+            <>
+              <div className="flex gap-2 items-start">
+                <textarea className="inp flex-1 font-mono !text-[13px]" name="links" required rows={5} placeholder={"Mỗi dòng 1 link:\nhttps://...\nhttps://..."} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
+                <button type="button" onClick={pasteLink} className="btn-ghost shrink-0">Dán link</button>
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5">{linkLines.length > 0 ? <><b className="text-slate-600">{num(linkLines.length)} link</b> — mỗi link là 1 đơn riêng, số lượng {num(qty || 0)} áp cho từng link (tối đa 50 link/lần).</> : "Mỗi dòng 1 link — mỗi link là 1 đơn riêng với cùng số lượng (tối đa 50 link/lần)."}</p>
+            </>
+          ) : (
+            <div className="flex gap-2">
+              <input className="inp flex-1" name="link" required placeholder="https://... (link công khai, không cần mật khẩu)" value={link} onChange={(e) => setLink(e.target.value)} />
+              <button type="button" onClick={pasteLink} className="btn-ghost shrink-0">Dán link</button>
+            </div>
+          )}
           {pasteMsg && <p className="text-xs text-slate-400 mt-1.5">{pasteMsg}</p>}
-          {linkMismatch && <p className="text-xs text-amber-600 font-medium mt-1.5">Link này có vẻ không thuộc {PLATFORMS[service!.platform] || service!.platform} — kiểm tra lại dịch vụ đã chọn nhé.</p>}
+          {!multiOn && linkMismatch && <p className="text-xs text-amber-600 font-medium mt-1.5">Link này có vẻ không thuộc {PLATFORMS[service!.platform] || service!.platform} — kiểm tra lại dịch vụ đã chọn nhé.</p>}
         </div>
         <div>
-          <label className="lbl">Số lượng {service && <span className="text-slate-400 font-normal">(từ {num(service.min)} đến {num(service.max)})</span>}</label>
+          <label className="lbl">Số lượng {multiOn && <span className="text-brand-600 font-semibold">(cho mỗi link)</span>} {service && <span className="text-slate-400 font-normal">(từ {num(service.min)} đến {num(service.max)})</span>}</label>
           <input className="inp" name="quantity" type="number" required min={service?.min} max={service?.max} value={qty || ""} onChange={(e) => setQty(parseInt(e.target.value) || 0)} />
           {qtyChips.length > 1 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -278,18 +304,20 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           <div className="space-y-3 text-sm">
             <Row k="Dịch vụ" v={service.name} />
             <Row k="Đơn giá" v={`${vnd(service.rate)} / 1000`} />
-            <Row k="Số lượng" v={num(qty || 0)} />
+            <Row k="Số lượng" v={multiOn ? `${num(qty || 0)} / link` : num(qty || 0)} />
+            {multiOn && orderCount > 0 && <Row k="Số link" v={num(orderCount)} />}
+            {multiOn && orderCount > 0 && <Row k="Tổng số lượng" v={num((qty || 0) * orderCount)} />}
             {discount > 0 && <Row k="Chiết khấu cấp bậc" v={`-${discount}%`} />}
             <Row k="Thời gian dự kiến" v={service.avgTime || "—"} />
             <Row k="Bảo hành bù (refill)" v={service.refill ? "Có" : "Không"} />
             <div className="border-t border-dashed pt-3 flex justify-between items-center">
               <span className="font-semibold">Tổng thanh toán</span>
-              <span className="text-2xl font-extrabold text-brand-700">{vnd(charge)}</span>
+              <span className="text-2xl font-extrabold text-brand-700">{vnd(totalCharge)}</span>
             </div>
             {balance !== undefined && (
               <div className={`rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${notEnough ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
                 Số dư hiện tại: <b>{vnd(balance)}</b>
-                {notEnough ? <> — còn thiếu <b>{vnd(charge - balance)}</b>. <Link href="/dashboard/nap-tien" className="font-bold underline">Nạp thêm ngay</Link></> : <> — sau đơn này còn <b>{vnd(balance - charge)}</b>.</>}
+                {notEnough ? <> — còn thiếu <b>{vnd(totalCharge - balance)}</b>. <Link href="/dashboard/nap-tien" className="font-bold underline">Nạp thêm ngay</Link></> : <> — sau đơn này còn <b>{vnd(balance - totalCharge)}</b>.</>}
               </div>
             )}
             {service.notice && (
