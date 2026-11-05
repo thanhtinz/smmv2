@@ -40,6 +40,8 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <div><label className="lbl">Facebook hỗ trợ</label><input className="inp" name="support_facebook" defaultValue={s.support_facebook} /></div>
           <div><label className="lbl">Hotline</label><input className="inp" name="support_hotline" defaultValue={s.support_hotline} /></div>
           <div><label className="lbl">Email liên hệ</label><input className="inp" name="contact_email" defaultValue={s.contact_email} placeholder="support@domain.vn" /></div>
+          <div><label className="lbl">NameServer 1 cho website con</label><input className="inp" name="child_ns1" defaultValue={s.child_ns1} placeholder="vd: ns1.yourdomain.vn" /></div>
+          <div><label className="lbl">NameServer 2 cho website con</label><input className="inp" name="child_ns2" defaultValue={s.child_ns2} placeholder="vd: ns2.yourdomain.vn" /></div>
         </div>
         <div>
           <label className="lbl">Chế độ bảo trì (chặn khách, admin vẫn vào được)</label>

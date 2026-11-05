@@ -173,6 +173,40 @@ export async function createPanelAction(formData: FormData) {
   back("/panel-admin", "msg", `Đã tạo panel ${name} — gian hàng của bạn: /cua-hang/${slug}`);
 }
 
+/** Đăng ký website con đúng mô hình panel mẫu (thatim): form chỉ có 1 ô TÊN MIỀN —
+ *  không đường dẫn kiểu /cua-hang, không tên/slug cho khách nhập. Tên + slug hệ thống
+ *  tự suy từ tên miền; API tự liên kết bằng key của chính chủ panel; việc tuỳ chỉnh
+ *  (logo, màu, giá bán, API token) làm tiếp ngay trên website con. */
+export async function registerChildSiteAction(formData: FormData) {
+  const user = await requireUser();
+  if ((await getSettings()).module_panels === "0") back("/dashboard/panel-cua-toi", "err", "Tính năng mở website con đang tạm đóng");
+  const existing = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
+  if (existing) back("/dashboard/panel-cua-toi", "err", "Mỗi tài khoản chỉ tạo tối đa 1 website con");
+  const domain = String(formData.get("domain") || "").trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0].split(":")[0];
+  if (domain.length < 4 || !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(domain)) {
+    back("/dashboard/panel-cua-toi", "err", "Tên miền chưa hợp lệ — chỉ chứa chữ thường, số, dấu chấm và gạch ngang (vd: myshop.vn)");
+  }
+  const dup = await prisma.childPanel.findFirst({ where: { domain } });
+  if (dup) back("/dashboard/panel-cua-toi", "err", "Tên miền này đã được đăng ký cho website con khác");
+  let slug = panelSlug(domain);
+  if (slug.length < 3) slug = `site-${user.id}`;
+  if (RESERVED_SLUGS.includes(slug) || (await prisma.childPanel.findUnique({ where: { slug } }))) slug = `${slug}-${user.id}`;
+  const me = await prisma.user.findUnique({ where: { id: user.id }, select: { apiKey: true } });
+  const link = await panelApiLink(formData, { apiKey: me?.apiKey || null, apiUserId: user.id });
+  if (!link) back("/dashboard/panel-cua-toi", "err", "Không liên kết được API — vui lòng thử lại sau");
+  const linkedKey = link ? link.apiKey : null;
+  const linkedUser = link ? link.apiUserId : null;
+  await prisma.childPanel.create({
+    data: {
+      ownerId: user.id, name: domain, slug, markup: 20, accent: "blue", domain,
+      apiKey: linkedKey, apiUserId: linkedUser,
+      discountMember: 0, discountReseller: 5, discountAgency: 10, discountVip: 15,
+      setupDone: false,
+    },
+  });
+  back("/dashboard/panel-cua-toi", "msg", `Đã đăng ký website con ${domain} — trỏ NameServer của tên miền theo thông tin trên trang này, rồi đăng nhập website con để tuỳ chỉnh`);
+}
+
 export async function updatePanelAction(formData: FormData) {
   const user = await requireUser();
   const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });

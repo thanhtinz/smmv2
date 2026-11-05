@@ -120,6 +120,9 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   module_register: "1",
   module_affiliate: "1",
   module_panels: "1",
+  // NameServer khách trỏ tên miền website con về (admin điền theo hạ tầng thật; trống = chưa cấu hình)
+  child_ns1: "",
+  child_ns2: "",
   module_premium: "1",
   module_smm: "1",
   ai_enabled: "0",
