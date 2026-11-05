@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash, Badge, Stat } from "@/components/ui";
 import { panelDepositAction, panelManualDepositAction } from "@/app/actions/panel";
 import { vnd, dt, DEP_STATUS } from "@/lib/format";
@@ -9,8 +10,7 @@ export const dynamic = "force-dynamic";
 /** Nạp tiền của khách panel: duyệt yêu cầu nạp (USDT / chuyển khoản ngân hàng
  *  của panel / yêu cầu chờ) và cộng tiền tay cho khách của panel. */
 export default async function PanelDepositsPage({ searchParams }: { searchParams: { msg?: string; err?: string; status?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel } = await requirePanelOwnerPage();
   const status = searchParams.status || "";
   const [pendingCount, approvedSum, deposits, members] = await Promise.all([
     prisma.deposit.count({ where: { user: { panelId: panel.id }, status: "PENDING" } }),

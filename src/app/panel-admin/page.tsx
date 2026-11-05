@@ -1,18 +1,18 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelAccessPage } from "@/lib/panel-access";
 import { PageHead, Flash, Badge, Stat, I } from "@/components/ui";
 import { vnd, num, dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function PanelAdminHome({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel, isOwner } = await requirePanelAccessPage();
   const [memberCount, orderAgg, commissionAgg, members, orders, depositAgg, deposits] = await Promise.all([
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.smmOrder.aggregate({ where: { panelId: panel.id }, _count: true, _sum: { charge: true } }),
-    prisma.transaction.aggregate({ where: { userId: user.id, type: "PANEL_COMMISSION", amount: { gt: 0 } }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({ where: { userId: panel.ownerId, type: "PANEL_COMMISSION", amount: { gt: 0 } }, _sum: { amount: true } }),
     prisma.user.findMany({ where: { panelId: panel.id }, orderBy: { createdAt: "desc" }, take: 6, select: { id: true, username: true, createdAt: true, level: true } }),
     prisma.smmOrder.findMany({ where: { panelId: panel.id }, orderBy: { createdAt: "desc" }, take: 8, include: { user: { select: { username: true } }, service: { select: { name: true } } } }),
     prisma.deposit.aggregate({ where: { user: { panelId: panel.id }, status: "APPROVED" }, _count: true, _sum: { amount: true, bonus: true } }),

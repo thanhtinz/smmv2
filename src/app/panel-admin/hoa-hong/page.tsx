@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash, Stat, I } from "@/components/ui";
 import { panelSetCommissionAction } from "@/app/actions/panel";
 import { vnd, num, dt } from "@/lib/format";
@@ -12,8 +13,7 @@ const PAGE_SIZE = 30;
 /** Nhật ký hoa hồng của chủ panel: mọi khoản hoa hồng được cộng và bị thu hồi,
  *  kèm số dư sau mỗi biến động — chỉ dữ liệu của chính chủ panel. */
 export default async function PanelCommissionPage({ searchParams }: { searchParams: { msg?: string; err?: string; days?: string; page?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel } = await requirePanelOwnerPage();
   const days = [7, 30, 90].includes(parseInt(searchParams.days || "30")) ? parseInt(searchParams.days || "30") : 30;
   const page = Math.max(1, parseInt(searchParams.page || "1") || 1);
   const since = new Date(Date.now() - days * 86400000);

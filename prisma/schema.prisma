@@ -66,6 +66,7 @@ model User {
   panelId    Int?
   panel      ChildPanel?  @relation("PanelMember", fields: [panelId], references: [id])
   ownedPanel ChildPanel?  @relation("PanelOwner")
+  staffOf    PanelStaff[] @relation("PanelStaffUser")
 }
 
 enum Fulfillment {
@@ -528,6 +529,18 @@ model ChildPanel {
   // Công tắc bán hàng của panel: bán mảng nào thì bật mảng đó
   sellSmm     Boolean @default(true)
   sellPremium Boolean @default(true)
+  // Mô-đun riêng của panel (như trang Mô-đun của web mẹ, phạm vi khách của panel)
+  moduleAffiliate Boolean @default(true) // tắt = khách panel không có mục Kiếm tiền + không tính hoa hồng giới thiệu
+  moduleRegister  Boolean @default(true) // tắt = gian hàng ngừng nhận đăng ký mới
+  // Tỉ giá quy đổi HIỂN THỊ riêng của panel (để trống = dùng tỉ giá của web mẹ; tiền thật vẫn là VNĐ)
+  rateUsd String? @db.VarChar(20)
+  rateEur String? @db.VarChar(20)
+  rateCny String? @db.VarChar(20)
+  rateThb String? @db.VarChar(20)
+  rateJpy String? @db.VarChar(20)
+  rateKrw String? @db.VarChar(20)
+  // Danh mục bị ẩn trên gian hàng của panel (id danh mục SMM, cách nhau dấu phẩy)
+  hiddenCats String? @db.VarChar(300)
   googleClientSecret String? @db.VarChar(200)
   ownServices SmmService[] @relation("PanelOwnServices")
   status    String   @default("ACTIVE") @db.VarChar(20) // ACTIVE | SUSPENDED
@@ -535,6 +548,9 @@ model ChildPanel {
   updatedAt DateTime @updatedAt
 
   members User[]     @relation("PanelMember")
+  staff   PanelStaff[]
+  ipBans  IpBan[]    @relation("PanelIpBans")
+  bankAccounts PanelBankAccount[]
   orders  SmmOrder[]
   premiumOrders PremiumOrder[]
   servicePrices PanelServicePrice[]
@@ -542,6 +558,21 @@ model ChildPanel {
   discountCodes DiscountCode[]
   posts         Post[]
   contactWidgets ContactWidget[] @relation("PanelContactWidgets")
+}
+
+// Nhân viên của panel con (phân quyền 2 tầng như web mẹ): nhân viên vào được
+// Panel Admin nhưng chỉ xử lý đơn + trả lời ticket + xem khách/thống kê;
+// giá, tiền, cấu hình, nhân sự là quyền của CHỦ panel.
+model PanelStaff {
+  id        Int        @id @default(autoincrement())
+  panelId   Int
+  panel     ChildPanel @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User       @relation("PanelStaffUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([panelId, userId])
+  @@index([userId])
 }
 
 // Giá riêng của panel cho TỪNG dịch vụ theo TỪNG cấp bậc khách (kiểu thatim:
@@ -648,10 +679,34 @@ model Post {
 }
 
 model IpBan {
-  id        Int      @id @default(autoincrement())
-  ip        String   @unique @db.VarChar(64)
-  reason    String?  @db.VarChar(255)
-  createdAt DateTime @default(now())
+  id        Int         @id @default(autoincrement())
+  ip        String      @db.VarChar(64)
+  reason    String?     @db.VarChar(255)
+  // panelId trống = cấm TOÀN HỆ THỐNG (web mẹ đặt); có panelId = chỉ cấm trong panel đó
+  panelId   Int?
+  panel     ChildPanel? @relation("PanelIpBans", fields: [panelId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([panelId, ip])
+  @@index([ip])
+}
+
+// Tài khoản ngân hàng nhận nạp của RIÊNG panel (khách panel thấy ở trang Nạp tiền,
+// chủ panel duyệt tay) — như trang Ngân hàng của web mẹ nhưng phạm vi panel.
+model PanelBankAccount {
+  id          Int        @id @default(autoincrement())
+  panelId     Int
+  panel       ChildPanel @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  bankName    String     @db.VarChar(120)
+  accountNo   String     @db.VarChar(40)
+  accountName String     @db.VarChar(120)
+  note        String?    @db.VarChar(255)
+  active      Boolean    @default(true)
+  sort        Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([panelId])
 }
 
 

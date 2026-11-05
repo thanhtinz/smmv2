@@ -9,8 +9,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id }, select: { id: true } });
-  if (!panel) return NextResponse.json({ error: "No panel" }, { status: 404 });
-  const feed = await getRealtimeFeed({ panelId: panel.id, panelAdmin: true });
+  const { getPanelAccess } = await import("@/lib/panel-access");
+  const access = await getPanelAccess(user.id);
+  if (!access) return NextResponse.json({ error: "No panel" }, { status: 404 });
+  const feed = await getRealtimeFeed({ panelId: access.panel.id, panelAdmin: true });
   return NextResponse.json(feed);
 }

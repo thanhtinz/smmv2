@@ -23,6 +23,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
     content, min: minDep,
   }));
   const myPanel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;
+  const myPanelBanks = myPanel ? await prisma.panelBankAccount.findMany({ where: { panelId: myPanel.id, active: true }, orderBy: [{ sort: "asc" }, { id: "asc" }] }) : [];
   const panelUsdt = myPanel && myPanel.status === "ACTIVE" && myPanel.usdtAddress
     ? { address: myPanel.usdtAddress, network: myPanel.usdtNetwork || "TRC20", rate: myPanel.usdtRate || parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") }
     : null;
@@ -41,10 +42,22 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
           intl={paypalOn || stripeOn ? { rate: parseInt(s.usd_rate || "25000", 10) || 25000, paypal: paypalOn, stripe: stripeOn } : null}
           usdt={panelUsdt || (s.usdt_enabled === "1" && s.usdt_address ? { address: s.usdt_address, network: s.usdt_network || "TRC20", rate: parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") } : null)}
         />
-        {myPanel && myPanel.status === "ACTIVE" && myPanel.bankAccount && (
+        {myPanel && myPanel.status === "ACTIVE" && (myPanel.bankAccount || myPanelBanks.length > 0) && (
           <form action={createPanelBankDepositAction} className="card p-5">
             <div className="font-bold text-slate-900">Chuyển khoản cho shop {myPanel.name}</div>
-            <p className="mt-1 text-sm text-slate-500">{myPanel.bankName} · STK <b className="text-slate-700">{myPanel.bankAccount}</b>{myPanel.bankHolder ? ` · ${myPanel.bankHolder}` : ""}. Chuyển xong hãy gửi yêu cầu bên dưới — chủ shop duyệt và cộng tiền cho bạn.</p>
+            {myPanelBanks.length > 0 ? (
+              <div className="mt-2 space-y-2">
+                {myPanelBanks.map((b) => (
+                  <div key={b.id} className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-sm text-slate-600">
+                    <b className="text-slate-800">{b.bankName}</b> · STK <b className="text-slate-800">{b.accountNo}</b> · {b.accountName}
+                    {b.note && <div className="text-xs text-slate-400">{b.note}</div>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-1 text-sm text-slate-500">{myPanel.bankName} · STK <b className="text-slate-700">{myPanel.bankAccount}</b>{myPanel.bankHolder ? ` · ${myPanel.bankHolder}` : ""}</p>
+            )}
+            <p className="mt-2 text-sm text-slate-500">Chuyển xong hãy gửi yêu cầu bên dưới — chủ shop duyệt và cộng tiền cho bạn.</p>
             <div className="mt-3 flex gap-2">
               <input name="amount" type="number" min={10000} step={1000} required placeholder="Số tiền đã chuyển (đ)" className="inp" />
               <button className="btn-primary shrink-0 !py-2.5">Gửi yêu cầu duyệt</button>

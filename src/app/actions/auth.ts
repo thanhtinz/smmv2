@@ -7,11 +7,13 @@ async function clientIp() {
   const h = headers();
   return (h.get("x-forwarded-for") || h.get("x-real-ip") || "").split(",")[0].trim();
 }
-async function assertNotBanned() {
+async function assertNotBanned(panelId?: number) {
   const ip = await clientIp();
   if (!ip) return;
-  const ban = await prisma.ipBan.findUnique({ where: { ip } }).catch(() => null);
-  if (ban) throw new Error("Địa chỉ IP của bạn đã bị chặn khỏi hệ thống" + (ban.reason ? `: ${ban.reason}` : ""));
+  const ban = await prisma.ipBan
+    .findFirst({ where: { ip, OR: [{ panelId: null }, ...(panelId ? [{ panelId }] : [])] } })
+    .catch(() => null);
+  if (ban) throw new Error("Địa chỉ IP của bạn đã bị chặn" + (ban.panelId ? " khỏi gian hàng này" : " khỏi hệ thống") + (ban.reason ? `: ${ban.reason}` : ""));
 }
 import { createSession, destroySession } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
@@ -64,6 +66,8 @@ export async function panelRegisterAction(formData: FormData) {
   const slug = String(formData.get("slug") || "");
   const panel = await prisma.childPanel.findUnique({ where: { slug } });
   if (!panel || panel.status !== "ACTIVE") back(`/cua-hang/${slug}`, "err", "Panel này đang tạm ngưng nhận khách mới");
+  if (!panel.moduleRegister) back(`/cua-hang/${slug}/dang-ky`, "err", "Gian hàng này đang tạm đóng đăng ký mới");
+  try { await assertNotBanned(panel.id); } catch (e: any) { back(`/cua-hang/${slug}/dang-ky`, "err", String(e?.message || "IP bị chặn")); }
   const username = String(formData.get("username") || "").trim().toLowerCase();
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
@@ -101,6 +105,9 @@ export async function loginAction(formData: FormData) {
   if (!user || !(await bcrypt.compare(password, user.passwordHash)))
     back("/login", "err", "Sai tài khoản hoặc mật khẩu");
   if (user.status === "BANNED") back("/login", "err", "Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
+  if (user.panelId) {
+    try { await assertNotBanned(user.panelId); } catch (e: any) { back("/login", "err", String(e?.message || "IP bị chặn")); }
+  }
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await createSession({ id: user.id, role: user.role, username: user.username });
   redirect(user.role === "ADMIN" || user.role === "STAFF" ? "/admin" : "/dashboard");

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash } from "@/components/ui";
 import { PanelPostsClient, type PanelPostDTO } from "@/components/panel-features";
 
@@ -7,8 +8,7 @@ export const dynamic = "force-dynamic";
 
 /** Bài viết riêng của gian hàng — hiện ở mục Bài viết trên storefront của panel. */
 export default async function PanelPostsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel } = await requirePanelOwnerPage();
   const [posts, categories] = await Promise.all([
     prisma.post.findMany({ where: { panelId: panel.id }, orderBy: { createdAt: "desc" } }),
     prisma.postCategory.findMany({ where: { active: true }, orderBy: { id: "asc" }, select: { id: true, name: true } }),

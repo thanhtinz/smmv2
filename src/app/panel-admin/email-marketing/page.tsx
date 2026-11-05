@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash } from "@/components/ui";
 import { panelSendMarketingEmail } from "@/app/actions/panel";
 import { smtpConfigured } from "@/lib/mailer";
@@ -10,8 +11,7 @@ export const dynamic = "force-dynamic";
 /** Email marketing của chủ panel — gửi qua SMTP chung của hệ thống,
  *  chỉ tới khách của panel này, theo nhóm đã chọn. */
 export default async function PanelEmailPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel } = await requirePanelOwnerPage();
   const panelReady = !!(panel.smtpHost && panel.smtpUser && panel.smtpFrom);
   const [globalReady, totalMembers, history] = await Promise.all([
     smtpConfigured(),

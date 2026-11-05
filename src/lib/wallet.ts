@@ -42,10 +42,15 @@ export async function creditReferralCommission(
   ref?: string
 ) {
   if (amount <= 0) return 0;
-  const buyer = await tx.user.findUnique({ where: { id: buyerId }, select: { referredById: true, username: true } });
+  const buyer = await tx.user.findUnique({ where: { id: buyerId }, select: { referredById: true, username: true, panelId: true } });
   if (!buyer?.referredById) return 0;
   const moduleRow = await tx.setting.findUnique({ where: { key: "module_affiliate" } });
   if (moduleRow?.value === "0") return 0;
+  // Panel của người mua đã tắt mô-đun Kiếm tiền → không tính hoa hồng giới thiệu trong panel đó
+  if (buyer.panelId) {
+    const p = await tx.childPanel.findUnique({ where: { id: buyer.panelId }, select: { moduleAffiliate: true } });
+    if (p && !p.moduleAffiliate) return 0;
+  }
   const row = await tx.setting.findUnique({ where: { key: "affiliate_percent" } });
   const pct = parseFloat(row?.value || "6") || 0;
   if (pct <= 0) return 0;

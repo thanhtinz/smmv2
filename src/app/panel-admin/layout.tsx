@@ -18,27 +18,36 @@ export const dynamic = "force-dynamic";
 export default async function PanelAdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
-  if (!panel) redirect("/dashboard/panel-cua-toi/thiet-lap");
+  const { getPanelAccess } = await import("@/lib/panel-access");
+  const access = await getPanelAccess(user.id);
+  if (!access) redirect("/dashboard/panel-cua-toi/thiet-lap");
+  const panel = access.panel;
+  const isOwner = access.isOwner;
   const [memberCount, orderCount, openTickets, pendingDeposits] = await Promise.all([
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.smmOrder.count({ where: { panelId: panel.id } }),
     prisma.ticket.count({ where: { user: { panelId: panel.id }, status: "OPEN" } }),
     prisma.deposit.count({ where: { user: { panelId: panel.id }, status: "PENDING" } }),
   ]);
-  const entries: AdminNavEntry[] = [
+  const allEntries: AdminNavEntry[] = [
     { href: "/panel-admin", label: "Tổng quan", icon: "home" },
     { href: "/panel-admin/phan-tich", label: "Phân tích", icon: "chart" },
     { href: "/panel-admin/bao-cao", label: "Báo cáo & Thông báo", icon: "bell" },
+    { href: "/panel-admin/bien-dong", label: "Biến động số dư", icon: "chart" },
     {
       group: "Bán hàng", icon: "cart",
       children: [
         { href: "/panel-admin/dich-vu", label: "Dịch vụ & Giá", icon: "list" },
+        { href: "/panel-admin/danh-muc", label: "Danh mục", icon: "layers" },
+        { href: "/panel-admin/cap-bac", label: "Cấp bậc", icon: "gem" },
+        { href: "/panel-admin/gia-thong-minh", label: "Giá thông minh", icon: "percent" },
         { href: "/panel-admin/nguon-api", label: "Nguồn API", icon: "server" },
         { href: "/panel-admin/don-hang", label: "Đơn hàng", icon: "cart", badge: orderCount },
         { href: "/panel-admin/ma-giam-gia", label: "Mã giảm giá", icon: "gift" },
         { href: "/panel-admin/hoa-hong", label: "Nhật ký hoa hồng", icon: "wallet" },
         { href: "/panel-admin/nap-tien", label: "Nạp tiền của khách", icon: "money", badge: pendingDeposits || undefined },
+        { href: "/panel-admin/ngan-hang", label: "Ngân hàng", icon: "landmark" },
+        { href: "/panel-admin/tien-te", label: "Tiền tệ", icon: "money" },
         { href: "/panel-admin/rui-ro", label: "Đơn rủi ro", icon: "shield" },
       ],
     },
@@ -53,9 +62,28 @@ export default async function PanelAdminLayout({ children }: { children: React.R
     },
     { href: "/panel-admin/bai-viet", label: "Bài viết", icon: "file" },
     { href: "/panel-admin/ai", label: "AI tư vấn", icon: "cpu" },
+    { href: "/panel-admin/nhan-vien", label: "Nhân viên & Phân quyền", icon: "shield" },
+    { href: "/panel-admin/nhat-ky", label: "Nhật ký API", icon: "list" },
+    { href: "/panel-admin/bao-mat", label: "Bảo mật nâng cao", icon: "shield" },
     { href: "/panel-admin/cau-hinh", label: "Cấu hình", icon: "key" },
+    { href: "/panel-admin/he-thong", label: "Hệ thống & Dọn dẹp", icon: "cpu" },
     { href: "/panel-admin/cai-dat", label: "Cài đặt panel", icon: "gear" },
   ];
+  // Phân quyền 2 tầng: NHÂN VIÊN chỉ thấy Tổng quan / Phân tích / Đơn hàng / Ticket / Khách hàng.
+  const STAFF_ALLOWED = new Set(["/panel-admin", "/panel-admin/phan-tich", "/panel-admin/don-hang", "/panel-admin/ho-tro", "/panel-admin/khach-hang"]);
+  const entries: AdminNavEntry[] = [];
+  if (isOwner) {
+    entries.push(...allEntries);
+  } else {
+    for (const e of allEntries) {
+      if ("group" in e) {
+        const kids = e.children.filter((c) => STAFF_ALLOWED.has(c.href));
+        if (kids.length) entries.push({ group: e.group, icon: e.icon, children: kids });
+      } else if (STAFF_ALLOWED.has(e.href)) {
+        entries.push(e);
+      }
+    }
+  }
   const initial = (user.username || "A").slice(0, 1).toUpperCase();
   return (
     <div data-accent={panel.accent} className="admin-scope min-h-screen bg-[#f4f6fb]">
@@ -84,18 +112,24 @@ export default async function PanelAdminLayout({ children }: { children: React.R
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-xs font-bold text-white">{initial}</span>
                 <span className="text-sm font-semibold text-slate-800">{user.username}</span>
                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{vnd(user.balance)}</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isOwner ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-700"}`}>{isOwner ? "CHỦ PANEL" : "NHÂN VIÊN"}</span>
               </span>
               <form action={logoutAction}><button className="btn btn-sm bg-slate-900 text-white hover:bg-slate-700">Đăng xuất</button></form>
             </div>
           </div>
         </header>
         <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 pb-24 lg:px-6 lg:pb-6">
+          {!isOwner && (
+            <div className="card px-5 py-4 mb-6 border !border-amber-200 bg-amber-50 text-sm text-amber-800">
+              Bạn đang vào Panel Admin của <b>{panel.name}</b> với quyền <b>Nhân viên</b> — chỉ xử lý đơn hàng, trả lời ticket và xem khách hàng/thống kê. Giá, tiền, cấu hình và nhân sự do chủ panel quản lý.
+            </div>
+          )}
           {panel.status !== "ACTIVE" && (
             <div className="card px-5 py-4 mb-6 border !border-rose-200 bg-rose-50 text-sm text-rose-700">
               Panel đang bị <b>tạm ngưng</b> — khách tạm thời mua theo giá gốc của web mẹ và bạn không nhận hoa hồng. Liên hệ quản trị hệ thống nếu cần mở lại.
             </div>
           )}
-          {!panel.setupDone && panel.status === "ACTIVE" && (
+          {isOwner && !panel.setupDone && panel.status === "ACTIVE" && (
             <div className="card px-5 py-4 mb-6 flex flex-wrap items-center gap-3 border !border-amber-200 bg-amber-50">
               <p className="text-sm text-amber-800 flex-1 min-w-[240px]">Panel của bạn chưa qua <b>cấu hình lần đầu</b> — hoàn tất để đặt giá theo cấp bậc, API key liên kết, tên miền riêng và liên hệ hỗ trợ.</p>
               <Link href="/dashboard/panel-cua-toi/thiet-lap" className="btn-primary btn-sm !px-4 !py-2 shrink-0">Cấu hình ngay</Link>

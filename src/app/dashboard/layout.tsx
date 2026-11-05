@@ -19,9 +19,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return <div className="min-h-screen flex items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold mb-2">Hệ thống đang bảo trì</h1><p className="text-slate-500">Vui lòng quay lại sau ít phút.</p></div></div>;
   }
   const openTickets = await prisma.ticket.count({ where: { userId: user.id, status: "ANSWERED" } });
-  const myPanelFlags = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sellSmm: true, sellPremium: true } }) : null;
+  const myPanelFlags = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sellSmm: true, sellPremium: true, moduleAffiliate: true } }) : null;
   const smmOn = s.module_smm !== "0" && (myPanelFlags ? myPanelFlags.sellSmm : true);
   const premiumOn = s.module_premium !== "0" && (myPanelFlags ? myPanelFlags.sellPremium : true);
+  const affiliateOn = s.module_affiliate !== "0" && (myPanelFlags ? myPanelFlags.moduleAffiliate : true);
   const unreadNoti = await prisma.notification.count({ where: { userId: user.id, read: false } });
   const items = [
     { href: "/dashboard", label: "Tổng quan", icon: I.home },
@@ -34,7 +35,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/don-premium", label: "Đơn hàng Premium", icon: I.box },
     { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
     { href: "/dashboard/giao-dich", label: "Lịch sử số dư", icon: I.chart },
-    { href: "/dashboard/kiem-tien", label: "Kiếm tiền", icon: I.money },
+    ...(affiliateOn ? [{ href: "/dashboard/kiem-tien", label: "Kiếm tiền", icon: I.money }] : []),
     { href: "/dashboard/api", label: "API đại lý", icon: I.key },
     { href: "/panel-admin", label: "Panel Admin", icon: I.server },
     { href: "/dashboard/ticket", label: "Hỗ trợ / Ticket", icon: I.ticket, badge: openTickets },

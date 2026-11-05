@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash } from "@/components/ui";
 import { panelSaveAiAction, panelClearAiKeyAction, panelTestAiAction } from "@/app/actions/panel";
 
@@ -8,8 +9,7 @@ export const dynamic = "force-dynamic";
 /** AI riêng của panel: chủ panel tự thêm key của mình — livechat "Tư vấn"
  *  trên gian hàng sẽ tư vấn bằng AI này thay cho AI hệ thống. */
 export default async function PanelAiPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel } = await requirePanelOwnerPage();
   const hasKey = !!(panel.aiApiKey || "").trim();
   return (
     <div>

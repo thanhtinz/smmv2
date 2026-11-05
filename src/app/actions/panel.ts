@@ -33,14 +33,23 @@ function slugify(text: string) {
 
 async function ownPanel(backPath: string) {
   const user = await requireUser();
-  const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
-  if (!panel) back(backPath, "err", "Bạn chưa có panel");
-  return { user, panel: panel! };
+  const { getPanelAccess } = await import("@/lib/panel-access");
+  const acc = await getPanelAccess(user.id);
+  if (!acc) back(backPath, "err", "Bạn chưa có panel");
+  return { user, panel: acc!.panel, isOwner: acc!.isOwner };
+}
+
+/** Như ownPanel nhưng chỉ CHỦ panel mới qua được — nhân viên panel bị chặn
+ *  ở mọi thao tác giá / tiền / cấu hình / nhân sự (phân quyền 2 tầng như web mẹ). */
+async function ownPanelOwner(backPath: string) {
+  const r = await ownPanel(backPath);
+  if (!r.isOwner) back("/panel-admin", "err", "Chỉ chủ panel mới làm được thao tác này — tài khoản của bạn là Nhân viên panel");
+  return r;
 }
 
 /* ---------- Mã giảm giá riêng của panel ---------- */
 export async function panelSaveDiscountCode(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/ma-giam-gia");
+  const { panel } = await ownPanelOwner("/panel-admin/ma-giam-gia");
   const id = int(formData, "id");
   const code = str(formData, "code").toUpperCase().replace(/\s+/g, "");
   if (!code) back("/panel-admin/ma-giam-gia", "err", "Chưa nhập mã");
@@ -71,13 +80,13 @@ export async function panelSaveDiscountCode(formData: FormData) {
 }
 
 export async function panelDeleteDiscountCode(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/ma-giam-gia");
+  const { panel } = await ownPanelOwner("/panel-admin/ma-giam-gia");
   await prisma.discountCode.deleteMany({ where: { id: int(formData, "id"), panelId: panel.id } });
   done("/panel-admin/ma-giam-gia", "Đã xoá mã giảm giá");
 }
 
 export async function panelToggleDiscountCode(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/ma-giam-gia");
+  const { panel } = await ownPanelOwner("/panel-admin/ma-giam-gia");
   const row = await prisma.discountCode.findFirst({ where: { id: int(formData, "id"), panelId: panel.id } });
   if (row) await prisma.discountCode.update({ where: { id: row.id }, data: { active: !row.active } });
   done("/panel-admin/ma-giam-gia", row?.active ? "Đã tắt mã" : "Đã bật mã");
@@ -85,7 +94,7 @@ export async function panelToggleDiscountCode(formData: FormData) {
 
 /* ---------- Giá riêng gói Premium của panel ---------- */
 export async function setPanelPremiumPriceAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/dich-vu");
+  const { panel } = await ownPanelOwner("/panel-admin/dich-vu");
   const variantId = int(formData, "variantId");
   const raw = str(formData, "price");
   const price = Math.floor(Number(raw));
@@ -104,7 +113,7 @@ export async function setPanelPremiumPriceAction(formData: FormData) {
 
 /* ---------- Thông báo tới khách của panel ---------- */
 export async function panelBroadcastAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/thong-bao");
+  const { panel } = await ownPanelOwner("/panel-admin/thong-bao");
   const title = str(formData, "title").slice(0, 150);
   const body = str(formData, "body").slice(0, 500);
   if (!title || !body) back("/panel-admin/thong-bao", "err", "Nhập đủ tiêu đề và nội dung");
@@ -117,7 +126,7 @@ export async function panelBroadcastAction(formData: FormData) {
 
 /* ---------- Bài viết của gian hàng ---------- */
 export async function panelSavePost(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/bai-viet");
+  const { panel } = await ownPanelOwner("/panel-admin/bai-viet");
   const id = int(formData, "id");
   const title = str(formData, "title");
   if (!title) back("/panel-admin/bai-viet", "err", "Chưa nhập tiêu đề");
@@ -147,13 +156,13 @@ export async function panelSavePost(formData: FormData) {
 }
 
 export async function panelDeletePost(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/bai-viet");
+  const { panel } = await ownPanelOwner("/panel-admin/bai-viet");
   await prisma.post.deleteMany({ where: { id: int(formData, "id"), panelId: panel.id } });
   done("/panel-admin/bai-viet", "Đã xoá bài viết");
 }
 
 export async function panelTogglePost(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/bai-viet");
+  const { panel } = await ownPanelOwner("/panel-admin/bai-viet");
   const row = await prisma.post.findFirst({ where: { id: int(formData, "id"), panelId: panel.id } });
   if (row) await prisma.post.update({ where: { id: row.id }, data: { published: !row.published } });
   done("/panel-admin/bai-viet", row?.published ? "Đã ẩn bài viết" : "Đã đăng bài viết");
@@ -188,7 +197,7 @@ export async function panelToggleTicket(formData: FormData) {
 
 /* ---------- Email marketing tới khách panel ---------- */
 export async function panelSendMarketingEmail(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/email-marketing");
+  const { panel } = await ownPanelOwner("/panel-admin/email-marketing");
   const subject = str(formData, "subject").slice(0, 200);
   const body = str(formData, "body");
   const segment = str(formData, "segment");
@@ -211,7 +220,7 @@ export async function panelSendMarketingEmail(formData: FormData) {
 
 /* ---------- Setup % hoa hồng của chủ panel ---------- */
 export async function panelSetCommissionAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/hoa-hong");
+  const { panel } = await ownPanelOwner("/panel-admin/hoa-hong");
   const pct = Math.max(0, Math.min(200, int(formData, "commission")));
   await prisma.childPanel.update({ where: { id: panel.id }, data: { markup: pct } });
   done("/panel-admin/hoa-hong", `Đã đặt tỉ lệ hoa hồng ${pct}% — giá bán tại gian hàng = giá web mẹ + ${pct}%`);
@@ -219,7 +228,7 @@ export async function panelSetCommissionAction(formData: FormData) {
 
 /* ---------- AI riêng của panel (key do chủ panel tự thêm) ---------- */
 export async function panelSaveAiAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/ai");
+  const { panel } = await ownPanelOwner("/panel-admin/ai");
   const rawKey = str(formData, "aiApiKey");
   const data: any = {
     aiEnabled: formData.get("aiEnabled") === "on",
@@ -234,14 +243,14 @@ export async function panelSaveAiAction(formData: FormData) {
 }
 
 export async function panelClearAiKeyAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/ai");
+  const { panel } = await ownPanelOwner("/panel-admin/ai");
   void formData;
   await prisma.childPanel.update({ where: { id: panel.id }, data: { aiApiKey: null, aiEnabled: false } });
   done("/panel-admin/ai", "Đã xoá key AI của panel — livechat quay về AI hệ thống");
 }
 
 export async function panelTestAiAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/ai");
+  const { panel } = await ownPanelOwner("/panel-admin/ai");
   void formData;
   const cfg = panelAiConfig(panel);
   if (!cfg) back("/panel-admin/ai", "err", "Panel chưa bật AI hoặc chưa lưu key — hãy lưu cấu hình trước khi kiểm tra");
@@ -255,7 +264,7 @@ export async function panelTestAiAction(formData: FormData) {
 
 /* ---------- Thêm dịch vụ cho panel — nguồn lấy từ dịch vụ có sẵn của web mẹ ---------- */
 export async function panelSaveOwnService(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/dich-vu");
+  const { panel } = await ownPanelOwner("/panel-admin/dich-vu");
   const id = int(formData, "id");
   const name = str(formData, "name");
   if (!name) back("/panel-admin/dich-vu", "err", "Chưa nhập tên dịch vụ");
@@ -300,7 +309,7 @@ export async function panelSaveOwnService(formData: FormData) {
 }
 
 export async function panelDeleteOwnService(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/dich-vu");
+  const { panel } = await ownPanelOwner("/panel-admin/dich-vu");
   const id = int(formData, "id");
   const used = await prisma.smmOrder.count({ where: { serviceId: id } });
   if (used > 0) back("/panel-admin/dich-vu", "err", "Dịch vụ đã có đơn — hãy tắt bán thay vì xoá");
@@ -309,7 +318,7 @@ export async function panelDeleteOwnService(formData: FormData) {
 }
 
 export async function panelToggleOwnService(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/dich-vu");
+  const { panel } = await ownPanelOwner("/panel-admin/dich-vu");
   const row = await prisma.smmService.findFirst({ where: { id: int(formData, "id"), panelId: panel.id } });
   if (row) await prisma.smmService.update({ where: { id: row.id }, data: { active: !row.active } });
   done("/panel-admin/dich-vu", row?.active ? "Đã tắt bán dịch vụ" : "Đã mở bán dịch vụ");
@@ -345,7 +354,7 @@ export async function panelOwnOrderAction(formData: FormData) {
 
 /* ---------- Nạp tiền của khách panel: duyệt / từ chối / cộng tay ---------- */
 export async function panelDepositAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/nap-tien");
+  const { panel } = await ownPanelOwner("/panel-admin/nap-tien");
   const id = int(formData, "id");
   const kind = str(formData, "kind");
   const dep = await prisma.deposit.findFirst({ where: { id, user: { panelId: panel.id } } });
@@ -365,7 +374,7 @@ export async function panelDepositAction(formData: FormData) {
 }
 
 export async function panelManualDepositAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/nap-tien");
+  const { panel } = await ownPanelOwner("/panel-admin/nap-tien");
   const memberId = int(formData, "memberId");
   const amount = int(formData, "amount");
   if (!memberId || amount <= 0) back("/panel-admin/nap-tien", "err", "Chọn khách và số tiền hợp lệ");
@@ -383,7 +392,7 @@ export async function panelManualDepositAction(formData: FormData) {
 
 /* ---------- Công tắc bán hàng của panel: bán mảng nào bật mảng đó ---------- */
 export async function panelSaveSellAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/cai-dat");
+  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
   const sellSmm = formData.get("sellSmm") === "on";
   const sellPremium = formData.get("sellPremium") === "on";
   await prisma.childPanel.update({ where: { id: panel.id }, data: { sellSmm, sellPremium } });
@@ -392,7 +401,7 @@ export async function panelSaveSellAction(formData: FormData) {
 
 /* ---------- Widget Liên hệ của panel (đồng bộ với web mẹ, phạm vi của panel) ---------- */
 export async function panelSaveContactWidgetAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/cai-dat");
+  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
   const id = parseInt(String(formData.get("id") || "0")) || 0;
   const name = String(formData.get("name") || "").trim().slice(0, 120);
   const link = String(formData.get("link") || "").trim().slice(0, 500);
@@ -411,18 +420,18 @@ export async function panelSaveContactWidgetAction(formData: FormData) {
   done("/panel-admin/cai-dat", id ? "Đã sửa liên hệ" : "Đã thêm liên hệ");
 }
 export async function panelDeleteContactWidgetAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/cai-dat");
+  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
   await prisma.contactWidget.deleteMany({ where: { id: parseInt(String(formData.get("id") || "0")) || 0, panelId: panel.id } });
   done("/panel-admin/cai-dat", "Đã xoá liên hệ");
 }
 export async function panelToggleContactWidgetAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/cai-dat");
+  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
   const w = await prisma.contactWidget.findFirst({ where: { id: parseInt(String(formData.get("id") || "0")) || 0, panelId: panel.id } });
   if (w) await prisma.contactWidget.update({ where: { id: w.id }, data: { active: !w.active } });
   done("/panel-admin/cai-dat", "Đã lưu trạng thái liên hệ");
 }
 export async function panelSeedContactWidgetsAction() {
-  const { panel } = await ownPanel("/panel-admin/cai-dat");
+  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
   const legacy: [string, string | null][] = [["Zalo", panel.supportZalo], ["Telegram", panel.supportTelegram], ["Facebook", panel.supportFacebook], ["Hotline", panel.supportHotline]];
   let n = 0;
   for (const [name, value] of legacy) {
@@ -433,7 +442,7 @@ export async function panelSeedContactWidgetsAction() {
 
 /* ---------- Cấu hình riêng của panel ---------- */
 export async function panelSaveConfigAction(formData: FormData) {
-  const { panel } = await ownPanel("/panel-admin/cau-hinh");
+  const { panel } = await ownPanelOwner("/panel-admin/cau-hinh");
   const section = str(formData, "section");
   const keep = (v: string, old: string | null) => (v.includes("•") ? old : v || null);
   if (section === "bank") {
@@ -470,7 +479,7 @@ export async function panelSaveConfigAction(formData: FormData) {
 const REPORT_PAGE = "/panel-admin/bao-cao";
 
 export async function panelSaveAlertsAction(formData: FormData) {
-  const { panel } = await ownPanel(REPORT_PAGE);
+  const { panel } = await ownPanelOwner(REPORT_PAGE);
   const events = formData.getAll("ev").map(String).filter(Boolean);
   const channels = formData.getAll("rch").map(String).filter(Boolean);
   const keep = (v: string, old: string | null) => (v.includes("•") ? old : v || null);
@@ -494,7 +503,7 @@ export async function panelSaveAlertsAction(formData: FormData) {
 }
 
 export async function panelTestChannelAction(formData: FormData) {
-  const { panel } = await ownPanel(REPORT_PAGE);
+  const { panel } = await ownPanelOwner(REPORT_PAGE);
   const channel = str(formData, "channel");
   const { sendDiscord, sendTelegramTo, alertEmailHtml } = await import("@/lib/alerts");
   const text = `Tin nhắn thử từ gian hàng ${panel.name} — kênh báo tin của bạn đã hoạt động.`;
@@ -520,8 +529,185 @@ export async function panelTestChannelAction(formData: FormData) {
   }
 }
 
+/* ---------- Nhân viên & phân quyền của panel ---------- */
+const STAFF_PAGE = "/panel-admin/nhan-vien";
+
+export async function panelAddStaffAction(formData: FormData) {
+  const { user, panel } = await ownPanelOwner(STAFF_PAGE);
+  const q = str(formData, "q").toLowerCase();
+  if (!q) back(STAFF_PAGE, "err", "Nhập tên đăng nhập hoặc email của tài khoản cần thêm");
+  const target = await prisma.user.findFirst({ where: { OR: [{ username: q }, { email: q }] } });
+  if (!target) back(STAFF_PAGE, "err", "Không tìm thấy tài khoản này — nhân viên cần có tài khoản trên hệ thống trước");
+  if (target.id === user.id) back(STAFF_PAGE, "err", "Bạn là chủ panel rồi, không cần thêm chính mình");
+  if (target.role === "ADMIN" || target.role === "STAFF") back(STAFF_PAGE, "err", "Tài khoản quản trị hệ thống không làm nhân viên panel được");
+  const ownsOther = await prisma.childPanel.findUnique({ where: { ownerId: target.id }, select: { id: true } });
+  if (ownsOther) back(STAFF_PAGE, "err", "Tài khoản này đang là chủ một panel khác — họ sẽ vào panel của chính họ, không làm nhân viên được");
+  const exists = await prisma.panelStaff.findUnique({ where: { panelId_userId: { panelId: panel.id, userId: target.id } } });
+  if (exists) back(STAFF_PAGE, "err", "Tài khoản này đã là nhân viên của panel rồi");
+  await prisma.panelStaff.create({ data: { panelId: panel.id, userId: target.id } });
+  await notifyUser(target.id, "Bạn được thêm làm Nhân viên panel", `Chủ gian hàng ${panel.name} vừa thêm bạn làm nhân viên — vào mục Panel Admin để xử lý đơn và ticket của gian hàng.`, "/panel-admin");
+  done(STAFF_PAGE, `Đã thêm ${target.username} làm nhân viên của panel`);
+}
+
+export async function panelRemoveStaffAction(formData: FormData) {
+  const { panel } = await ownPanelOwner(STAFF_PAGE);
+  const id = int(formData, "id");
+  const row = await prisma.panelStaff.findFirst({ where: { id, panelId: panel.id } });
+  if (!row) back(STAFF_PAGE, "err", "Không tìm thấy nhân viên này trong panel của bạn");
+  await prisma.panelStaff.delete({ where: { id: row.id } });
+  done(STAFF_PAGE, "Đã gỡ nhân viên khỏi panel");
+}
+
+/* ---------- Đồng bộ nốt các mục như web mẹ: tiền tệ / mô-đun / bảo mật / ngân hàng / giá thông minh / dọn dẹp ---------- */
+
+/** Tiền tệ: tỉ giá quy đổi hiển thị RIÊNG của panel (trống = dùng của web mẹ). */
+export async function panelSaveRatesAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/tien-te");
+  const get = (k: string) => {
+    const v = String(formData.get(k) || "").trim();
+    if (!v) return null;
+    const n = parseFloat(v);
+    return Number.isFinite(n) && n > 0 ? String(n) : null;
+  };
+  await prisma.childPanel.update({
+    where: { id: panel.id },
+    data: { rateUsd: get("rateUsd"), rateEur: get("rateEur"), rateCny: get("rateCny"), rateThb: get("rateThb"), rateJpy: get("rateJpy"), rateKrw: get("rateKrw") },
+  });
+  done("/panel-admin/tien-te", "Đã lưu tỉ giá hiển thị của panel");
+}
+
+/** Mô-đun của panel: bật/tắt bán SMM / Premium / Kiếm tiền (affiliate) / Đăng ký mới. */
+export async function panelSaveModulesAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
+  await prisma.childPanel.update({
+    where: { id: panel.id },
+    data: {
+      sellSmm: formData.has("sellSmm"),
+      sellPremium: formData.has("sellPremium"),
+      moduleAffiliate: formData.has("moduleAffiliate"),
+      moduleRegister: formData.has("moduleRegister"),
+    },
+  });
+  done("/panel-admin/cai-dat", "Đã lưu mô-đun của panel");
+}
+
+/** Bảo mật: cấm IP trong phạm vi panel (đăng ký + đăng nhập của khách panel). */
+export async function panelBanIpAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/bao-mat");
+  const ip = str(formData, "ip");
+  const reason = str(formData, "reason") || null;
+  if (!/^[0-9a-fA-F.:]{3,64}$/.test(ip)) back("/panel-admin/bao-mat", "err", "Địa chỉ IP chưa đúng định dạng");
+  const exists = await prisma.ipBan.findFirst({ where: { panelId: panel.id, ip } });
+  if (exists) back("/panel-admin/bao-mat", "err", "IP này đã bị cấm trong panel rồi");
+  await prisma.ipBan.create({ data: { panelId: panel.id, ip, reason } });
+  done("/panel-admin/bao-mat", `Đã cấm IP ${ip} khỏi panel`);
+}
+
+export async function panelUnbanIpAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/bao-mat");
+  const id = int(formData, "id");
+  await prisma.ipBan.deleteMany({ where: { id, panelId: panel.id } });
+  done("/panel-admin/bao-mat", "Đã bỏ cấm IP");
+}
+
+/** Ngân hàng riêng của panel: thêm / sửa / bật tắt / xoá tài khoản nhận nạp. */
+const BANK_PAGE = "/panel-admin/ngan-hang";
+export async function panelSaveBankAccountAction(formData: FormData) {
+  const { panel } = await ownPanelOwner(BANK_PAGE);
+  const id = int(formData, "id");
+  const bankName = str(formData, "bankName");
+  const accountNo = str(formData, "accountNo");
+  const accountName = str(formData, "accountName");
+  const note = str(formData, "note") || null;
+  if (!bankName || !accountNo || !accountName) back(BANK_PAGE, "err", "Điền đủ ngân hàng, số tài khoản và chủ tài khoản");
+  if (id) {
+    const row = await prisma.panelBankAccount.findFirst({ where: { id, panelId: panel.id } });
+    if (!row) back(BANK_PAGE, "err", "Không tìm thấy tài khoản này trong panel của bạn");
+    await prisma.panelBankAccount.update({ where: { id }, data: { bankName, accountNo, accountName, note } });
+    done(BANK_PAGE, "Đã cập nhật tài khoản ngân hàng");
+  }
+  await prisma.panelBankAccount.create({ data: { panelId: panel.id, bankName, accountNo, accountName, note } });
+  done(BANK_PAGE, "Đã thêm tài khoản ngân hàng");
+}
+
+export async function panelToggleBankAccountAction(formData: FormData) {
+  const { panel } = await ownPanelOwner(BANK_PAGE);
+  const id = int(formData, "id");
+  const row = await prisma.panelBankAccount.findFirst({ where: { id, panelId: panel.id } });
+  if (!row) back(BANK_PAGE, "err", "Không tìm thấy tài khoản này trong panel của bạn");
+  await prisma.panelBankAccount.update({ where: { id }, data: { active: !row.active } });
+  done(BANK_PAGE, row.active ? "Đã ẩn tài khoản khỏi trang nạp của khách" : "Đã hiện tài khoản ở trang nạp của khách");
+}
+
+export async function panelDeleteBankAccountAction(formData: FormData) {
+  const { panel } = await ownPanelOwner(BANK_PAGE);
+  const id = int(formData, "id");
+  await prisma.panelBankAccount.deleteMany({ where: { id, panelId: panel.id } });
+  done(BANK_PAGE, "Đã xoá tài khoản ngân hàng");
+}
+
+/** Giá thông minh: chỉnh giá hàng loạt trong panel — % trên giá riêng đã đặt
+ *  + % trên giá bán của dịch vụ panel tự thêm. Làm tròn tới hàng chục, sàn 100đ. */
+export async function panelSmartPriceAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/gia-thong-minh");
+  const pctRaw = parseFloat(String(formData.get("pct") || "0"));
+  if (!Number.isFinite(pctRaw) || pctRaw <= -90 || pctRaw > 500) back("/panel-admin/gia-thong-minh", "err", "% điều chỉnh phải trong khoảng −90% … +500%");
+  const factor = 1 + pctRaw / 100;
+  const adj = (v: number) => Math.max(100, Math.round((v * factor) / 10) * 10);
+  const prices = await prisma.panelServicePrice.findMany({ where: { panelId: panel.id } });
+  for (const p of prices) {
+    await prisma.panelServicePrice.update({ where: { id: p.id }, data: { price: adj(p.price) } });
+  }
+  const own = await prisma.smmService.findMany({ where: { panelId: panel.id } });
+  for (const sv of own) {
+    await prisma.smmService.update({ where: { id: sv.id }, data: { rate: adj(sv.rate) } });
+  }
+  await prisma.apiLog.create({ data: { kind: "bulk_price", ref: panel.slug, detail: `Panel ${panel.slug}: giá thông minh ${pctRaw > 0 ? "+" : ""}${pctRaw}% trên ${prices.length} giá riêng + ${own.length} dịch vụ tự thêm` } });
+  done("/panel-admin/gia-thong-minh", `Đã điều chỉnh ${pctRaw > 0 ? "+" : ""}${pctRaw}% cho ${prices.length} giá riêng và ${own.length} dịch vụ tự thêm`);
+}
+
+/** Danh mục: ẩn/hiện danh mục SMM trên gian hàng của panel. */
+export async function panelToggleCategoryAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/danh-muc");
+  const catId = int(formData, "catId");
+  const hidden = new Set((panel.hiddenCats || "").split(",").map((x) => x.trim()).filter(Boolean));
+  if (hidden.has(String(catId))) hidden.delete(String(catId)); else hidden.add(String(catId));
+  await prisma.childPanel.update({ where: { id: panel.id }, data: { hiddenCats: Array.from(hidden).join(",") || null } });
+  done("/panel-admin/danh-muc", hidden.has(String(catId)) ? "Đã ẩn danh mục khỏi gian hàng" : "Đã hiện lại danh mục trên gian hàng");
+}
+
+/** Hệ thống & dọn dẹp của panel: xoá dữ liệu cũ trong phạm vi panel. */
+export async function panelCleanupAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/he-thong");
+  const kind = str(formData, "kind");
+  const cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+  if (kind === "notifications") {
+    const r = await prisma.notification.deleteMany({ where: { user: { panelId: panel.id }, read: true, createdAt: { lt: cutoff } } });
+    done("/panel-admin/he-thong", `Đã xoá ${r.count} thông báo đã đọc (cũ hơn 30 ngày) của khách panel`);
+  }
+  if (kind === "events") {
+    const r = await prisma.orderEvent.deleteMany({ where: { createdAt: { lt: cutoff }, order: { panelId: panel.id } } });
+    done("/panel-admin/he-thong", `Đã xoá ${r.count} dòng thời gian đơn cũ (hơn 30 ngày) của panel`);
+  }
+  if (kind === "apilogs") {
+    const codes = await panelOrderCodes(panel.id);
+    const r = await prisma.apiLog.deleteMany({ where: { ref: { in: codes }, createdAt: { lt: cutoff } } });
+    done("/panel-admin/he-thong", `Đã xoá ${r.count} nhật ký API cũ (hơn 30 ngày) liên quan đơn của panel`);
+  }
+  back("/panel-admin/he-thong", "err", "Loại dọn dẹp không hợp lệ");
+}
+
+/** Mã đơn (SMM + Premium) của panel — dùng để lọc nhật ký API theo phạm vi panel. */
+export async function panelOrderCodes(panelId: number): Promise<string[]> {
+  const [a, b] = await Promise.all([
+    prisma.smmOrder.findMany({ where: { panelId }, select: { code: true }, orderBy: { id: "desc" }, take: 2000 }),
+    prisma.premiumOrder.findMany({ where: { panelId }, select: { code: true }, orderBy: { id: "desc" }, take: 2000 }),
+  ]);
+  return [...a.map((x) => x.code), ...b.map((x) => x.code)];
+}
+
 export async function panelSendReportNowAction() {
-  const { panel } = await ownPanel(REPORT_PAGE);
+  const { panel } = await ownPanelOwner(REPORT_PAGE);
   const { sendReport } = await import("@/lib/report");
   const channels = (panel.reportChannels || "telegram").split(",").map((x) => x.trim()).filter(Boolean) as any[];
   if (!channels.length) back(REPORT_PAGE, "err", "Chưa chọn kênh gửi báo cáo nào");

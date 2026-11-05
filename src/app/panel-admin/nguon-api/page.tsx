@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { num } from "@/lib/format";
@@ -10,8 +11,7 @@ export const dynamic = "force-dynamic";
  *  Web con đấu về API của web chính bằng API key tài khoản mẹ đã liên kết;
  *  mọi dịch vụ và đơn hàng đều do web chính xử lý, web con không đấu nguồn ngoài. */
 export default async function PanelSourcesPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel } = await requirePanelOwnerPage();
   const s = await getSettings();
   const [serviceCount, linkedUser] = await Promise.all([
     prisma.smmService.count({ where: { active: true, panelId: null } }),

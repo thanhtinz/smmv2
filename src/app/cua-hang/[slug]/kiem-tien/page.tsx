@@ -12,6 +12,16 @@ export default async function PanelEarn({ params }: { params: { slug: string } }
   if (!panel || panel.status !== "ACTIVE") notFound();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (!panel.moduleAffiliate) {
+    return (
+      <PanelShell panel={panel} user={user}>
+        <div className="card p-8 text-center">
+          <div className="font-bold text-slate-900">Mục Kiếm tiền đang tắt</div>
+          <p className="mt-1 text-sm text-slate-400">Gian hàng này đã tắt mô-đun giới thiệu kiếm tiền.</p>
+        </div>
+      </PanelShell>
+    );
+  }
   const h = headers();
   const host = h.get("host") || "localhost:3000";
   const proto = h.get("x-forwarded-proto") || (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");

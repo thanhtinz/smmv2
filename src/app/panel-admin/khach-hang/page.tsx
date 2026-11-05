@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelAccessPage } from "@/lib/panel-access";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { setPanelMemberLevelAction } from "@/app/actions/user";
 import { vnd, num, dt } from "@/lib/format";
@@ -16,8 +17,7 @@ const LEVELS = [
 
 /** Khách hàng của panel — xem danh sách + gán cấp bậc (giá theo bậc do panel đặt). */
 export default async function PanelMembersPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel, isOwner } = await requirePanelAccessPage();
   const [members, orderCounts] = await Promise.all([
     prisma.user.findMany({ where: { panelId: panel.id }, orderBy: { createdAt: "desc" }, take: 100, select: { id: true, username: true, email: true, balance: true, level: true, createdAt: true } }),
     prisma.smmOrder.groupBy({ by: ["userId"], where: { panelId: panel.id }, _count: true, _sum: { charge: true } }),

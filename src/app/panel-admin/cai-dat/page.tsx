@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash } from "@/components/ui";
 import { updatePanelAction } from "@/app/actions/user";
-import { panelSaveSellAction, panelSaveContactWidgetAction, panelDeleteContactWidgetAction, panelToggleContactWidgetAction, panelSeedContactWidgetsAction } from "@/app/actions/panel";
+import { panelSaveModulesAction, panelSaveContactWidgetAction, panelDeleteContactWidgetAction, panelToggleContactWidgetAction, panelSeedContactWidgetsAction } from "@/app/actions/panel";
 import { ContactWidgetsManager } from "@/components/contact-widgets";
 import { listContactWidgets } from "@/lib/contact";
 import { Switch } from "@/components/admin-catalog";
@@ -23,8 +24,7 @@ const ACCENTS = [
 
 /** Cài đặt panel — thông tin gian hàng, tên miền, hỗ trợ, API key liên kết web mẹ, trạng thái. */
 export default async function PanelSettingsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel } = await requirePanelOwnerPage();
   const linked = panel.apiUserId ? await prisma.user.findUnique({ where: { id: panel.apiUserId }, select: { username: true } }) : null;
   const contactItems = await listContactWidgets(panel.id);
   const panelHasLegacy = !!(panel.supportZalo || panel.supportTelegram || panel.supportFacebook || panel.supportHotline);
@@ -59,14 +59,16 @@ export default async function PanelSettingsPage({ searchParams }: { searchParams
           <button className="btn-primary w-full !py-2.5" type="submit">Lưu cài đặt</button>
         </form>
         <div className="lg:col-span-2 space-y-6">
-          <form action={panelSaveSellAction} className="card p-6">
-            <div className="font-bold text-slate-900">Mảng đang bán</div>
-            <p className="mt-1 text-sm text-slate-400">Bán mảng nào thì bật mảng đó — tắt đi thì khách không thấy và không đặt được mảng đó tại gian hàng.</p>
+          <form action={panelSaveModulesAction} className="card p-6">
+            <div className="font-bold text-slate-900">Mô-đun & mảng đang bán</div>
+            <p className="mt-1 text-sm text-slate-400">Bán mảng nào thì bật mảng đó — tắt đi thì khách không thấy và không dùng được mô-đun đó tại gian hàng.</p>
             <div className="mt-4 space-y-1">
               <Switch name="sellSmm" label="Bán dịch vụ SMM" defaultChecked={panel.sellSmm} />
               <Switch name="sellPremium" label="Bán Premium" defaultChecked={panel.sellPremium} />
+              <Switch name="moduleAffiliate" label="Kiếm tiền (hoa hồng giới thiệu cho khách)" defaultChecked={panel.moduleAffiliate} />
+              <Switch name="moduleRegister" label="Cho phép đăng ký mới tại gian hàng" defaultChecked={panel.moduleRegister} />
             </div>
-            <button className="btn-primary w-full mt-4 !py-2.5">Lưu mảng bán</button>
+            <button className="btn-primary w-full mt-4 !py-2.5">Lưu mô-đun</button>
           </form>
           <div className="card p-6">
             <div className="font-bold text-slate-900">Thanh toán SePay — cấu hình chung</div>

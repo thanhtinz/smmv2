@@ -20,7 +20,7 @@ export async function PanelShell({ panel, user, children }: { panel: ChildPanel;
     { href: `/cua-hang/${panel.slug}/don-premium`, label: "Đơn hàng Premium", icon: I.box },
     { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
     { href: `/cua-hang/${panel.slug}/giao-dich`, label: "Dòng tiền", icon: I.chart },
-    { href: `/cua-hang/${panel.slug}/kiem-tien`, label: "Kiếm tiền", icon: I.money },
+    ...(panel.moduleAffiliate ? [{ href: `/cua-hang/${panel.slug}/kiem-tien`, label: "Kiếm tiền", icon: I.money }] : []),
     { href: `/cua-hang/${panel.slug}/tai-lieu-api`, label: "Tài liệu API", icon: I.key },
     { href: "/dashboard/ticket", label: "Hỗ trợ / Ticket", icon: I.ticket },
     { href: "/dashboard", label: "Bảng điều khiển", icon: I.server },

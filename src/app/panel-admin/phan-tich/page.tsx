@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelAccessPage } from "@/lib/panel-access";
 import { PageHead, Flash, Stat, I, RankBadge } from "@/components/ui";
 import { vnd, num } from "@/lib/format";
 import { getStats } from "@/lib/stats";
@@ -9,12 +10,11 @@ export const dynamic = "force-dynamic";
 /** Phân tích riêng của panel: doanh thu + hoa hồng 30 ngày, top dịch vụ,
  *  top khách và phễu chuyển đổi — chỉ tính trên dữ liệu của panel này. */
 export default async function PanelAnalyticsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel, isOwner } = await requirePanelAccessPage();
   const since = new Date(Date.now() - 30 * 86400000);
   const [orders, commissionAgg, memberCount, depositedMembers, topServices, topCustomers, premiumAgg] = await Promise.all([
     prisma.smmOrder.findMany({ where: { panelId: panel.id, createdAt: { gte: since } }, select: { charge: true, createdAt: true } }),
-    prisma.transaction.aggregate({ where: { userId: user.id, type: "PANEL_COMMISSION", amount: { gt: 0 }, createdAt: { gte: since } }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({ where: { userId: panel.ownerId, type: "PANEL_COMMISSION", amount: { gt: 0 }, createdAt: { gte: since } }, _sum: { amount: true } }),
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.deposit.groupBy({ by: ["userId"], where: { user: { panelId: panel.id }, status: "APPROVED" } }),
     prisma.smmOrder.groupBy({ by: ["serviceId"], where: { panelId: panel.id }, _count: true, _sum: { charge: true }, orderBy: { _count: { serviceId: "desc" } }, take: 5 }),

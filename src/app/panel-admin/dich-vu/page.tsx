@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash } from "@/components/ui";
 import { PanelServicesClient, type PanelServiceDTO } from "@/components/panel-admin-client";
 import { PanelPremiumTable, PanelAddedServicesClient, type PanelPremiumRowDTO, type PanelAddedServiceDTO, type PanelSourceServiceDTO, type PanelCategoryDTO } from "@/components/panel-features";
@@ -11,8 +12,7 @@ export const dynamic = "force-dynamic";
 /** Dịch vụ & Giá — dịch vụ đồng bộ từ web mẹ (chủ panel chỉnh giá bán) cộng với
  *  các dịch vụ chủ panel thêm vào gian hàng, nguồn lấy từ dịch vụ có sẵn của web mẹ. */
 export default async function PanelServicesPage({ searchParams }: { searchParams: { msg?: string; err?: string; q?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel } = await requirePanelOwnerPage();
   const q = (searchParams.q || "").trim();
   const [services, overrides, totalServices, premiumVariants, premiumOverrides] = await Promise.all([
     prisma.smmService.findMany({

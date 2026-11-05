@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash } from "@/components/ui";
 import { panelSaveConfigAction } from "@/app/actions/panel";
 
@@ -10,8 +11,7 @@ const mask = (v: string | null | undefined) => (v ? "•••••••••
 /** Cấu hình riêng của panel: tài khoản nhận tiền, ví USDT, máy chủ thư,
  *  Telegram báo đơn và Google đăng nhập — tất cả của chính chủ panel. */
 export default async function PanelConfigPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
-  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
+  const { user, panel } = await requirePanelOwnerPage();
   return (
     <div>
       <PageHead title="Cấu hình panel" desc="Các cấu hình riêng của gian hàng bạn: nhận tiền, gửi thư, báo đơn và đăng nhập Google." />
