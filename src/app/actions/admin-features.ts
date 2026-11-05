@@ -275,7 +275,7 @@ export async function sendMarketingEmailAction(formData: FormData) {
   const body = str(formData, "body");
   if (!subject || !body) back("/admin/email-marketing", "err", "Thiếu tiêu đề hoặc nội dung");
   if (!(await smtpConfigured())) back("/admin/email-marketing", "err", "Chưa cấu hình SMTP — vào Cấu hình → tab Email để điền trước");
-  const where: any = { email: { not: null }, status: "ACTIVE" };
+  const where: any = { email: { not: null }, status: "ACTIVE", panelId: null }; // email marketing của mẹ chỉ tới khách của mẹ — khách site con do panel tự gửi
   if (segment === "new") where.createdAt = { gte: new Date(Date.now() - 30 * 86400000) };
   if (segment === "deposited") where.totalDeposited = { gt: 0 };
   const users = await prisma.user.findMany({ where, select: { email: true } });

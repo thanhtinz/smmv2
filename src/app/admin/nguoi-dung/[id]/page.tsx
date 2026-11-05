@@ -17,6 +17,8 @@ export default async function AdminUserDetail({ params, searchParams }: { params
     include: { panel: { select: { name: true } }, referredBy: { select: { username: true } }, _count: { select: { referrals: true } } },
   });
   if (!u) notFound();
+  // Tài khoản thuộc site con: web mẹ không xem được account này (kể cả số dư) — coi như không tồn tại
+  if (u.panelId) notFound();
   const [txs, smmAgg, preAgg, recentSmm, recentPre, tickets, deposits] = await Promise.all([
     prisma.transaction.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 30 }),
     prisma.smmOrder.aggregate({ where: { userId: u.id, status: { notIn: ["REFUNDED"] } }, _sum: { charge: true }, _count: true }),

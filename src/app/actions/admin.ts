@@ -16,12 +16,20 @@ function back(path: string, key: "msg" | "err", text: string): never {
 const done = (path: string, text = "Đã lưu") => back(path, "msg", text);
 
 /* ---------- Người dùng ---------- */
+/** Chốt chặn: tài khoản thuộc site con (panelId != null) là RIÊNG của site con —
+ *  web mẹ không xem, không sửa số dư, không đổi vai trò/cấp của họ. */
+async function assertMotherAccount(userId: number, path: string) {
+  const t = await prisma.user.findUnique({ where: { id: userId }, select: { panelId: true } });
+  if (t?.panelId) back(path, "err", "Tài khoản này thuộc site con — web mẹ không quản lý account của site con");
+}
+
 export async function adminAdjustBalance(formData: FormData) {
   await requireAdmin();
   const userId = parseInt(String(formData.get("userId")));
   const amount = parseInt(String(formData.get("amount") || "0"));
   const note = String(formData.get("note") || "Admin điều chỉnh số dư");
   if (!userId || !amount) back("/admin/nguoi-dung", "err", "Số tiền không hợp lệ");
+  await assertMotherAccount(userId, "/admin/nguoi-dung");
   await prisma.$transaction(async (tx) => {
     await applyBalance(tx, userId, amount, "ADJUST", undefined, note);
   });
@@ -32,6 +40,7 @@ export async function adminAdjustBalance(formData: FormData) {
 export async function adminUpdateUser(formData: FormData) {
   await requireAdmin();
   const userId = parseInt(String(formData.get("userId")));
+  await assertMotherAccount(userId, "/admin/nguoi-dung");
   const data: any = {
     level: String(formData.get("level") || "MEMBER"),
     status: String(formData.get("status") || "ACTIVE"),
@@ -452,8 +461,9 @@ export async function adminDepositAction(formData: FormData) {
   await requireAdmin();
   const id = parseInt(String(formData.get("id")));
   const kind = String(formData.get("kind"));
-  const dep = await prisma.deposit.findUnique({ where: { id } });
+  const dep = await prisma.deposit.findUnique({ where: { id }, include: { user: { select: { panelId: true } } } });
   if (!dep || dep.status !== "PENDING") back("/admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
+  if (dep.user.panelId) back("/admin/nap-tien", "err", "Yêu cầu nạp này của khách site con — do chủ panel tự duyệt");
   if (kind === "reject") {
     await prisma.deposit.update({ where: { id }, data: { status: "REJECTED", adminNote: String(formData.get("adminNote") || "") || null } });
     done("/admin/nap-tien", "Đã từ chối yêu cầu nạp");
@@ -471,6 +481,7 @@ export async function adminManualDeposit(formData: FormData) {
   const userId = parseInt(String(formData.get("userId")));
   const amount = parseInt(String(formData.get("amount") || "0"));
   if (!userId || amount <= 0) back("/admin/nap-tien", "err", "Chọn khách và số tiền hợp lệ");
+  await assertMotherAccount(userId, "/admin/nap-tien");
   const dep = await prisma.deposit.create({
     data: { code: "TMP", userId, method: "BANK", amount, status: "APPROVED", content: "Admin cộng tay" },
   });
@@ -499,6 +510,8 @@ export async function adminPanelAction(formData: FormData) {
 export async function adminReplyTicket(formData: FormData) {
   await requireStaff();
   const ticketId = parseInt(String(formData.get("ticketId")));
+  const tk = await prisma.ticket.findUnique({ where: { id: ticketId }, select: { user: { select: { panelId: true } } } });
+  if (tk?.user.panelId) back("/admin/ticket", "err", "Ticket này của khách site con — do panel con tự hỗ trợ");
   const body = String(formData.get("body") || "").trim();
   const close = formData.get("close") === "on";
   if (body) await prisma.ticketMessage.create({ data: { ticketId, body, fromAdmin: true } });

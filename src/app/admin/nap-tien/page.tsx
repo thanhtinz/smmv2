@@ -8,10 +8,11 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminDeposits({ searchParams }: { searchParams: { msg?: string; err?: string; status?: string } }) {
   await requireAdminPage();
-  const where: any = {};
+  // Chỉ nạp của TÀI KHOẢN WEB MẸ — nạp của khách site con do chủ panel tự quản lý, mẹ không xem
+  const where: any = { user: { panelId: null } };
   if (searchParams.status) where.status = searchParams.status;
   const deposits = await prisma.deposit.findMany({ where, orderBy: { id: "desc" }, take: 60, include: { user: true } });
-  const users = await prisma.user.findMany({ orderBy: { username: "asc" }, select: { id: true, username: true }, take: 500 });
+  const users = await prisma.user.findMany({ where: { panelId: null }, orderBy: { username: "asc" }, select: { id: true, username: true }, take: 500 });
   return (
     <div>
       <PageHead title="Nạp tiền" desc="Giao dịch chuyển khoản đúng nội dung được webhook cộng tự động. Danh sách chờ duyệt là các khai báo cần kiểm tra tay." />

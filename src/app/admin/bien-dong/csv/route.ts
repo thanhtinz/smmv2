@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   if (!user || user.role !== "ADMIN") return new NextResponse("Forbidden", { status: 403 });
   const q = req.nextUrl.searchParams.get("q") || "";
   const type = req.nextUrl.searchParams.get("type") || "";
-  const where: any = {};
+  const where: any = { user: { panelId: null } }; // không xuất biến động của khách site con
   if (type) where.type = type;
   if (q) where.OR = [{ note: { contains: q } }, { ref: { contains: q } }, { user: { username: { contains: q } } }];
   const rows = await prisma.transaction.findMany({ where, orderBy: { id: "desc" }, take: 5000, include: { user: true } });

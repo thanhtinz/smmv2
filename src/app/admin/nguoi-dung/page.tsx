@@ -8,11 +8,13 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminUsers({ searchParams }: { searchParams: { q?: string; msg?: string; err?: string } }) {
   await requireAdminPage();
-  const where: any = searchParams.q
+  // Web mẹ CHỈ quản lý tài khoản của mẹ: tài khoản thuộc site con (panelId != null)
+  // là riêng của site con — mẹ không xem account, không xem số dư của họ.
+  const where: any = { panelId: null, ...(searchParams.q
     ? { OR: [{ username: { contains: searchParams.q } }, { email: { contains: searchParams.q } }, { phone: { contains: searchParams.q } }] }
-    : {};
+    : {}) };
   const users = await prisma.user.findMany({ where, orderBy: { id: "desc" }, take: 100, include: { _count: { select: { smmOrders: true, premiumOrders: true } } } });
-  const totalBalance = await prisma.user.aggregate({ _sum: { balance: true } });
+  const totalBalance = await prisma.user.aggregate({ where: { panelId: null }, _sum: { balance: true } });
   return (
     <div>
       <PageHead title="Người dùng" desc={`${num(users.length)} tài khoản hiển thị · Tổng số dư khách đang giữ: ${vnd(totalBalance._sum.balance || 0)} (nợ phải trả của hệ thống)`} />

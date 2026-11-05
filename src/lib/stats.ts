@@ -35,6 +35,12 @@ async function period(scope: Scope, from: Date): Promise<PeriodStat> {
     pw.panelId = scope.panelId;
     dw.user = { panelId: scope.panelId };
     uw.panelId = scope.panelId;
+  } else {
+    // Góc nhìn WEB MẸ: nạp tiền + khách mới chỉ tính TÀI KHOẢN CỦA MẸ — tài khoản của
+    // site con là riêng, mẹ không xem số dư/account của site con (đơn hàng qua nguồn
+    // của mẹ vẫn là doanh thu nguồn nên giữ nguyên).
+    dw.user = { panelId: null };
+    uw.panelId = null;
   }
   const [smm, pre, dep, nu] = await Promise.all([
     prisma.smmOrder.aggregate({ where: sw, _sum: { charge: true, cost: true, commission: true }, _count: true }),
@@ -67,8 +73,8 @@ export async function getStats(scope: Scope): Promise<StatsBundle> {
     period(scope, startMonth),
     prisma.smmOrder.groupBy({ by: ["serviceId"], where: sw30, _count: true, _sum: { charge: true, cost: true, commission: true, quantity: true }, orderBy: { _count: { serviceId: "desc" } }, take: 8 }),
     prisma.premiumOrder.groupBy({ by: ["variantId"], where: pw30, _count: true, _sum: { total: true, quantity: true }, orderBy: { _count: { variantId: "desc" } }, take: 8 }),
-    prisma.smmOrder.groupBy({ by: ["userId"], where: { status: SMM_OK, ...(scope.panelId ? { panelId: scope.panelId } : {}) }, _sum: { charge: true }, _count: true }),
-    prisma.premiumOrder.groupBy({ by: ["userId"], where: { status: PRE_OK, ...(scope.panelId ? { panelId: scope.panelId } : {}) }, _sum: { total: true }, _count: true }),
+    prisma.smmOrder.groupBy({ by: ["userId"], where: { status: SMM_OK, ...(scope.panelId ? { panelId: scope.panelId } : { user: { panelId: null } }) }, _sum: { charge: true }, _count: true }),
+    prisma.premiumOrder.groupBy({ by: ["userId"], where: { status: PRE_OK, ...(scope.panelId ? { panelId: scope.panelId } : { user: { panelId: null } }) }, _sum: { total: true }, _count: true }),
   ]);
 
   const svcRows = smmGroup.length
@@ -120,8 +126,8 @@ export async function getStats(scope: Scope): Promise<StatsBundle> {
   const [smmManual, premiumP, depositsP, ticketsO] = await Promise.all([
     prisma.smmOrder.count({ where: { ...pendW, fulfillment: "MANUAL", status: { in: ["PENDING", "PROCESSING"] } } }),
     prisma.premiumOrder.count({ where: { ...pendW, status: "PENDING" } }),
-    prisma.deposit.count({ where: { status: "PENDING", ...(scope.panelId ? { user: { panelId: scope.panelId } } : {}) } }),
-    prisma.ticket.count({ where: { status: "OPEN", ...(scope.panelId ? { user: { panelId: scope.panelId } } : {}) } }),
+    prisma.deposit.count({ where: { status: "PENDING", user: { panelId: scope.panelId ?? null } } }),
+    prisma.ticket.count({ where: { status: "OPEN", user: { panelId: scope.panelId ?? null } } }),
   ]);
 
   let scopeName = "Toàn hệ thống";

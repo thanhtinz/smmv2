@@ -11,7 +11,7 @@ const T_STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 export default async function AdminTickets() {
-  const tickets = await prisma.ticket.findMany({ orderBy: [{ status: "asc" }, { updatedAt: "desc" }], take: 60, include: { user: true, _count: { select: { messages: true } } } });
+  const tickets = await prisma.ticket.findMany({ where: { user: { panelId: null } }, orderBy: [{ status: "asc" }, { updatedAt: "desc" }], take: 60, include: { user: true, _count: { select: { messages: true } } } });
   return (
     <div>
       <PageHead title="Ticket hỗ trợ" desc="Ticket CHỜ PHẢN HỒI (khách vừa gửi/trả lời) được xếp lên đầu." />

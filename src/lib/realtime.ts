@@ -17,13 +17,14 @@ export type RtEvent = {
 export async function getRealtimeFeed(scope: Scope & { panelAdmin?: boolean }) {
   const pid = scope.panelId;
   const ow: any = pid ? { panelId: pid } : {};
-  const dw: any = pid ? { user: { panelId: pid } } : {};
+  // Web mẹ chỉ thấy nạp/ticket/khách của CHÍNH MẸ — account site con là riêng, mẹ không xem
+  const dw: any = { user: { panelId: pid ?? null } };
   const [smm, pre, dep, tickets, users, counts] = await Promise.all([
     prisma.smmOrder.findMany({ where: ow, orderBy: { id: "desc" }, take: 6, include: { user: { select: { username: true } }, service: { select: { name: true } } } }),
     prisma.premiumOrder.findMany({ where: ow, orderBy: { id: "desc" }, take: 5, include: { user: { select: { username: true } }, variant: { include: { product: { select: { name: true } } } } } }),
     prisma.deposit.findMany({ where: dw, orderBy: { id: "desc" }, take: 5, include: { user: { select: { username: true } } } }),
     prisma.ticket.findMany({ where: { ...dw }, orderBy: { id: "desc" }, take: 5, include: { user: { select: { username: true } } } }),
-    prisma.user.findMany({ where: pid ? { panelId: pid } : {}, orderBy: { id: "desc" }, take: 4, select: { id: true, username: true, createdAt: true } }),
+    prisma.user.findMany({ where: { panelId: pid ?? null }, orderBy: { id: "desc" }, take: 4, select: { id: true, username: true, createdAt: true } }),
     Promise.all([
       prisma.deposit.count({ where: { status: "PENDING", ...dw } }),
       prisma.smmOrder.count({ where: { ...ow, fulfillment: "MANUAL", status: { in: ["PENDING", "PROCESSING"] } } }),
