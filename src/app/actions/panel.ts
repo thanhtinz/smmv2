@@ -393,11 +393,11 @@ export async function panelManualDepositAction(formData: FormData) {
 
 /* ---------- Công tắc bán hàng của panel: bán mảng nào bật mảng đó ---------- */
 export async function panelSaveSellAction(formData: FormData) {
-  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
+  const { panel } = await ownPanelOwner("/panel-admin/mo-dun");
   const sellSmm = formData.get("sellSmm") === "on";
   const sellPremium = formData.get("sellPremium") === "on";
   await prisma.childPanel.update({ where: { id: panel.id }, data: { sellSmm, sellPremium } });
-  done("/panel-admin/cai-dat", `Đã lưu mảng đang bán: SMM ${sellSmm ? "BẬT" : "TẮT"} · Premium ${sellPremium ? "BẬT" : "TẮT"}`);
+  done("/panel-admin/mo-dun", `Đã lưu mảng đang bán: SMM ${sellSmm ? "BẬT" : "TẮT"} · Premium ${sellPremium ? "BẬT" : "TẮT"}`);
 }
 
 /* ---------- Chính sách nạp RIÊNG của panel: mốc thưởng + nạp tối thiểu ---------- */
@@ -420,43 +420,43 @@ export async function panelSaveDepositSettingsAction(formData: FormData) {
 
 /* ---------- Widget Liên hệ của panel (đồng bộ với web mẹ, phạm vi của panel) ---------- */
 export async function panelSaveContactWidgetAction(formData: FormData) {
-  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
+  const { panel } = await ownPanelOwner("/panel-admin/lien-he");
   const id = parseInt(String(formData.get("id") || "0")) || 0;
   const name = String(formData.get("name") || "").trim().slice(0, 120);
   const link = String(formData.get("link") || "").trim().slice(0, 500);
   const imageRaw = String(formData.get("image") || "");
   const image = imageRaw.startsWith("data:image/") && imageRaw.length < 14_000_000 ? imageRaw : null;
   const active = formData.get("active") === "on";
-  if (!name) done("/panel-admin/cai-dat", "Tên hiển thị không được trống");
+  if (!name) done("/panel-admin/lien-he", "Tên hiển thị không được trống");
   if (id) {
     const old = await prisma.contactWidget.findFirst({ where: { id, panelId: panel.id } });
-    if (!old) done("/panel-admin/cai-dat", "Không tìm thấy liên hệ");
+    if (!old) done("/panel-admin/lien-he", "Không tìm thấy liên hệ");
     await prisma.contactWidget.update({ where: { id }, data: { name, link, active, image: formData.get("image") === "" ? null : image ?? old!.image } });
   } else {
     const last = await prisma.contactWidget.findFirst({ where: { panelId: panel.id }, orderBy: { sort: "desc" } });
     await prisma.contactWidget.create({ data: { panelId: panel.id, name, link, image, active, sort: (last?.sort ?? 0) + 1 } });
   }
-  done("/panel-admin/cai-dat", id ? "Đã sửa liên hệ" : "Đã thêm liên hệ");
+  done("/panel-admin/lien-he", id ? "Đã sửa liên hệ" : "Đã thêm liên hệ");
 }
 export async function panelDeleteContactWidgetAction(formData: FormData) {
-  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
+  const { panel } = await ownPanelOwner("/panel-admin/lien-he");
   await prisma.contactWidget.deleteMany({ where: { id: parseInt(String(formData.get("id") || "0")) || 0, panelId: panel.id } });
-  done("/panel-admin/cai-dat", "Đã xoá liên hệ");
+  done("/panel-admin/lien-he", "Đã xoá liên hệ");
 }
 export async function panelToggleContactWidgetAction(formData: FormData) {
-  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
+  const { panel } = await ownPanelOwner("/panel-admin/lien-he");
   const w = await prisma.contactWidget.findFirst({ where: { id: parseInt(String(formData.get("id") || "0")) || 0, panelId: panel.id } });
   if (w) await prisma.contactWidget.update({ where: { id: w.id }, data: { active: !w.active } });
-  done("/panel-admin/cai-dat", "Đã lưu trạng thái liên hệ");
+  done("/panel-admin/lien-he", "Đã lưu trạng thái liên hệ");
 }
 export async function panelSeedContactWidgetsAction() {
-  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
+  const { panel } = await ownPanelOwner("/panel-admin/lien-he");
   const legacy: [string, string | null][] = [["Zalo", panel.supportZalo], ["Telegram", panel.supportTelegram], ["Facebook", panel.supportFacebook], ["Hotline", panel.supportHotline]];
   let n = 0;
   for (const [name, value] of legacy) {
     if (value && value.trim()) { await prisma.contactWidget.create({ data: { panelId: panel.id, name, link: value.trim(), sort: ++n } }); }
   }
-  done("/panel-admin/cai-dat", n ? `Đã đưa ${n} kênh cũ vào danh sách widget` : "Không có kênh cũ nào để đưa vào");
+  done("/panel-admin/lien-he", n ? `Đã đưa ${n} kênh cũ vào danh sách widget` : "Không có kênh cũ nào để đưa vào");
 }
 
 /* ---------- Cấu hình riêng của panel ---------- */
@@ -717,7 +717,7 @@ export async function panelSaveRatesAction(formData: FormData) {
 
 /** Mô-đun của panel: bật/tắt bán SMM / Premium / Kiếm tiền (affiliate) / Đăng ký mới. */
 export async function panelSaveModulesAction(formData: FormData) {
-  const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
+  const { panel } = await ownPanelOwner("/panel-admin/mo-dun");
   const affPct = formData.get("affiliatePercent");
   await prisma.childPanel.update({
     where: { id: panel.id },
@@ -736,7 +736,7 @@ export async function panelSaveModulesAction(formData: FormData) {
       affiliatePercent: affPct === undefined || String(affPct).trim() === "" ? panel.affiliatePercent : Math.max(0, Math.min(100, parseInt(String(affPct)) || 0)),
     },
   });
-  done("/panel-admin/cai-dat", "Đã lưu mô-đun của panel");
+  done("/panel-admin/mo-dun", "Đã lưu mô-đun của panel");
 }
 
 /** Bảo mật: cấm IP trong phạm vi panel (đăng ký + đăng nhập của khách panel). */

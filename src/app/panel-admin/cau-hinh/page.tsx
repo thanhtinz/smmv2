@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
+import { prisma } from "@/lib/db";
 import { PageHead, Flash, I } from "@/components/ui";
 import { panelSaveConfigAction } from "@/app/actions/panel";
+import { updatePanelAction } from "@/app/actions/user";
 import SettingsTabs from "@/components/settings-tabs";
 import { ToolKeyField } from "@/components/settings-editors";
 import { vnd } from "@/lib/format";
@@ -13,6 +16,7 @@ const mask = (v: string | null | undefined) => (v ? "•••••••••
  *  nguồn dịch vụ, phần duy nhất thuộc về web mẹ). Mọi cấu hình là của chính panel. */
 export default async function PanelConfigPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { panel } = await requirePanelOwnerPage();
+  const linkedUser = panel.apiUserId ? await prisma.user.findUnique({ where: { id: panel.apiUserId }, select: { username: true } }) : null;
   const base = process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn";
   const infoBox = "rounded-xl bg-brand-50 px-4 py-3 text-[13px] leading-relaxed text-slate-600";
 
@@ -82,6 +86,11 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
           </div>
           <button className="btn-primary !py-2.5">Lưu thương hiệu</button>
         </form>
+        <div className="card space-y-3 p-6">
+          <div className="font-bold text-slate-900">Cấu hình lần đầu</div>
+          <p className="text-sm text-slate-500">Muốn chỉnh lại toàn bộ theo từng bước (thông tin → giá &amp; cấp bậc → API key → tên miền &amp; hỗ trợ), mở lại trang cấu hình lần đầu.</p>
+          <Link href="/dashboard/panel-cua-toi/thiet-lap" className="btn-ghost w-full">Mở trang cấu hình lần đầu</Link>
+        </div>
       </div>
       <div className="space-y-6">
         <form action={panelSaveConfigAction} className="card space-y-4 p-6">
@@ -101,6 +110,28 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
           </div>
           <p className="text-xs text-slate-400">Áp dụng trên tên miền riêng của gian hàng.</p>
         </div>
+        <form action={updatePanelAction} className="card space-y-4 p-6">
+          <input type="hidden" name="back" value="/panel-admin/cau-hinh" />
+          <div className="font-bold text-slate-900">Kết nối &amp; tên miền riêng</div>
+          <div>
+            <label className="lbl">Tên miền riêng</label>
+            <input className="inp" name="domain" defaultValue={panel.domain || ""} placeholder="vd: shopcuaban.vn" />
+            <p className="mt-1.5 text-xs text-slate-400">Trỏ NameServer của tên miền về máy chủ hệ thống để khách vào thẳng gian hàng bằng tên miền của bạn.</p>
+          </div>
+          <div>
+            <label className="lbl">API key liên kết web mẹ</label>
+            <input className="inp font-mono !text-[13px]" name="apiKey" defaultValue={panel.apiKey || ""} placeholder="Để trống = giữ key hiện tại" autoComplete="off" />
+            <p className="mt-1.5 text-xs text-slate-400">Đang liên kết bằng key của tài khoản <b>{linkedUser ? `${linkedUser.username} (#${panel.apiUserId})` : "—"}</b>. Hệ thống kiểm tra key ngay khi lưu.</p>
+          </div>
+          <div>
+            <label className="lbl">Trạng thái bán</label>
+            <select className="inp" name="status" defaultValue={panel.status}>
+              <option value="ACTIVE">Đang mở bán</option>
+              <option value="SUSPENDED">Tạm ngưng (khách mua theo giá gốc, không hoa hồng)</option>
+            </select>
+          </div>
+          <button className="btn-primary !py-2.5">Lưu kết nối</button>
+        </form>
       </div>
     </div>
   );

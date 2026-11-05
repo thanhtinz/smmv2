@@ -93,10 +93,24 @@ async function aiCheckOrderLink(orderId: number, link: string, panelId?: number 
     link,
     cfg,
   )).trim();
-  if (!/^VIOLATION/i.test(verdict)) return;
-  const reason = `AI kiểm tra: ${verdict.replace(/^VIOLATION:\s*/i, "").slice(0, 200)}`;
-  const cur = await prisma.smmOrder.findUnique({ where: { id: orderId }, select: { flagNote: true, code: true } });
+  const cur = await prisma.smmOrder.findUnique({ where: { id: orderId }, select: { flagNote: true, code: true, userId: true } });
   if (!cur) return;
+  const isViolation = /^VIOLATION/i.test(verdict);
+  // Ghi nhật ký kiểm tra (trang Kiểm tra AI) — cả kết quả an toàn lẫn vi phạm
+  const modelName = cfg?.model || (panelId ? null : (await getSettings()).ai_model) || null;
+  await prisma.aiCheckLog.create({
+    data: {
+      orderId,
+      userId: cur.userId,
+      panelId: panelId ?? null,
+      link: link.slice(0, 500),
+      verdict: isViolation ? "VIOLATION" : "SAFE",
+      reason: isViolation ? verdict.replace(/^VIOLATION:\s*/i, "").slice(0, 500) : null,
+      model: modelName,
+    },
+  }).catch(() => {});
+  if (!isViolation) return;
+  const reason = `AI kiểm tra: ${verdict.replace(/^VIOLATION:\s*/i, "").slice(0, 200)}`;
   await prisma.smmOrder.update({ where: { id: orderId }, data: { flagNote: cur.flagNote ? `${cur.flagNote}; ${reason}`.slice(0, 255) : reason } });
   void alertMother("risk", `AI gắn cờ đơn ${cur.code}`, reason);
 }

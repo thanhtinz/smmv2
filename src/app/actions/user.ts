@@ -250,7 +250,7 @@ export async function updatePanelAction(formData: FormData) {
   // Cập nhật TỪNG PHẦN: form nào gửi trường nào thì cập nhật trường đó (Panel Admin có
   // nhiều form riêng: giá chung ở trang Dịch vụ & Giá, thông tin ở trang Cài đặt...)
   const backToRaw = String(formData.get("back") || "");
-  const backTo = backToRaw.startsWith("/panel-admin") || backToRaw.startsWith("/dashboard/panel-cua-toi") ? backToRaw : "/panel-admin/cai-dat";
+  const backTo = backToRaw.startsWith("/panel-admin") || backToRaw.startsWith("/dashboard/panel-cua-toi") ? backToRaw : "/panel-admin/cau-hinh";
   const has = (k: string) => formData.has(k);
   const data: Record<string, unknown> = {};
   if (has("name")) {

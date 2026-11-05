@@ -826,3 +826,18 @@ model RegAttempt {
 
   @@index([ip, createdAt])
 }
+
+// Nhật ký AI kiểm tra link đơn (trang Kiểm tra AI ở admin mẹ + panel con)
+model AiCheckLog {
+  id        Int      @id @default(autoincrement())
+  orderId   Int?
+  userId    Int?
+  panelId   Int?
+  link      String   @db.Text
+  verdict   String   @db.VarChar(16)
+  reason    String?  @db.Text
+  model     String?  @db.VarChar(120)
+  createdAt DateTime @default(now())
+
+  @@index([panelId, createdAt])
+}
