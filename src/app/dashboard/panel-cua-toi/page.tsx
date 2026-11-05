@@ -68,8 +68,8 @@ export default async function ChildSiteRegisterPage({ searchParams }: { searchPa
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">Hệ thống đang tạm ngưng cho đăng ký website con mới. Vui lòng quay lại sau.</p>
         </div>
       ) : panel ? (
-        <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
-          <div className="card p-6 lg:col-span-3">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
+          <div className="card flex h-full flex-col p-6 lg:col-span-3">
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-lg font-extrabold text-slate-900">{panel.domain || panel.name}</div>
               <Badge cls={panel.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}>{panel.status === "ACTIVE" ? "Đang hoạt động" : panel.status}</Badge>
@@ -79,22 +79,24 @@ export default async function ChildSiteRegisterPage({ searchParams }: { searchPa
               <div className="flex justify-between gap-4"><span className="text-slate-500">Khách hàng của website con</span><span className="font-medium text-slate-800">{memberCount}</span></div>
               <div className="flex justify-between gap-4"><span className="text-slate-500">Ngày đăng ký</span><span className="font-medium text-slate-800">{panel.createdAt.toLocaleDateString("vi-VN")}</span></div>
             </div>
-            {panel.domain ? (
-              <div className="mt-6 flex flex-wrap gap-2.5">
-                <a href={`https://${panel.domain}`} target="_blank" rel="noreferrer" className="btn-primary btn-sm">Mở website con</a>
-                <a href={`https://${panel.domain}/admin`} target="_blank" rel="noreferrer" className="btn-ghost btn-sm">Quản trị website con</a>
-              </div>
-            ) : null}
-            <p className="mt-4 text-xs leading-relaxed text-slate-400">Mọi tuỳ chỉnh — logo, màu sắc, giá bán, API Token — thực hiện ngay trên website con của bạn. Mỗi tài khoản được phép tạo tối đa 1 website.</p>
+            <div className="mt-auto pt-6">
+              {panel.domain ? (
+                <div className="flex flex-wrap gap-2.5">
+                  <a href={`https://${panel.domain}`} target="_blank" rel="noreferrer" className="btn-primary btn-sm">Mở website con</a>
+                  <a href={`https://${panel.domain}/admin`} target="_blank" rel="noreferrer" className="btn-ghost btn-sm">Quản trị website con</a>
+                </div>
+              ) : null}
+              <p className="mt-4 text-xs leading-relaxed text-slate-400">Mọi tuỳ chỉnh — logo, màu sắc, giá bán, API Token — thực hiện ngay trên website con của bạn. Mỗi tài khoản được phép tạo tối đa 1 website.</p>
+            </div>
           </div>
           <div className="lg:col-span-2">
-            <NsCard ns1={ns1} ns2={ns2} />
+            <NsCard ns1={ns1} ns2={ns2} className="h-full" />
           </div>
         </div>
       ) : (
         <>
-          <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
-            <form action={registerChildSiteAction} className="card p-6 lg:col-span-3">
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
+            <form action={registerChildSiteAction} className="card flex h-full flex-col p-6 lg:col-span-3">
               <div className="text-base font-extrabold uppercase tracking-wide text-slate-900">Đăng ký website con</div>
               <p className="mt-1 text-sm text-slate-500">Mỗi tài khoản được phép tạo tối đa 1 website</p>
               <div className="mt-5">
@@ -106,11 +108,16 @@ export default async function ChildSiteRegisterPage({ searchParams }: { searchPa
                 <span className="text-slate-500">Chi phí đăng ký:</span>
                 <span className="text-base font-extrabold text-slate-900">0₫</span>
               </div>
-              <button type="submit" className="btn-primary mt-5 w-full !py-3">Đăng ký ngay</button>
+              <div className="mt-5 rounded-xl bg-brand-50 px-4 py-3 text-[13px] leading-relaxed text-slate-600">
+                Sau khi đăng ký, hãy trỏ NameServer của tên miền về thông tin ở thẻ bên cạnh — website con sẽ tự hoạt động trên tên miền của bạn ngay khi tên miền cập nhật xong.
+              </div>
+              <div className="mt-auto pt-5">
+                <button type="submit" className="btn-primary w-full !py-3">Đăng ký ngay</button>
+              </div>
             </form>
-            <div className="space-y-6 lg:col-span-2">
-              <NsCard ns1={ns1} ns2={ns2} />
-              <div className="card p-6">
+            <div className="flex flex-col gap-6 lg:col-span-2">
+              <NsCard ns1={ns1} ns2={ns2} className="flex-1" />
+              <div className="card flex-1 p-6">
                 <div className="mb-3 font-bold text-slate-900">Quyền lợi khi sở hữu website con</div>
                 <ul className="space-y-3.5">
                   {perks.map((p) => (
@@ -141,11 +148,11 @@ export default async function ChildSiteRegisterPage({ searchParams }: { searchPa
   );
 }
 
-function NsCard({ ns1, ns2 }: { ns1: string; ns2: string }) {
+function NsCard({ ns1, ns2, className = "" }: { ns1: string; ns2: string; className?: string }) {
   const configured = Boolean(ns1 || ns2);
   const rows: Array<[string, string]> = [["NS1", ns1], ["NS2", ns2]];
   return (
-    <div className="card p-6">
+    <div className={`card p-6 ${className}`}>
       <div className="font-bold text-slate-900">Thông tin NameServer</div>
       <p className="mt-1 text-[13px] leading-relaxed text-slate-500">Trỏ tên miền của bạn về 2 NameServer dưới đây. Nhấn để sao chép.</p>
       <div className="mt-4 space-y-2.5">
