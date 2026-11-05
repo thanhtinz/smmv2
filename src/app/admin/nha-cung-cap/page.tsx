@@ -20,13 +20,10 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
     return { total, rate: terminal > 0 ? Math.round((done / terminal) * 100) : null };
   };
   const editFound = searchParams.edit ? providers.find((p) => p.id === parseInt(searchParams.edit!)) : undefined;
-  const presetThatim = !editFound && searchParams.preset === "thatim";
-  const edit: any = editFound || (presetThatim ? { name: "ThaTim", apiUrl: "https://thatim.vn/api/v2", kind: "BOTH", currency: "VND", exchangeRate: 1, markupPercent: 20, active: true, apiKey: "", note: "Nguồn ThaTim: hỗ trợ cả SMM v2 (services/add/status/refill + comments/reaction/minutes) và API mua sản phẩm (category/buy/history). Dán API key của tài khoản ThaTim của bạn vào ô API Key." } : undefined);
+  const edit: any = editFound;
   return (
     <div>
-      <PageHead title="Nhà cung cấp API (đấu API)" desc="Khai báo panel nguồn theo chuẩn SMM API v2 — hệ thống tự đồng bộ dịch vụ + giá (cộng markup), tự đẩy đơn và tự cập nhật trạng thái. Nguồn kiểu ThaTim còn đồng bộ được cả sản phẩm Premium.">
-        <a href="/admin/nha-cung-cap?preset=thatim" className="btn-primary">+ Thêm nguồn ThaTim</a>
-      </PageHead>
+      <PageHead title="Nhà cung cấp API (đấu API)" desc="Khai báo panel nguồn theo chuẩn SMM API v2 — hệ thống tự đồng bộ dịch vụ + giá (cộng markup), tự đẩy đơn và tự cập nhật trạng thái. Nguồn có API sản phẩm riêng còn đồng bộ được cả sản phẩm Premium." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
         <div className="xl:col-span-2 space-y-4">
@@ -65,7 +62,7 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
           <div className="card p-5 text-sm text-slate-500 leading-relaxed">
             <div className="font-bold text-slate-800 mb-2">Cách đấu API hoạt động</div>
             <ol className="list-decimal pl-5 space-y-1.5">
-              <li>Bạn nạp tiền vào panel nguồn (ThaTim, slike hoặc bất kỳ panel chuẩn SMM v2 nào), lấy API key của họ.</li>
+              <li>Bạn nạp tiền vào panel nguồn (bất kỳ panel nào theo chuẩn SMM v2), lấy API key của họ.</li>
               <li>Khai báo ở đây: hệ thống gọi <span className="font-mono">action=services</span> để kéo toàn bộ dịch vụ, tự quy đổi tiền và cộng markup thành giá bán.</li>
               <li>Khách đặt đơn trên dịch vụ API: hệ thống tự gọi <span className="font-mono">action=add</span> sang nguồn, lưu mã đơn nguồn.</li>
               <li>Cron <span className="font-mono">/api/cron/sync</span> (5-10 phút/lần) gọi <span className="font-mono">action=status</span> cập nhật tiến độ; đơn Partial/Canceled được hoàn tiền tự động đúng phần chưa chạy.</li>
@@ -75,11 +72,11 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
         <form action={adminSaveProvider} className="card p-6 space-y-4 xl:sticky xl:top-24">
           <div className="font-bold text-slate-900">{edit ? `Sửa: ${edit.name}` : "Thêm nhà cung cấp"}</div>
           <input type="hidden" name="id" value={edit?.id || 0} />
-          <div><label className="lbl">Tên nhà cung cấp</label><input className="inp" name="name" required defaultValue={edit?.name || ""} placeholder="Vd: ThaTim, Slike" /></div>
+          <div><label className="lbl">Tên nhà cung cấp</label><input className="inp" name="name" required defaultValue={edit?.name || ""} placeholder="Vd: Slike, PanelABC" /></div>
           <div>
             <label className="lbl">Loại nguồn</label>
             <select className="inp" name="kind" defaultValue={edit?.kind || "BOTH"}>
-              <option value="BOTH">Cả SMM + Premium (kiểu ThaTim)</option>
+              <option value="BOTH">Cả SMM + Premium</option>
               <option value="SMM">Chỉ dịch vụ SMM</option>
               <option value="PREMIUM">Chỉ sản phẩm Premium</option>
             </select>

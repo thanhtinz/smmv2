@@ -61,24 +61,6 @@ async function main() {
     update: {},
   });
 
-  /* ---------- Provider mẫu: ThaTim (chưa kích hoạt, chờ admin dán API key) ---------- */
-  const providerCount = await prisma.provider.count();
-  if (providerCount === 0) {
-    await prisma.provider.create({
-      data: {
-        kind: "BOTH",
-        name: "ThaTim",
-        apiUrl: "https://thatim.vn/api/v2",
-        apiKey: "THAY-BANG-API-KEY-THAT-CUA-BAN",
-        currency: "VND",
-        exchangeRate: 1,
-        markupPercent: 20,
-        active: false,
-        note: "Nguồn ThaTim (thatim.vn): SMM v2 gồm services/add/status/cancel/refill + tham số comments/reaction/minutes; kèm API mua sản phẩm category/buy/history. Vào Admin → Nhà cung cấp API, dán API key thật của tài khoản ThaTim, bật lên rồi bấm Đồng bộ dịch vụ.",
-      },
-    });
-  }
-
   /* ---------- Dịch vụ SMM mẫu (thủ công) ---------- */
   if ((await prisma.smmService.count()) === 0) {
     const cats: Record<string, number> = {};
