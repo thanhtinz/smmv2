@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
-import { SideNav } from "@/components/nav";
 import { DisplaySettings } from "@/components/display";
+import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
 import TabBar from "@/components/tabbar";
 import { I } from "@/components/ui";
 import { prisma } from "@/lib/db";
@@ -23,44 +23,80 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Phân quyền 2 tầng: STAFF chỉ thấy việc của mình (đơn + ticket + nhật ký);
   // các mục tiền/nguồn/dịch vụ/kho/người dùng/thông báo/cấu hình là của ADMIN.
   const isAdmin = user.role === "ADMIN";
-  const allItems = [
-    { href: "/admin", label: "Tổng quan", icon: I.home },
-    { href: "/admin/don-smm", label: "Đơn SMM", icon: I.cart, badge: manualPending },
-    { href: "/admin/don-premium", label: "Đơn Premium", icon: I.box, badge: prePending },
-    { href: "/admin/nap-tien", label: "Nạp tiền", icon: I.wallet, badge: depPending, adminOnly: true },
-    { href: "/admin/dich-vu", label: "Dịch vụ SMM", icon: I.list, adminOnly: true },
-    { href: "/admin/nha-cung-cap", label: "Nhà cung cấp API", icon: I.server, adminOnly: true },
-    { href: "/admin/premium", label: "Sản phẩm Premium", icon: I.gem, adminOnly: true },
-    { href: "/admin/kho-premium", label: "Kho Premium", icon: I.db, adminOnly: true },
-    { href: "/admin/nguoi-dung", label: "Người dùng", icon: I.users, adminOnly: true },
-    { href: "/admin/panel-con", label: "Panel con", icon: I.panels, adminOnly: true },
-    { href: "/admin/ticket", label: "Ticket", icon: I.ticket, badge: ticketOpen },
-    { href: "/admin/thong-bao", label: "Thông báo", icon: I.megaphone, adminOnly: true },
-    { href: "/admin/nhat-ky", label: "Nhật ký API", icon: I.clock },
-    { href: "/admin/cau-hinh", label: "Cấu hình", icon: I.gear, adminOnly: true },
+  const all: (AdminNavEntry & { adminOnly?: boolean })[] = [
+    { href: "/admin", label: "Tổng quan", icon: "home" },
+    {
+      group: "Quản lý SMM", icon: "cart",
+      children: [
+        { href: "/admin/don-smm", label: "Đơn SMM", icon: "cart", badge: manualPending },
+        { href: "/admin/dich-vu", label: "Dịch vụ SMM", icon: "list", adminOnly: true } as any,
+        { href: "/admin/nha-cung-cap", label: "Nhà cung cấp API", icon: "server", adminOnly: true } as any,
+      ],
+    } as any,
+    {
+      group: "Premium", icon: "gem",
+      children: [
+        { href: "/admin/don-premium", label: "Đơn Premium", icon: "box", badge: prePending },
+        { href: "/admin/premium", label: "Sản phẩm Premium", icon: "gem", adminOnly: true } as any,
+        { href: "/admin/kho-premium", label: "Kho Premium", icon: "db", adminOnly: true } as any,
+      ],
+    } as any,
+    { href: "/admin/nap-tien", label: "Nạp tiền", icon: "wallet", badge: depPending, adminOnly: true },
+    { href: "/admin/nguoi-dung", label: "Người dùng", icon: "users", adminOnly: true },
+    { href: "/admin/panel-con", label: "Panel con", icon: "panels", adminOnly: true },
+    { href: "/admin/ticket", label: "Ticket", icon: "ticket", badge: ticketOpen },
+    { href: "/admin/thong-bao", label: "Thông báo", icon: "megaphone", adminOnly: true },
+    { href: "/admin/nhat-ky", label: "Nhật ký API", icon: "clock" },
+    { href: "/admin/cau-hinh", label: "Cấu hình", icon: "gear", adminOnly: true },
   ];
-  const items = allItems.filter((it) => isAdmin || !it.adminOnly);
+  const entries: AdminNavEntry[] = [];
+  for (const e of all) {
+    if (!isAdmin && (e as any).adminOnly) continue;
+    if ("group" in e) {
+      const kids = (e.children as any[]).filter((c) => isAdmin || !c.adminOnly).map(({ adminOnly, ...rest }) => rest);
+      if (kids.length) entries.push({ group: (e as any).group, icon: (e as any).icon, children: kids });
+    } else {
+      const { adminOnly, ...rest } = e as any;
+      entries.push(rest);
+    }
+  }
+  const initial = (user.username || "A").slice(0, 1).toUpperCase();
   return (
-    <div className="min-h-screen">
-      <header className="bg-slate-950 text-white sticky top-0 z-40">
-        <div className="max-w-[1440px] mx-auto px-4 h-16 flex items-center gap-4">
-          <Link href="/admin" className="flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center">{s.site_logo_text || "S"}</span>
-            <span className="font-extrabold hidden sm:inline">{s.site_name} <span className="text-slate-400 font-medium">/ Admin</span></span>
-          </Link>
-          <div className="ml-auto flex items-center gap-3">
-            <DisplaySettings tone="dark" />
-            <Link href="/" className="text-sm text-slate-300 hover:text-white hidden md:inline">Xem website</Link>
-            <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold">{user.role} · {user.username}</span>
-            <form action={logoutAction}><button className="btn bg-white/10 hover:bg-white/20 text-white btn-sm !py-2">Đăng xuất</button></form>
+    <div className="admin-scope min-h-screen bg-[#f4f6fb]">
+      <AdminNav siteName={s.site_name} logoText={s.site_logo_text || "S"} entries={entries} />
+      <div className="flex min-h-screen flex-col lg:pl-[260px]">
+        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+          <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
+            <Link href="/admin" className="flex items-center gap-2.5 lg:hidden">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 font-black text-white">{s.site_logo_text || "S"}</span>
+              <span className="font-extrabold text-slate-900">{s.site_name} <span className="font-medium text-slate-400">/ Admin</span></span>
+            </Link>
+            <form action="/admin/don-smm" className="hidden max-w-md flex-1 md:block">
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+                </span>
+                <input name="q" placeholder="Tìm kiếm đơn hàng, link, username..." className="inp !rounded-full !pl-10" />
+              </div>
+            </form>
+            <div className="ml-auto flex items-center gap-2.5">
+              <Link href="/admin/ticket" className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700" title="Ticket đang mở">
+                {I.bell}
+                {ticketOpen > 0 && <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-rose-500 px-1 text-center text-[10px] font-bold leading-[18px] text-white">{ticketOpen}</span>}
+              </Link>
+              <DisplaySettings />
+              <Link href="/" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Xem website</Link>
+              <span className="hidden items-center gap-2 rounded-full bg-slate-100 py-1 pl-1 pr-3 sm:flex">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">{initial}</span>
+                <span className="text-sm font-semibold text-slate-800">{user.username}</span>
+                <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-500">{user.role}</span>
+              </span>
+              <form action={logoutAction}><button className="btn btn-sm bg-slate-900 text-white hover:bg-slate-700">Đăng xuất</button></form>
+            </div>
           </div>
-        </div>
-      </header>
-      <div className="max-w-[1440px] mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[248px_1fr] gap-6 items-start">
-        <aside className="lg:sticky lg:top-24 lg:bg-white lg:rounded-2xl lg:border lg:border-slate-200/60 lg:shadow-soft lg:p-3">
-          <SideNav items={items} />
-        </aside>
-        <main className="min-w-0 pb-20 lg:pb-0">{children}</main>
+        </header>
+        <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 pb-24 lg:px-6 lg:pb-6">{children}</main>
+        <footer className="pb-24 text-center text-xs text-slate-400 lg:pb-6">© {new Date().getFullYear()} {s.site_name} · Admin Panel</footer>
       </div>
       <TabBar variant={isAdmin ? "admin" : "staff"} />
     </div>

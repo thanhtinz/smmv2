@@ -15,10 +15,20 @@ export function PageHead({ title, desc, children }: { title: string; desc?: stri
     </div>
   );
 }
-export function Stat({ label, value, sub, icon }: { label: string; value: string; sub?: ReactNode; icon: ReactNode }) {
+const STAT_TONES: Record<string, string> = {
+  brand: "bg-brand-50 text-brand-600",
+  blue: "bg-blue-50 text-blue-600",
+  emerald: "bg-emerald-50 text-emerald-600",
+  rose: "bg-rose-50 text-rose-600",
+  orange: "bg-orange-50 text-orange-600",
+  violet: "bg-violet-50 text-violet-600",
+  cyan: "bg-cyan-50 text-cyan-600",
+  amber: "bg-amber-50 text-amber-600",
+};
+export function Stat({ label, value, sub, icon, tone = "brand" }: { label: string; value: string; sub?: ReactNode; icon: ReactNode; tone?: string }) {
   return (
     <div className="card p-5 flex items-start gap-4">
-      <div className="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">{icon}</div>
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${STAT_TONES[tone] || STAT_TONES.brand}`}>{icon}</div>
       <div className="min-w-0">
         <div className="text-xs font-medium text-slate-500">{label}</div>
         <div className="text-xl font-bold text-slate-900 truncate">{value}</div>
