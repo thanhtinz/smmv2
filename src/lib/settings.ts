@@ -113,6 +113,12 @@ export function depositContent(code: string) {
   return `SMM ${code}`;
 }
 
+/** Mốc thưởng nạp HIỆU LỰC: panel của khách có mốc riêng thì dùng của panel, không thì của web mẹ. */
+export function pickBonusTiers(panelTiers: string | null | undefined, globalJson: string): string {
+  if (panelTiers && panelTiers.trim() && panelTiers.trim() !== "[]") return panelTiers;
+  return globalJson;
+}
+
 /** Tính thưởng nạp theo mốc */
 export function calcBonus(amount: number, tiersJson: string): number {
   try {

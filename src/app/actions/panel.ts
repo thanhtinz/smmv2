@@ -399,6 +399,24 @@ export async function panelSaveSellAction(formData: FormData) {
   done("/panel-admin/cai-dat", `Đã lưu mảng đang bán: SMM ${sellSmm ? "BẬT" : "TẮT"} · Premium ${sellPremium ? "BẬT" : "TẮT"}`);
 }
 
+/* ---------- Chính sách nạp RIÊNG của panel: mốc thưởng + nạp tối thiểu ---------- */
+export async function panelSaveDepositSettingsAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/nap-tien");
+  const tiers: { from: number; percent: number }[] = [];
+  for (let i = 1; i <= 3; i++) {
+    const from = int(formData, `tierFrom${i}`);
+    const percent = int(formData, `tierPct${i}`);
+    if (from > 0 && percent > 0) tiers.push({ from, percent: Math.min(100, percent) });
+  }
+  tiers.sort((a, b) => a.from - b.from);
+  const depositMin = int(formData, "depositMin");
+  await prisma.childPanel.update({
+    where: { id: panel.id },
+    data: { depositBonusTiers: tiers.length ? JSON.stringify(tiers) : null, depositMin: depositMin > 0 ? depositMin : null },
+  });
+  done("/panel-admin/nap-tien", tiers.length ? `Đã lưu chính sách nạp riêng: ${tiers.length} mốc thưởng${depositMin > 0 ? ` · tối thiểu ${depositMin.toLocaleString("vi-VN")}đ` : ""}` : "Đã xoá chính sách nạp riêng — khách của bạn dùng mốc thưởng của web mẹ");
+}
+
 /* ---------- Widget Liên hệ của panel (đồng bộ với web mẹ, phạm vi của panel) ---------- */
 export async function panelSaveContactWidgetAction(formData: FormData) {
   const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
@@ -483,6 +501,16 @@ export async function panelSaveConfigAction(formData: FormData) {
       },
     });
     done("/panel-admin/cau-hinh", "Đã lưu PayPal của panel — khách của bạn nạp PayPal sẽ trả vào tài khoản này");
+  }
+  if (section === "sepay") {
+    await prisma.childPanel.update({
+      where: { id: panel.id },
+      data: {
+        sepayEnabled: formData.get("sepayEnabled") === "on",
+        sepaySecret: keep(str(formData, "sepaySecret"), panel.sepaySecret),
+      },
+    });
+    done("/panel-admin/cau-hinh", "Đã lưu SePay của panel — từ giờ khách nạp ngân hàng vào tài khoản của bạn sẽ được cộng TỰ ĐỘNG, không cần duyệt tay");
   }
   if (section === "stripe") {
     await prisma.childPanel.update({
@@ -602,6 +630,7 @@ export async function panelSaveRatesAction(formData: FormData) {
 /** Mô-đun của panel: bật/tắt bán SMM / Premium / Kiếm tiền (affiliate) / Đăng ký mới. */
 export async function panelSaveModulesAction(formData: FormData) {
   const { panel } = await ownPanelOwner("/panel-admin/cai-dat");
+  const affPct = formData.get("affiliatePercent");
   await prisma.childPanel.update({
     where: { id: panel.id },
     data: {
@@ -609,6 +638,7 @@ export async function panelSaveModulesAction(formData: FormData) {
       sellPremium: formData.has("sellPremium"),
       moduleAffiliate: formData.has("moduleAffiliate"),
       moduleRegister: formData.has("moduleRegister"),
+      affiliatePercent: affPct === undefined || String(affPct).trim() === "" ? panel.affiliatePercent : Math.max(0, Math.min(100, parseInt(String(affPct)) || 0)),
     },
   });
   done("/panel-admin/cai-dat", "Đã lưu mô-đun của panel");

@@ -550,6 +550,14 @@ model ChildPanel {
   stripeEnabled Boolean @default(false)
   stripeSecretKey String? @db.VarChar(200)
   stripeWebhookSecret String? @db.VarChar(200)
+  // Nạp ngân hàng TỰ ĐỘNG riêng của panel qua SePay của CHỦ PANEL (tiền về ngân hàng
+  // của panel, webhook nhận diện bằng secret riêng). Chưa bật thì khách dùng cổng chung của web mẹ.
+  sepayEnabled Boolean @default(false)
+  sepaySecret  String? @db.VarChar(200) // secret webhook SePay của panel
+  // Chính sách nạp riêng của panel (trống = dùng của web mẹ)
+  depositBonusTiers String? @db.Text // JSON [{from, percent}] như web mẹ
+  depositMin Int? // nạp tối thiểu riêng (VNĐ)
+  affiliatePercent Int? // % hoa hồng giới thiệu riêng cho khách của panel
   googleClientSecret String? @db.VarChar(200)
   ownServices SmmService[] @relation("PanelOwnServices")
   status    String   @default("ACTIVE") @db.VarChar(20) // ACTIVE | SUSPENDED

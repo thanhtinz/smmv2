@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash, Badge, Stat } from "@/components/ui";
-import { panelDepositAction, panelManualDepositAction } from "@/app/actions/panel";
+import { panelDepositAction, panelManualDepositAction, panelSaveDepositSettingsAction } from "@/app/actions/panel";
 import { vnd, dt, DEP_STATUS } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +23,7 @@ export default async function PanelDepositsPage({ searchParams }: { searchParams
     prisma.user.findMany({ where: { panelId: panel.id }, select: { id: true, username: true }, orderBy: { username: "asc" }, take: 500 }),
   ]);
   const chips: [string, string][] = [["", "Tất cả"], ["PENDING", "Chờ duyệt"], ["APPROVED", "Đã duyệt"], ["REJECTED", "Từ chối"]];
+  const myTiers = (() => { try { return JSON.parse(panel.depositBonusTiers || "[]") as { from: number; percent: number }[]; } catch { return []; } })();
   return (
     <div>
       <PageHead title="Nạp tiền của khách" desc="Duyệt các yêu cầu nạp chờ của khách panel (USDT về ví của bạn, chuyển khoản ngân hàng của bạn…) và cộng tiền tay." />
@@ -32,6 +33,25 @@ export default async function PanelDepositsPage({ searchParams }: { searchParams
         <Stat label="Tổng đã duyệt cộng" value={vnd(approvedSum._sum.amount || 0)} icon="wallet" />
         <Stat label="Khách của panel" value={String(members.length)} icon="users" />
       </div>
+
+      <form action={panelSaveDepositSettingsAction} className="card mb-6 space-y-4 p-5">
+        <div>
+          <div className="font-bold text-slate-900">Chính sách nạp riêng của panel</div>
+          <p className="mt-0.5 text-sm text-slate-400">Mốc thưởng nạp + số tiền nạp tối thiểu áp cho khách của panel (mọi kênh: ngân hàng, USDT, PayPal, Stripe). Để trống = dùng chính sách của web mẹ.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-end gap-2">
+              <div className="flex-1"><label className="lbl">Mốc {i} — nạp từ (đ)</label><input name={`tierFrom${i}`} type="number" min={0} step={1000} defaultValue={myTiers[i - 1]?.from || ""} placeholder="VD: 1000000" className="inp" /></div>
+              <div className="w-24"><label className="lbl">Thưởng %</label><input name={`tierPct${i}`} type="number" min={0} max={100} defaultValue={myTiers[i - 1]?.percent || ""} placeholder="2" className="inp" /></div>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="w-56"><label className="lbl">Nạp tối thiểu (đ)</label><input name="depositMin" type="number" min={0} step={1000} defaultValue={panel.depositMin || ""} placeholder="Trống = theo web mẹ" className="inp" /></div>
+          <button className="btn-primary !py-2.5">Lưu chính sách nạp</button>
+        </div>
+      </form>
 
       <form action={panelManualDepositAction} className="card mb-6 flex flex-wrap items-end gap-3 p-5">
         <div className="min-w-[220px] flex-1">

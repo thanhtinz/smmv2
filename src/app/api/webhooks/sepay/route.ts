@@ -1,23 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { applyBalance } from "@/lib/wallet";
-import { getSettings, calcBonus } from "@/lib/settings";
+import { getSettings, calcBonus, pickBonusTiers } from "@/lib/settings";
 import { genCode } from "@/lib/format";
 
 /**
  * Webhook cộng tiền tự động — tương thích SePay (và mọi hệ thống bắn JSON tương tự).
- * Bảo mật: header Authorization: Apikey <SEPAY_WEBHOOK_SECRET>
- * hoặc query ?secret=<SEPAY_WEBHOOK_SECRET>.
+ * Bảo mật: header Authorization: Apikey <secret> hoặc query ?secret=<secret>.
+ * Một endpoint dùng chung: secret của WEB MẸ (env SEPAY_WEBHOOK_SECRET) hoặc secret
+ * SePay RIÊNG của từng panel (chủ panel nối SePay của họ — tiền về ngân hàng của panel).
  * Nhận diện khách bằng nội dung CK chứa mã nạp (depositCode, vd "SMM AB12CD").
  * Chống cộng trùng: mỗi giao dịch (id phía ngân hàng/SePay) chỉ xử lý 1 lần (lưu ở ApiLog.ref).
  */
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const secret = process.env.SEPAY_WEBHOOK_SECRET || "";
+  const motherSecret = process.env.SEPAY_WEBHOOK_SECRET || "";
   const auth = req.headers.get("authorization") || "";
   const qSecret = req.nextUrl.searchParams.get("secret") || "";
-  if (secret && auth !== `Apikey ${secret}` && qSecret !== secret) {
+  const presented = auth.startsWith("Apikey ") ? auth.slice(7) : qSecret;
+  let viaPanelId: number | null = null;
+  let authorized = !motherSecret && !presented;
+  if (motherSecret && presented === motherSecret) authorized = true;
+  if (!authorized && presented) {
+    const p = await prisma.childPanel.findFirst({ where: { sepayEnabled: true, sepaySecret: presented }, select: { id: true } }).catch(() => null);
+    if (p) { authorized = true; viaPanelId = p.id; }
+  }
+  if (!authorized) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const body: any = await req.json().catch(() => null);
@@ -45,7 +54,8 @@ export async function POST(req: NextRequest) {
   }
 
   const settings = await getSettings();
-  const bonus = calcBonus(amount, settings.deposit_bonus_tiers);
+  const matchedPanel = matched.panelId ? await prisma.childPanel.findUnique({ where: { id: matched.panelId }, select: { depositBonusTiers: true } }) : null;
+  const bonus = calcBonus(amount, pickBonusTiers(matchedPanel?.depositBonusTiers, settings.deposit_bonus_tiers));
   const dep = await prisma.$transaction(async (tx) => {
     const d = await tx.deposit.create({
       data: { code: "TMP", userId: matched.id, method: isMomo ? "MOMO" : "BANK", amount, bonus, status: "APPROVED", content, auto: true },
@@ -56,7 +66,7 @@ export async function POST(req: NextRequest) {
     if (bonus > 0) await applyBalance(tx, matched.id, bonus, "BONUS", code, "Thưởng nạp tiền");
     return { ...d, code };
   });
-  await prisma.apiLog.create({ data: { kind: "webhook", ref: txId || dep.code, detail: `user=${matched.id} amount=${amount} bonus=${bonus} deposit=${dep.code}` } });
+  await prisma.apiLog.create({ data: { kind: "webhook", ref: txId || dep.code, detail: `user=${matched.id} amount=${amount} bonus=${bonus} deposit=${dep.code}${viaPanelId ? ` viaPanel=${viaPanelId}` : ""}` } });
   const { alertMother, alertPanelOwner } = await import("@/lib/alerts");
   await alertMother("deposit_success", "Nạp tiền thành công", `+${amount.toLocaleString("vi-VN")}đ${bonus > 0 ? ` (+${bonus.toLocaleString("vi-VN")}đ thưởng)` : ""} — khách #${matched.id}, mã ${dep.code}`);
   if (matched.panelId) await alertPanelOwner(matched.panelId, "deposit_success", "Khách của panel nạp tiền thành công", `+${amount.toLocaleString("vi-VN")}đ — khách #${matched.id}, mã ${dep.code}`);

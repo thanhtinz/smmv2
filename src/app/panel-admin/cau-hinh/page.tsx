@@ -77,6 +77,15 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
           </form>
 
           <form action={panelSaveConfigAction} className="card space-y-4 p-6">
+            <input type="hidden" name="section" value="sepay" />
+            <div className="font-bold text-slate-900">SePay của panel — nạp ngân hàng TỰ ĐỘNG</div>
+            <p className="text-sm text-slate-400">Như web mẹ: nối tài khoản SePay của chính bạn (gắn với ngân hàng nhận tiền của panel ở trang Ngân hàng) thì khách chuyển khoản đúng nội dung là tiền cộng TỰ ĐỘNG — không còn bước gửi yêu cầu duyệt. Trong SePay, đặt Webhook URL là <b className="text-slate-600">/api/webhooks/sepay</b> của website và API Key chính là Secret bạn đặt ở đây. Chưa bật thì khách vẫn nạp qua cổng chung của web mẹ hoặc gửi yêu cầu duyệt tay.</p>
+            <label className="flex items-center justify-between gap-4"><span className="text-sm text-slate-600">Bật SePay riêng của panel</span><input type="checkbox" name="sepayEnabled" defaultChecked={panel.sepayEnabled} className="h-5 w-5 accent-slate-900" /></label>
+            <div><label className="lbl">Secret webhook (API Key của SePay bạn) {panel.sepaySecret && <span className="font-semibold text-emerald-600">— đã lưu</span>}</label><input name="sepaySecret" type="password" autoComplete="off" placeholder={mask(panel.sepaySecret)} className="inp" /></div>
+            <button className="btn-primary !py-2.5">Lưu SePay</button>
+          </form>
+
+          <form action={panelSaveConfigAction} className="card space-y-4 p-6">
             <input type="hidden" name="section" value="paypal" />
             <div className="font-bold text-slate-900">PayPal của panel</div>
             <p className="text-sm text-slate-400">Method nạp như web mẹ nhưng bằng tài khoản của bạn: khách của panel nạp PayPal sẽ trả tiền vào tài khoản PayPal này và được cộng số dư tự động. Chưa bật thì khách dùng cổng của web mẹ (nếu mẹ có bật).</p>

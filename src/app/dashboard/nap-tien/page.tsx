@@ -24,6 +24,13 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
   }));
   const myPanel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;
   const myPanelBanks = myPanel ? await prisma.panelBankAccount.findMany({ where: { panelId: myPanel.id, active: true }, orderBy: [{ sort: "asc" }, { id: "asc" }] }) : [];
+  // Panel đã nối SePay RIÊNG → nạp ngân hàng của khách panel TỰ ĐỘNG như web mẹ (QR là ngân hàng của panel, hết duyệt tay)
+  const panelSepayOn = !!(myPanel && myPanel.status === "ACTIVE" && myPanel.sepayEnabled && myPanel.sepaySecret && myPanelBanks.length > 0);
+  const effMin = myPanel?.depositMin || minDep;
+  const effTiers = (() => {
+    if (myPanel?.depositBonusTiers) { try { const t = JSON.parse(myPanel.depositBonusTiers) as { from: number; percent: number }[]; if (t.length) return t; } catch { /* dùng mốc của mẹ */ } }
+    return tiers;
+  })();
   const panelUsdt = myPanel && myPanel.status === "ACTIVE" && myPanel.usdtAddress
     ? { address: myPanel.usdtAddress, network: myPanel.usdtNetwork || "TRC20", rate: myPanel.usdtRate || parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") }
     : null;
@@ -38,14 +45,14 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <DepositCard
-          banks={banksProp}
-          bank={s.bank_account ? { name: s.bank_name, account: s.bank_account, holder: s.bank_holder, qr: vietQrUrl(s.bank_name, s.bank_account, 0, content, s.bank_holder), content, min: parseInt(s.deposit_min || "10000", 10) || 10000 } : null}
-          momo={s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}
-          tiers={tiers}
+          banks={panelSepayOn ? myPanelBanks.map((b) => ({ name: b.bankName, account: b.accountNo, holder: b.accountName, qr: vietQrUrl(b.bankName, b.accountNo, 0, content, b.accountName), content, min: effMin })) : banksProp}
+          bank={panelSepayOn ? null : s.bank_account ? { name: s.bank_name, account: s.bank_account, holder: s.bank_holder, qr: vietQrUrl(s.bank_name, s.bank_account, 0, content, s.bank_holder), content, min: parseInt(s.deposit_min || "10000", 10) || 10000 } : null}
+          momo={panelSepayOn ? null : s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}
+          tiers={effTiers}
           intl={paypalOn || stripeOn ? { rate: intlCfg.rate, paypal: paypalOn, stripe: stripeOn } : null}
           usdt={panelUsdt || (s.usdt_enabled === "1" && s.usdt_address ? { address: s.usdt_address, network: s.usdt_network || "TRC20", rate: parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") } : null)}
         />
-        {myPanel && myPanel.status === "ACTIVE" && (myPanel.bankAccount || myPanelBanks.length > 0) && (
+        {myPanel && myPanel.status === "ACTIVE" && !panelSepayOn && (myPanel.bankAccount || myPanelBanks.length > 0) && (
           <form action={createPanelBankDepositAction} className="card p-5">
             <div className="font-bold text-slate-900">Chuyển khoản cho shop {myPanel.name}</div>
             {myPanelBanks.length > 0 ? (

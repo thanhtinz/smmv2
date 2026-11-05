@@ -68,18 +68,29 @@ export default async function PanelSettingsPage({ searchParams }: { searchParams
               <Switch name="moduleAffiliate" label="Kiếm tiền (hoa hồng giới thiệu cho khách)" defaultChecked={panel.moduleAffiliate} />
               <Switch name="moduleRegister" label="Cho phép đăng ký mới tại gian hàng" defaultChecked={panel.moduleRegister} />
             </div>
+            <div className="mt-4">
+              <label className="lbl">% hoa hồng giới thiệu riêng của panel (để trống = theo web mẹ)</label>
+              <input name="affiliatePercent" type="number" min={0} max={100} defaultValue={panel.affiliatePercent ?? ""} placeholder="VD: 8" className="inp" />
+            </div>
             <button className="btn-primary w-full mt-4 !py-2.5">Lưu mô-đun</button>
           </form>
           <div className="card p-6">
-            <div className="font-bold text-slate-900">Thanh toán SePay — cấu hình chung</div>
-            <dl className="mt-4 space-y-2 text-sm">
-              <div className="flex justify-between gap-3"><dt className="text-slate-400">Ngân hàng nhận</dt><dd className="font-semibold text-slate-800 text-right">{s.bank_name || "—"}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-400">Số tài khoản</dt><dd className="font-semibold text-slate-800 text-right">{s.bank_account || "—"}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-400">Chủ tài khoản</dt><dd className="font-semibold text-slate-800 text-right">{s.bank_holder || "—"}</dd></div>
-              {s.momo_phone && <div className="flex justify-between gap-3"><dt className="text-slate-400">MoMo</dt><dd className="font-semibold text-slate-800 text-right">{s.momo_phone}{s.momo_name ? ` · ${s.momo_name}` : ""}</dd></div>}
-              <div className="flex justify-between gap-3"><dt className="text-slate-400">Nạp tối thiểu</dt><dd className="font-semibold text-slate-800 text-right">{vnd(parseInt(s.deposit_min || "10000"))}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-400">Nội dung chuyển khoản</dt><dd className="font-semibold text-slate-800 text-right font-mono text-[13px]">SMM + mã nạp riêng của từng khách</dd></div>
-            </dl>
+            <div className="font-bold text-slate-900">Thanh toán ngân hàng — {panel.sepayEnabled ? "SePay RIÊNG của panel" : "cổng chung của web mẹ"}</div>
+            {panel.sepayEnabled ? (
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">Panel của bạn đã bật SePay riêng (Cấu hình panel): khách nạp ngân hàng vào tài khoản của panel được cộng <b className="text-slate-700">tự động</b>, không cần duyệt. Ngân hàng nhận là các tài khoản ở trang Ngân hàng của panel.</p>
+            ) : (
+              <>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500">Chưa bật SePay riêng: khách của panel nạp qua cổng chung bên dưới của web mẹ (tự động), hoặc chuyển vào ngân hàng của panel rồi gửi yêu cầu duyệt. Muốn tiền về thẳng ngân hàng của bạn và tự động cộng, bật SePay riêng ở trang Cấu hình.</p>
+                <dl className="mt-4 space-y-2 text-sm">
+                  <div className="flex justify-between gap-3"><dt className="text-slate-400">Ngân hàng nhận</dt><dd className="font-semibold text-slate-800 text-right">{s.bank_name || "—"}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-slate-400">Số tài khoản</dt><dd className="font-semibold text-slate-800 text-right">{s.bank_account || "—"}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-slate-400">Chủ tài khoản</dt><dd className="font-semibold text-slate-800 text-right">{s.bank_holder || "—"}</dd></div>
+                  {s.momo_phone && <div className="flex justify-between gap-3"><dt className="text-slate-400">MoMo</dt><dd className="font-semibold text-slate-800 text-right">{s.momo_phone}{s.momo_name ? ` · ${s.momo_name}` : ""}</dd></div>}
+                  <div className="flex justify-between gap-3"><dt className="text-slate-400">Nạp tối thiểu</dt><dd className="font-semibold text-slate-800 text-right">{vnd(parseInt(s.deposit_min || "10000"))}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-slate-400">Nội dung chuyển khoản</dt><dd className="font-semibold text-slate-800 text-right font-mono text-[13px]">SMM + mã nạp riêng của từng khách</dd></div>
+                </dl>
+              </>
+            )}
           </div>
           <div className="card p-6">
             <div className="font-bold text-slate-900">Cấu hình lần đầu</div>
