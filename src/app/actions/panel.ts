@@ -529,6 +529,88 @@ export async function panelSaveConfigAction(formData: FormData) {
     await prisma.childPanel.update({ where: { id: panel.id }, data: { panelFee: fee } });
     done("/panel-admin/cau-hinh", fee > 0 ? `Đã đặt phí tạo website con cho khách của panel: ${fee.toLocaleString("vi-VN")}₫ — tiền phí thuộc về bạn` : "Đã đặt tạo website con cho khách của panel là MIỄN PHÍ");
   }
+  if (section === "brand") {
+    const name = str(formData, "name");
+    if (name.length < 3) back("/panel-admin/cau-hinh", "err", "Tên gian hàng tối thiểu 3 ký tự");
+    await prisma.childPanel.update({
+      where: { id: panel.id },
+      data: {
+        name, tagline: str(formData, "tagline") || null,
+        accent: ["blue", "violet", "emerald", "orange", "rose", "teal"].includes(str(formData, "accent")) ? str(formData, "accent") : panel.accent,
+        logoUrl: str(formData, "logoUrl") || null, faviconUrl: str(formData, "faviconUrl") || null,
+        supportZalo: str(formData, "supportZalo").slice(0, 120) || null, supportTelegram: str(formData, "supportTelegram").slice(0, 120) || null,
+        supportFacebook: str(formData, "supportFacebook").slice(0, 120) || null, supportHotline: str(formData, "supportHotline").slice(0, 120) || null,
+      },
+    });
+    done("/panel-admin/cau-hinh", "Đã lưu thương hiệu & thông tin hỗ trợ của panel");
+  }
+  if (section === "seo") {
+    await prisma.childPanel.update({
+      where: { id: panel.id },
+      data: { metaDescription: str(formData, "metaDescription") || null, metaKeywords: str(formData, "metaKeywords") || null, ogImageUrl: str(formData, "ogImageUrl") || null },
+    });
+    done("/panel-admin/cau-hinh", "Đã lưu SEO & Meta của panel");
+  }
+  if (section === "landing") {
+    await prisma.childPanel.update({
+      where: { id: panel.id },
+      data: {
+        landingHeadline: str(formData, "landingHeadline") || null, landingSubtitle: str(formData, "landingSubtitle") || null,
+        authStyle: ["classic", "glass", "minimal", "app"].includes(str(formData, "authStyle")) ? str(formData, "authStyle") : null,
+      },
+    });
+    done("/panel-admin/cau-hinh", "Đã lưu trang giới thiệu & kiểu trang đăng nhập của panel");
+  }
+  if (section === "thongbao") {
+    await prisma.childPanel.update({
+      where: { id: panel.id },
+      data: {
+        announcement: str(formData, "announcement").slice(0, 500) || null,
+        homeModalEnabled: formData.get("homeModalEnabled") === "on", homeModalContent: str(formData, "homeModalContent") || null,
+        termsEnabled: formData.get("termsEnabled") === "on", termsTitle: str(formData, "termsTitle") || null,
+        termsContent: str(formData, "termsContent") || null, termsVersion: Math.max(1, int(formData, "termsVersion") || 1),
+        termsCheckboxText: str(formData, "termsCheckboxText") || null, termsButtonText: str(formData, "termsButtonText") || null,
+      },
+    });
+    done("/panel-admin/cau-hinh", "Đã lưu thông báo & điều khoản của panel");
+  }
+  if (section === "promo") {
+    const tiers: { from: number; percent: number }[] = [];
+    for (let i = 1; i <= 3; i++) {
+      const from = int(formData, `tierFrom${i}`);
+      const percent = int(formData, `tierPct${i}`);
+      if (from > 0 && percent > 0) tiers.push({ from, percent: Math.min(100, percent) });
+    }
+    tiers.sort((a, b) => a.from - b.from);
+    const depositMin = int(formData, "depositMin");
+    await prisma.childPanel.update({
+      where: { id: panel.id },
+      data: { depositBonusTiers: tiers.length ? JSON.stringify(tiers) : null, depositMin: depositMin > 0 ? depositMin : null },
+    });
+    done("/panel-admin/cau-hinh", "Đã lưu khuyến mãi nạp tiền của panel");
+  }
+  if (section === "affiliate") {
+    await prisma.childPanel.update({
+      where: { id: panel.id },
+      data: { moduleAffiliate: formData.get("moduleAffiliate") === "on", affiliatePercent: Math.min(50, Math.max(0, int(formData, "affiliatePercent"))) },
+    });
+    done("/panel-admin/cau-hinh", "Đã lưu chương trình giới thiệu của panel");
+  }
+  if (section === "toolapi") {
+    await prisma.childPanel.update({ where: { id: panel.id }, data: { toolApiKey: str(formData, "tool_api_key") || null } });
+    done("/panel-admin/cau-hinh", "Đã lưu Tool API Key của panel");
+  }
+  if (section === "aicheck") {
+    await prisma.childPanel.update({ where: { id: panel.id }, data: { aiCheckEnabled: formData.get("aiCheckEnabled") === "on" } });
+    done("/panel-admin/cau-hinh", "Đã lưu cấu hình AI kiểm tra link của panel");
+  }
+  if (section === "script") {
+    await prisma.childPanel.update({
+      where: { id: panel.id },
+      data: { customHeadHtml: str(formData, "customHeadHtml") || null, customBodyHtml: str(formData, "customBodyHtml") || null },
+    });
+    done("/panel-admin/cau-hinh", "Đã lưu Script/HTML của panel");
+  }
   back("/panel-admin/cau-hinh", "err", "Mục cấu hình không hợp lệ");
 }
 

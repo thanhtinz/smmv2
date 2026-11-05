@@ -3,15 +3,24 @@ import { getSettings } from "./settings";
 import type { SmmOrderStatus } from "@prisma/client";
 
 /** SMM Tool API — cho tool ngoài (xử lý đơn thủ công) lấy đơn chờ + cập nhật trạng thái.
- *  Key đặt ở Cấu hình > tab SMM Tool API (setting tool_api_key). Chấp nhận key qua
- *  query ?key=, header x-tool-key, hoặc field "key" trong body POST. */
-export async function toolAuthorized(req: Request, bodyKey?: unknown): Promise<boolean> {
-  const s = await getSettings();
-  const key = (s.tool_api_key || "").trim();
-  if (!key) return false;
+ *  Hai phạm vi key: key của WEB MẸ (setting tool_api_key) thấy mọi đơn thủ công;
+ *  key RIÊNG của từng panel (ChildPanel.toolApiKey) chỉ thấy đơn của panel đó.
+ *  Chấp nhận key qua query ?key=, header x-tool-key, hoặc field "key" trong body POST. */
+export type ToolContext = { panelId: number | null };
+
+export async function toolContext(req: Request, bodyKey?: unknown): Promise<ToolContext | null> {
   const url = new URL(req.url);
-  const given = url.searchParams.get("key") || req.headers.get("x-tool-key") || (typeof bodyKey === "string" ? bodyKey : "");
-  return given === key;
+  const given = (url.searchParams.get("key") || req.headers.get("x-tool-key") || (typeof bodyKey === "string" ? bodyKey : "")).trim();
+  if (!given) return null;
+  const s = await getSettings();
+  if ((s.tool_api_key || "").trim() && given === (s.tool_api_key || "").trim()) return { panelId: null };
+  const panel = await prisma.childPanel.findFirst({ where: { toolApiKey: given }, select: { id: true } });
+  if (panel) return { panelId: panel.id };
+  return null;
+}
+
+export async function toolAuthorized(req: Request, bodyKey?: unknown): Promise<boolean> {
+  return (await toolContext(req, bodyKey)) !== null;
 }
 
 export const TOOL_STATUS_OUT: Record<string, string> = {
@@ -41,12 +50,14 @@ export function toolOrderJson(o: {
   };
 }
 
-/** Tool chỉ xử lý đơn của dịch vụ THỦ CÔNG (không đấu API). */
-export async function findToolOrder(id: number) {
+/** Tool chỉ xử lý đơn của dịch vụ THỦ CÔNG (không đấu API). Phạm vi panel: đơn phải
+ *  thuộc đúng panel của key (panelId null = key web mẹ, không giới hạn panel). */
+export async function findToolOrder(id: number, panelId?: number | null) {
   const order = await prisma.smmOrder.findUnique({
     where: { id },
     include: { service: { select: { fulfillment: true, name: true } } },
   });
   if (!order || order.service.fulfillment !== "MANUAL") return null;
+  if (panelId != null && order.panelId !== panelId) return null;
   return order;
 }

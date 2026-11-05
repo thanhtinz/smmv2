@@ -449,6 +449,14 @@ export async function updateProfileAction(formData: FormData) {
 /** Khách xác nhận điều khoản sử dụng (Cài đặt → Thông báo) — ghi phiên bản đã xác nhận. */
 export async function acceptTermsAction() {
   const user = await requireUser();
+  // Khách panel đang xem điều khoản của panel mình -> ghi nhận theo phiên bản của panel.
+  if (user.panelId) {
+    const panel = await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { termsEnabled: true, termsContent: true, termsVersion: true } });
+    if (panel?.termsEnabled && panel.termsContent?.trim()) {
+      await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: panel.termsVersion } });
+      redirect("/dashboard");
+    }
+  }
   const s = await getSettings();
   await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: parseInt(s.terms_version || "1") || 1 } });
   redirect("/dashboard");

@@ -34,7 +34,7 @@ export function BonusTiersEditor({ initial }: { initial: string }) {
 }
 
 /** Ô nhập Tool API Key kèm nút Tạo mã mới (sinh ngẫu nhiên tại trình duyệt, admin bấm Lưu mới ghi). */
-export function ToolKeyField({ initial }: { initial: string }) {
+export function ToolKeyField({ initial, name = "tool_api_key" }: { initial: string; name?: string }) {
   const [val, setVal] = useState(initial || "");
   const gen = () => {
     const bytes = new Uint8Array(24);
@@ -43,7 +43,7 @@ export function ToolKeyField({ initial }: { initial: string }) {
   };
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      <input className="inp min-w-0 flex-1 font-mono" name="tool_api_key" value={val} onChange={(e) => setVal(e.target.value)} placeholder="Chưa có key — bấm Tạo mã mới" autoComplete="off" />
+      <input className="inp min-w-0 flex-1 font-mono" name={name} value={val} onChange={(e) => setVal(e.target.value)} placeholder="Chưa có key — bấm Tạo mã mới" autoComplete="off" />
       <button type="button" onClick={gen} className="btn-ghost btn-sm shrink-0">Tạo mã mới</button>
     </div>
   );

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { toolAuthorized, toolOrderJson, TOOL_STATUS_IN } from "@/lib/tool";
+import { toolContext, toolOrderJson, TOOL_STATUS_IN } from "@/lib/tool";
 import type { SmmOrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
 /** GET /api/tool/orders?key=...[&status=&service_id=&search=]
  *  Danh sách đơn THỦ CÔNG đang chờ xử lý (mặc định: pending + processing + inprogress). */
 export async function GET(req: Request) {
-  if (!(await toolAuthorized(req))) {
+  const ctx = await toolContext(req);
+  if (!ctx) {
     return NextResponse.json({ error: "invalid tool api key" }, { status: 401 });
   }
   const url = new URL(req.url);
@@ -21,6 +22,7 @@ export async function GET(req: Request) {
     where: {
       service: { fulfillment: "MANUAL" },
       status: { in: statuses },
+      ...(ctx.panelId != null ? { panelId: ctx.panelId } : {}),
       ...(serviceId ? { serviceId } : {}),
       ...(search ? { OR: [{ link: { contains: search } }, { code: { contains: search } }] } : {}),
     },

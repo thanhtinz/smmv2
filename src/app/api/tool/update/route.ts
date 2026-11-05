@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { toolAuthorized, findToolOrder, TOOL_STATUS_IN } from "@/lib/tool";
+import { toolContext, findToolOrder, TOOL_STATUS_IN } from "@/lib/tool";
 import { refundSmmOrder } from "@/lib/orders";
 import { orderTransition } from "@/lib/notify";
 
@@ -11,11 +11,12 @@ export const dynamic = "force-dynamic";
  *  Huỷ/hoàn/một phần: hệ thống tự hoàn tiền theo phần chưa chạy (remains) qua refundSmmOrder. */
 export async function POST(req: Request) {
   const body: any = await req.json().catch(() => ({}));
-  if (!(await toolAuthorized(req, body?.key))) {
+  const ctx = await toolContext(req, body?.key);
+  if (!ctx) {
     return NextResponse.json({ error: "invalid tool api key" }, { status: 401 });
   }
   const id = Number(body?.id || 0);
-  const order = id ? await findToolOrder(id) : null;
+  const order = id ? await findToolOrder(id, ctx.panelId) : null;
   if (!order) return NextResponse.json({ error: "order not found" }, { status: 404 });
   if (["COMPLETED", "CANCELED", "REFUNDED"].includes(order.status)) {
     return NextResponse.json({ error: "order already finished" }, { status: 409 });

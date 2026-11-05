@@ -572,6 +572,27 @@ model ChildPanel {
   affiliatePercent Int? // % hoa hồng giới thiệu riêng cho khách của panel
   panelFee    Int  @default(0) // phí khách của panel phải trả để tạo website con của riêng họ (VNĐ, 0 = miễn phí)
   parentPanelId Int? // website con này được tạo từ trong panel nào (null = tạo từ web mẹ)
+  // Cấu hình hiển thị riêng của panel (đồng bộ trang Cài đặt của web mẹ, phạm vi panel)
+  logoUrl     String? @db.VarChar(500)
+  faviconUrl  String? @db.VarChar(500)
+  metaDescription String? @db.Text
+  metaKeywords    String? @db.VarChar(500)
+  ogImageUrl      String? @db.VarChar(500)
+  landingHeadline String? @db.VarChar(300)
+  landingSubtitle String? @db.VarChar(300)
+  authStyle   String? @db.VarChar(20) // classic | glass | minimal | app (trống = theo web mẹ)
+  homeModalEnabled Boolean @default(false)
+  homeModalContent String? @db.Text
+  termsEnabled     Boolean @default(false)
+  termsTitle       String? @db.VarChar(200)
+  termsContent     String? @db.Text
+  termsVersion     Int     @default(1)
+  termsCheckboxText String? @db.VarChar(300)
+  termsButtonText   String? @db.VarChar(120)
+  aiCheckEnabled Boolean @default(false) // AI quét link đơn của khách panel (dùng cấu hình AI riêng của panel)
+  toolApiKey  String? @db.VarChar(120) // SMM Tool API riêng của panel — chỉ thấy đơn của panel
+  customHeadHtml String? @db.Text
+  customBodyHtml String? @db.Text
   googleClientSecret String? @db.VarChar(200)
   ownServices SmmService[] @relation("PanelOwnServices")
   status    String   @default("ACTIVE") @db.VarChar(20) // ACTIVE | SUSPENDED

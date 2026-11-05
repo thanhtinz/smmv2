@@ -20,14 +20,26 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return <div className="min-h-screen flex items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold mb-2">Hệ thống đang bảo trì</h1><p className="text-slate-500">Vui lòng quay lại sau ít phút.</p></div></div>;
   }
   const openTickets = await prisma.ticket.count({ where: { userId: user.id, status: "ANSWERED" } });
+  // Khách của panel: điều khoản + modal trang chủ dùng bản RIÊNG của panel (nếu panel có bật);
+  // panel không bật thì theo web mẹ như cũ.
+  const myPanelGate = user.panelId ? await prisma.childPanel.findUnique({
+    where: { id: user.panelId },
+    select: { termsEnabled: true, termsTitle: true, termsContent: true, termsVersion: true, termsCheckboxText: true, termsButtonText: true, homeModalEnabled: true, homeModalContent: true },
+  }) : null;
+  const panelTermsOn = !!(myPanelGate?.termsEnabled && myPanelGate.termsContent?.trim());
   let termsGate: React.ReactNode = null;
-  if (s.terms_enabled === "1" && s.terms_content?.trim()) {
+  if (panelTermsOn || (s.terms_enabled === "1" && s.terms_content?.trim())) {
     const fresh = await prisma.user.findUnique({ where: { id: user.id }, select: { termsAcceptedVersion: true } });
-    const ver = parseInt(s.terms_version || "1") || 1;
+    const ver = panelTermsOn ? myPanelGate!.termsVersion : parseInt(s.terms_version || "1") || 1;
     if ((fresh?.termsAcceptedVersion || 0) < ver) {
-      termsGate = <TermsGate title={s.terms_title} content={s.terms_content} checkboxText={s.terms_checkbox_text} buttonText={s.terms_button_text} version={ver} />;
+      termsGate = panelTermsOn
+        ? <TermsGate title={myPanelGate!.termsTitle || "Điều khoản sử dụng"} content={myPanelGate!.termsContent!} checkboxText={myPanelGate!.termsCheckboxText || ""} buttonText={myPanelGate!.termsButtonText || ""} version={ver} />
+        : <TermsGate title={s.terms_title} content={s.terms_content} checkboxText={s.terms_checkbox_text} buttonText={s.terms_button_text} version={ver} />;
     }
   }
+  const homeModalContent = myPanelGate?.homeModalEnabled && myPanelGate.homeModalContent?.trim()
+    ? myPanelGate.homeModalContent
+    : s.home_modal_enabled === "1" && s.home_modal_content?.trim() ? s.home_modal_content : null;
   const myPanelFlags = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sellSmm: true, sellPremium: true, moduleAffiliate: true } }) : null;
   const smmOn = s.module_smm !== "0" && (myPanelFlags ? myPanelFlags.sellSmm : true);
   const premiumOn = s.module_premium !== "0" && (myPanelFlags ? myPanelFlags.sellPremium : true);
@@ -79,7 +91,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <TabBar variant="app" />
       {s.livechat_enabled !== "0" && <LiveChat />}
       {termsGate}
-      {s.home_modal_enabled === "1" && s.home_modal_content?.trim() ? <HomeModal content={s.home_modal_content} /> : null}
+      {homeModalContent ? <HomeModal content={homeModalContent} /> : null}
     </div>
   );
 }

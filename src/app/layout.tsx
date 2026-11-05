@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getSettings } from "@/lib/settings";
+import { panelByHost } from "@/lib/panel-host";
 import { DisplayEngine } from "@/components/display";
 
 export const viewport: Viewport = {
@@ -13,6 +14,19 @@ export const viewport: Viewport = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => null);
+  // Trên tên miền riêng của panel con: tiêu đề/SEO/favicon dùng bản riêng của panel.
+  const panel = await panelByHost().catch(() => null);
+  if (panel) {
+    return {
+      title: `${panel.name} — SMM Panel & Tài khoản Premium`,
+      description: panel.metaDescription || panel.tagline || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt",
+      keywords: panel.metaKeywords ? panel.metaKeywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
+      openGraph: panel.ogImageUrl ? { images: [panel.ogImageUrl] } : undefined,
+      manifest: "/manifest.webmanifest",
+      appleWebApp: { capable: true, statusBarStyle: "default", title: panel.name },
+      icons: { icon: panel.faviconUrl || s?.favicon_url || "/icon.svg", apple: panel.faviconUrl || s?.favicon_url || "/icon.svg" },
+    };
+  }
   return {
     title: `${s?.site_name || "SMMv2"} — SMM Panel & Tài khoản Premium`,
     description: s?.meta_description || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt",
@@ -29,15 +43,19 @@ const THEME_SCRIPT = `(function(){try{var h=document.documentElement;var a=local
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const s = await getSettings().catch(() => null);
-  const accent = s?.default_accent || "blue";
+  const panel = await panelByHost().catch(() => null);
+  const accent = panel?.accent || s?.default_accent || "blue";
   const dark = s?.default_mode === "dark";
+  // Script/HTML: ở tên miền panel thì dùng bản riêng của panel, ở web mẹ dùng bản của mẹ.
+  const headHtml = panel ? panel.customHeadHtml : s?.custom_head_html;
+  const bodyHtml = panel ? panel.customBodyHtml : s?.custom_body_html;
   return (
     <html lang="en" data-accent={accent} className={dark ? "dark" : undefined} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
-        {s?.custom_head_html ? <div hidden dangerouslySetInnerHTML={{ __html: s.custom_head_html }} /> : null}
+        {headHtml ? <div hidden dangerouslySetInnerHTML={{ __html: headHtml }} /> : null}
       </head>
-      <body>{children}<DisplayEngine />{s?.custom_body_html ? <div hidden dangerouslySetInnerHTML={{ __html: s.custom_body_html }} /> : null}</body>
+      <body>{children}<DisplayEngine />{bodyHtml ? <div hidden dangerouslySetInnerHTML={{ __html: bodyHtml }} /> : null}</body>
     </html>
   );
 }

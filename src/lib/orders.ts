@@ -72,14 +72,26 @@ export function providerLinkFor(service: { autoUid: boolean }, link: string): st
 /** AI kiểm tra nội dung link đơn (Cấu hình > tab AI Kiểm tra). Chỉ chạy khi admin bật
  *  và đã cấu hình AI; nếu AI kết luận vi phạm thì gắn vào flagNote để admin thấy ở mục
  *  rủi ro + báo admin. Chạy nền sau khi đơn đã tạo — lỗi nào cũng bỏ qua. */
-async function aiCheckOrderLink(orderId: number, link: string) {
-  const s = await getSettings();
-  if (s.ai_check_enabled !== "1") return;
-  const { aiConfigured, aiChat } = await import("./ai");
-  if (!(await aiConfigured())) return;
+async function aiCheckOrderLink(orderId: number, link: string, panelId?: number | null) {
+  // Đơn của khách panel: dùng AI + nút bật/tắt RIÊNG của panel; đơn web mẹ: cấu hình chung.
+  const { aiConfigured, aiChat, panelAiConfig } = await import("./ai");
+  let cfg: Parameters<typeof aiChat>[2] = undefined;
+  if (panelId) {
+    const panel = await prisma.childPanel.findUnique({
+      where: { id: panelId },
+      select: { aiCheckEnabled: true, aiEnabled: true, aiProvider: true, aiBaseUrl: true, aiApiKey: true, aiModel: true },
+    });
+    if (!panel?.aiCheckEnabled) return;
+    cfg = panelAiConfig(panel as any);
+  } else {
+    const s = await getSettings();
+    if (s.ai_check_enabled !== "1") return;
+  }
+  if (!(await aiConfigured(cfg))) return;
   const verdict = (await aiChat(
     "Bạn là bộ lọc nội dung cho một panel SMM. Kiểm tra LINK do người dùng gửi khi đặt đơn. Các nhóm vi phạm: mạo danh cơ quan nhà nước; nội dung khiêu dâm; cờ bạc, cá cược, xổ số; ma tuý; lừa đảo, phishing; bạo lực, khủng bố; chống phá Nhà nước; buôn bán vũ khí; xâm phạm quyền trẻ em. Chỉ trả lời đúng một dòng: OK nếu link không thuộc nhóm nào; hoặc VIOLATION: <tên nhóm vi phạm> nếu thuộc.",
     link,
+    cfg,
   )).trim();
   if (!/^VIOLATION/i.test(verdict)) return;
   const reason = `AI kiểm tra: ${verdict.replace(/^VIOLATION:\s*/i, "").slice(0, 200)}`;
@@ -248,7 +260,7 @@ export async function createSmmOrder(input: {
     if (flagNote) void alertPanelOwner(panel.id, "risk", `Đơn rủi ro ${order.code}`, flagNote);
   }
   // AI kiểm tra link (Cấu hình > tab AI Kiểm tra): chạy nền, không chặn luồng đặt đơn
-  void aiCheckOrderLink(order.id, order.link).catch(() => {});
+  void aiCheckOrderLink(order.id, order.link, order.panelId).catch(() => {});
 
   // Đẩy qua provider nếu là đơn API — lỗi thì giữ PENDING để admin xử lý / cron thử lại, KHÔNG mất tiền khách vô ích:
   // nếu provider từ chối dứt khoát, hoàn tiền ngay.

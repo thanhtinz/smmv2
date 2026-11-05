@@ -47,7 +47,8 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
         showSmm={panel.sellSmm}
         showPremium={panel.sellPremium}
         brandName={panel.name}
-        tagline={panel.tagline}
+        tagline={panel.landingSubtitle || panel.tagline}
+        headline={panel.landingHeadline}
         loggedIn={!!user}
         stats={{ services: services.length, premium: premiums.length, orders: panelOrderCount + panelPremiumCount, users: memberCount, completion }}
         platforms={platformStats.map((p) => ({ ...p, points: catsByPlatform.get(p.platform) || [] }))}

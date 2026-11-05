@@ -3,17 +3,20 @@ import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { Flash } from "@/components/ui";
 import { loginAction } from "@/app/actions/auth";
 import { getSettings } from "@/lib/settings";
+import { panelByHost } from "@/lib/panel-host";
 import { RecaptchaWidget } from "@/components/recaptcha";
 import { authCardClass } from "@/lib/auth-style";
 
 export default async function LoginPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const settings = await getSettings().catch(() => null);
-  const googleOn = settings?.google_enabled === "1" && !!settings?.google_client_id;
+  // Ở tên miền panel con: kiểu khung đăng nhập + nút Google theo cấu hình riêng của panel.
+  const panel = await panelByHost().catch(() => null);
+  const googleOn = panel ? !!panel.googleClientId : settings?.google_enabled === "1" && !!settings?.google_client_id;
   return (
     <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
       <PublicHeader />
       <main className="flex-1 flex items-center justify-center px-4 py-14">
-        <div className={authCardClass(settings?.auth_style)}>
+        <div className={authCardClass(panel?.authStyle || settings?.auth_style)}>
           <h1 className="text-2xl font-extrabold text-slate-900">Đăng nhập</h1>
           <p className="text-sm text-slate-500 mt-1.5 mb-6">Vào bảng điều khiển để đặt đơn và quản lý số dư.</p>
           <Flash msg={searchParams.msg} err={searchParams.err} />
