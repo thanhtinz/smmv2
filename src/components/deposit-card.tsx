@@ -13,7 +13,7 @@ type MethodKey = "sepay" | "paypal" | "stripe";
 
 export function DepositCard({ bank, momo, tiers, intl }: { bank: BankInfo | null; momo: MomoInfo | null; tiers: { from: number; percent: number }[]; intl: IntlInfo | null }) {
   const methods: { key: MethodKey; brand: React.ReactNode; desc: string }[] = [
-    ...(bank || momo ? [{ key: "sepay" as const, brand: <span className="text-slate-800">SePay</span>, desc: "Ngân hàng & MoMo · cộng tự động" }] : []),
+    ...(bank || momo ? [{ key: "sepay" as const, brand: <span className="text-slate-800">QR ngân hàng</span>, desc: "Ngân hàng & MoMo · cộng tự động" }] : []),
     ...(intl?.paypal ? [{ key: "paypal" as const, brand: <><span className="text-[#003087]">Pay</span><span className="text-[#0079C1]">Pal</span></>, desc: "Trả USD · cộng theo tỉ giá" }] : []),
     ...(intl?.stripe ? [{ key: "stripe" as const, brand: <span className="text-[#635BFF]">Stripe</span>, desc: "Thẻ Visa / Mastercard" }] : []),
   ];
@@ -74,7 +74,7 @@ export function DepositCard({ bank, momo, tiers, intl }: { bank: BankInfo | null
               </dl>
             </div>
           )}
-          <p className="text-xs text-slate-400 mt-4">Ngân hàng và MoMo đều được đối soát tự động qua SePay — chuyển đúng nội dung là tiền cộng ngay.</p>
+          <p className="text-xs text-slate-400 mt-4">Ngân hàng và MoMo đều được cộng tự động — chuyển đúng nội dung là tiền cộng ngay.</p>
         </div>
       )}
 
