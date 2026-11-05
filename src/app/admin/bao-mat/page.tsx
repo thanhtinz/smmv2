@@ -27,13 +27,6 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
             <div><label className="lbl">Lý do</label><textarea className="inp" name="reason" rows={2} placeholder="Spam đăng ký, dò mật khẩu..." /></div>
             <button className="btn-primary">Thêm vào danh sách chặn</button>
           </form>
-          <div className="card p-5">
-            <div className="font-bold text-slate-900">Chính sách mật khẩu hiện tại</div>
-            <p className="mt-2 text-sm leading-relaxed text-slate-500">
-              Độ dài tối thiểu khi đăng ký / đổi mật khẩu: <b className="text-slate-800">{s.password_min_length} ký tự</b>.
-              Sửa trong Admin → Cấu hình → tab Bảo mật. Đăng nhập sai nhiều lần liên tiếp sẽ bị khoá tạm theo cơ chế sẵn có của hệ thống.
-            </p>
-          </div>
         </div>
         <div className="card overflow-x-auto">
           <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Danh sách IP bị chặn ({bans.length})</div>
@@ -53,6 +46,13 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
             </table>
           )}
         </div>
+      </div>
+      <div className="card mt-6 p-5">
+        <div className="font-bold text-slate-900">Chính sách mật khẩu hiện tại</div>
+        <p className="mt-2 text-sm leading-relaxed text-slate-500">
+          Độ dài tối thiểu khi đăng ký / đổi mật khẩu: <b className="text-slate-800">{s.password_min_length} ký tự</b>.
+          Sửa trong Admin → Cấu hình → tab Bảo mật. Đăng nhập sai nhiều lần liên tiếp sẽ bị khoá tạm theo cơ chế sẵn có của hệ thống.
+        </p>
       </div>
       <div className="card mt-6 overflow-x-auto">
         <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Nhật ký hoạt động hệ thống</div>

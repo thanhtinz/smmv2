@@ -65,8 +65,8 @@ export default async function AdminAnalytics() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
-        <div className="card overflow-hidden">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="card h-full overflow-hidden">
           <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Dịch vụ doanh thu cao nhất</div>
           <table className="w-full"><tbody className="divide-y divide-slate-100">
             {topServices.map((t) => (
@@ -78,7 +78,7 @@ export default async function AdminAnalytics() {
             {topServices.length === 0 && <tr><td className="td text-slate-400">Chưa có dữ liệu</td></tr>}
           </tbody></table>
         </div>
-        <div className="card overflow-hidden">
+        <div className="card h-full overflow-hidden">
           <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Khách chi tiêu nhiều nhất</div>
           <table className="w-full"><tbody className="divide-y divide-slate-100">
             {topCustomers.map((t) => (

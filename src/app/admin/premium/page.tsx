@@ -41,7 +41,7 @@ export default async function AdminPremiumProducts({ searchParams }: { searchPar
       <PageHead title="Quản lý Sản phẩm Premium" desc="Thêm, sửa, xóa sản phẩm và các gói thời hạn (1 tháng, 3 tháng, 1 năm...)" />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <form method="get" className="card mb-4 flex flex-wrap items-center gap-3 p-4">
-        <input name="q" defaultValue={searchParams.q || ""} className="inp !w-72" placeholder="Tìm theo tên sản phẩm hoặc slug..." />
+        <input name="q" defaultValue={searchParams.q || ""} className="inp min-w-[220px] flex-1" placeholder="Tìm theo tên sản phẩm hoặc slug..." />
         <select name="cat" defaultValue={searchParams.cat || ""} className="inp !w-52">
           <option value="">Tất cả danh mục</option>
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}

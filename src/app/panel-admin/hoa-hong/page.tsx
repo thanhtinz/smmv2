@@ -29,12 +29,12 @@ export default async function PanelCommissionPage({ searchParams }: { searchPara
     <div>
       <PageHead title="Nhật ký hoa hồng" desc="Mọi biến động hoa hồng từ đơn qua gian hàng của bạn." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <form action={panelSetCommissionAction} className="card mb-6 flex flex-wrap items-end gap-4 p-6">
+      <form action={panelSetCommissionAction} className="card mb-6 space-y-4 p-6">
         <div className="min-w-[240px]">
           <div className="font-bold text-slate-900">Setup % hoa hồng</div>
           <p className="mt-0.5 text-sm text-slate-400">Giá bán tại gian hàng = giá web mẹ + % này. Phần chênh lệch (sau khi trừ % giảm theo cấp bậc bạn tặng khách) là hoa hồng của bạn trên mỗi đơn.</p>
         </div>
-        <div className="ml-auto flex items-end gap-3">
+        <div className="flex flex-wrap items-end gap-3">
           <div>
             <label className="lbl">% hoa hồng trên mỗi đơn</label>
             <div className="flex items-center gap-2">

@@ -232,7 +232,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
   );
 
   return (
-    <div className="max-w-4xl">
+    <div>
       <PageHead title="Cấu hình hệ thống" desc="Mọi thay đổi áp dụng ngay trên toàn site." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <form action={adminSaveSettings}>

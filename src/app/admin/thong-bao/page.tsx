@@ -12,9 +12,11 @@ export default async function AdminAnnouncements({ searchParams }: { searchParam
   const edit = searchParams.edit ? list.find((a) => a.id === parseInt(searchParams.edit!)) : undefined;
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-      <div className="xl:col-span-2">
+      <div className="xl:col-span-3">
         <PageHead title="Thông báo" desc="Thông báo đang bật sẽ hiện ở trang Tổng quan của khách." />
         <Flash msg={searchParams.msg} err={searchParams.err} />
+      </div>
+      <div className="xl:col-span-2">
         <div className="space-y-3">
           {list.map((a) => (
             <div key={a.id} className="card p-5 flex items-start gap-4">

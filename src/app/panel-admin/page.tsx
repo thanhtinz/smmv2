@@ -34,7 +34,7 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
         <Stat label="Số dư của bạn" value={vnd(user.balance)} icon={I.wallet} tone="blue" />
         <Stat label="Khách đã nạp (SePay chung)" value={vnd((depositAgg._sum.amount || 0) + (depositAgg._sum.bonus || 0))} icon={I.money} tone="violet" />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="font-bold text-slate-900">Đơn mới nhất qua panel</div>

@@ -15,7 +15,7 @@ export default async function AdminPremiumOrders({ searchParams }: { searchParam
       <PageHead title="Đơn Premium" desc="Đơn Chờ giao = khách đã trả tiền, cần giao tay. Đơn Bảo hành = khách báo lỗi, cần đổi/hoàn." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <form className="flex flex-wrap gap-2 mb-5">
-        <input className="inp !w-64" name="q" placeholder="Mã đơn / username..." defaultValue={searchParams.q || ""} />
+        <input className="inp min-w-[220px] flex-1" name="q" placeholder="Mã đơn / username..." defaultValue={searchParams.q || ""} />
         <select className="inp !w-48" name="status" defaultValue={searchParams.status || ""}>
           <option value="">Tất cả trạng thái</option>
           {Object.entries(PRE_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}

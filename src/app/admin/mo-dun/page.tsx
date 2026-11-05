@@ -20,7 +20,8 @@ export default async function AdminModules({ searchParams }: { searchParams: { m
     <div>
       <PageHead title="Mô-đun" desc="Bật / tắt từng mảng chức năng của hệ thống. Thay đổi áp dụng ngay cho toàn bộ khách." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <form action={saveModulesAction} className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <form action={saveModulesAction}>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {MODULES.map((m) => {
           const on = s[m.key] !== "0";
           return (
@@ -39,10 +40,11 @@ export default async function AdminModules({ searchParams }: { searchParams: { m
             </div>
           );
         })}
-        <div className="flex items-end">
-          <button className="btn-primary w-full md:w-auto">Lưu trạng thái mô-đun</button>
-        </div>
-      </form>
+      </div>
+      <div className="mt-5">
+        <button className="btn-primary w-full md:w-auto">Lưu trạng thái mô-đun</button>
+      </div>
+    </form>
     </div>
   );
 }

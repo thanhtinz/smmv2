@@ -90,7 +90,7 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
       </div>
 
       <form method="get" className="card mb-4 flex flex-wrap items-center gap-3 p-4">
-        <input name="q" defaultValue={q} className="inp !w-72" placeholder="Tìm dịch vụ..." />
+        <input name="q" defaultValue={q} className="inp min-w-[220px] flex-1" placeholder="Tìm dịch vụ..." />
         <button className="btn-primary btn-sm !px-4 !py-2.5">Tìm kiếm</button>
         {totalServices > services.length && <span className="text-xs text-slate-400">Đang hiển thị {services.length}/{num(totalServices)} dịch vụ — dùng ô tìm kiếm để thu hẹp.</span>}
       </form>

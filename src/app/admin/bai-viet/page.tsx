@@ -22,7 +22,7 @@ export default async function AdminPosts({ searchParams }: { searchParams: { edi
         {edit && <Link href="/admin/bai-viet" className="btn-primary">+ Viết bài mới</Link>}
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[1fr_420px]">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px] [&>*]:min-w-0">
         <div>
           <form className="mb-4 flex gap-2">
             <input className="inp !w-80" name="q" placeholder="Tìm tiêu đề bài viết..." defaultValue={searchParams.q || ""} />

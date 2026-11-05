@@ -16,9 +16,9 @@ export default async function AdminDeposits({ searchParams }: { searchParams: { 
     <div>
       <PageHead title="Nạp tiền" desc="Giao dịch chuyển khoản đúng nội dung được webhook cộng tự động. Danh sách chờ duyệt là các khai báo cần kiểm tra tay." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start [&>*]:min-w-0">
         <div className="xl:col-span-2 card overflow-x-auto">
-          <table className="w-full min-w-[680px]">
+          <table className="w-full min-w-[620px] [&_td]:px-3 [&_th]:px-3">
             <thead className="bg-slate-50 border-b border-slate-200"><tr>
               <th className="th">Mã</th><th className="th">Khách</th><th className="th">Kênh</th><th className="th">Số tiền</th><th className="th">Trạng thái</th><th className="th">Thời gian</th><th className="th"></th>
             </tr></thead>

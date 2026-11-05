@@ -20,10 +20,10 @@ export default async function AdminDiscountCodes({ searchParams }: { searchParam
         {edit && <Link href="/admin/ma-giam-gia" className="btn-ghost">+ Tạo mã mới</Link>}
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[1fr_380px]">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px] [&>*]:min-w-0">
         <div className="card overflow-x-auto">
           {codes.length === 0 ? <Empty text="Chưa có mã giảm giá nào" /> : (
-            <table className="w-full min-w-[760px]">
+            <table className="w-full min-w-[680px] [&_th]:whitespace-nowrap">
               <thead><tr>
                 <th className="th">Mã giảm giá</th><th className="th">Giảm giá</th><th className="th">Đã dùng</th><th className="th">Điều kiện</th><th className="th">Thời gian</th><th className="th">Trạng thái</th><th className="th"></th>
               </tr></thead>

@@ -10,7 +10,7 @@ export default async function ApiPage({ searchParams }: { searchParams: { msg?: 
   const endpoint = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/v2`;
   void s;
   return (
-    <div className="max-w-3xl">
+    <div>
       <PageHead title="API đại lý" desc="Dùng key này để tích hợp panel của bạn hoặc công cụ tự động — chuẩn SMM API v2." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="card p-6 space-y-5">
