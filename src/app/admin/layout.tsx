@@ -64,6 +64,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/nhat-ky", label: "Nhật ký API", icon: "clock" },
     { href: "/admin/bao-mat", label: "Bảo mật nâng cao", icon: "shield", adminOnly: true },
     { href: "/admin/he-thong", label: "Hệ thống", icon: "cpu", adminOnly: true },
+    { href: "/admin/mo-dun", label: "Mô-đun", icon: "layers", adminOnly: true },
     { href: "/admin/cau-hinh", label: "Cấu hình", icon: "gear", adminOnly: true },
   ];
   const entries: AdminNavEntry[] = [];

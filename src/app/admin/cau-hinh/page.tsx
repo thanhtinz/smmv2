@@ -13,6 +13,20 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
   const cronUrl = `${base}/api/cron/sync?secret=<CRON_SECRET>&services=1`;
   const webhookUrl = `${base}/api/webhooks/sepay`;
 
+  const googleSection = (
+    <section className="card p-6 space-y-4">
+      <div className="font-bold text-slate-900">Đăng nhập bằng Google</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label className="lbl">Bật đăng nhập Google</label>
+          <select className="inp" name="google_enabled" defaultValue={s.google_enabled === "1" ? "1" : "0"}><option value="0">Tắt</option><option value="1">Bật</option></select></div>
+        <div><label className="lbl">Client ID</label><input className="inp" name="google_client_id" defaultValue={s.google_client_id} placeholder="...apps.googleusercontent.com" /></div>
+        <div><label className="lbl">Client Secret</label><input className="inp" name="google_client_secret" defaultValue={s.google_client_secret} autoComplete="off" /></div>
+        <div><label className="lbl">Redirect URI cần khai trong Google Cloud</label><input className="inp font-mono" readOnly value="https://<domain-của-bạn>/api/auth/google/callback" /></div>
+      </div>
+      <p className="text-xs text-slate-400">Khách bấm nút Google ở trang đăng nhập: nếu email đã có tài khoản thì vào thẳng, chưa có thì hệ thống tạo tài khoản mới (khi mô-đun Đăng ký đang bật).</p>
+    </section>
+  );
+
   const chung = (
     <>
       <section className="card p-6 space-y-4">
@@ -52,6 +66,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           </div>
         </div>
       </section>
+      {googleSection}
     </>
   );
 
@@ -101,7 +116,47 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
         </div>
         <p className="text-xs text-slate-400">Webhook Stripe trỏ về <span className="font-mono">/api/webhooks/stripe</span> (sự kiện checkout.session.completed).</p>
       </section>
+      <section className="card p-6 space-y-4">
+        <div className="font-bold text-slate-900">Nạp USDT (duyệt tay)</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div><label className="lbl">Bật nạp USDT</label>
+            <select className="inp" name="usdt_enabled" defaultValue={s.usdt_enabled === "1" ? "1" : "0"}><option value="0">Tắt</option><option value="1">Bật</option></select></div>
+          <div><label className="lbl">Mạng</label>
+            <select className="inp" name="usdt_network" defaultValue={s.usdt_network || "TRC20"}><option value="TRC20">TRC20 (Tron)</option><option value="BEP20">BEP20 (BSC)</option><option value="ERC20">ERC20 (Ethereum)</option></select></div>
+          <div><label className="lbl">Địa chỉ ví nhận USDT</label><input className="inp" name="usdt_address" defaultValue={s.usdt_address} placeholder="Địa chỉ ví của bạn" /></div>
+          <div><label className="lbl">Tỉ giá riêng 1 USDT = (VND) — để trống dùng tỉ giá USD</label><input className="inp" name="usdt_rate" type="number" defaultValue={s.usdt_rate} placeholder="VD: 25500" /></div>
+        </div>
+        <p className="text-xs text-slate-400">Khách chuyển USDT rồi khai mã giao dịch; yêu cầu vào hàng chờ ở mục Nạp tiền, admin đối chiếu ví rồi duyệt.</p>
+      </section>
+      <section className="card p-6 space-y-4">
+        <div className="font-bold text-slate-900">Tỉ giá hiển thị tiền tệ</div>
+        <p className="text-xs text-slate-400">Khách có thể chọn hiển thị giá theo ngoại tệ ở nút Cài đặt — quy đổi theo tỉ giá dưới đây (1 đơn vị ngoại tệ = ? VND). Tiền thật trong hệ thống vẫn là VND.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div><label className="lbl">1 EUR =</label><input className="inp" name="rate_eur" type="number" defaultValue={s.rate_eur} /></div>
+          <div><label className="lbl">1 CNY =</label><input className="inp" name="rate_cny" type="number" defaultValue={s.rate_cny} /></div>
+          <div><label className="lbl">1 THB =</label><input className="inp" name="rate_thb" type="number" defaultValue={s.rate_thb} /></div>
+          <div><label className="lbl">1 JPY =</label><input className="inp" name="rate_jpy" type="number" defaultValue={s.rate_jpy} /></div>
+          <div><label className="lbl">1 KRW =</label><input className="inp" name="rate_krw" type="number" defaultValue={s.rate_krw} /></div>
+        </div>
+      </section>
     </>
+  );
+
+  const ai = (
+    <section className="card p-6 space-y-4">
+      <div className="font-bold text-slate-900">Kết nối nhà cung cấp AI</div>
+      <p className="text-xs leading-relaxed text-slate-400">Dùng cho trang <b>Tìm dịch vụ bằng AI</b> phía khách: khách mô tả nhu cầu bằng câu chữ thường, hệ thống gợi ý dịch vụ phù hợp. Chỉ danh mục dịch vụ và câu hỏi của khách được gửi tới nhà cung cấp AI. Chưa có key thì trang đó tự chạy chế độ tìm kiếm thường.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label className="lbl">Bật AI</label>
+          <select className="inp" name="ai_enabled" defaultValue={s.ai_enabled === "1" ? "1" : "0"}><option value="0">Tắt</option><option value="1">Bật</option></select></div>
+        <div><label className="lbl">Nhà cung cấp</label>
+          <select className="inp" name="ai_provider" defaultValue={s.ai_provider || "openai"}><option value="openai">OpenAI / endpoint tương thích</option><option value="gemini">Google Gemini</option></select></div>
+        <div><label className="lbl">API key</label><input className="inp" name="ai_api_key" defaultValue={s.ai_api_key} placeholder="Dán API key của bạn" autoComplete="off" /></div>
+        <div><label className="lbl">Model</label><input className="inp" name="ai_model" defaultValue={s.ai_model} placeholder="VD: gpt-4o-mini / gemini-2.0-flash" /></div>
+        <div className="sm:col-span-2"><label className="lbl">Base URL tuỳ chỉnh (để trống = mặc định)</label><input className="inp" name="ai_base_url" defaultValue={s.ai_base_url} placeholder="https://api.openai.com/v1" /></div>
+      </div>
+      <a href="/api/admin/ai-test" className="btn-ghost btn-sm inline-block">Kiểm tra kết nối AI</a>
+    </section>
   );
 
   const email = (
@@ -188,6 +243,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           { id: "telegram", label: "Telegram", content: telegram },
           { id: "baomat", label: "Bảo mật", content: baomat },
           { id: "cron", label: "Cron & Webhook", content: cron },
+          { id: "ai", label: "AI", content: ai },
           { id: "script", label: "Script / HTML", content: script },
         ]} />
         <button className="btn-primary w-full !py-3 mt-6">Lưu toàn bộ cấu hình</button>

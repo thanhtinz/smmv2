@@ -162,6 +162,19 @@ function runDisplay() {
 
 export function DisplayEngine() {
   useEffect(() => {
+    // Nạp tỉ giá hiển thị admin đã cấu hình (mặc định dùng bộ tỉ giá sẵn trong code)
+    fetch("/api/display-config")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.rates) {
+          for (const c of CURRENCIES) {
+            const v = parseFloat(j.rates[c.key]);
+            if (v > 0) c.rate = v;
+          }
+          runDisplay();
+        }
+      })
+      .catch(() => {});
     let timer: any = null;
     const schedule = () => { if (!applying) { clearTimeout(timer); timer = setTimeout(runDisplay, 100); } };
     runDisplay();

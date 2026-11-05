@@ -60,6 +60,28 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   custom_body_html: "",
   // Bảo mật mật khẩu
   password_min_length: "6",
+  module_register: "1",
+  module_affiliate: "1",
+  module_panels: "1",
+  module_premium: "1",
+  module_smm: "1",
+  ai_enabled: "0",
+  ai_provider: "openai",
+  ai_base_url: "",
+  ai_api_key: "",
+  ai_model: "",
+  google_enabled: "0",
+  google_client_id: "",
+  google_client_secret: "",
+  usdt_enabled: "0",
+  usdt_address: "",
+  usdt_network: "TRC20",
+  rate_usd: "25400",
+  rate_eur: "27500",
+  rate_cny: "3500",
+  rate_thb: "730",
+  rate_jpy: "165",
+  rate_krw: "18",
 };
 
 export async function getSettings(): Promise<Record<string, string>> {

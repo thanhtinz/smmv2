@@ -14,6 +14,7 @@ function back(path: string, key: "msg" | "err", text: string): never {
 
 export async function placeSmmOrderAction(formData: FormData) {
   const user = await requireUser();
+  if ((await getSettings()).module_smm === "0") back("/dashboard/dat-hang", "err", "Đặt đơn SMM đang tạm ngưng");
   const serviceId = parseInt(String(formData.get("serviceId") || "0"));
   const link = String(formData.get("link") || "");
   const quantity = parseInt(String(formData.get("quantity") || "0"));
@@ -103,6 +104,7 @@ function panelDiscounts(formData: FormData) {  const clamp = (v: FormDataEntryVa
 
 export async function createPanelAction(formData: FormData) {
   const user = await requireUser();
+  if ((await getSettings()).module_panels === "0") back("/dashboard", "err", "Tính năng mở panel con đang tạm đóng");
   const existing = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
   if (existing) back("/panel-admin", "err", "Mỗi tài khoản chỉ tạo 1 panel con");
   const name = String(formData.get("name") || "").trim();
@@ -230,6 +232,7 @@ export async function setPanelMemberLevelAction(formData: FormData) {
 
 export async function buyPremiumAction(formData: FormData) {
   const user = await requireUser();
+  if ((await getSettings()).module_premium === "0") back("/premium", "err", "Mảng Premium đang tạm ngưng");
   const variantId = parseInt(String(formData.get("variantId") || "0"));
   const quantity = parseInt(String(formData.get("quantity") || "1"));
   const buyerInfo = String(formData.get("buyerInfo") || "") || undefined;
@@ -405,4 +408,27 @@ export async function startPaypalCheckoutAction(formData: FormData) {
     back("/dashboard/nap-tien", "err", "Không tạo được phiên thanh toán PayPal, vui lòng thử lại sau");
   }
   redirect(url);
+}
+
+/** Nạp USDT: khách khai số USDT + mã giao dịch (tx hash) — admin đối chiếu ví rồi duyệt ở /admin/nap-tien. */
+export async function createUsdtDepositAction(formData: FormData) {
+  const user = await requireUser();
+  const settings = await getSettings();
+  if (settings.usdt_enabled !== "1" || !settings.usdt_address) back("/dashboard/nap-tien", "err", "Nạp USDT đang tạm đóng");
+  const usdt = parseFloat(String(formData.get("usdt") || "0"));
+  const txHash = String(formData.get("txHash") || "").trim();
+  if (!usdt || usdt < 5) back("/dashboard/nap-tien", "err", "Số USDT tối thiểu là 5");
+  if (txHash.length < 20) back("/dashboard/nap-tien", "err", "Mã giao dịch (tx hash) chưa hợp lệ");
+  const rate = parseInt(settings.usdt_rate || "") || parseInt(settings.usd_rate || "25400");
+  const amount = Math.round(usdt * rate);
+  const bonus = calcBonus(amount, settings.deposit_bonus_tiers);
+  try {
+    const dep = await prisma.deposit.create({
+      data: { code: "TMP", userId: user.id, method: "USDT", amount, bonus, status: "PENDING", content: txHash, externalId: `usdt:${txHash.toLowerCase()}`, usdCents: Math.round(usdt * 100) },
+    });
+    await prisma.deposit.update({ where: { id: dep.id }, data: { code: genCode("NAP", dep.id) } });
+  } catch {
+    back("/dashboard/nap-tien", "err", "Mã giao dịch này đã được khai báo trước đó");
+  }
+  back("/dashboard/nap-tien", "msg", "Đã ghi nhận — admin sẽ đối chiếu giao dịch USDT và cộng tiền trong ít phút");
 }

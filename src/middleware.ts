@@ -11,6 +11,14 @@ export async function middleware(req: NextRequest) {
   const isMain = !host || host === "localhost" || host === "127.0.0.1" || (mainHost && host === mainHost);
   const path = req.nextUrl.pathname;
   if (isMain || path.startsWith("/cua-hang") || path.startsWith("/api/")) return NextResponse.next();
+  // Trên domain con: /panel-admin và /login giữ nguyên (chủ panel đăng nhập + quản trị tại domain của mình)
+  if (path.startsWith("/panel-admin") || path === "/login") return NextResponse.next();
+  // Trên domain con: /admin (và các trang con) chính là Panel Admin của panel đó
+  if (path === "/admin" || path.startsWith("/admin/")) {
+    const u = req.nextUrl.clone();
+    u.pathname = `/panel-admin${path.slice("/admin".length)}`;
+    return NextResponse.rewrite(u);
+  }
   try {
     const url = new URL(`/api/panels/resolve?host=${encodeURIComponent(host)}`, req.url);
     const r = await fetch(url, { next: { revalidate: 60 } });

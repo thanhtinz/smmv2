@@ -34,6 +34,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
           momo={s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}
           tiers={tiers}
           intl={paypalOn || stripeOn ? { rate: parseInt(s.usd_rate || "25000", 10) || 25000, paypal: paypalOn, stripe: stripeOn } : null}
+          usdt={s.usdt_enabled === "1" && s.usdt_address ? { address: s.usdt_address, network: s.usdt_network || "TRC20", rate: parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") } : null}
         />
 
         <div className="card overflow-hidden">

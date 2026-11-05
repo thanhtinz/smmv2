@@ -23,6 +23,7 @@ function back(path: string, key: "msg" | "err", text: string): never {
 }
 
 export async function registerAction(formData: FormData) {
+  if ((await getSettings()).module_register === "0") back("/register", "err", "Đăng ký đang tạm đóng, vui lòng quay lại sau");
   try { await assertNotBanned(); } catch (e: any) { back("/register", "err", String(e?.message || "IP bị chặn")); }
   const username = String(formData.get("username") || "").trim().toLowerCase();
   const email = String(formData.get("email") || "").trim().toLowerCase();
@@ -56,6 +57,8 @@ export async function registerAction(formData: FormData) {
 
 /** Đăng ký tài khoản THUỘC panel con — khách sẽ mua theo giá của panel đó */
 export async function panelRegisterAction(formData: FormData) {
+  const gs = await getSettings();
+  if (gs.module_register === "0" || gs.module_panels === "0") back("/register", "err", "Đăng ký đang tạm đóng, vui lòng quay lại sau");
   try { await assertNotBanned(); } catch (e: any) { back("/register", "err", String(e?.message || "IP bị chặn")); }
   const slug = String(formData.get("slug") || "");
   const panel = await prisma.childPanel.findUnique({ where: { slug } });

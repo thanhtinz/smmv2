@@ -1,7 +1,7 @@
 import { requireAdminPage } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash } from "@/components/ui";
-import { sendMarketingEmailAction } from "@/app/actions/admin-features";
+import { sendMarketingEmailAction, testSmtpAction } from "@/app/actions/admin-features";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,13 @@ export default async function AdminEmailMarketing({ searchParams }: { searchPara
           SMTP chưa được cấu hình — vào <b>Cấu hình → tab Email</b> điền máy chủ SMTP trước thì mới gửi được.
         </div>
       )}
+      <form action={testSmtpAction} className="card mb-6 flex max-w-3xl flex-wrap items-end gap-3 p-5">
+        <div className="min-w-[240px] flex-1">
+          <label className="lbl">Gửi email thử kiểm tra SMTP</label>
+          <input className="inp" name="to" type="email" placeholder="Địa chỉ email của bạn" required />
+        </div>
+        <button className="btn-ghost">Gửi thử</button>
+      </form>
       <form action={sendMarketingEmailAction} className="card max-w-3xl space-y-4 p-6">
         <div>
           <label className="lbl">Người nhận</label>

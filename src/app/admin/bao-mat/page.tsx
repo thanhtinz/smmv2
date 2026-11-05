@@ -9,7 +9,12 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminSecurity({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   await requireAdminPage();
-  const [bans, s] = await Promise.all([prisma.ipBan.findMany({ orderBy: { id: "desc" }, take: 200 }), getSettings()]);
+  const [bans, s, activity] = await Promise.all([
+    prisma.ipBan.findMany({ orderBy: { id: "desc" }, take: 200 }),
+    getSettings(),
+    prisma.apiLog.findMany({ where: { kind: { in: ["bulk_price", "email_marketing", "cleanup", "price_change"] } }, orderBy: { id: "desc" }, take: 15 }),
+  ]);
+  const KIND_LABEL: Record<string, string> = { bulk_price: "Chỉnh giá hàng loạt", email_marketing: "Gửi email marketing", cleanup: "Dọn dẹp hệ thống", price_change: "Nguồn đổi giá vốn" };
   return (
     <div>
       <PageHead title="Bảo mật nâng cao" desc="Chặn IP lạm dụng và chính sách mật khẩu. IP bị chặn sẽ không đăng nhập / đăng ký được." />
@@ -48,6 +53,23 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
             </table>
           )}
         </div>
+      </div>
+      <div className="card mt-6 overflow-x-auto">
+        <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Nhật ký hoạt động hệ thống</div>
+        {activity.length === 0 ? <Empty text="Chưa có hoạt động nào được ghi" /> : (
+          <table className="w-full min-w-[560px]">
+            <thead><tr><th className="th">Loại</th><th className="th">Chi tiết</th><th className="th">Thời gian</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {activity.map((a) => (
+                <tr key={a.id}>
+                  <td className="td font-medium">{KIND_LABEL[a.kind] || a.kind}</td>
+                  <td className="td"><span className="text-slate-500">{a.detail || a.ref || "—"}</span></td>
+                  <td className="td whitespace-nowrap text-slate-500">{dt(a.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

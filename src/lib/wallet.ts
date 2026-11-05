@@ -44,6 +44,8 @@ export async function creditReferralCommission(
   if (amount <= 0) return 0;
   const buyer = await tx.user.findUnique({ where: { id: buyerId }, select: { referredById: true, username: true } });
   if (!buyer?.referredById) return 0;
+  const moduleRow = await tx.setting.findUnique({ where: { key: "module_affiliate" } });
+  if (moduleRow?.value === "0") return 0;
   const row = await tx.setting.findUnique({ where: { key: "affiliate_percent" } });
   const pct = parseFloat(row?.value || "6") || 0;
   if (pct <= 0) return 0;
@@ -60,8 +62,18 @@ export async function clawbackReferralCommission(buyerId: number, refundAmount: 
   if (!buyer?.referredById) return;
   const row = await prisma.setting.findUnique({ where: { key: "affiliate_percent" } });
   const pct = parseFloat(row?.value || "6") || 0;
-  const due = Math.floor((refundAmount * pct) / 100);
+  let due = Math.floor((refundAmount * pct) / 100);
   if (due <= 0) return;
+  // Chỉ thu hồi tối đa phần hoa hồng THẬT SỰ đã cộng cho đơn này (ròng sau các lần thu hồi trước) —
+  // tránh trường hợp đơn được đặt khi mô-đun affiliate tắt (không cộng) nhưng lúc hoàn vẫn bị thu.
+  if (ref) {
+    const net = await prisma.transaction.aggregate({
+      where: { userId: buyer.referredById, type: "REFERRAL_COMMISSION", ref },
+      _sum: { amount: true },
+    });
+    due = Math.min(due, Math.max(0, net._sum.amount || 0));
+    if (due <= 0) return;
+  }
   try {
     await prisma.$transaction(async (tx) => {
       await applyBalance(tx, buyer.referredById!, -due, "REFERRAL_COMMISSION", ref, `Thu hồi hoa hồng — đơn ${ref || ""} hoàn tiền`);

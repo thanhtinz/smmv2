@@ -422,6 +422,10 @@ export async function adminSaveSettings(formData: FormData) {
     "smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_from", "smtp_secure",
     "telegram_bot_token", "telegram_chat_id", "telegram_notify",
     "custom_head_html", "custom_body_html", "password_min_length",
+    "ai_enabled", "ai_provider", "ai_base_url", "ai_api_key", "ai_model",
+    "google_enabled", "google_client_id", "google_client_secret",
+    "usdt_enabled", "usdt_address", "usdt_network", "usdt_rate",
+    "rate_eur", "rate_cny", "rate_thb", "rate_jpy", "rate_krw",
   ];
   for (const k of keys) {
     const v = formData.get(k);

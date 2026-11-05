@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { CopyBtn } from "@/components/client";
-import { createDepositAction, startPaypalCheckoutAction, startStripeCheckoutAction } from "@/app/actions/user";
+import { createDepositAction, startPaypalCheckoutAction, startStripeCheckoutAction, createUsdtDepositAction } from "@/app/actions/user";
 import { vnd } from "@/lib/format";
 
 /** Thẻ Nạp tiền hợp nhất: chọn 1 phương thức — SePay (ngân hàng + MoMo chung 1 cổng đối soát) / PayPal / Stripe.
@@ -9,9 +9,10 @@ import { vnd } from "@/lib/format";
 type BankInfo = { name: string; account: string; holder: string; qr: string; content: string; min: number };
 type MomoInfo = { phone: string; name: string; content: string };
 type IntlInfo = { rate: number; paypal: boolean; stripe: boolean };
-type MethodKey = "sepay" | "paypal" | "stripe";
+type UsdtInfo = { address: string; network: string; rate: number };
+type MethodKey = "sepay" | "paypal" | "stripe" | "usdt";
 
-export function DepositCard({ bank, banks, momo, tiers, intl }: { bank: BankInfo | null; banks?: BankInfo[]; momo: MomoInfo | null; tiers: { from: number; percent: number }[]; intl: IntlInfo | null }) {
+export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: BankInfo | null; banks?: BankInfo[]; momo: MomoInfo | null; tiers: { from: number; percent: number }[]; intl: IntlInfo | null; usdt?: UsdtInfo | null }) {
   const bankList: BankInfo[] = banks && banks.length ? banks : bank ? [bank] : [];
   const [bankIdx, setBankIdx] = useState(0);
   const curBank: BankInfo | null = bankList[Math.min(bankIdx, Math.max(0, bankList.length - 1))] || null;
@@ -19,12 +20,14 @@ export function DepositCard({ bank, banks, momo, tiers, intl }: { bank: BankInfo
     ...(curBank || momo ? [{ key: "sepay" as const, brand: <span className="text-slate-800">QR ngân hàng</span>, desc: "Ngân hàng & MoMo · cộng tự động" }] : []),
     ...(intl?.paypal ? [{ key: "paypal" as const, brand: <><span className="text-[#003087]">Pay</span><span className="text-[#0079C1]">Pal</span></>, desc: "Trả USD · cộng theo tỉ giá" }] : []),
     ...(intl?.stripe ? [{ key: "stripe" as const, brand: <span className="text-[#635BFF]">Stripe</span>, desc: "Thẻ Visa / Mastercard" }] : []),
+    ...(usdt ? [{ key: "usdt" as const, brand: <span className="text-[#26A17B]">USDT</span>, desc: "Crypto · duyệt tay" }] : []),
   ];
   const [method, setMethod] = useState<MethodKey>(methods[0]?.key || "sepay");
   const [usd, setUsd] = useState("10");
   const rate = intl?.rate || 25000;
   const vndVal = Math.round((parseFloat(usd) || 0) * rate);
   const isIntl = method === "paypal" || method === "stripe";
+  const isUsdt = method === "usdt";
 
   if (methods.length === 0) {
     return <div className="card p-6"><h2 className="font-bold text-slate-900 mb-2">Nạp tiền</h2><p className="text-sm text-slate-500">Admin chưa cấu hình phương thức nạp nào. Vui lòng liên hệ hỗ trợ.</p></div>;
@@ -103,14 +106,29 @@ export function DepositCard({ bank, banks, momo, tiers, intl }: { bank: BankInfo
         </form>
       )}
 
-      {!isIntl && tiers.length > 0 && (
+      {isUsdt && usdt && (
+        <form action={createUsdtDepositAction}>
+          <p className="text-sm text-slate-500 mb-4">Chuyển USDT tới địa chỉ ví bên dưới (mạng <b className="text-slate-700">{usdt.network}</b>), sau đó khai số USDT và mã giao dịch — admin đối chiếu và cộng tiền. Tỉ giá: <b className="text-slate-700">1 USDT = {usdt.rate.toLocaleString("vi-VN")}đ</b> · Tối thiểu 5 USDT.</p>
+          <div className="mb-4 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+            <div className="min-w-0"><div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Địa chỉ ví {usdt.network}</div><div className="truncate font-mono text-sm font-semibold">{usdt.address}</div></div>
+            <CopyBtn text={usdt.address} label="Sao chép địa chỉ ví" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+            <div><label className="lbl">Số USDT đã chuyển</label><input className="inp" name="usdt" type="number" step="0.01" min={5} required placeholder="VD: 20" /></div>
+            <div><label className="lbl">Mã giao dịch (tx hash)</label><input className="inp font-mono" name="txHash" required placeholder="Dán tx hash" /></div>
+          </div>
+          <button className="btn-primary mt-5">Khai báo đã chuyển USDT</button>
+        </form>
+      )}
+
+      {!isIntl && !isUsdt && tiers.length > 0 && (
         <div className="mt-6 bg-brand-50 border border-brand-100 rounded-2xl p-4 text-sm">
           <div className="font-semibold text-brand-800 mb-1.5">Thưởng nạp hiện tại</div>
           {tiers.map((t) => <div key={t.from} className="text-brand-700">Nạp từ {vnd(t.from)}: <b>+{t.percent}%</b></div>)}
         </div>
       )}
 
-      {!isIntl && (
+      {method === "sepay" && (
         <form action={createDepositAction} className="mt-6 border-t border-dashed pt-5 space-y-3">
           <div className="font-semibold text-slate-800 text-sm">Đã chuyển khoản? Khai báo để đối soát nhanh hơn</div>
           <div className="grid grid-cols-2 gap-3">

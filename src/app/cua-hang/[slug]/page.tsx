@@ -27,6 +27,8 @@ const PLATFORM_DESC: Record<string, string> = {
 export default async function PanelStorefront({ params, searchParams }: { params: { slug: string }; searchParams: { msg?: string; err?: string } }) {
   const panel = await prisma.childPanel.findUnique({ where: { slug: params.slug } });
   if (!panel || panel.status !== "ACTIVE") notFound();
+  const { getSettings } = await import("@/lib/settings");
+  if ((await getSettings()).module_panels === "0") notFound();
   const panelRate = (r: number) => Math.round(r * (1 + panel.markup / 100));
   const [services, categories, memberCount, panelOrderCount, premiums] = await Promise.all([
     prisma.smmService.findMany({ where: { active: true }, include: { category: true }, orderBy: [{ categoryId: "asc" }, { sort: "asc" }, { id: "asc" }] }),

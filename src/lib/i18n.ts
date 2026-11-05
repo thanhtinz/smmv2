@@ -150,7 +150,7 @@ export const DICT: Record<string, Tr> = {
   "Đã có tài khoản?": e("Already have an account?", "已有账户？", "มีบัญชีอยู่แล้ว?", "すでにアカウントをお持ちの方", "이미 계정이 있으신가요?"),
 };
 
-export const CURRENCIES = [
+export const CURRENCIES: { key: string; name: string; rate: number }[] = [
   { key: "VND", name: "VND ₫", rate: 1 },
   { key: "USD", name: "USD $", rate: 25000 },
   { key: "EUR", name: "EUR €", rate: 27000 },
@@ -158,8 +158,8 @@ export const CURRENCIES = [
   { key: "THB", name: "THB ฿", rate: 720 },
   { key: "JPY", name: "JPY ¥", rate: 160 },
   { key: "KRW", name: "KRW ₩", rate: 17.5 },
-] as const;
-export type CurrencyKey = (typeof CURRENCIES)[number]["key"];
+];
+export type CurrencyKey = string;
 
 export const FONTS = [
   { key: "default", name: "Mặc định" },

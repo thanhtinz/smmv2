@@ -230,3 +230,27 @@ export async function bulkPriceAction(formData: FormData) {
   await prisma.apiLog.create({ data: { kind: "bulk_price", ok: true, ref: scope, detail: `mode=${mode} value=${value} updated=${updated}/${services.length}` } });
   done("/admin/gia-thong-minh", `Đã cập nhật giá cho ${updated}/${services.length} dịch vụ`);
 }
+
+/* ---------- Mô-đun bật/tắt ---------- */
+export async function saveModulesAction(formData: FormData) {
+  await requireAdmin();
+  for (const k of ["module_smm", "module_premium", "module_panels", "module_affiliate", "module_register"]) {
+    await setSetting(k, formData.get(k) === "on" ? "1" : "0");
+  }
+  done("/admin/mo-dun", "Đã lưu trạng thái mô-đun");
+}
+
+/* ---------- Gửi thử email để kiểm tra cấu hình SMTP ---------- */
+export async function testSmtpAction(formData: FormData) {
+  await requireAdmin();
+  const to = str(formData, "to");
+  if (!/^\S+@\S+\.\S+$/.test(to)) back("/admin/email-marketing", "err", "Địa chỉ email nhận thử chưa hợp lệ");
+  const { smtpConfigured, sendMail } = await import("@/lib/mailer");
+  if (!(await smtpConfigured())) back("/admin/email-marketing", "err", "SMTP chưa được cấu hình — vào Cấu hình → tab Email trước");
+  try {
+    await sendMail([to], "Email thử từ hệ thống", "<p>Đây là email thử. Nếu bạn nhận được thư này, cấu hình SMTP đã hoạt động đúng.</p>");
+    done("/admin/email-marketing", `Đã gửi email thử tới ${to}`);
+  } catch (e: any) {
+    back("/admin/email-marketing", "err", `Gửi thử thất bại: ${String(e?.message || e).slice(0, 180)}`);
+  }
+}

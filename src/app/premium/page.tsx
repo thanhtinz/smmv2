@@ -1,11 +1,27 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { getSettings } from "@/lib/settings";
 import { SiteHeader, SiteFooter } from "@/components/site";
 import { vnd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function PremiumPage({ searchParams }: { searchParams: { cat?: string; q?: string } }) {
+  if ((await getSettings()).module_premium === "0") {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <SiteHeader />
+        <main className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-12">
+          <div className="card max-w-md p-8 text-center">
+            <div className="text-lg font-bold text-slate-900">Mảng Premium đang tạm ngưng</div>
+            <p className="mt-2 text-sm text-slate-500">Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau hoặc dùng dịch vụ SMM.</p>
+            <Link href="/dich-vu" className="btn-primary mt-5 inline-block">Xem dịch vụ SMM</Link>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
   const cats = await prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } });
   const catId = searchParams.cat ? parseInt(searchParams.cat) : undefined;
   const q = (searchParams.q || "").trim().toLowerCase();
