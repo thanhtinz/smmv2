@@ -291,10 +291,6 @@ export function OrderForm({ services, categories, discount, preselect, action, b
       <form action={action} className="card p-6 lg:col-span-3 space-y-4" id="order-form">
         {campaignId ? <input type="hidden" name="campaignId" value={campaignId} /> : null}
         <input type="hidden" name="serviceId" value={service?.id || ""} />
-        <div className="flex items-center gap-3 border-b border-dashed border-slate-200 pb-4">
-          <span className="h-7 w-1.5 rounded-full bg-brand-600" />
-          <h3 className="text-base font-extrabold uppercase tracking-wide text-slate-800 sm:text-lg">Khởi tạo đơn hàng tăng tương tác nhanh</h3>
-        </div>
         <div className="relative">
           <label className="lbl !text-[15px] !font-bold text-slate-800">Tìm nhanh dịch vụ</label>
           {openMenu === "quick" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}

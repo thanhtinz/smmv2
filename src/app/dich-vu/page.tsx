@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { ServicesExplorer, ServiceDTO } from "@/components/client";
 import { getSession } from "@/lib/auth";
+import { avgTimesFromRecentOrders } from "@/lib/avg-time";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +29,10 @@ export default async function ServicesPage() {
     include: { category: true },
     orderBy: [{ categoryId: "asc" }, { sort: "asc" }, { id: "asc" }],
   });
+  const avgMap = await avgTimesFromRecentOrders(services.map((s) => s.id));
   const dto: ServiceDTO[] = services.map((s) => ({
     id: s.id, name: s.name, description: s.description, rate: s.rate, min: s.min, max: s.max,
-    avgTime: s.avgTime, refill: s.refill, dripfeed: s.dripfeed, categoryId: s.categoryId, categoryName: s.category.name, platform: s.category.platform,
+    avgTime: avgMap.get(s.id) ?? s.avgTime, refill: s.refill, dripfeed: s.dripfeed, categoryId: s.categoryId, categoryName: s.category.name, platform: s.category.platform,
   }));
   return (
     <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">

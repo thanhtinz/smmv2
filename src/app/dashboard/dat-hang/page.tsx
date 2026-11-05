@@ -6,6 +6,7 @@ import { LEVEL_DISCOUNT } from "@/lib/format";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { panelTierDiscount } from "@/lib/orders";
 import { placeSmmOrderAction } from "@/app/actions/user";
+import { avgTimesFromRecentOrders } from "@/lib/avg-time";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
   if (settings.module_smm === "0" || (panelActive && !panelActive.sellSmm)) {
     return (
       <div>
-        <PageHead title="Đặt đơn SMM" desc="Tăng follow, like, view cho Facebook, TikTok, Instagram, YouTube…" />
+        <PageHead title="Đặt đơn SMM" />
         <div className="card p-8 text-center">
           <div className="text-lg font-bold text-slate-900">Mảng dịch vụ SMM đang tắt</div>
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{panelActive && settings.module_smm !== "0" ? "Gian hàng của bạn hiện không bán dịch vụ SMM." : "Hệ thống đang tạm ngưng mảng dịch vụ SMM. Vui lòng quay lại sau."}</p>
@@ -31,14 +32,16 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
     prisma.smmCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } }),
   ]);
   const hiddenCatIds = new Set((panelActive?.hiddenCats || "").split(",").map((x) => parseInt(x.trim())).filter((n) => Number.isFinite(n)));
+  // Thời gian trung bình: tính thật từ 10 đơn hoàn thành gần nhất; chưa có đơn thì dùng giá trị admin đặt
+  const avgMap = await avgTimesFromRecentOrders(services.map((s) => s.id));
   const dto: ServiceDTO[] = services.filter((s) => !hiddenCatIds.has(s.categoryId)).map((s) => ({
     id: s.id, name: s.name, description: s.description, notice: s.notice, rate: s.panelId ? s.rate : panelActive ? Math.round(s.rate * (1 + panelActive.markup / 100)) : s.rate, min: s.min, max: s.max,
-    avgTime: s.avgTime, refill: s.refill, dripfeed: s.dripfeed, categoryId: s.categoryId, categoryName: s.category.name, platform: s.category.platform,
+    avgTime: avgMap.get(s.id) ?? s.avgTime, refill: s.refill, dripfeed: s.dripfeed, categoryId: s.categoryId, categoryName: s.category.name, platform: s.category.platform,
   }));
   const cats = categories.filter((c) => !hiddenCatIds.has(c.id) && services.some((s) => s.categoryId === c.id)).map((c) => ({ id: c.id, name: c.name, platform: c.platform }));
   return (
     <div>
-      <PageHead title="Đặt đơn SMM" desc="Chọn dịch vụ, dán link công khai và nhập số lượng — hệ thống tự đẩy qua nhà cung cấp hoặc hàng đợi xử lý tay tuỳ dịch vụ." />
+      <PageHead title="Đặt đơn SMM" />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       {panelActive && (
         <div className="card px-5 py-3.5 mb-5 text-sm text-slate-600">Bạn đang mua qua panel <b className="text-slate-900">{panelActive.name}</b> — giá đã gồm phụ phí {panelActive.markup}% của panel{panelTierDiscount(panelActive, user.level) > 0 ? `, cấp bậc của bạn được giảm thêm ${panelTierDiscount(panelActive, user.level)}%` : ""}.</div>
