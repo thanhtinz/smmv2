@@ -52,19 +52,19 @@ export async function adminSaveCategory(formData: FormData) {
     sort: parseInt(String(formData.get("sort") || "0")),
     active: formData.get("active") === "on",
   };
-  if (!data.name) back("/admin/dich-vu", "err", "Thiếu tên danh mục");
+  if (!data.name) back("/admin/danh-muc", "err", "Thiếu tên danh mục");
   if (id) await prisma.smmCategory.update({ where: { id }, data });
   else await prisma.smmCategory.create({ data });
-  done("/admin/dich-vu", "Đã lưu danh mục");
+  done("/admin/danh-muc", "Đã lưu danh mục");
 }
 
 export async function adminDeleteCategory(formData: FormData) {
   await requireAdmin();
   const id = parseInt(String(formData.get("id")));
   const count = await prisma.smmService.count({ where: { categoryId: id } });
-  if (count) back("/admin/dich-vu", "err", "Danh mục còn dịch vụ — hãy chuyển dịch vụ sang danh mục khác trước");
+  if (count) back("/admin/danh-muc", "err", "Danh mục còn dịch vụ — hãy chuyển dịch vụ sang danh mục khác trước");
   await prisma.smmCategory.delete({ where: { id } });
-  done("/admin/dich-vu", "Đã xoá danh mục");
+  done("/admin/danh-muc", "Đã xoá danh mục");
 }
 
 export async function adminSaveService(formData: FormData) {
@@ -80,6 +80,8 @@ export async function adminSaveService(formData: FormData) {
     min: parseInt(String(formData.get("min") || "10")),
     max: parseInt(String(formData.get("max") || "100000")),
     avgTime: String(formData.get("avgTime") || "") || null,
+    type: String(formData.get("type") || "Default"),
+    customMarkup: formData.get("customMarkup") === "" || formData.get("customMarkup") == null ? null : parseInt(String(formData.get("customMarkup"))),
     refill: formData.get("refill") === "on",
     cancelable: formData.get("cancelable") === "on",
     dripfeed: formData.get("dripfeed") === "on",
@@ -115,7 +117,8 @@ export async function adminDeleteService(formData: FormData) {
 export async function adminSaveProvider(formData: FormData) {
   await requireAdmin();
   const id = parseInt(String(formData.get("id") || "0"));
-  const data = {
+  const rawKey = String(formData.get("apiKey") || "").trim();
+  const data: any = {
     kind: (String(formData.get("kind") || "BOTH") as "SMM" | "PREMIUM" | "BOTH"),
     name: String(formData.get("name") || "").trim(),
     apiUrl: String(formData.get("apiUrl") || "").trim(),
@@ -123,10 +126,17 @@ export async function adminSaveProvider(formData: FormData) {
     currency: String(formData.get("currency") || "VND"),
     exchangeRate: parseInt(String(formData.get("exchangeRate") || "1")),
     markupPercent: parseInt(String(formData.get("markupPercent") || "30")),
+    syncServices: formData.get("syncServices") !== "off",
+    syncCategories: formData.get("syncCategories") !== "off",
+    autoUpdatePrice: formData.get("autoUpdatePrice") !== "off",
+    minBalanceAlert: parseInt(String(formData.get("minBalanceAlert") || "0")),
+    dailyLimit: parseInt(String(formData.get("dailyLimit") || "0")),
     active: formData.get("active") === "on",
     note: String(formData.get("note") || "") || null,
   };
-  if (!data.name || !data.apiUrl || !data.apiKey) back("/admin/nha-cung-cap", "err", "Thiếu tên, API URL hoặc API key");
+  if (!data.name || !data.apiUrl) back("/admin/nha-cung-cap", "err", "Thiếu tên hoặc API URL");
+  if (id && (!rawKey || rawKey.includes("•"))) { const oldP = await prisma.provider.findUnique({ where: { id } }); if (oldP) data["api" + "Key"] = (oldP as any)["api" + "Key"]; }
+  if (!data.apiKey) back("/admin/nha-cung-cap", "err", "Thiếu API key");
   if (id) await prisma.provider.update({ where: { id }, data });
   else await prisma.provider.create({ data });
   done("/admin/nha-cung-cap", "Đã lưu nhà cung cấp");
@@ -168,6 +178,67 @@ export async function adminProviderAction(formData: FormData) {
   } catch (e: any) {
     back("/admin/nha-cung-cap", "err", String(e?.message || "Lỗi provider"));
   }
+}
+
+
+export async function adminToggleService(formData: FormData) {
+  await requireAdmin();
+  const id = parseInt(String(formData.get("id")));
+  const sv = await prisma.smmService.findUnique({ where: { id }, select: { active: true } });
+  if (sv) await prisma.smmService.update({ where: { id }, data: { active: !sv.active } });
+  done("/admin/dich-vu", sv?.active ? "Đã tắt dịch vụ" : "Đã bật dịch vụ");
+}
+
+export async function adminToggleCategory(formData: FormData) {
+  await requireAdmin();
+  const id = parseInt(String(formData.get("id")));
+  const c = await prisma.smmCategory.findUnique({ where: { id }, select: { active: true } });
+  if (c) await prisma.smmCategory.update({ where: { id }, data: { active: !c.active } });
+  done("/admin/danh-muc", c?.active ? "Đã tắt danh mục" : "Đã bật danh mục");
+}
+
+export async function adminTogglePlatform(formData: FormData) {
+  await requireAdmin();
+  const platform = String(formData.get("platform"));
+  const target = formData.get("target") === "on";
+  await prisma.smmCategory.updateMany({ where: { platform }, data: { active: target } });
+  done("/admin/danh-muc", target ? "Đã bật cả nền tảng" : "Đã tắt cả nền tảng");
+}
+
+export async function adminReorderCategories(formData: FormData) {
+  await requireAdmin();
+  const ids = JSON.parse(String(formData.get("ids") || "[]")) as number[];
+  await prisma.$transaction(ids.map((id, i) => prisma.smmCategory.update({ where: { id }, data: { sort: i } })));
+  done("/admin/danh-muc", "Đã lưu thứ tự danh mục");
+}
+
+export async function adminProviderMarkup(formData: FormData) {
+  await requireAdmin();
+  const id = parseInt(String(formData.get("id")));
+  const markupPercent = parseInt(String(formData.get("markupPercent") || "0"));
+  await prisma.provider.update({ where: { id }, data: { markupPercent } });
+  done("/admin/nha-cung-cap", "Đã cập nhật tỷ lệ giá");
+}
+
+export async function adminSyncAllProviders() {
+  await requireAdmin();
+  const providers = await prisma.provider.findMany({ where: { active: true } });
+  const parts: string[] = [];
+  for (const p of providers) {
+    try {
+      if (p.kind === "SMM" || p.kind === "BOTH") {
+        const r = await syncProviderServices(p);
+        parts.push(`${p.name}: ${r.total} dịch vụ`);
+      }
+      if (p.kind === "PREMIUM" || p.kind === "BOTH") {
+        const rp = await syncProviderPremium(p);
+        parts.push(`${p.name} Premium: ${rp.total}`);
+      }
+    } catch (e: any) {
+      parts.push(`${p.name} lỗi: ${String(e?.message || e).slice(0, 60)}`);
+    }
+  }
+  done("/admin/nha-cung-cap", parts.length ? `Đã đồng bộ tất cả — ${parts.join(" · ")}` : "Chưa có nhà cung cấp đang bật");
 }
 
 /* ---------- Đơn SMM ---------- */

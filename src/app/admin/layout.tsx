@@ -30,6 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       children: [
         { href: "/admin/don-smm", label: "Đơn SMM", icon: "cart", badge: manualPending },
         { href: "/admin/dich-vu", label: "Dịch vụ SMM", icon: "list", adminOnly: true } as any,
+        { href: "/admin/danh-muc", label: "Danh mục", icon: "layers", adminOnly: true } as any,
         { href: "/admin/nha-cung-cap", label: "Nhà cung cấp API", icon: "server", adminOnly: true } as any,
         { href: "/admin/cap-bac", label: "Cấp bậc", icon: "percent", adminOnly: true } as any,
         { href: "/admin/gia-thong-minh", label: "Giá thông minh", icon: "money", adminOnly: true } as any,

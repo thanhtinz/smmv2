@@ -88,6 +88,11 @@ model Provider {
   currency      String   @default("VND") @db.VarChar(10) // VND | USD
   exchangeRate  Int      @default(1) // 1 đơn vị tiền gốc = ? VND (USD: 26000)
   markupPercent Int      @default(30) // % cộng lãi khi đồng bộ dịch vụ
+  syncServices    Boolean @default(true) // cho phép đồng bộ dịch vụ
+  syncCategories  Boolean @default(true) // cho phép đồng bộ danh mục
+  autoUpdatePrice Boolean @default(true) // tự cập nhật giá khi đồng bộ
+  minBalanceAlert Int     @default(0) // ngưỡng cảnh báo số dư thấp (VNĐ quy đổi)
+  dailyLimit      Int     @default(0) // giới hạn đặt hàng tối đa mỗi ngày (0 = không giới hạn)
   balanceCache  Int      @default(0) // số dư quy VND, cập nhật khi check
   active        Boolean  @default(true)
   note          String?  @db.Text
@@ -133,6 +138,8 @@ model SmmService {
   min              Int         @default(10)
   max              Int         @default(100000)
   avgTime          String?     @db.VarChar(60) // "0-15 phút", "1-2 giờ"...
+  type             String      @default("Default") @db.VarChar(30) // Default | Comments | Reactions | WatchTime...
+  customMarkup     Int? // % lãi riêng của dịch vụ (đè % của nhà cung cấp khi đồng bộ)
   refill           Boolean     @default(false)
   cancelable       Boolean     @default(false)
   dripfeed         Boolean     @default(false)
