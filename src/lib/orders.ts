@@ -1,6 +1,8 @@
 import { prisma } from "./db";
 import { applyBalance, creditReferralCommission, clawbackReferralCommission } from "./wallet";
 import { LEVEL_DISCOUNT, smmCharge, genCode, parsePremiumFields, vnd } from "./format";
+import { checkPromo, consumePromo } from "./promo";
+import { levelDiscountFromSettings } from "./settings";
 import { getSettings } from "./settings";
 import { orderEvent, orderTransition, notifyUser } from "./notify";
 import {
@@ -57,6 +59,7 @@ export async function createSmmOrder(input: {
   viaApi?: boolean;
   extra?: SmmExtraParams;
   dripfeed?: { runs: number; intervalMinutes: number };
+  promoCode?: string;
 }) {
   const service = await prisma.smmService.findUnique({
     where: { id: input.serviceId },
@@ -95,9 +98,10 @@ export async function createSmmOrder(input: {
     const p = await prisma.childPanel.findUnique({ where: { id: input.user.panelId } });
     if (p && p.status === "ACTIVE") panel = p;
   }
+  const settings = await getSettings();
   const panelRate = panel ? Math.round(service.rate * (1 + panel.markup / 100)) : service.rate;
   let effectiveRate = panelRate;
-  let discount = panel ? panelTierDiscount(panel, input.user.level) : LEVEL_DISCOUNT[input.user.level] || 0;
+  let discount = panel ? panelTierDiscount(panel, input.user.level) : levelDiscountFromSettings(settings, input.user.level);
   if (panel) {
     // Giá riêng từng dịch vụ theo từng bậc (kiểu thatim: bảng giá có một cột giá cho mỗi cấp):
     // chủ panel đặt giá riêng cho đúng dịch vụ + bậc của khách thì giá đó là GIÁ CUỐI, không giảm thêm %.
@@ -113,10 +117,17 @@ export async function createSmmOrder(input: {
   const commission = panel ? Math.max(0, charge - smmCharge(service.rate, input.quantity)) : 0;
   const cost = smmCharge(service.costRate, input.quantity);
 
-  // Profit Protection: không cho đặt đơn nếu giá bán (sau mọi chiết khấu) thấp hơn giá vốn
-  const settings = await getSettings();
+  // Profit Protection: không cho đặt đơn nếu giá bán (sau chiết khấu cấp bậc) thấp hơn giá vốn
   if (settings.profit_protection !== "0" && service.costRate > 0 && charge < cost) {
     throw new Error("Dịch vụ tạm dừng nhận đơn do biến động giá vốn — vui lòng chọn dịch vụ khác hoặc liên hệ hỗ trợ");
+  }
+
+  // Mã giảm giá (nếu khách nhập): tính trên tiền đơn sau chiết khấu cấp bậc, sàn chịu phần giảm này
+  let finalCharge = charge;
+  let promo: Awaited<ReturnType<typeof checkPromo>> = null;
+  if (input.promoCode?.trim()) {
+    promo = await checkPromo(input.promoCode, "SMM", charge);
+    if (promo) finalCharge = charge - promo.discount;
   }
 
   // Duplicate Detection + Order Risk Detection: gắn cờ để admin chú ý (vẫn cho đặt)
@@ -133,7 +144,8 @@ export async function createSmmOrder(input: {
   const flagNote = flags.length ? flags.join("; ").slice(0, 255) : null;
 
   const order = await prisma.$transaction(async (tx) => {
-    await applyBalance(tx, input.user.id, -charge, "SMM_ORDER", undefined, `Đặt đơn ${service.name}`);
+    await applyBalance(tx, input.user.id, -finalCharge, "SMM_ORDER", undefined, `Đặt đơn ${service.name}`);
+    if (promo) await consumePromo(tx, promo.row.id);
     const o = await tx.smmOrder.create({
       data: {
         code: "TMP",
@@ -141,7 +153,9 @@ export async function createSmmOrder(input: {
         serviceId: service.id,
         link: input.link.trim(),
         quantity: input.quantity,
-        charge,
+        charge: finalCharge,
+        promoCode: promo?.row.code,
+        promoDiscount: promo?.discount || 0,
         cost,
         status: "PENDING",
         fulfillment: service.fulfillment,
@@ -166,8 +180,8 @@ export async function createSmmOrder(input: {
       await applyBalance(tx, panel.ownerId, commission, "PANEL_COMMISSION", code, `Hoa hồng đơn ${code} — panel ${panel.name}`);
     }
     // Hoa hồng giới thiệu: tính trên giao dịch mua của người được giới thiệu (kiểu thatim)
-    await creditReferralCommission(tx, input.user.id, charge, code);
-    return { ...o, code };
+    await creditReferralCommission(tx, input.user.id, finalCharge, code);
+    return { ...o, code, charge: finalCharge };
   });
   await orderEvent(order.id, "PENDING", flagNote ? `Đã tạo đơn · Cờ: ${flagNote}` : "Đã tạo đơn");
 
@@ -378,6 +392,7 @@ export async function createPremiumOrder(input: {
   quantity: number;
   buyerInfo?: string;
   customData?: Record<string, string>; // giá trị các trường tuỳ chỉnh theo label (form web gửi)
+  promoCode?: string;
 }) {
   const variant = await prisma.premiumVariant.findUnique({
     where: { id: input.variantId },
@@ -414,8 +429,16 @@ export async function createPremiumOrder(input: {
   }
   const cost = variant.cost * input.quantity;
 
+  // Mã giảm giá: tính trên tổng tiền sau giá panel (nếu có)
+  let promo: Awaited<ReturnType<typeof checkPromo>> = null;
+  if (input.promoCode?.trim()) {
+    promo = await checkPromo(input.promoCode, "PREMIUM", total);
+    if (promo) total -= promo.discount;
+  }
+
   const created = await prisma.$transaction(async (tx) => {
     await applyBalance(tx, input.user.id, -total, "PREMIUM_ORDER", undefined, `Mua ${variant.product.name} — ${variant.name}`);
+    if (promo) await consumePromo(tx, promo.row.id);
     const o = await tx.premiumOrder.create({
       data: {
         code: "TMP",
@@ -423,6 +446,8 @@ export async function createPremiumOrder(input: {
         variantId: variant.id,
         quantity: input.quantity,
         total,
+        promoCode: promo?.row.code,
+        promoDiscount: promo?.discount || 0,
         cost,
         status: "PENDING",
         providerId: variant.product.providerId,

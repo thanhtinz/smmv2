@@ -11,9 +11,12 @@ type MomoInfo = { phone: string; name: string; content: string };
 type IntlInfo = { rate: number; paypal: boolean; stripe: boolean };
 type MethodKey = "sepay" | "paypal" | "stripe";
 
-export function DepositCard({ bank, momo, tiers, intl }: { bank: BankInfo | null; momo: MomoInfo | null; tiers: { from: number; percent: number }[]; intl: IntlInfo | null }) {
+export function DepositCard({ bank, banks, momo, tiers, intl }: { bank: BankInfo | null; banks?: BankInfo[]; momo: MomoInfo | null; tiers: { from: number; percent: number }[]; intl: IntlInfo | null }) {
+  const bankList: BankInfo[] = banks && banks.length ? banks : bank ? [bank] : [];
+  const [bankIdx, setBankIdx] = useState(0);
+  const curBank: BankInfo | null = bankList[Math.min(bankIdx, Math.max(0, bankList.length - 1))] || null;
   const methods: { key: MethodKey; brand: React.ReactNode; desc: string }[] = [
-    ...(bank || momo ? [{ key: "sepay" as const, brand: <span className="text-slate-800">QR ngân hàng</span>, desc: "Ngân hàng & MoMo · cộng tự động" }] : []),
+    ...(curBank || momo ? [{ key: "sepay" as const, brand: <span className="text-slate-800">QR ngân hàng</span>, desc: "Ngân hàng & MoMo · cộng tự động" }] : []),
     ...(intl?.paypal ? [{ key: "paypal" as const, brand: <><span className="text-[#003087]">Pay</span><span className="text-[#0079C1]">Pal</span></>, desc: "Trả USD · cộng theo tỉ giá" }] : []),
     ...(intl?.stripe ? [{ key: "stripe" as const, brand: <span className="text-[#635BFF]">Stripe</span>, desc: "Thẻ Visa / Mastercard" }] : []),
   ];
@@ -51,21 +54,28 @@ export function DepositCard({ bank, momo, tiers, intl }: { bank: BankInfo | null
 
       {method === "sepay" && (
         <div>
-          {bank && (
+          {bankList.length > 1 && (
+            <div className="mb-5 flex flex-wrap gap-2">
+              {bankList.map((b, i) => (
+                <button key={i} type="button" onClick={() => setBankIdx(i)} className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${i === bankIdx ? "bg-brand-600 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{b.name}</button>
+              ))}
+            </div>
+          )}
+          {curBank && (
             <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={bank.qr} alt="VietQR nạp tiền" className="w-[200px] h-[200px] rounded-2xl border border-slate-200 object-contain bg-white" />
+              <img src={curBank.qr} alt="VietQR nạp tiền" className="w-[200px] h-[200px] rounded-2xl border border-slate-200 object-contain bg-white" />
               <dl className="space-y-3 text-sm">
-                <Row k="Ngân hàng" v={bank.name} />
-                <Row k="Số tài khoản" v={bank.account} copy />
-                <Row k="Chủ tài khoản" v={bank.holder} />
-                <Row k="Nội dung CK (bắt buộc đúng)" v={bank.content} copy strong />
-                <Row k="Nạp tối thiểu" v={vnd(bank.min)} />
+                <Row k="Ngân hàng" v={curBank.name} />
+                <Row k="Số tài khoản" v={curBank.account} copy />
+                <Row k="Chủ tài khoản" v={curBank.holder} />
+                <Row k="Nội dung CK (bắt buộc đúng)" v={curBank.content} copy strong />
+                <Row k="Nạp tối thiểu" v={vnd(curBank.min)} />
               </dl>
             </div>
           )}
           {momo && (
-            <div className={bank ? "mt-6 border-t border-dashed pt-5" : ""}>
+            <div className={curBank ? "mt-6 border-t border-dashed pt-5" : ""}>
               <h3 className="font-bold text-slate-900 mb-3">Ví MoMo</h3>
               <dl className="space-y-3 text-sm">
                 <Row k="Số MoMo" v={momo.phone} copy />
@@ -106,7 +116,7 @@ export function DepositCard({ bank, momo, tiers, intl }: { bank: BankInfo | null
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="lbl">Số tiền đã chuyển</label>
-              <input className="inp" name="amount" type="number" required min={bank?.min || 10000} placeholder="500000" />
+              <input className="inp" name="amount" type="number" required min={curBank?.min || 10000} placeholder="500000" />
             </div>
             <div>
               <label className="lbl">Kênh</label>

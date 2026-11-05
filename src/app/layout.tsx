@@ -33,8 +33,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" data-accent={accent} className={dark ? "dark" : undefined} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {s?.custom_head_html ? <div hidden dangerouslySetInnerHTML={{ __html: s.custom_head_html }} /> : null}
       </head>
-      <body>{children}<DisplayEngine /></body>
+      <body>{children}<DisplayEngine />{s?.custom_body_html ? <div hidden dangerouslySetInnerHTML={{ __html: s.custom_body_html }} /> : null}</body>
     </html>
   );
 }

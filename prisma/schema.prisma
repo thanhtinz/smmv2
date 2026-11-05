@@ -181,6 +181,8 @@ model SmmOrder {
   note           String?        @db.Text // ghi chú của khách
   adminNote      String?        @db.Text
   flagNote       String?        @db.VarChar(255) // cờ rủi ro/trùng đơn do hệ thống gắn (Duplicate/Risk Detection)
+  promoCode      String?        @db.VarChar(40)
+  promoDiscount  Int            @default(0)
   events         OrderEvent[]
   refundedAmount Int            @default(0)
   createdAt      DateTime       @default(now())
@@ -292,6 +294,8 @@ model PremiumOrder {
   panel         ChildPanel?        @relation(fields: [panelId], references: [id])
   commission    Int                @default(0) // hoa hồng đã trả cho chủ panel (VND)
   buyerInfo     String?            @db.Text // email/tài khoản khách cần nâng cấp (gói MANUAL)
+  promoCode     String?            @db.VarChar(40)
+  promoDiscount Int                @default(0)
   deliveryData  String?            @db.Text // nội dung đã giao (kho hoặc admin nhập)
   warrantyUntil DateTime?
   adminNote     String?            @db.Text
@@ -496,4 +500,67 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, read, createdAt])
+}
+
+
+// Mã giảm giá: áp khi đặt đơn SMM / mua Premium (kiểu panel mẫu)
+model DiscountCode {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique @db.VarChar(40)
+  type        String    @default("PERCENT") @db.VarChar(10) // PERCENT | FIXED
+  value       Int // % giảm hoặc số tiền giảm
+  minOrder    Int       @default(0)
+  maxDiscount Int       @default(0) // trần giảm cho loại %, 0 = không trần
+  usageLimit  Int       @default(0) // 0 = không giới hạn
+  usedCount   Int       @default(0)
+  scope       String    @default("ALL") @db.VarChar(10) // ALL | SMM | PREMIUM
+  startsAt    DateTime?
+  endsAt      DateTime?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+}
+
+// Tài khoản ngân hàng nhận nạp — quản lý dạng thẻ ở admin
+model BankAccount {
+  id            Int      @id @default(autoincrement())
+  bankName      String   @db.VarChar(80)
+  accountNumber String   @db.VarChar(40)
+  holder        String   @db.VarChar(80)
+  branch        String?  @db.VarChar(80)
+  qrImage       String?  @db.VarChar(300)
+  note          String?  @db.VarChar(200)
+  active        Boolean  @default(true)
+  sort          Int      @default(0)
+  createdAt     DateTime @default(now())
+}
+
+model PostCategory {
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(80)
+  slug        String  @unique @db.VarChar(90)
+  description String? @db.VarChar(255)
+  active      Boolean @default(true)
+  posts       Post[]
+}
+
+model Post {
+  id         Int           @id @default(autoincrement())
+  title      String        @db.VarChar(200)
+  slug       String        @unique @db.VarChar(220)
+  excerpt    String?       @db.VarChar(300)
+  content    String        @db.Text
+  coverUrl   String?       @db.VarChar(300)
+  categoryId Int?
+  category   PostCategory? @relation(fields: [categoryId], references: [id])
+  published  Boolean       @default(false)
+  views      Int           @default(0)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+model IpBan {
+  id        Int      @id @default(autoincrement())
+  ip        String   @unique @db.VarChar(64)
+  reason    String?  @db.VarChar(255)
+  createdAt DateTime @default(now())
 }

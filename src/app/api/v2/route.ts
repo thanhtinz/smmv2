@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { userByApiKey } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder, refundSmmOrder } from "@/lib/orders";
 import { LEVEL_DISCOUNT, smmCharge, vnd } from "@/lib/format";
+import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { providerCancel, providerRefill } from "@/lib/provider";
 
 /**
@@ -42,7 +43,7 @@ async function handle(req: NextRequest) {
         include: { category: true },
         orderBy: [{ categoryId: "asc" }, { sort: "asc" }, { id: "asc" }],
       });
-      const discount = LEVEL_DISCOUNT[user.level] || 0;
+      const discount = levelDiscountFromSettings(await getSettings(), user.level);
       return NextResponse.json(
         services.map((s) => ({
           service: s.id,
@@ -76,7 +77,7 @@ async function handle(req: NextRequest) {
       const dripfeed = get("dripfeed") && parseInt(get("runs")) > 0 && parseInt(get("interval")) > 0
         ? { runs: parseInt(get("runs")), intervalMinutes: parseInt(get("interval")) }
         : undefined;
-      const order = await createSmmOrder({ user: fresh!, serviceId, link, quantity, viaApi: true, extra, dripfeed });
+      const order = await createSmmOrder({ user: fresh!, serviceId, link, quantity, viaApi: true, extra, dripfeed, promoCode: get("promo_code") || get("promo") || undefined });
       return NextResponse.json({ order: order.id });
     }
 
@@ -194,7 +195,7 @@ async function handle(req: NextRequest) {
       }
       if (!variant) return NextResponse.json({ error: "Product/cycle not found" });
       const fresh = await prisma.user.findUnique({ where: { id: user.id } });
-      const order = await createPremiumOrder({ user: fresh!, variantId: variant.id, quantity: 1, buyerInfo: note || fresh!.email });
+      const order = await createPremiumOrder({ user: fresh!, variantId: variant.id, quantity: 1, buyerInfo: note || fresh!.email, promoCode: get("promo_code") || get("promo") || undefined });
       return NextResponse.json({
         order_code: order.code,
         status: order.status,

@@ -31,6 +31,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/don-smm", label: "Đơn SMM", icon: "cart", badge: manualPending },
         { href: "/admin/dich-vu", label: "Dịch vụ SMM", icon: "list", adminOnly: true } as any,
         { href: "/admin/nha-cung-cap", label: "Nhà cung cấp API", icon: "server", adminOnly: true } as any,
+        { href: "/admin/cap-bac", label: "Cấp bậc", icon: "percent", adminOnly: true } as any,
       ],
     } as any,
     {
@@ -42,11 +43,24 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ],
     } as any,
     { href: "/admin/nap-tien", label: "Nạp tiền", icon: "wallet", badge: depPending, adminOnly: true },
+    { href: "/admin/bien-dong", label: "Biến động số dư", icon: "money", adminOnly: true },
+    { href: "/admin/ngan-hang", label: "Ngân hàng", icon: "landmark", adminOnly: true },
+    { href: "/admin/ma-giam-gia", label: "Mã giảm giá", icon: "gift", adminOnly: true },
+    {
+      group: "Bài viết", icon: "file",
+      children: [
+        { href: "/admin/bai-viet", label: "Tất cả bài viết", icon: "file", adminOnly: true } as any,
+        { href: "/admin/bai-viet/danh-muc", label: "Danh mục bài viết", icon: "list", adminOnly: true } as any,
+      ],
+    } as any,
+    { href: "/admin/email-marketing", label: "Email Marketing", icon: "mail", adminOnly: true },
     { href: "/admin/nguoi-dung", label: "Người dùng", icon: "users", adminOnly: true },
     { href: "/admin/panel-con", label: "Panel con", icon: "panels", adminOnly: true },
     { href: "/admin/ticket", label: "Ticket", icon: "ticket", badge: ticketOpen },
     { href: "/admin/thong-bao", label: "Thông báo", icon: "megaphone", adminOnly: true },
     { href: "/admin/nhat-ky", label: "Nhật ký API", icon: "clock" },
+    { href: "/admin/bao-mat", label: "Bảo mật nâng cao", icon: "shield", adminOnly: true },
+    { href: "/admin/he-thong", label: "Hệ thống", icon: "cpu", adminOnly: true },
     { href: "/admin/cau-hinh", label: "Cấu hình", icon: "gear", adminOnly: true },
   ];
   const entries: AdminNavEntry[] = [];

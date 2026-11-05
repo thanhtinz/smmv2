@@ -30,7 +30,7 @@ export async function placeSmmOrderAction(formData: FormData) {
   if (minutes > 0) extra.minutes = minutes;
   try {
     const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-    const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, note, extra, dripfeed });
+    const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, note, extra, dripfeed, promoCode: String(formData.get("promoCode") || "") || undefined });
     back("/dashboard/don-hang", "msg", `Đặt đơn ${order.code} thành công — trạng thái: ${order.status === "REFUNDED" ? "provider từ chối, đã hoàn tiền" : "đang xử lý"}`);
   } catch (e: any) {
     back("/dashboard/dat-hang", "err", String(e?.message || "Đặt đơn thất bại"));
@@ -244,7 +244,7 @@ export async function buyPremiumAction(formData: FormData) {
   }
   try {
     const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-    const order = await createPremiumOrder({ user: fresh, variantId, quantity, buyerInfo, customData });
+    const order = await createPremiumOrder({ user: fresh, variantId, quantity, buyerInfo, customData, promoCode: String(formData.get("promoCode") || "") || undefined });
     back(
       "/dashboard/don-premium",
       "msg",
@@ -284,9 +284,11 @@ export async function createTicketAction(formData: FormData) {
   const category = String(formData.get("category") || "other");
   const body = String(formData.get("body") || "").trim();
   if (!subject || !body) back("/dashboard/ticket", "err", "Nhập đủ tiêu đề và nội dung");
+  const { notifyTelegram } = await import("@/lib/telegram");
   const t = await prisma.ticket.create({
     data: { userId: user.id, subject, category, messages: { create: { body } } },
   });
+  await notifyTelegram(`Ticket mới #${t.id} từ ${user.username}: ${subject}`);
   redirect(`/dashboard/ticket/${t.id}`);
 }
 

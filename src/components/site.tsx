@@ -90,6 +90,7 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
             <li><Link href="/dich-vu" className="hover:text-white">Tăng tương tác SMM</Link></li>
             <li><Link href="/premium" className="hover:text-white">Tài khoản Premium</Link></li>
             <li><Link href="/api-docs" className="hover:text-white">API cho đại lý</Link></li>
+            <li><Link href="/bai-viet" className="hover:text-white">Bài viết</Link></li>
           </ul>
         </div>
         <div>

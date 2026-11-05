@@ -39,6 +39,27 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   deposit_bonus_tiers: "[]",
   maintenance: "0",
   announcement_bar: "",
+  // % giảm theo cấp bậc (để trống ở DB thì dùng mặc định MEMBER 0 / RESELLER 5 / AGENCY 10 / VIP 15)
+  level_discount_MEMBER: "0",
+  level_discount_RESELLER: "5",
+  level_discount_AGENCY: "10",
+  level_discount_VIP: "15",
+  // Email SMTP (Email Marketing + mail hệ thống)
+  smtp_host: "",
+  smtp_port: "587",
+  smtp_user: "",
+  smtp_pass: "",
+  smtp_from: "",
+  smtp_secure: "0",
+  // Telegram báo tin cho admin (đơn mới / nạp thành công / ticket mới)
+  telegram_bot_token: "",
+  telegram_chat_id: "",
+  telegram_notify: "0",
+  // Script tuỳ chỉnh chèn vào trang (kiểu panel mẫu)
+  custom_head_html: "",
+  custom_body_html: "",
+  // Bảo mật mật khẩu
+  password_min_length: "6",
 };
 
 export async function getSettings(): Promise<Record<string, string>> {
@@ -99,4 +120,12 @@ export function vietQrUrl(bankName: string, account: string, amount: number, con
     accountName: holder,
   });
   return `https://img.vietqr.io/image/${bin}-${account}-compact2.png?${q.toString()}`;
+}
+
+
+/** % giảm giá theo cấp bậc — admin sửa được trong Cấu hình/Cấp bậc, mặc định như LEVEL_DISCOUNT */
+export function levelDiscountFromSettings(s: Record<string, string>, level: string): number {
+  const v = parseInt(s["level_discount_" + level] || "");
+  if (Number.isFinite(v) && v >= 0 && v <= 90) return v;
+  return { MEMBER: 0, RESELLER: 5, AGENCY: 10, VIP: 15 }[level] || 0;
 }

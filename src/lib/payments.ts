@@ -48,6 +48,10 @@ export async function creditExternalDeposit(externalId: string, paidUsdCents?: n
     if (bonus > 0) await applyBalance(tx, dep.userId, bonus, "BONUS", dep.code, "Thưởng nạp tiền");
     return true;
   });
+  if (credited) {
+    const { notifyTelegram } = await import("./telegram");
+    await notifyTelegram(`Nạp tiền quốc tế thành công: +${dep.amount.toLocaleString("vi-VN")}đ qua ${dep.method} — mã ${dep.code}`);
+  }
   return { ok: credited, reason: credited ? "credited" : "raced" };
 }
 

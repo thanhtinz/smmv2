@@ -1,7 +1,20 @@
 "use server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { headers } from "next/headers";
+
+async function clientIp() {
+  const h = headers();
+  return (h.get("x-forwarded-for") || h.get("x-real-ip") || "").split(",")[0].trim();
+}
+async function assertNotBanned() {
+  const ip = await clientIp();
+  if (!ip) return;
+  const ban = await prisma.ipBan.findUnique({ where: { ip } }).catch(() => null);
+  if (ban) throw new Error("Địa chỉ IP của bạn đã bị chặn khỏi hệ thống" + (ban.reason ? `: ${ban.reason}` : ""));
+}
 import { createSession, destroySession } from "@/lib/auth";
+import { getSettings } from "@/lib/settings";
 import { randomKey } from "@/lib/format";
 import { redirect } from "next/navigation";
 
@@ -10,6 +23,7 @@ function back(path: string, key: "msg" | "err", text: string): never {
 }
 
 export async function registerAction(formData: FormData) {
+  try { await assertNotBanned(); } catch (e: any) { back("/register", "err", String(e?.message || "IP bị chặn")); }
   const username = String(formData.get("username") || "").trim().toLowerCase();
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
@@ -17,7 +31,8 @@ export async function registerAction(formData: FormData) {
   const phone = String(formData.get("phone") || "").trim();
   if (!/^[a-z0-9_.]{4,30}$/.test(username)) back("/register", "err", "Tên đăng nhập 4-30 ký tự, chỉ gồm chữ thường, số, dấu . và _");
   if (!/^\S+@\S+\.\S+$/.test(email)) back("/register", "err", "Email không hợp lệ");
-  if (password.length < 6) back("/register", "err", "Mật khẩu tối thiểu 6 ký tự");
+  const minPw = parseInt((await getSettings()).password_min_length || "6") || 6;
+  if (password.length < minPw) back("/register", "err", `Mật khẩu tối thiểu ${minPw} ký tự`);
   const exists = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
   if (exists) back("/register", "err", "Tên đăng nhập hoặc email đã được sử dụng");
   const ref = String(formData.get("ref") || "").trim().toUpperCase();
@@ -41,6 +56,7 @@ export async function registerAction(formData: FormData) {
 
 /** Đăng ký tài khoản THUỘC panel con — khách sẽ mua theo giá của panel đó */
 export async function panelRegisterAction(formData: FormData) {
+  try { await assertNotBanned(); } catch (e: any) { back("/register", "err", String(e?.message || "IP bị chặn")); }
   const slug = String(formData.get("slug") || "");
   const panel = await prisma.childPanel.findUnique({ where: { slug } });
   if (!panel || panel.status !== "ACTIVE") back(`/cua-hang/${slug}`, "err", "Panel này đang tạm ngưng nhận khách mới");
@@ -73,6 +89,7 @@ export async function panelRegisterAction(formData: FormData) {
 }
 
 export async function loginAction(formData: FormData) {
+  try { await assertNotBanned(); } catch (e: any) { back("/login", "err", String(e?.message || "IP bị chặn")); }
   const login = String(formData.get("login") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
   const user = await prisma.user.findFirst({ where: { OR: [{ username: login }, { email: login }] } });

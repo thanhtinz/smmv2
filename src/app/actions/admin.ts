@@ -419,6 +419,9 @@ export async function adminSaveSettings(formData: FormData) {
     "usd_rate", "paypal_enabled", "paypal_client_id", "paypal_client_secret", "paypal_mode",
     "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret", "profit_protection",
     "default_accent", "default_mode",
+    "smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_from", "smtp_secure",
+    "telegram_bot_token", "telegram_chat_id", "telegram_notify",
+    "custom_head_html", "custom_body_html", "password_min_length",
   ];
   for (const k of keys) {
     const v = formData.get(k);

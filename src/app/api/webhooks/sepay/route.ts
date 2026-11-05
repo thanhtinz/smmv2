@@ -57,5 +57,7 @@ export async function POST(req: NextRequest) {
     return { ...d, code };
   });
   await prisma.apiLog.create({ data: { kind: "webhook", ref: txId || dep.code, detail: `user=${matched.id} amount=${amount} bonus=${bonus} deposit=${dep.code}` } });
+  const { notifyTelegram } = await import("@/lib/telegram");
+  await notifyTelegram(`Nạp tiền thành công: +${amount.toLocaleString("vi-VN")}đ${bonus > 0 ? ` (+${bonus.toLocaleString("vi-VN")}đ thưởng)` : ""} — khách #${matched.id}, mã ${dep.code}`);
   return NextResponse.json({ success: true, deposit: dep.code });
 }

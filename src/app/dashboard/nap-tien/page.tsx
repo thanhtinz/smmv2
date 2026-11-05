@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings, depositContent, vietQrUrl } from "@/lib/settings";
+import { vietqrUrl } from "@/lib/vietqr";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { DepositCard } from "@/components/deposit-card";
 import { vnd, num, DEP_STATUS, dt } from "@/lib/format";
@@ -13,6 +14,13 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
   const content = depositContent(user.depositCode);
   const tiers = (() => { try { return JSON.parse(s.deposit_bonus_tiers || "[]") as { from: number; percent: number }[]; } catch { return []; } })();
   const deposits = await prisma.deposit.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 20 });
+  const bankRows = await prisma.bankAccount.findMany({ where: { active: true }, orderBy: [{ sort: "asc" }, { id: "asc" }] });
+  const minDep = parseInt(s.deposit_min || "10000", 10) || 10000;
+  const banksProp = bankRows.map((b) => ({
+    name: b.bankName, account: b.accountNumber, holder: b.holder,
+    qr: b.qrImage || vietqrUrl(b.bankName, b.accountNumber, b.holder, content) || vietQrUrl(b.bankName, b.accountNumber, 0, content, b.holder),
+    content, min: minDep,
+  }));
   const paypalOn = s.paypal_enabled === "1" && !!s.paypal_client_id;
   const stripeOn = s.stripe_enabled === "1" && !!s.stripe_secret_key;
   return (
@@ -21,6 +29,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <DepositCard
+          banks={banksProp}
           bank={s.bank_account ? { name: s.bank_name, account: s.bank_account, holder: s.bank_holder, qr: vietQrUrl(s.bank_name, s.bank_account, 0, content, s.bank_holder), content, min: parseInt(s.deposit_min || "10000", 10) || 10000 } : null}
           momo={s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}
           tiers={tiers}

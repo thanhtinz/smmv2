@@ -263,6 +263,11 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             )}
           </div>
         )}
+        <div>
+          <label className="lbl">Mã giảm giá (nếu có)</label>
+          <input className="inp uppercase" name="promoCode" placeholder="VD: SALE10" autoComplete="off" />
+          <p className="mt-1 text-xs text-slate-400">Mã hợp lệ sẽ được giảm trực tiếp vào tiền đơn khi đặt.</p>
+        </div>
         <OrderSubmit disabled={notEnough} />
       </form>
       <div className="card p-6 lg:col-span-2 lg:sticky lg:top-24">
@@ -669,6 +674,10 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
           <input className="inp" name="buyerInfo" placeholder="Email nhận tài khoản (mặc định dùng email tài khoản của bạn)" />
         </div>
       )}
+      <div>
+        <label className="lbl">Mã giảm giá (nếu có)</label>
+        <input className="inp uppercase" name="promoCode" placeholder="VD: SALE10" autoComplete="off" />
+      </div>
       <button className="btn-primary w-full !py-3">Mua ngay bằng số dư</button>
     </form>
   );

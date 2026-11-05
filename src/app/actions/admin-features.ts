@@ -1,0 +1,202 @@
+"use server";
+import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
+import { setSetting } from "@/lib/settings";
+import { sendMail, smtpConfigured } from "@/lib/mailer";
+import { redirect } from "next/navigation";
+
+function back(path: string, key: "msg" | "err", text: string): never {
+  redirect(`${path}?${key}=${encodeURIComponent(text)}`);
+}
+const done = (path: string, text = "Đã lưu") => back(path, "msg", text);
+const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
+const int = (fd: FormData, k: string) => parseInt(str(fd, k) || "0") || 0;
+const dtOrNull = (fd: FormData, k: string) => {
+  const v = str(fd, k);
+  if (!v) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+};
+
+function slugify(text: string) {
+  return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 200) || "bai-viet";
+}
+
+/* ---------- Mã giảm giá ---------- */
+export async function saveDiscountCodeAction(formData: FormData) {
+  await requireAdmin();
+  const id = int(formData, "id");
+  const code = str(formData, "code").toUpperCase().replace(/\s+/g, "");
+  if (!code) back("/admin/ma-giam-gia", "err", "Chưa nhập mã");
+  const data = {
+    code,
+    type: str(formData, "type") === "FIXED" ? "FIXED" : "PERCENT",
+    value: Math.max(1, int(formData, "value")),
+    minOrder: Math.max(0, int(formData, "minOrder")),
+    maxDiscount: Math.max(0, int(formData, "maxDiscount")),
+    usageLimit: Math.max(0, int(formData, "usageLimit")),
+    scope: ["ALL", "SMM", "PREMIUM"].includes(str(formData, "scope")) ? str(formData, "scope") : "ALL",
+    startsAt: dtOrNull(formData, "startsAt"),
+    endsAt: dtOrNull(formData, "endsAt"),
+    active: formData.get("active") === "on",
+  };
+  try {
+    if (id) await prisma.discountCode.update({ where: { id }, data });
+    else await prisma.discountCode.create({ data });
+  } catch {
+    back("/admin/ma-giam-gia", "err", `Mã "${code}" đã tồn tại`);
+  }
+  done("/admin/ma-giam-gia", id ? "Đã cập nhật mã giảm giá" : "Đã tạo mã giảm giá");
+}
+
+export async function deleteDiscountCodeAction(formData: FormData) {
+  await requireAdmin();
+  await prisma.discountCode.delete({ where: { id: int(formData, "id") } });
+  done("/admin/ma-giam-gia", "Đã xoá mã giảm giá");
+}
+
+/* ---------- Ngân hàng ---------- */
+export async function saveBankAction(formData: FormData) {
+  await requireAdmin();
+  const id = int(formData, "id");
+  const data = {
+    bankName: str(formData, "bankName"),
+    accountNumber: str(formData, "accountNumber"),
+    holder: str(formData, "holder"),
+    branch: str(formData, "branch") || null,
+    qrImage: str(formData, "qrImage") || null,
+    note: str(formData, "note") || null,
+    sort: int(formData, "sort"),
+    active: formData.get("active") === "on",
+  };
+  if (!data.bankName || !data.accountNumber || !data.holder) back("/admin/ngan-hang", "err", "Thiếu tên ngân hàng / số tài khoản / chủ tài khoản");
+  if (id) await prisma.bankAccount.update({ where: { id }, data });
+  else await prisma.bankAccount.create({ data });
+  done("/admin/ngan-hang", id ? "Đã cập nhật ngân hàng" : "Đã thêm ngân hàng");
+}
+
+export async function deleteBankAction(formData: FormData) {
+  await requireAdmin();
+  await prisma.bankAccount.delete({ where: { id: int(formData, "id") } });
+  done("/admin/ngan-hang", "Đã xoá ngân hàng");
+}
+
+/* ---------- Bài viết ---------- */
+export async function savePostCategoryAction(formData: FormData) {
+  await requireAdmin();
+  const id = int(formData, "id");
+  const name = str(formData, "name");
+  if (!name) back("/admin/bai-viet/danh-muc", "err", "Chưa nhập tên danh mục");
+  const data = { name, slug: str(formData, "slug") || slugify(name), description: str(formData, "description") || null, active: formData.get("active") === "on" };
+  try {
+    if (id) await prisma.postCategory.update({ where: { id }, data });
+    else await prisma.postCategory.create({ data });
+  } catch {
+    back("/admin/bai-viet/danh-muc", "err", "Slug danh mục đã tồn tại");
+  }
+  done("/admin/bai-viet/danh-muc");
+}
+
+export async function deletePostCategoryAction(formData: FormData) {
+  await requireAdmin();
+  await prisma.postCategory.delete({ where: { id: int(formData, "id") } });
+  done("/admin/bai-viet/danh-muc", "Đã xoá danh mục");
+}
+
+export async function savePostAction(formData: FormData) {
+  await requireAdmin();
+  const id = int(formData, "id");
+  const title = str(formData, "title");
+  if (!title) back("/admin/bai-viet", "err", "Chưa nhập tiêu đề");
+  const content = str(formData, "content");
+  if (!content) back("/admin/bai-viet", "err", "Chưa nhập nội dung");
+  const data = {
+    title,
+    slug: str(formData, "slug") || slugify(title),
+    excerpt: str(formData, "excerpt") || null,
+    content,
+    coverUrl: str(formData, "coverUrl") || null,
+    categoryId: int(formData, "categoryId") || null,
+    published: formData.get("published") === "on",
+  };
+  try {
+    if (id) await prisma.post.update({ where: { id }, data });
+    else await prisma.post.create({ data });
+  } catch {
+    back("/admin/bai-viet", "err", "Slug bài viết đã tồn tại");
+  }
+  done("/admin/bai-viet", id ? "Đã cập nhật bài viết" : "Đã tạo bài viết");
+}
+
+export async function deletePostAction(formData: FormData) {
+  await requireAdmin();
+  await prisma.post.delete({ where: { id: int(formData, "id") } });
+  done("/admin/bai-viet", "Đã xoá bài viết");
+}
+
+/* ---------- Bảo mật: chặn IP ---------- */
+export async function saveIpBanAction(formData: FormData) {
+  await requireAdmin();
+  const ip = str(formData, "ip");
+  if (!ip) back("/admin/bao-mat", "err", "Chưa nhập IP");
+  try {
+    await prisma.ipBan.create({ data: { ip, reason: str(formData, "reason") || null } });
+  } catch {
+    back("/admin/bao-mat", "err", "IP này đã có trong danh sách chặn");
+  }
+  done("/admin/bao-mat", `Đã chặn IP ${ip}`);
+}
+
+export async function deleteIpBanAction(formData: FormData) {
+  await requireAdmin();
+  await prisma.ipBan.delete({ where: { id: int(formData, "id") } });
+  done("/admin/bao-mat", "Đã bỏ chặn IP");
+}
+
+/* ---------- Cấp bậc: % giảm giá ---------- */
+export async function saveLevelsAction(formData: FormData) {
+  await requireAdmin();
+  for (const lv of ["MEMBER", "RESELLER", "AGENCY", "VIP"]) {
+    const v = Math.min(90, Math.max(0, int(formData, "level_discount_" + lv)));
+    await setSetting("level_discount_" + lv, String(v));
+  }
+  done("/admin/cap-bac", "Đã lưu chiết khấu cấp bậc");
+}
+
+/* ---------- Hệ thống: dọn dẹp ---------- */
+export async function cleanupSystemAction(formData: FormData) {
+  await requireAdmin();
+  const kind = str(formData, "kind");
+  const d30 = new Date(Date.now() - 30 * 86400000);
+  let n = 0;
+  if (kind === "apilog") n = (await prisma.apiLog.deleteMany({ where: { createdAt: { lt: d30 } } })).count;
+  else if (kind === "notifications") n = (await prisma.notification.deleteMany({ where: { read: true, createdAt: { lt: d30 } } })).count;
+  else if (kind === "events") n = (await prisma.orderEvent.deleteMany({ where: { createdAt: { lt: d30 } } })).count;
+  else back("/admin/he-thong", "err", "Loại dọn dẹp không hợp lệ");
+  done("/admin/he-thong", `Đã dọn ${n} bản ghi cũ`);
+}
+
+/* ---------- Email Marketing ---------- */
+export async function sendMarketingEmailAction(formData: FormData) {
+  await requireAdmin();
+  const segment = str(formData, "segment");
+  const subject = str(formData, "subject");
+  const body = str(formData, "body");
+  if (!subject || !body) back("/admin/email-marketing", "err", "Thiếu tiêu đề hoặc nội dung");
+  if (!(await smtpConfigured())) back("/admin/email-marketing", "err", "Chưa cấu hình SMTP — vào Cấu hình → tab Email để điền trước");
+  const where: any = { email: { not: null }, status: "ACTIVE" };
+  if (segment === "new") where.createdAt = { gte: new Date(Date.now() - 30 * 86400000) };
+  if (segment === "deposited") where.totalDeposited = { gt: 0 };
+  const users = await prisma.user.findMany({ where, select: { email: true } });
+  const emails = users.map((u) => u.email!).filter(Boolean);
+  if (!emails.length) back("/admin/email-marketing", "err", "Không có người nhận nào trong nhóm đã chọn");
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#1e293b">${body.replace(/\n/g, "<br/>")}</div>`;
+  try {
+    const sent = await sendMail(emails, subject, html);
+    await prisma.apiLog.create({ data: { kind: "email_marketing", ok: true, ref: subject.slice(0, 80), detail: `Gửi ${sent} email — nhóm ${segment}` } });
+    done("/admin/email-marketing", `Đã gửi email tới ${sent} người dùng`);
+  } catch (e: any) {
+    back("/admin/email-marketing", "err", "Gửi thất bại: " + (e?.message || "lỗi SMTP"));
+  }
+}
