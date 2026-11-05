@@ -23,9 +23,9 @@ export default async function AdminCurrencyPage({ searchParams }: { searchParams
     <div>
       <PageHead title="Quản lý tiền tệ" desc="Tỉ giá quy đổi hiển thị khi khách đổi tiền tệ ở nút Cài đặt hiển thị. Số dư và thanh toán thật luôn tính bằng VNĐ." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <form action={saveRatesAction} className="card max-w-2xl p-6">
+      <form action={saveRatesAction} className="card p-6">
         <div className="font-bold text-slate-900">Tỉ giá: 1 đơn vị ngoại tệ = ? VNĐ</div>
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 grid gap-x-10 gap-y-4 lg:grid-cols-2">
           {CURRENCIES.map((c) => (
             <div key={c.key} className="grid grid-cols-[86px_1fr] items-center gap-3 sm:grid-cols-[86px_180px_1fr]">
               <div><span className="font-extrabold text-slate-800">{c.code}</span><div className="text-xs text-slate-400">{c.name}</div></div>

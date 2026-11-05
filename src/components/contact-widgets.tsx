@@ -68,12 +68,12 @@ export function ContactWidgetsManager({ items, saveAction, deleteAction, toggleA
             <div className="mt-3 flex items-center gap-4">
               {w.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={w.image} alt={w.name} className="h-16 w-16 shrink-0 rounded-2xl object-cover bg-slate-50 border border-slate-100" />
+                <img src={w.image} alt={w.name} className="h-14 w-14 shrink-0 rounded-2xl object-cover bg-slate-50 border border-slate-100" />
               ) : (
-                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-2xl font-black text-white" style={{ background: w.bg }}>{w.name.trim().charAt(0).toUpperCase()}</span>
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-black text-white" style={{ background: w.bg }}>{w.name.trim().charAt(0).toUpperCase()}</span>
               )}
               <div className="min-w-0">
-                <div className="truncate text-lg font-bold text-slate-900">{w.name}</div>
+                <div className="truncate text-base font-bold text-slate-900">{w.name}</div>
                 <div className="truncate text-sm text-blue-600">{w.link}</div>
               </div>
             </div>
@@ -92,7 +92,7 @@ export function ContactWidgetsManager({ items, saveAction, deleteAction, toggleA
 
       {open && (
       <Modal onClose={() => setOpen(false)} title={edit ? "Sửa liên hệ" : "Thêm liên hệ mới"}>
-        <form action={saveAction} onSubmit={() => setOpen(false)} className="space-y-4">
+        <form action={saveAction} onSubmit={() => setOpen(false)} className="space-y-4 px-6 py-5">
           <input type="hidden" name="id" value={edit?.id || 0} />
           <input type="hidden" name="image" value={img} />
           <div>

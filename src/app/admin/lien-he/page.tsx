@@ -22,8 +22,8 @@ export default async function AdminContactPage({ searchParams }: { searchParams:
     <div>
       <PageHead title="Widget Liên hệ" desc="Quản lý các kênh liên hệ hiển thị trên website" />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid items-start gap-6 xl:grid-cols-[1fr_380px]">
-        <div className="max-w-xl">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div>
           <ContactWidgetsManager
             items={items}
             saveAction={saveContactWidgetAction}

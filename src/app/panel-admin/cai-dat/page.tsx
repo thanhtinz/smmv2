@@ -89,7 +89,7 @@ export default async function PanelSettingsPage({ searchParams }: { searchParams
       <div className="card mt-6 p-6">
         <div className="font-bold text-slate-900">Widget Liên hệ</div>
         <p className="mt-1 text-sm text-slate-400">Các kênh liên hệ hiển thị trên gian hàng của bạn. Để trống thì khách thấy widget của web chính.</p>
-        <div className="mt-4 max-w-xl">
+        <div className="mt-4 max-w-3xl">
           <ContactWidgetsManager
             items={contactItems}
             saveAction={panelSaveContactWidgetAction}
