@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { PageHead, Flash, Badge } from "@/components/ui";
+import { PageHead, Flash, Badge, Stat, I } from "@/components/ui";
 import { vnd, num, dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -25,18 +25,14 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {[
-          ["Trạng thái", panel.status === "ACTIVE" ? "Đang mở bán" : "Đã tạm ngưng"],
-          ["Khách của panel", num(memberCount)],
-          ["Đơn qua panel", num(orderAgg._count)],
-          ["Doanh thu qua panel", vnd(orderAgg._sum.charge || 0)],
-          ["Hoa hồng đã nhận", vnd(commissionAgg._sum.amount || 0)],
-          ["Phụ phí hiện tại", `+${panel.markup}%`],
-          ["Số dư của bạn", vnd(user.balance)],
-          ["Khách đã nạp (SePay chung)", vnd((depositAgg._sum.amount || 0) + (depositAgg._sum.bonus || 0))],
-        ].map(([k, v]) => (
-          <div key={k} className="card p-5"><div className="text-xs text-slate-400 font-semibold uppercase tracking-wide">{k}</div><div className="mt-1.5 text-xl font-extrabold text-slate-900">{v}</div></div>
-        ))}
+        <Stat label="Trạng thái panel" value={panel.status === "ACTIVE" ? "Đang mở bán" : "Đã tạm ngưng"} icon={I.home} tone="emerald" />
+        <Stat label="Khách của panel" value={num(memberCount)} icon={I.users} tone="blue" />
+        <Stat label="Đơn qua panel" value={num(orderAgg._count)} icon={I.cart} tone="violet" />
+        <Stat label="Doanh thu qua panel" value={vnd(orderAgg._sum.charge || 0)} icon={I.money} tone="amber" />
+        <Stat label="Hoa hồng đã nhận" value={vnd(commissionAgg._sum.amount || 0)} icon={I.wallet} tone="emerald" />
+        <Stat label="Phụ phí hiện tại" value={`+${panel.markup}%`} icon={I.percent} tone="rose" />
+        <Stat label="Số dư của bạn" value={vnd(user.balance)} icon={I.wallet} tone="blue" />
+        <Stat label="Khách đã nạp (SePay chung)" value={vnd((depositAgg._sum.amount || 0) + (depositAgg._sum.bonus || 0))} icon={I.money} tone="violet" />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="card p-6">

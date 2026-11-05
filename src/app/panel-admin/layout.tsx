@@ -2,17 +2,18 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/actions/auth";
-import { SideNav } from "@/components/nav";
+import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
 import { DisplaySettings } from "@/components/display";
 import TabBar from "@/components/tabbar";
-import { I } from "@/components/ui";
 import { prisma } from "@/lib/db";
 import { vnd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-/** Panel Admin — khu quản trị RIÊNG của chủ panel con. Chỉ chủ panel vào được;
- *  chưa có panel thì đưa tới trang cấu hình lần đầu. */
+/** Panel Admin — khu quản trị RIÊNG của chủ panel con, dùng chung khung giao diện
+ *  với admin web mẹ (sidebar navy + topbar trắng + nền xám nhạt). Phạm vi cố định:
+ *  chỉ xem đơn/khách của panel mình và CHỈNH GIÁ — không nguồn, không thêm dịch vụ,
+ *  không thao tác tiền hệ thống hay cấu hình hệ thống. */
 export default async function PanelAdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -22,35 +23,46 @@ export default async function PanelAdminLayout({ children }: { children: React.R
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.smmOrder.count({ where: { panelId: panel.id } }),
   ]);
-  const items = [
-    { href: "/panel-admin", label: "Tổng quan", icon: I.home },
-    { href: "/panel-admin/dich-vu", label: "Dịch vụ & Giá", icon: I.list },
-    { href: "/panel-admin/don-hang", label: "Đơn hàng", icon: I.cart, badge: orderCount },
-    { href: "/panel-admin/khach-hang", label: "Khách hàng", icon: I.users, badge: memberCount },
-    { href: "/panel-admin/cai-dat", label: "Cài đặt panel", icon: I.gear },
+  const entries: AdminNavEntry[] = [
+    { href: "/panel-admin", label: "Tổng quan", icon: "home" },
+    { href: "/panel-admin/dich-vu", label: "Dịch vụ & Giá", icon: "list" },
+    { href: "/panel-admin/don-hang", label: "Đơn hàng", icon: "cart", badge: orderCount },
+    { href: "/panel-admin/khach-hang", label: "Khách hàng", icon: "users", badge: memberCount },
+    { href: "/panel-admin/cai-dat", label: "Cài đặt panel", icon: "gear" },
   ];
+  const initial = (user.username || "A").slice(0, 1).toUpperCase();
   return (
-    <div data-accent={panel.accent} className="min-h-screen">
-      <header className="bg-slate-950 text-white sticky top-0 z-40">
-        <div className="max-w-[1440px] mx-auto px-4 h-16 flex items-center gap-4">
-          <Link href="/panel-admin" className="flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center">{panel.name.charAt(0).toUpperCase()}</span>
-            <span className="font-extrabold hidden sm:inline">{panel.name} <span className="text-slate-400 font-medium">/ Panel Admin</span></span>
-          </Link>
-          <div className="ml-auto flex items-center gap-3">
-            <DisplaySettings tone="dark" />
-            <Link href={`/cua-hang/${panel.slug}`} className="text-sm text-slate-300 hover:text-white hidden md:inline">Xem gian hàng</Link>
-            <Link href="/dashboard" className="text-sm text-slate-300 hover:text-white hidden md:inline">Khu khách hàng</Link>
-            <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold">{vnd(user.balance)} · {user.username}</span>
-            <form action={logoutAction}><button className="btn bg-white/10 hover:bg-white/20 text-white btn-sm !py-2">Đăng xuất</button></form>
+    <div data-accent={panel.accent} className="admin-scope min-h-screen bg-[#f4f6fb]">
+      <AdminNav siteName={panel.name} logoText={panel.name.charAt(0).toUpperCase()} entries={entries} />
+      <div className="flex min-h-screen flex-col lg:pl-[260px]">
+        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+          <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
+            <Link href="/panel-admin" className="flex items-center gap-2.5 lg:hidden">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 font-black text-white">{panel.name.charAt(0).toUpperCase()}</span>
+              <span className="font-extrabold text-slate-900">{panel.name} <span className="font-medium text-slate-400">/ Panel Admin</span></span>
+            </Link>
+            <form action="/panel-admin/don-hang" className="hidden max-w-md flex-1 md:block">
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+                </span>
+                <input name="q" placeholder="Tìm đơn hàng của panel..." className="inp !rounded-full !pl-10" />
+              </div>
+            </form>
+            <div className="ml-auto flex items-center gap-2.5">
+              <DisplaySettings />
+              <Link href={`/cua-hang/${panel.slug}`} className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Xem gian hàng</Link>
+              <Link href="/dashboard" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Khu khách hàng</Link>
+              <span className="hidden items-center gap-2 rounded-full bg-slate-100 py-1 pl-1 pr-3 sm:flex">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">{initial}</span>
+                <span className="text-sm font-semibold text-slate-800">{user.username}</span>
+                <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-500">{vnd(user.balance)}</span>
+              </span>
+              <form action={logoutAction}><button className="btn btn-sm bg-slate-900 text-white hover:bg-slate-700">Đăng xuất</button></form>
+            </div>
           </div>
-        </div>
-      </header>
-      <div className="max-w-[1440px] mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[248px_1fr] gap-6 items-start">
-        <aside className="lg:sticky lg:top-24 lg:bg-white lg:rounded-2xl lg:border lg:border-slate-200/60 lg:shadow-soft lg:p-3">
-          <SideNav items={items} />
-        </aside>
-        <main className="min-w-0 pb-20 lg:pb-0">
+        </header>
+        <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 pb-24 lg:px-6 lg:pb-6">
           {panel.status !== "ACTIVE" && (
             <div className="card px-5 py-4 mb-6 border !border-rose-200 bg-rose-50 text-sm text-rose-700">
               Panel đang bị <b>tạm ngưng</b> — khách tạm thời mua theo giá gốc của web mẹ và bạn không nhận hoa hồng. Liên hệ quản trị hệ thống nếu cần mở lại.
@@ -64,6 +76,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
           )}
           {children}
         </main>
+        <footer className="pb-24 text-center text-xs text-slate-400 lg:pb-6">© {new Date().getFullYear()} {panel.name} · Panel Admin</footer>
       </div>
       <TabBar variant="app" />
     </div>
