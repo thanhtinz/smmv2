@@ -3,13 +3,14 @@ import { getSettings } from "./settings";
 
 export async function smtpConfigured() {
   const s = await getSettings();
-  return !!(s.smtp_host && s.smtp_user && s.smtp_from);
+  return s.smtp_enabled !== "0" && !!(s.smtp_host && s.smtp_user && s.smtp_from);
 }
 
 export type SmtpOverride = { host: string; port?: string | null; user: string; pass?: string | null; from: string; secure?: boolean };
 
 export async function sendMail(to: string[], subject: string, html: string, override?: SmtpOverride | null) {
   const s = await getSettings();
+  if (!override && s.smtp_enabled === "0") throw new Error("SMTP đang tắt — bật ở Admin → Cấu hình → tab Email");
   const cfg = override
     ? { host: override.host, user: override.user, from: override.from, pass: override.pass || "", port: override.port || "587", secure: !!override.secure }
     : { host: s.smtp_host, user: s.smtp_user, from: s.smtp_from, pass: s.smtp_pass, port: s.smtp_port || "587", secure: s.smtp_secure === "1" };

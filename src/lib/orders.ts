@@ -51,6 +51,24 @@ export function panelTierDiscount(
 }
 
 /** Tạo đơn SMM (dùng chung cho web, API reseller). Ném Error với message hiển thị cho khách. */
+/** Số lượng thực đẩy sang API sau điều chỉnh % của dịch vụ (+tăng / -giảm). */
+export function adjustedQty(service: { qtyAdjustPercent: number }, qty: number): number {
+  if (!service.qtyAdjustPercent) return qty;
+  return Math.max(1, Math.round(qty * (1 + service.qtyAdjustPercent / 100)));
+}
+
+/** Link thực đẩy sang API: dịch vụ bật "Lấy UID tự động" thì trích UID số từ link khi trích được an toàn. */
+export function providerLinkFor(service: { autoUid: boolean }, link: string): string {
+  if (!service.autoUid) return link;
+  const t = link.trim();
+  if (/^\d{5,}$/.test(t)) return t;
+  const byParam = /[?&](?:id|uid|user_id)=(\d{5,})/.exec(t);
+  if (byParam) return byParam[1];
+  const byPath = /\/(\d{5,})(?:[/?#]|$)/.exec(t);
+  if (byPath) return byPath[1];
+  return link;
+}
+
 export async function createSmmOrder(input: {
   user: User;
   serviceId: number;
@@ -201,6 +219,9 @@ export async function createSmmOrder(input: {
   });
   await orderEvent(order.id, "PENDING", flagNote ? `Đã tạo đơn · Cờ: ${flagNote}` : "Đã tạo đơn");
   void alertMother("smm_order", `Đơn SMM mới ${order.code}`, `${input.user.username} đặt ${service.name} — ${finalCharge.toLocaleString("vi-VN")}đ`);
+  if (service.telegramBot) {
+    void (async () => { const { notifyServiceBot } = await import("./telegram"); await notifyServiceBot(service.telegramBot, `Đơn SMM mới ${order.code}\nDịch vụ: ${service.name}\nSL: ${order.quantity} · ${finalCharge.toLocaleString("vi-VN")}đ\nLink: ${order.link}`); })();
+  }
   if (flagNote) void alertMother("risk", `Đơn rủi ro ${order.code}`, flagNote);
   if (panel) {
     void alertPanelOwner(panel.id, "smm_order", `Đơn SMM mới ${order.code}`, `Qua gian hàng ${panel.name}: ${service.name} — ${finalCharge.toLocaleString("vi-VN")}đ`);
@@ -227,7 +248,7 @@ export async function createSmmOrder(input: {
     let lastErr: any = null;
     for (const t of targets) {
       try {
-        const pid = await providerAddOrder(t.provider, t.psid, order.link, order.quantity, input.extra);
+        const pid = await providerAddOrder(t.provider, t.psid, providerLinkFor(service, order.link), adjustedQty(service, order.quantity), input.extra);
         const newCost = t.costRate > 0 ? smmCharge(t.costRate, order.quantity) : order.cost;
         await prisma.smmOrder.update({
           where: { id: order.id },
@@ -330,7 +351,7 @@ export async function processDripfeedOrders(limit = 10) {
       extra = rest as SmmExtraParams;
     } catch {}
     try {
-      const pid = await providerAddOrder(service.provider, service.providerServiceId, order.link, runQty, extra);
+      const pid = await providerAddOrder(service.provider, service.providerServiceId, providerLinkFor(service, order.link), adjustedQty(service, runQty), extra);
       drip.children.push({ pid, qty: runQty, at: now.toISOString() });
       drip.doneRuns += 1;
       drip.placedQty += runQty;

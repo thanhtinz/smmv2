@@ -154,6 +154,22 @@ export async function deleteIpBanAction(formData: FormData) {
   done("/admin/bao-mat", "Đã bỏ chặn IP");
 }
 
+/* ---------- Chính sách mật khẩu + bảo mật đăng ký (trang Bảo mật nâng cao) ---------- */
+export async function saveSecurityPolicyAction(formData: FormData) {
+  await requireAdmin();
+  const { setSetting } = await import("@/lib/settings");
+  const keys = [
+    "password_min_length", "pw_require_upper", "pw_require_number", "pw_require_special",
+    "reg_honeypot", "reg_block_disposable", "reg_max_per_ip_hour", "reg_banned_domains",
+    "bf_enabled", "bf_max_attempts", "bf_lock_seconds",
+  ];
+  for (const k of keys) {
+    const v = formData.get(k);
+    if (v !== null) await setSetting(k, String(v).trim());
+  }
+  done("/admin/bao-mat", "Đã lưu cấu hình bảo mật");
+}
+
 /* ---------- Cấp bậc: % giảm giá ---------- */
 export async function saveLevelsAction(formData: FormData) {
   await requireAdmin();

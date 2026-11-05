@@ -1,0 +1,66 @@
+"use client";
+import { useState } from "react";
+
+/** Trình sửa mốc thưởng nạp dạng hàng (thêm/xoá dòng) — ghi ra input ẩn JSON deposit_bonus_tiers. */
+export function BonusTiersEditor({ initial }: { initial: string }) {
+  type Tier = { from: number; percent: number };
+  const parse = (): Tier[] => {
+    try {
+      const a = JSON.parse(initial || "[]");
+      return Array.isArray(a) ? a.map((t) => ({ from: parseInt(String(t.from)) || 0, percent: parseFloat(String(t.percent)) || 0 })) : [];
+    } catch { return []; }
+  };
+  const [rows, setRows] = useState<Tier[]>(parse);
+  const set = (i: number, patch: Partial<Tier>) => setRows((r) => r.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  return (
+    <div>
+      <input type="hidden" name="deposit_bonus_tiers" value={JSON.stringify(rows.filter((r) => r.from > 0))} />
+      <div className="space-y-2">
+        {rows.map((r, i) => (
+          <div key={i} className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-slate-500">Nạp từ</span>
+            <input type="number" min={0} value={r.from || ""} onChange={(e) => set(i, { from: parseInt(e.target.value) || 0 })} className="inp !w-40" placeholder="VD: 1000000" />
+            <span className="text-sm text-slate-500">thưởng</span>
+            <input type="number" min={0} max={100} step="0.5" value={r.percent || ""} onChange={(e) => set(i, { percent: parseFloat(e.target.value) || 0 })} className="inp !w-24" placeholder="%" />
+            <span className="text-sm text-slate-500">%</span>
+            <button type="button" onClick={() => setRows((x) => x.filter((_, j) => j !== i))} className="btn-ghost btn-sm !text-rose-600">Xoá</button>
+          </div>
+        ))}
+        {rows.length === 0 && <p className="text-sm text-slate-400">Chưa có mốc thưởng nào — nạp tiền không được cộng thưởng.</p>}
+      </div>
+      <button type="button" onClick={() => setRows((r) => [...r, { from: 0, percent: 0 }])} className="btn-ghost btn-sm mt-3">+ Thêm mốc khuyến mãi</button>
+    </div>
+  );
+}
+
+type Bot = { id: string; name: string; token: string; chatId: string };
+
+/** Quản lý bot Telegram phụ (báo đơn theo dịch vụ) — ghi ra input ẩn JSON telegram_bots. */
+export function TelegramBotsEditor({ initial }: { initial: string }) {
+  const parse = (): Bot[] => {
+    try {
+      const a = JSON.parse(initial || "[]");
+      return Array.isArray(a) ? a.map((b) => ({ id: String(b.id), name: String(b.name || ""), token: String(b.token || ""), chatId: String(b.chatId || "") })) : [];
+    } catch { return []; }
+  };
+  const [rows, setRows] = useState<Bot[]>(parse);
+  const set = (i: number, patch: Partial<Bot>) => setRows((r) => r.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  return (
+    <div>
+      <input type="hidden" name="telegram_bots" value={JSON.stringify(rows.filter((r) => r.name.trim()))} />
+      <div className="space-y-3">
+        {rows.map((r, i) => (
+          <div key={r.id} className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_1.4fr_1fr_auto]">
+            <input value={r.name} onChange={(e) => set(i, { name: e.target.value })} className="inp" placeholder="Tên bot (VD: Bot đơn Facebook)" />
+            <input value={r.token} onChange={(e) => set(i, { token: e.target.value })} className="inp" placeholder="Bot Token" autoComplete="off" />
+            <input value={r.chatId} onChange={(e) => set(i, { chatId: e.target.value })} className="inp" placeholder="Chat ID nhận tin" />
+            <button type="button" onClick={() => setRows((x) => x.filter((_, j) => j !== i))} className="btn-ghost btn-sm !text-rose-600">Xoá</button>
+          </div>
+        ))}
+        {rows.length === 0 && <p className="text-sm text-slate-400">Chưa có bot phụ nào. Bot hệ thống ở trên vẫn báo toàn bộ sự kiện như thường.</p>}
+      </div>
+      <button type="button" onClick={() => setRows((r) => [...r, { id: `bot${Date.now()}`, name: "", token: "", chatId: "" }])} className="btn-ghost btn-sm mt-3">+ Thêm Bot Telegram</button>
+      <p className="mt-2 text-xs text-slate-400">Gán bot cho từng dịch vụ ở form Thêm/Sửa dịch vụ (mục Bot Telegram báo đơn) — đơn của dịch vụ đó sẽ báo thêm về bot được gán.</p>
+    </div>
+  );
+}

@@ -3,6 +3,8 @@ import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
 import { Flash } from "@/components/ui";
 import { loginAction } from "@/app/actions/auth";
 import { getSettings } from "@/lib/settings";
+import { RecaptchaWidget } from "@/components/recaptcha";
+import { authCardClass } from "@/lib/auth-style";
 
 export default async function LoginPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const settings = await getSettings().catch(() => null);
@@ -11,7 +13,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { msg?
     <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
       <PublicHeader />
       <main className="flex-1 flex items-center justify-center px-4 py-14">
-        <div className="card p-8 w-full max-w-md">
+        <div className={authCardClass(settings?.auth_style)}>
           <h1 className="text-2xl font-extrabold text-slate-900">Đăng nhập</h1>
           <p className="text-sm text-slate-500 mt-1.5 mb-6">Vào bảng điều khiển để đặt đơn và quản lý số dư.</p>
           <Flash msg={searchParams.msg} err={searchParams.err} />
@@ -33,6 +35,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { msg?
               <label className="lbl">Mật khẩu</label>
               <input className="inp" name="password" type="password" required autoComplete="current-password" />
             </div>
+            {settings?.recaptcha_enabled === "1" && settings?.recaptcha_login === "1" && settings?.recaptcha_site_key ? <RecaptchaWidget siteKey={settings.recaptcha_site_key} /> : null}
             <button className="btn-primary w-full !py-3">Đăng nhập</button>
           </form>
           <p className="text-sm text-slate-500 mt-6 text-center">Chưa có tài khoản? <Link href="/register" className="text-brand-600 font-semibold">Đăng ký miễn phí</Link></p>

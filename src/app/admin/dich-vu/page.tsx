@@ -5,6 +5,8 @@ import { PageHead, Flash } from "@/components/ui";
 import { AddServiceButton, ServiceRowActions, ServiceStatusToggle, type ServiceDTO2, type CategoryDTO, type ProviderOpt } from "@/components/admin-catalog";
 import { adminSyncAllProviders } from "@/app/actions/admin";
 import { vnd, num, dt } from "@/lib/format";
+import { getSettings } from "@/lib/settings";
+import { parseTelegramBots } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,7 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const catDTOs: CategoryDTO[] = categories.map((c) => ({ id: c.id, platform: c.platform, name: c.name, sort: c.sort, active: c.active, serviceCount: c._count.services }));
   const provOpts: ProviderOpt[] = providers;
+  const botOpts = parseTelegramBots((await getSettings()).telegram_bots).map((b) => ({ id: b.id, name: b.name }));
   const qs = (patch: Record<string, string>) => {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
@@ -76,7 +79,7 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
           {(q || cat || provider || status) && <Link href="/admin/dich-vu" className="btn-ghost btn-sm !px-4 !py-2.5">Đặt lại</Link>}
         </form>
         <form action={adminSyncAllProviders}><button className="btn-ghost btn-sm !px-4 !py-2.5">Đồng bộ dịch vụ</button></form>
-        <AddServiceButton categories={catDTOs} providers={provOpts} />
+        <AddServiceButton categories={catDTOs} providers={provOpts} bots={botOpts} />
       </div>
 
       <div className="card overflow-x-auto">
@@ -91,6 +94,7 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
                 name: sv.name, description: sv.description, rate: sv.rate, costRate: sv.costRate, min: sv.min, max: sv.max,
                 avgTime: sv.avgTime, type: sv.type, customMarkup: sv.customMarkup, refill: sv.refill, cancelable: sv.cancelable,
                 dripfeed: sv.dripfeed, autoRefill: sv.autoRefill, active: sv.active, providerId: sv.providerId,
+                autoSyncPrice: sv.autoSyncPrice, qtyAdjustPercent: sv.qtyAdjustPercent, autoUid: sv.autoUid, telegramBot: sv.telegramBot, sort: sv.sort,
                 providerName: sv.provider?.name || null, providerMarkup: sv.provider?.markupPercent ?? null,
                 providerServiceId: sv.providerServiceId, backupProviderId: sv.backupProviderId,
                 backupProviderServiceId: sv.backupProviderServiceId, backupCostRate: sv.backupCostRate, updatedAt: dt(sv.updatedAt),
@@ -123,7 +127,7 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
                   </td>
                   <td className="td"><ServiceStatusToggle service={dto} /></td>
                   <td className="td whitespace-nowrap text-sm text-slate-500">{dt(sv.updatedAt)}</td>
-                  <td className="td"><ServiceRowActions service={dto} categories={catDTOs} providers={provOpts} /></td>
+                  <td className="td"><ServiceRowActions service={dto} categories={catDTOs} providers={provOpts} bots={botOpts} /></td>
                 </tr>
               );
             })}

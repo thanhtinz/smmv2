@@ -46,6 +46,7 @@ model User {
   depositCode    String     @unique @db.VarChar(12) // nội dung CK: SMM <code>
   refCode        String?    @unique @db.VarChar(12) // mã giới thiệu (trang Kiếm tiền)
   webhookUrl     String?    @db.VarChar(255) // URL nhận thông báo trạng thái đơn (Webhook ra hệ thống ngoài của khách)
+  termsAcceptedVersion Int  @default(0) // phiên bản điều khoản đã xác nhận (đối chiếu settings terms_version)
   referredById   Int? // người đã giới thiệu tài khoản này
   referredBy     User?      @relation("Referral", fields: [referredById], references: [id])
   referrals      User[]     @relation("Referral")
@@ -92,6 +93,11 @@ model Provider {
   syncServices    Boolean @default(true) // cho phép đồng bộ dịch vụ
   syncCategories  Boolean @default(true) // cho phép đồng bộ danh mục
   autoUpdatePrice Boolean @default(true) // tự cập nhật giá khi đồng bộ
+  syncContent     Boolean @default(false) // đồng bộ cả tên + mô tả dịch vụ khi sync
+  filterHtml      Boolean @default(true) // lọc thẻ HTML khỏi mô tả khi đồng bộ
+  syncAdvanced    Boolean @default(false) // đồng bộ nâng cao: refill / cancel / dripfeed
+  coupon          String? @db.VarChar(60) // mã giảm giá phía API của nhà cung cấp (nếu có)
+  cronSyncLimit   Int     @default(50) // giới hạn số đơn đồng bộ mỗi vòng cron cho nguồn này
   minBalanceAlert Int     @default(0) // ngưỡng cảnh báo số dư thấp (VNĐ quy đổi)
   dailyLimit      Int     @default(0) // giới hạn đặt hàng tối đa mỗi ngày (0 = không giới hạn)
   balanceCache  Int      @default(0) // số dư quy VND, cập nhật khi check
@@ -156,6 +162,10 @@ model SmmService {
   backupProviderServiceId String?  @db.VarChar(50)
   backupCostRate         Int       @default(0) // giá vốn / 1000 tại provider dự phòng
   autoRefill             Boolean   @default(false) // tự động refill khi phát hiện tụt số sau khi hoàn thành
+  autoSyncPrice          Boolean   @default(true) // tự cập nhật giá bán theo giá vốn NCC khi đồng bộ
+  qtyAdjustPercent       Int       @default(0) // điều chỉnh % số lượng khi đẩy sang API (+tăng / -giảm)
+  autoUid                Boolean   @default(false) // tự lấy UID từ link khi đẩy đơn
+  telegramBot            String?   @db.VarChar(60) // bot Telegram báo đơn riêng (id trong settings telegram_bots; null = bot hệ thống)
   active           Boolean     @default(true)
   sort             Int         @default(0)
   createdAt        DateTime    @default(now())
@@ -762,4 +772,21 @@ model Campaign {
   active    Boolean    @default(true)
   createdAt DateTime   @default(now())
   orders    SmmOrder[]
+}
+
+// Chống brute-force đăng nhập: đếm lần sai theo khoá (ip|username), khoá tạm khi vượt ngưỡng
+model LoginThrottle {
+  key         String    @id @db.VarChar(191)
+  fails       Int       @default(0)
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
+}
+
+// Nhật ký đăng ký theo IP (giới hạn số tài khoản tạo mỗi IP / giờ ở Cài đặt → Bảo mật)
+model RegAttempt {
+  id        Int      @id @default(autoincrement())
+  ip        String   @db.VarChar(64)
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
 }

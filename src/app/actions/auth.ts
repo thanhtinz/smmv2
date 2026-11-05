@@ -17,6 +17,21 @@ async function assertNotBanned(panelId?: number) {
 }
 import { createSession, destroySession } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
+import { passwordError, loginLockSeconds, recordLoginFail, clearLoginFails, verifyRecaptcha, isDisposableEmail, regIpExceeded, recordRegAttempt } from "@/lib/security";
+
+/** Rào chắn đăng ký dùng chung (mẹ + panel con): honeypot, mật khẩu theo chính sách, email dùng 1 lần, giới hạn IP. */
+async function registrationGuard(formData: FormData, email: string, password: string, backPath: string) {
+  const s = await getSettings();
+  if (s.reg_honeypot === "1" && String(formData.get("website") || "")) back(backPath, "err", "Đăng ký không hợp lệ");
+  const pwErr = passwordError(password, s);
+  if (pwErr) back(backPath, "err", pwErr);
+  if (isDisposableEmail(email, s)) back(backPath, "err", "Email dùng 1 lần không được chấp nhận, vui lòng dùng email thật");
+  const ip = await clientIp();
+  if (await regIpExceeded(ip)) back(backPath, "err", "IP của bạn đã đăng ký quá nhiều tài khoản trong 1 giờ, vui lòng thử lại sau");
+  if (!(await verifyRecaptcha(String(formData.get("g-recaptcha-response") || "") || null, s.recaptcha_register === "1")))
+    back(backPath, "err", "Vui lòng hoàn thành xác minh reCAPTCHA");
+  return ip;
+}
 import { randomKey } from "@/lib/format";
 import { redirect } from "next/navigation";
 
@@ -34,8 +49,7 @@ export async function registerAction(formData: FormData) {
   const phone = String(formData.get("phone") || "").trim();
   if (!/^[a-z0-9_.]{4,30}$/.test(username)) back("/register", "err", "Tên đăng nhập 4-30 ký tự, chỉ gồm chữ thường, số, dấu . và _");
   if (!/^\S+@\S+\.\S+$/.test(email)) back("/register", "err", "Email không hợp lệ");
-  const minPw = parseInt((await getSettings()).password_min_length || "6") || 6;
-  if (password.length < minPw) back("/register", "err", `Mật khẩu tối thiểu ${minPw} ký tự`);
+  const regIp = await registrationGuard(formData, email, password, "/register");
   const exists = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
   if (exists) back("/register", "err", "Tên đăng nhập hoặc email đã được sử dụng");
   const ref = String(formData.get("ref") || "").trim().toUpperCase();
@@ -53,6 +67,7 @@ export async function registerAction(formData: FormData) {
       referredById: referrer?.id ?? null,
     },
   });
+  await recordRegAttempt(regIp);
   void (async () => { const { alertMother } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản`); })();
   await createSession({ id: user.id, role: user.role, username: user.username });
   redirect("/dashboard");
@@ -76,7 +91,7 @@ export async function panelRegisterAction(formData: FormData) {
   const page = `/cua-hang/${slug}/dang-ky`;
   if (!/^[a-z0-9_.]{4,30}$/.test(username)) back(page, "err", "Tên đăng nhập 4-30 ký tự, chỉ gồm chữ thường, số, dấu . và _");
   if (!/^\S+@\S+\.\S+$/.test(email)) back(page, "err", "Email không hợp lệ");
-  if (password.length < 6) back(page, "err", "Mật khẩu tối thiểu 6 ký tự");
+  const regIp = await registrationGuard(formData, email, password, page);
   const exists = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
   if (exists) back(page, "err", "Tên đăng nhập hoặc email đã được sử dụng");
   const ref = String(formData.get("ref") || "").trim().toUpperCase();
@@ -92,6 +107,7 @@ export async function panelRegisterAction(formData: FormData) {
       panelId: panel.id,
     },
   });
+  await recordRegAttempt(regIp);
   void (async () => { const { alertMother, alertPanelOwner } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản qua panel ${panel.name}`); await alertPanelOwner(panel.id, "new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản tại gian hàng của bạn`); })();
   await createSession({ id: user.id, role: user.role, username: user.username });
   redirect("/dashboard");
@@ -101,9 +117,18 @@ export async function loginAction(formData: FormData) {
   try { await assertNotBanned(); } catch (e: any) { back("/login", "err", String(e?.message || "IP bị chặn")); }
   const login = String(formData.get("login") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
+  const ip = await clientIp();
+  const gs = await getSettings();
+  const lockSec = await loginLockSeconds(ip, login);
+  if (lockSec > 0) back("/login", "err", `Đăng nhập sai quá nhiều lần — thử lại sau ${Math.ceil(lockSec / 60)} phút`);
+  if (!(await verifyRecaptcha(String(formData.get("g-recaptcha-response") || "") || null, gs.recaptcha_login === "1")))
+    back("/login", "err", "Vui lòng hoàn thành xác minh reCAPTCHA");
   const user = await prisma.user.findFirst({ where: { OR: [{ username: login }, { email: login }] } });
-  if (!user || !(await bcrypt.compare(password, user.passwordHash)))
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    await recordLoginFail(ip, login);
     back("/login", "err", "Sai tài khoản hoặc mật khẩu");
+  }
+  await clearLoginFails(ip, login);
   if (user.status === "BANNED") back("/login", "err", "Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
   if (user.panelId) {
     try { await assertNotBanned(user.panelId); } catch (e: any) { back("/login", "err", String(e?.message || "IP bị chặn")); }

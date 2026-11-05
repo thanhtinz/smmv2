@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const s = await getSettings();
   const user = await getCurrentUser().catch(() => null);
+  if (s.landing_enabled === "0") redirect(user ? "/dashboard" : "/login");
   const [serviceCount, premiumCount, smmOrderCount, premiumOrderCount, userCount, featured, premiums, allServices, categories, statusGroups] = await Promise.all([
     prisma.smmService.count({ where: { active: true } }),
     prisma.premiumProduct.count({ where: { active: true } }),
@@ -44,7 +46,8 @@ export default async function HomePage() {
       showSmm={s.module_smm !== "0"}
       showPremium={s.module_premium !== "0"}
       brandName={s.site_name}
-      tagline={s.site_tagline}
+      tagline={s.landing_subtitle || s.site_tagline}
+      headline={s.landing_headline || null}
       loggedIn={!!user}
       stats={{ services: serviceCount, premium: premiumCount, orders: smmOrderCount + premiumOrderCount, users: userCount, completion }}
       platforms={platformStats.map((p) => ({ ...p, points: catsByPlatform.get(p.platform) || [] }))}

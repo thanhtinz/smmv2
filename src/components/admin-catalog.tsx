@@ -41,6 +41,7 @@ export type ProviderDTO = {
   id: number; kind: string; name: string; apiUrl: string; currency: string; exchangeRate: number;
   markupPercent: number; balanceCache: number; active: boolean; note: string | null;
   syncServices: boolean; syncCategories: boolean; autoUpdatePrice: boolean;
+  syncContent: boolean; filterHtml: boolean; syncAdvanced: boolean; coupon: string | null; cronSyncLimit: number;
   minBalanceAlert: number; dailyLimit: number; serviceCount: number; lastSyncAt: string | null;
 };
 
@@ -66,6 +67,7 @@ export function ProviderModal({ provider, onClose }: { provider?: ProviderDTO; o
               <input name="apiKey" type="password" defaultValue={p ? "••••••••••••••••" : ""} className={inp} placeholder="Nhập API key" autoComplete="new-password" />
               <p className="mt-1 text-xs text-slate-400">{p ? "Để nguyên dấu • nếu không đổi key." : "API Key được mã hoá an toàn."}</p>
             </div>
+            <div><label className={lbl}>Mã giảm giá (Coupon) phía API — nếu nhà cung cấp có</label><input name="coupon" defaultValue={p?.coupon || ""} className={inp} placeholder="Để trống nếu không có" /></div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={lbl}>Loại API *</label>
@@ -93,6 +95,9 @@ export function ProviderModal({ provider, onClose }: { provider?: ProviderDTO; o
               <Switch name="syncServices" defaultChecked={p ? p.syncServices : true} label="Đồng bộ dịch vụ" />
               <Switch name="syncCategories" defaultChecked={p ? p.syncCategories : true} label="Đồng bộ danh mục" />
               <Switch name="autoUpdatePrice" defaultChecked={p ? p.autoUpdatePrice : true} label="Tự động cập nhật giá" />
+              <Switch name="syncContent" defaultChecked={p ? p.syncContent : false} label="Cập nhật Tên dịch vụ khi đồng bộ" />
+              <Switch name="filterHtml" defaultChecked={p ? p.filterHtml : true} label="Lọc HTML độc hại khỏi tên/mô tả" />
+              <Switch name="syncAdvanced" defaultChecked={p ? p.syncAdvanced : false} label="Đồng bộ nâng cao (Refill / Hủy / Drip-feed)" />
             </div>
           </div>
           <div className={tab === 2 ? "space-y-4" : "hidden"}>
@@ -104,6 +109,7 @@ export function ProviderModal({ provider, onClose }: { provider?: ProviderDTO; o
               <div><label className={lbl}>Tỷ giá hối đoái</label><input name="exchangeRate" type="number" min={1} defaultValue={p?.exchangeRate ?? 1} className={inp} /></div>
               <div><label className={lbl}>Ngưỡng số dư tối thiểu (VNĐ)</label><input name="minBalanceAlert" type="number" min={0} defaultValue={p?.minBalanceAlert ?? 0} className={inp} /></div>
               <div><label className={lbl}>Giới hạn đặt hàng tối đa mỗi ngày</label><input name="dailyLimit" type="number" min={0} defaultValue={p?.dailyLimit ?? 0} className={inp} /></div>
+              <div><label className={lbl}>Giới hạn đồng bộ đơn mỗi vòng cron</label><input name="cronSyncLimit" type="number" min={1} defaultValue={p?.cronSyncLimit ?? 50} className={inp} /></div>
             </div>
           </div>
         </div>
@@ -271,15 +277,18 @@ export type ServiceDTO2 = {
   id: number; categoryId: number; categoryName: string; platform: string; name: string; description: string | null;
   rate: number; costRate: number; min: number; max: number; avgTime: string | null; type: string; customMarkup: number | null;
   refill: boolean; cancelable: boolean; dripfeed: boolean; autoRefill: boolean; active: boolean;
+  autoSyncPrice: boolean; qtyAdjustPercent: number; autoUid: boolean; telegramBot: string | null; sort: number;
   providerId: number | null; providerName: string | null; providerMarkup: number | null; providerServiceId: string | null;
   backupProviderId: number | null; backupProviderServiceId: string | null; backupCostRate: number; updatedAt: string;
 };
 export type CategoryDTO = { id: number; platform: string; name: string; sort: number; active: boolean; serviceCount: number };
 export type ProviderOpt = { id: number; name: string; markupPercent: number };
 
-const SERVICE_TYPES = ["Default", "Comments", "Custom Comments", "Reactions", "Watch Time", "Package", "Mentions"];
+const SERVICE_TYPES = ["Default", "Comments", "Custom Comments", "Reactions", "Watch Time", "Package", "Mentions", "Subscriptions"];
 
-export function ServiceModal({ service, categories, providers, onClose }: { service?: ServiceDTO2; categories: CategoryDTO[]; providers: ProviderOpt[]; onClose: () => void }) {
+export type BotOpt = { id: string; name: string };
+
+export function ServiceModal({ service, categories, providers, bots, onClose }: { service?: ServiceDTO2; categories: CategoryDTO[]; providers: ProviderOpt[]; bots?: BotOpt[]; onClose: () => void }) {
   const s = service;
   const [providerId, setProviderId] = useState<string>(s?.providerId ? String(s.providerId) : "");
   const [cost, setCost] = useState<number>(s?.costRate || 0);
@@ -293,7 +302,7 @@ export function ServiceModal({ service, categories, providers, onClose }: { serv
         {s && <input type="hidden" name="id" value={s.id} />}
         <input type="hidden" name="fulfillment" value={providerId ? "API" : "MANUAL"} />
         <input type="hidden" name="providerId" value={providerId} />
-        <input type="hidden" name="sort" value={0} />
+        <input type="hidden" name="sort" value={s?.sort ?? 0} />
         <div className="max-h-[66vh] space-y-4 overflow-y-auto px-6 py-5">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -318,6 +327,14 @@ export function ServiceModal({ service, categories, providers, onClose }: { serv
           {providerId && (
             <div><label className={lbl}>ID dịch vụ tại nhà cung cấp</label><input name="providerServiceId" defaultValue={s?.providerServiceId || ""} className={inp} placeholder="VD: 1049" /></div>
           )}
+          <div>
+            <label className={lbl}>Bot Telegram báo đơn</label>
+            <select name="telegramBot" defaultValue={s?.telegramBot || ""} className={inp}>
+              <option value="">Mặc định (Bot hệ thống)</option>
+              {(bots || []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+            <p className="mt-1 text-xs text-slate-400">Thêm bot phụ ở Cấu hình → tab Telegram. Đơn của dịch vụ này sẽ báo về bot được chọn.</p>
+          </div>
           <div><label className={lbl}>Tên dịch vụ *</label><input name="name" required defaultValue={s?.name || ""} className={inp} placeholder="Nhập tên dịch vụ" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -327,6 +344,12 @@ export function ServiceModal({ service, categories, providers, onClose }: { serv
             </div>
             <div><label className={lbl}>Giá vốn (VNĐ/1k)</label><input name="costRate" type="number" min={0} value={cost} onChange={(e) => setCost(parseInt(e.target.value || "0"))} className={inp} /></div>
           </div>
+          {cost > 0 && (
+            <div className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
+              <span className={rate - cost >= 0 ? "font-bold text-emerald-600" : "font-bold text-rose-600"}>Lãi: {rate - cost >= 0 ? "+" : ""}{(rate - cost).toLocaleString("vi-VN")}đ ({cost > 0 ? (((rate - cost) / cost) * 100).toFixed(2) : "0"}%)</span>
+              <span className="text-slate-500"> · So sánh với NCC: Giá gốc {cost.toLocaleString("vi-VN")}đ — Giá bán {rate.toLocaleString("vi-VN")}đ</span>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={lbl}>Phần trăm riêng (%)</label>
@@ -344,7 +367,14 @@ export function ServiceModal({ service, categories, providers, onClose }: { serv
             <div><label className={lbl}>Số lượng tối thiểu</label><input name="min" type="number" min={1} defaultValue={s?.min ?? 10} className={inp} /></div>
             <div><label className={lbl}>Số lượng tối đa</label><input name="max" type="number" min={1} defaultValue={s?.max ?? 100000} className={inp} /></div>
           </div>
-          <div><label className={lbl}>Thời gian hoàn thành</label><input name="avgTime" defaultValue={s?.avgTime || ""} className={inp} placeholder="VD: 0-12 giờ" /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className={lbl}>Thời gian hoàn thành</label><input name="avgTime" defaultValue={s?.avgTime || ""} className={inp} placeholder="VD: 0-12 giờ" /></div>
+            <div>
+              <label className={lbl}>Điều chỉnh % số lượng sang API</label>
+              <input name="qtyAdjustPercent" type="number" min={-90} max={500} defaultValue={s?.qtyAdjustPercent ?? 0} className={inp} />
+              <p className="mt-1 text-xs text-slate-400">+10% = đơn 100 đẩy sang API thành 110; -10% = đẩy 90. Khách vẫn tính theo số lượng khách đặt.</p>
+            </div>
+          </div>
           <div><label className={lbl}>Ghi chú / Mô tả</label><textarea name="description" rows={3} defaultValue={s?.description || ""} className={inp} placeholder="Nhập mô tả chi tiết về dịch vụ..." /></div>
           <div className="grid grid-cols-3 gap-3 rounded-xl border border-slate-200 px-4 py-2">
             <Switch name="refill" defaultChecked={s?.refill ?? true} label="Hỗ trợ Refill" />
@@ -354,14 +384,16 @@ export function ServiceModal({ service, categories, providers, onClose }: { serv
           <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 px-4 py-2">
             <Switch name="autoRefill" defaultChecked={s?.autoRefill ?? false} label="Tự động Refill khi tụt số" />
             <Switch name="active" defaultChecked={s ? s.active : true} label="Đang bật bán" />
+            <Switch name="autoSyncPrice" defaultChecked={s?.autoSyncPrice ?? true} label="Tự động đồng bộ giá theo NCC" />
+            <Switch name="autoUid" defaultChecked={s?.autoUid ?? false} label="Lấy UID tự động từ link" />
           </div>
-          {s?.providerId && (
+          {providerId && (
             <details className="rounded-xl border border-slate-200 px-4 py-3">
               <summary className="cursor-pointer text-sm font-semibold text-slate-700">Nhà cung cấp dự phòng (Smart Routing)</summary>
               <div className="mt-3 grid grid-cols-3 gap-3">
-                <select name="backupProviderId" defaultValue={s.backupProviderId || ""} className={inp}><option value="">Không đặt</option>{providers.filter((p) => p.id !== s.providerId).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                <input name="backupProviderServiceId" defaultValue={s.backupProviderServiceId || ""} className={inp} placeholder="ID tại NCC dự phòng" />
-                <input name="backupCostRate" type="number" min={0} defaultValue={s.backupCostRate || 0} className={inp} placeholder="Giá vốn dự phòng" />
+                <select name="backupProviderId" defaultValue={s?.backupProviderId || ""} className={inp}><option value="">Không đặt</option>{providers.filter((p) => p.id !== parseInt(providerId || "0")).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+                <input name="backupProviderServiceId" defaultValue={s?.backupProviderServiceId || ""} className={inp} placeholder="ID tại NCC dự phòng" />
+                <input name="backupCostRate" type="number" min={0} defaultValue={s?.backupCostRate || 0} className={inp} placeholder="Giá vốn dự phòng" />
               </div>
             </details>
           )}
@@ -375,7 +407,7 @@ export function ServiceModal({ service, categories, providers, onClose }: { serv
   );
 }
 
-export function ServiceRowActions({ service, categories, providers }: { service: ServiceDTO2; categories: CategoryDTO[]; providers: ProviderOpt[] }) {
+export function ServiceRowActions({ service, categories, providers, bots }: { service: ServiceDTO2; categories: CategoryDTO[]; providers: ProviderOpt[]; bots?: BotOpt[] }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex items-center justify-end gap-1.5">
@@ -384,17 +416,17 @@ export function ServiceRowActions({ service, categories, providers }: { service:
         <input type="hidden" name="id" value={service.id} />
         <button title="Xoá" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6" /></svg></button>
       </form>
-      {open && <ServiceModal service={service} categories={categories} providers={providers} onClose={() => setOpen(false)} />}
+      {open && <ServiceModal service={service} categories={categories} providers={providers} bots={bots} onClose={() => setOpen(false)} />}
     </div>
   );
 }
 
-export function AddServiceButton({ categories, providers }: { categories: CategoryDTO[]; providers: ProviderOpt[] }) {
+export function AddServiceButton({ categories, providers, bots }: { categories: CategoryDTO[]; providers: ProviderOpt[]; bots?: BotOpt[] }) {
   const [open, setOpen] = useState(false);
   return (
     <>
       <button onClick={() => setOpen(true)} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">+ Thêm dịch vụ</button>
-      {open && <ServiceModal categories={categories} providers={providers} onClose={() => setOpen(false)} />}
+      {open && <ServiceModal categories={categories} providers={providers} bots={bots} onClose={() => setOpen(false)} />}
     </>
   );
 }

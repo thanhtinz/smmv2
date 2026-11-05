@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder } from "@/lib/orders";
 import { getSettings, calcBonus, bonusTiersFor } from "@/lib/settings";
+import { passwordError } from "@/lib/security";
 import { randomKey, genCode, parsePremiumFields } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -339,11 +340,20 @@ export async function updateProfileAction(formData: FormData) {
   back("/dashboard/ho-so", "msg", "Đã cập nhật hồ sơ");
 }
 
+/** Khách xác nhận điều khoản sử dụng (Cài đặt → Thông báo) — ghi phiên bản đã xác nhận. */
+export async function acceptTermsAction() {
+  const user = await requireUser();
+  const s = await getSettings();
+  await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: parseInt(s.terms_version || "1") || 1 } });
+  redirect("/dashboard");
+}
+
 export async function changePasswordAction(formData: FormData) {
   const user = await requireUser();
   const old = String(formData.get("oldPassword") || "");
   const next = String(formData.get("newPassword") || "");
-  if (next.length < 6) back("/dashboard/ho-so", "err", "Mật khẩu mới tối thiểu 6 ký tự");
+  const pwErr = passwordError(next, await getSettings());
+  if (pwErr) back("/dashboard/ho-so", "err", pwErr);
   const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
   if (!(await bcrypt.compare(old, fresh.passwordHash))) back("/dashboard/ho-so", "err", "Mật khẩu hiện tại không đúng");
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(next, 10) } });

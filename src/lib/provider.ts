@@ -180,14 +180,17 @@ export async function syncProviderServices(provider: Provider) {
 
   for (const sv of list) {
     const costVnd = Math.ceil(parseFloat(String(sv.rate)) * provider.exchangeRate);
-    const sell = Math.ceil(costVnd * (1 + provider.markupPercent / 100));
     const catId = await categoryId(sv.category || "Dịch vụ khác");
     const existing = await prisma.smmService.findFirst({
       where: { providerId: provider.id, providerServiceId: String(sv.service) },
     });
-    const data = {
+    // % lãi hiệu lực: % riêng của dịch vụ (nếu đã đặt) đè % chung của nhà cung cấp
+    const markup = existing?.customMarkup ?? provider.markupPercent;
+    const sell = Math.ceil(costVnd * (1 + markup / 100));
+    const cleanName = provider.filterHtml ? sv.name.replace(/<[^>]*>/g, "").trim() : sv.name;
+    const data: any = {
       categoryId: catId,
-      name: sv.name,
+      name: cleanName,
       rate: sell,
       costRate: costVnd,
       min: parseInt(String(sv.min)) || 10,
@@ -199,6 +202,16 @@ export async function syncProviderServices(provider: Provider) {
       providerId: provider.id,
       providerServiceId: String(sv.service),
     };
+    if (existing) {
+      // Tôn trọng các công tắc đồng bộ: tắt ở NCC hoặc tắt riêng ở dịch vụ thì giữ nguyên
+      if (!provider.syncContent) data.name = existing.name;
+      if (!provider.autoUpdatePrice || !existing.autoSyncPrice) data.rate = existing.rate;
+      if (!provider.syncAdvanced) {
+        data.refill = existing.refill;
+        data.cancelable = existing.cancelable;
+        data.dripfeed = existing.dripfeed;
+      }
+    }
     if (existing) {
       // Price Monitor: giá vốn thay đổi -> ghi log để admin theo dõi biến động giá của provider
       if (existing.costRate !== costVnd) {

@@ -12,6 +12,7 @@ export type LandingPremium = { name: string; tagline?: string | null; from: numb
 export function LandingView(props: {
   brandName: string;
   tagline?: string | null;
+  headline?: string | null;
   loggedIn: boolean;
   stats: { services: number; premium: number; orders: number; users: number; completion: number };
   platforms: LandingPlatform[];
@@ -66,7 +67,7 @@ export function LandingView(props: {
               <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" /> Hệ thống đang hoạt động 24/7
             </span>
             <h1 className="mt-6 text-4xl font-black leading-[1.08] tracking-tight text-white sm:text-6xl">
-              Tăng trưởng mạng xã hội,<br className="hidden sm:block" /> nhanh và gọn hơn.
+              {props.headline ? props.headline : <>Tăng trưởng mạng xã hội,<br className="hidden sm:block" /> nhanh và gọn hơn.</>}
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg">
               {props.tagline || "Một bảng điều khiển cho mọi dịch vụ tăng tương tác Facebook, TikTok, Instagram, YouTube, Telegram — đặt đơn là chạy, theo dõi tiến độ theo thời gian thực, nạp tiền tự động."}

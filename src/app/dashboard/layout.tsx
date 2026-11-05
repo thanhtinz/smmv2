@@ -7,6 +7,7 @@ import { SideNav } from "@/components/nav";
 import { DisplaySettings } from "@/components/display";
 import TabBar from "@/components/tabbar";
 import { LiveChat } from "@/components/livechat";
+import { TermsGate, HomeModal } from "@/components/gates";
 import { I } from "@/components/ui";
 import { vnd, LEVEL_NAME } from "@/lib/format";
 import { prisma } from "@/lib/db";
@@ -19,6 +20,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return <div className="min-h-screen flex items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold mb-2">Hệ thống đang bảo trì</h1><p className="text-slate-500">Vui lòng quay lại sau ít phút.</p></div></div>;
   }
   const openTickets = await prisma.ticket.count({ where: { userId: user.id, status: "ANSWERED" } });
+  let termsGate: React.ReactNode = null;
+  if (s.terms_enabled === "1" && s.terms_content?.trim()) {
+    const fresh = await prisma.user.findUnique({ where: { id: user.id }, select: { termsAcceptedVersion: true } });
+    const ver = parseInt(s.terms_version || "1") || 1;
+    if ((fresh?.termsAcceptedVersion || 0) < ver) {
+      termsGate = <TermsGate title={s.terms_title} content={s.terms_content} checkboxText={s.terms_checkbox_text} buttonText={s.terms_button_text} version={ver} />;
+    }
+  }
   const myPanelFlags = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sellSmm: true, sellPremium: true, moduleAffiliate: true } }) : null;
   const smmOn = s.module_smm !== "0" && (myPanelFlags ? myPanelFlags.sellSmm : true);
   const premiumOn = s.module_premium !== "0" && (myPanelFlags ? myPanelFlags.sellPremium : true);
@@ -68,6 +77,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Menu footer kiểu webapp cho điện thoại */}
       <TabBar variant="app" />
       {s.livechat_enabled !== "0" && <LiveChat />}
+      {termsGate}
+      {s.home_modal_enabled === "1" && s.home_modal_content?.trim() ? <HomeModal content={s.home_modal_content} /> : null}
     </div>
   );
 }

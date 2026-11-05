@@ -17,6 +17,7 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
     id: p.id, kind: p.kind, name: p.name, apiUrl: p.apiUrl, currency: p.currency, exchangeRate: p.exchangeRate,
     markupPercent: p.markupPercent, balanceCache: p.balanceCache, active: p.active, note: p.note,
     syncServices: p.syncServices, syncCategories: p.syncCategories, autoUpdatePrice: p.autoUpdatePrice,
+    syncContent: p.syncContent, filterHtml: p.filterHtml, syncAdvanced: p.syncAdvanced, coupon: p.coupon, cronSyncLimit: p.cronSyncLimit,
     minBalanceAlert: p.minBalanceAlert, dailyLimit: p.dailyLimit, serviceCount: p._count.services,
     lastSyncAt: p.lastSyncAt ? dt(p.lastSyncAt) : null,
   }));

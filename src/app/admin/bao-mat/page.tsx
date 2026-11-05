@@ -2,7 +2,7 @@ import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash, Empty } from "@/components/ui";
-import { saveIpBanAction, deleteIpBanAction } from "@/app/actions/admin-features";
+import { saveIpBanAction, deleteIpBanAction, saveSecurityPolicyAction } from "@/app/actions/admin-features";
 import { dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -47,12 +47,39 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
           )}
         </div>
       </div>
-      <div className="card mt-6 p-5">
-        <div className="font-bold text-slate-900">Chính sách mật khẩu hiện tại</div>
-        <p className="mt-2 text-sm leading-relaxed text-slate-500">
-          Độ dài tối thiểu khi đăng ký / đổi mật khẩu: <b className="text-slate-800">{s.password_min_length} ký tự</b>.
-          Sửa trong Admin → Cấu hình → tab Bảo mật. Đăng nhập sai nhiều lần liên tiếp sẽ bị khoá tạm theo cơ chế sẵn có của hệ thống.
-        </p>
+      <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+        <form action={saveSecurityPolicyAction} className="card space-y-4 p-5">
+          <div className="font-bold text-slate-900">Chính sách mật khẩu</div>
+          <div><label className="lbl">Độ dài tối thiểu (ký tự)</label><input className="inp" name="password_min_length" type="number" min={4} max={32} defaultValue={s.password_min_length} /></div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><label className="lbl">Chữ hoa</label>
+              <select className="inp" name="pw_require_upper" defaultValue={s.pw_require_upper === "1" ? "1" : "0"}><option value="0">Không bắt</option><option value="1">Bắt buộc</option></select></div>
+            <div><label className="lbl">Chữ số</label>
+              <select className="inp" name="pw_require_number" defaultValue={s.pw_require_number === "1" ? "1" : "0"}><option value="0">Không bắt</option><option value="1">Bắt buộc</option></select></div>
+            <div><label className="lbl">Ký tự đặc biệt</label>
+              <select className="inp" name="pw_require_special" defaultValue={s.pw_require_special === "1" ? "1" : "0"}><option value="0">Không bắt</option><option value="1">Bắt buộc</option></select></div>
+          </div>
+          <div className="border-t border-slate-100 pt-4 font-bold text-slate-900">Phòng chống Brute Force</div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><label className="lbl">Trạng thái</label>
+              <select className="inp" name="bf_enabled" defaultValue={s.bf_enabled === "0" ? "0" : "1"}><option value="1">Bật</option><option value="0">Tắt</option></select></div>
+            <div><label className="lbl">Sai tối đa (lần)</label><input className="inp" name="bf_max_attempts" type="number" min={3} max={100} defaultValue={s.bf_max_attempts} /></div>
+            <div><label className="lbl">Khoá (giây)</label><input className="inp" name="bf_lock_seconds" type="number" min={30} max={86400} defaultValue={s.bf_lock_seconds} /></div>
+          </div>
+          <button className="btn-primary">Lưu cấu hình bảo mật</button>
+        </form>
+        <form action={saveSecurityPolicyAction} className="card space-y-4 p-5">
+          <div className="font-bold text-slate-900">Bảo mật đăng ký</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="lbl">Honeypot chống bot</label>
+              <select className="inp" name="reg_honeypot" defaultValue={s.reg_honeypot === "0" ? "0" : "1"}><option value="1">Bật</option><option value="0">Tắt</option></select></div>
+            <div><label className="lbl">Chặn email dùng 1 lần</label>
+              <select className="inp" name="reg_block_disposable" defaultValue={s.reg_block_disposable === "1" ? "1" : "0"}><option value="0">Tắt</option><option value="1">Bật</option></select></div>
+          </div>
+          <div><label className="lbl">Số lần đăng ký tối đa / IP / giờ (0 = không giới hạn)</label><input className="inp" name="reg_max_per_ip_hour" type="number" min={0} max={1000} defaultValue={s.reg_max_per_ip_hour} /></div>
+          <div><label className="lbl">Danh sách tên miền email bị cấm (mỗi dòng 1 tên miền)</label><textarea className="inp font-mono" name="reg_banned_domains" rows={5} defaultValue={s.reg_banned_domains} /></div>
+          <button className="btn-primary">Lưu bảo mật đăng ký</button>
+        </form>
       </div>
       <div className="card mt-6 overflow-x-auto">
         <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Nhật ký hoạt động hệ thống</div>
