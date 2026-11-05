@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { adminSaveProvider, adminDeleteProvider, adminProviderAction, adminProviderMarkup, adminSyncAllProviders, adminSaveService, adminDeleteService, adminToggleService, adminSaveCategory, adminDeleteCategory, adminToggleCategory, adminTogglePlatform, adminReorderCategories } from "@/app/actions/admin";
 import { vnd, num, PLATFORMS } from "@/lib/format";
 
@@ -116,9 +116,106 @@ export function ProviderModal({ provider, onClose }: { provider?: ProviderDTO; o
   );
 }
 
+type ImportSvc = { id: string; name: string; category: string; costVnd: number; min: number; max: number; imported: boolean };
+
+/** Import dịch vụ CHỌN LỌC: xem toàn bộ dịch vụ phía nhà cung cấp, tick chọn từng
+ *  dịch vụ muốn nhập, đặt % markup riêng cho đợt nhập rồi mới tạo — khác nút Đồng bộ
+ *  (đồng bộ là nhập tất cả + cập nhật giá các dịch vụ đã có). */
+export function ImportServicesModal({ provider, onClose }: { provider: ProviderDTO; onClose: () => void }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [services, setServices] = useState<ImportSvc[]>([]);
+  const [q, setQ] = useState("");
+  const [markup, setMarkup] = useState(provider.markupPercent);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch(`/api/admin/provider-services?providerId=${provider.id}`);
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "Không lấy được danh sách");
+        setServices(j.services);
+        setSelected(new Set(j.services.filter((s: ImportSvc) => !s.imported).map((s: ImportSvc) => s.id)));
+      } catch (e: any) {
+        setError(String(e?.message || "Lỗi tải danh sách"));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [provider.id]);
+
+  const visible = services.filter((s) => !q.trim() || s.name.toLowerCase().includes(q.trim().toLowerCase()) || s.category.toLowerCase().includes(q.trim().toLowerCase()));
+  const toggle = (id: string) => setSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const toggleVisible = () => {
+    const ids = visible.filter((s) => !s.imported).map((s) => s.id);
+    const allOn = ids.every((id) => selected.has(id));
+    setSelected((prev) => { const n = new Set(prev); ids.forEach((id) => (allOn ? n.delete(id) : n.add(id))); return n; });
+  };
+
+  async function doImport() {
+    setBusy(true); setError("");
+    try {
+      const r = await fetch("/api/admin/provider-services", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ providerId: provider.id, markup, ids: Array.from(selected) }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Import thất bại");
+      setResult(`Đã import ${j.created} dịch vụ mới${j.skipped ? `, bỏ qua ${j.skipped} dịch vụ đã có` : ""}.`);
+      setServices((prev) => prev.map((s) => (selected.has(s.id) ? { ...s, imported: true } : s)));
+      setSelected(new Set());
+    } catch (e: any) {
+      setError(String(e?.message || "Import thất bại"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`Import dịch vụ — ${provider.name}`} onClose={onClose} wide>
+      <div className="flex flex-col" style={{ maxHeight: "78vh" }}>
+        <div className="flex flex-wrap items-center gap-2 px-6 pt-4">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm dịch vụ / danh mục phía nhà cung cấp…" className="inp min-w-[220px] flex-1" />
+          <label className="flex items-center gap-1.5 text-sm text-slate-600">Markup <input type="number" min={0} max={500} value={markup} onChange={(e) => setMarkup(parseInt(e.target.value) || 0)} className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm" /> %</label>
+          <span className="text-sm text-slate-500">Đã chọn <b className="text-slate-800">{selected.size}</b> / {services.filter((s) => !s.imported).length} dịch vụ mới</span>
+        </div>
+        {error && <div className="mx-6 mt-3 rounded-xl bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-600">{error}</div>}
+        {result && <div className="mx-6 mt-3 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">{result}</div>}
+        <div className="mt-3 flex-1 overflow-y-auto px-6 pb-2">
+          {loading ? <div className="py-12 text-center text-sm text-slate-400">Đang lấy danh sách dịch vụ từ nhà cung cấp…</div> : (
+            <table className="w-full">
+              <thead><tr className="border-b border-slate-100 text-left">
+                <th className="th w-10"><input type="checkbox" onChange={toggleVisible} checked={visible.some((s) => !s.imported) && visible.filter((s) => !s.imported).every((s) => selected.has(s.id))} className="h-4 w-4 accent-blue-600" /></th>
+                <th className="th">Dịch vụ phía nhà cung cấp</th><th className="th">Giá vốn</th><th className="th">Min – Max</th><th className="th">Trạng thái</th>
+              </tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {visible.map((s) => (
+                  <tr key={s.id} className={s.imported ? "opacity-55" : "hover:bg-slate-50/60"}>
+                    <td className="td"><input type="checkbox" disabled={s.imported} checked={selected.has(s.id)} onChange={() => toggle(s.id)} className="h-4 w-4 accent-blue-600" /></td>
+                    <td className="td"><div className="font-semibold text-slate-800">{s.name}</div><div className="text-xs text-slate-400">ID {s.id} · {s.category}</div></td>
+                    <td className="td font-semibold text-slate-700">{vnd(s.costVnd)}</td>
+                    <td className="td text-slate-500">{num(s.min)} – {num(s.max)}</td>
+                    <td className="td">{s.imported ? <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">Đã có</span> : <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-600">Mới</span>}</td>
+                  </tr>
+                ))}
+                {visible.length === 0 && <tr><td colSpan={5} className="td py-10 text-center text-slate-400">Không có dịch vụ nào khớp.</td></tr>}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
+          <button type="button" onClick={() => (result ? window.location.reload() : onClose())} className="btn-ghost btn-sm !px-5 !py-2.5">{result ? "Đóng & tải lại" : "Hủy"}</button>
+          <button disabled={busy || selected.size === 0} onClick={doImport} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50">{busy ? "Đang import…" : `Import ${selected.size} dịch vụ`}</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export function ProvidersClient({ providers }: { providers: ProviderDTO[] }) {
   const [editing, setEditing] = useState<ProviderDTO | undefined>(undefined);
   const [open, setOpen] = useState(false);
+  const [importing, setImporting] = useState<ProviderDTO | undefined>(undefined);
   const iconBtn = "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-800";
   return (
     <>
@@ -127,6 +224,7 @@ export function ProvidersClient({ providers }: { providers: ProviderDTO[] }) {
         <button onClick={() => { setEditing(undefined); setOpen(true); }} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">+ Thêm nhà cung cấp</button>
       </div>
       {open && <ProviderModal provider={editing} onClose={() => setOpen(false)} />}
+      {importing && <ImportServicesModal provider={importing} onClose={() => setImporting(undefined)} />}
       <div className="card mt-5 overflow-x-auto">
         <table className="w-full min-w-[880px]">
           <thead><tr className="border-b border-slate-100">
@@ -152,6 +250,7 @@ export function ProvidersClient({ providers }: { providers: ProviderDTO[] }) {
                 <td className="td">
                   <div className="flex items-center justify-end gap-1.5">
                     <button className={iconBtn} title="Sửa" onClick={() => { setEditing(p); setOpen(true); }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg></button>
+                    {p.kind !== "PREMIUM" && <button className={iconBtn} title="Import dịch vụ (chọn lọc)" onClick={() => setImporting(p)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg></button>}
                     <form action={adminProviderAction}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="kind" value="sync" /><button className={iconBtn} title="Đồng bộ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6" /></svg></button></form>
                     <form action={adminProviderAction}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="kind" value="balance" /><button className={iconBtn} title="Kiểm tra số dư"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.5v15l13-7.5-13-7.5Z" /></svg></button></form>
                     <form action={adminDeleteProvider} onSubmit={(e) => { if (!confirm(`Xoá nhà cung cấp ${p.name}? Dịch vụ liên kết sẽ chuyển về thủ công.`)) e.preventDefault(); }}><input type="hidden" name="id" value={p.id} /><button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title="Xoá"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6" /></svg></button></form>
