@@ -207,11 +207,13 @@ model SmmOrder {
 }
 
 model PremiumCategory {
-  id     Int     @id @default(autoincrement())
-  name   String  @db.VarChar(100)
-  slug   String  @unique @db.VarChar(100)
-  sort   Int     @default(0)
-  active Boolean @default(true)
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(100)
+  slug        String  @unique @db.VarChar(100)
+  description String? @db.Text
+  icon        String? @db.VarChar(60)
+  sort        Int     @default(0)
+  active      Boolean @default(true)
 
   products PremiumProduct[]
 }

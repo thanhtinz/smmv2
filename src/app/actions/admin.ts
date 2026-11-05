@@ -285,11 +285,37 @@ export async function adminSavePremiumCategory(formData: FormData) {
   const id = parseInt(String(formData.get("id") || "0"));
   const name = String(formData.get("name") || "").trim();
   const slug = String(formData.get("slug") || "").trim().toLowerCase();
-  if (!name || !slug) back("/admin/premium", "err", "Thiếu tên hoặc slug");
-  const data = { name, slug, sort: parseInt(String(formData.get("sort") || "0")), active: formData.get("active") === "on" };
+  if (!name || !slug) back("/admin/premium/danh-muc", "err", "Thiếu tên hoặc slug");
+  const data = { name, slug, description: String(formData.get("description") || "") || null, icon: String(formData.get("icon") || "").trim() || null, sort: parseInt(String(formData.get("sort") || "0")), active: formData.get("active") === "on" };
   if (id) await prisma.premiumCategory.update({ where: { id }, data });
   else await prisma.premiumCategory.create({ data });
-  done("/admin/premium", "Đã lưu danh mục premium");
+  done("/admin/premium/danh-muc", "Đã lưu danh mục premium");
+}
+
+
+export async function adminDeletePremiumCategory(formData: FormData) {
+  await requireAdmin();
+  const id = parseInt(String(formData.get("id")));
+  const count = await prisma.premiumProduct.count({ where: { categoryId: id } });
+  if (count) back("/admin/premium/danh-muc", "err", "Danh mục còn sản phẩm — hãy chuyển sản phẩm sang danh mục khác trước");
+  await prisma.premiumCategory.delete({ where: { id } });
+  done("/admin/premium/danh-muc", "Đã xoá danh mục premium");
+}
+
+export async function adminTogglePremiumCategory(formData: FormData) {
+  await requireAdmin();
+  const id = parseInt(String(formData.get("id")));
+  const c = await prisma.premiumCategory.findUnique({ where: { id }, select: { active: true } });
+  if (c) await prisma.premiumCategory.update({ where: { id }, data: { active: !c.active } });
+  done("/admin/premium/danh-muc", c?.active ? "Đã tạm dừng danh mục" : "Đã kích hoạt danh mục");
+}
+
+export async function adminToggleProduct(formData: FormData) {
+  await requireAdmin();
+  const id = parseInt(String(formData.get("id")));
+  const p = await prisma.premiumProduct.findUnique({ where: { id }, select: { active: true } });
+  if (p) await prisma.premiumProduct.update({ where: { id }, data: { active: !p.active } });
+  done("/admin/premium", p?.active ? "Đã tạm dừng sản phẩm" : "Đã mở bán sản phẩm");
 }
 
 export async function adminSaveProduct(formData: FormData) {
@@ -346,10 +372,10 @@ export async function adminSaveVariant(formData: FormData) {
     active: formData.get("active") === "on",
     sort: parseInt(String(formData.get("sort") || "0")),
   };
-  if (!data.name || !data.price) back(`/admin/premium/${productId}`, "err", "Thiếu tên gói hoặc giá");
+  if (!data.name || !data.price) back("/admin/premium", "err", "Thiếu tên gói hoặc giá");
   if (id) await prisma.premiumVariant.update({ where: { id }, data });
   else await prisma.premiumVariant.create({ data });
-  done(`/admin/premium/${productId}`, "Đã lưu gói bán");
+  done("/admin/premium", "Đã lưu gói bán");
 }
 
 export async function adminDeleteVariant(formData: FormData) {
@@ -359,11 +385,11 @@ export async function adminDeleteVariant(formData: FormData) {
   const count = await prisma.premiumOrder.count({ where: { variantId: id } });
   if (count) {
     await prisma.premiumVariant.update({ where: { id }, data: { active: false } });
-    done(`/admin/premium/${productId}`, "Gói đã có đơn nên chỉ tắt bán");
+    done("/admin/premium", "Gói đã có đơn nên chỉ tắt bán");
   }
   await prisma.premiumStock.deleteMany({ where: { variantId: id } });
   await prisma.premiumVariant.delete({ where: { id } });
-  done(`/admin/premium/${productId}`, "Đã xoá gói");
+  done("/admin/premium", "Đã xoá gói");
 }
 
 /* ---------- Kho premium ---------- */
