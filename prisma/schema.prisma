@@ -477,6 +477,12 @@ model ChildPanel {
   apiKey    String?  @db.VarChar(64) // API key tài khoản mẹ mà panel liên kết (nhập ở trang setup lần đầu)
   apiUserId Int? // tài khoản mẹ sở hữu API key trên
   setupDone Boolean  @default(false) // đã qua trang cấu hình lần đầu
+  // AI riêng của panel: chủ panel tự thêm key — livechat trên gian hàng dùng cấu hình này
+  aiEnabled Boolean @default(false)
+  aiProvider String  @default("openai") @db.VarChar(20)
+  aiBaseUrl  String? @db.VarChar(200)
+  aiApiKey   String? @db.Text
+  aiModel    String? @db.VarChar(80)
   status    String   @default("ACTIVE") @db.VarChar(20) // ACTIVE | SUSPENDED
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

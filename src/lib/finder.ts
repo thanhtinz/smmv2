@@ -1,6 +1,6 @@
 import { prisma } from "./db";
 import { getSettings, levelDiscountFromSettings } from "./settings";
-import { aiConfigured, aiChat } from "./ai";
+import { aiConfigured, aiChat, panelAiConfig } from "./ai";
 import { panelTierDiscount } from "./orders";
 import { PLATFORMS } from "./format";
 
@@ -52,14 +52,24 @@ export async function findServices(opts: {
     take: 200,
   });
 
+  // Panel của người xem (nếu có): quyết định cả giá lẫn cấu hình AI —
+  // panel đã tự thêm key AI thì livechat dùng key của panel, chưa có thì dùng AI hệ thống.
+  let panel: any = null;
+  const viewerPanelId = opts.viewer?.panelId || null;
+  if (viewerPanelId) panel = await prisma.childPanel.findUnique({ where: { id: viewerPanelId } });
+  else if (opts.panelSlug) panel = await prisma.childPanel.findUnique({ where: { slug: opts.panelSlug } });
+  if (panel && panel.status !== "ACTIVE") panel = null;
+  const aiCfg = panelAiConfig(panel);
+
   let picks: Pick[] = [];
   let mode: "ai" | "local" = "local";
-  if (await aiConfigured()) {
+  if (await aiConfigured(aiCfg)) {
     try {
       const catalog = services.map((sv) => ({ id: sv.id, name: sv.name, cat: sv.category.name, platform: sv.category.platform, rate: sv.rate, min: sv.min, max: sv.max }));
       const raw = await aiChat(
         "Bạn là trợ lý gợi ý dịch vụ tăng tương tác mạng xã hội. Dựa trên danh mục dịch vụ (JSON) và nhu cầu của khách, chọn tối đa 5 dịch vụ phù hợp nhất. CHỈ trả lời JSON hợp lệ dạng {\"picks\":[{\"id\":123,\"reason\":\"lý do ngắn tiếng Việt\"}]} — không giải thích gì thêm.",
-        `Nhu cầu của khách: "${q}"${platform ? ` — chỉ mạng xã hội: ${platform}` : ""}\nDanh mục: ${JSON.stringify(catalog)}`
+        `Nhu cầu của khách: "${q}"${platform ? ` — chỉ mạng xã hội: ${platform}` : ""}\nDanh mục: ${JSON.stringify(catalog)}`,
+        aiCfg
       );
       const parsed = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
       picks = (parsed.picks || []).filter((p: any) => services.some((sv) => sv.id === p.id)).slice(0, 5);
@@ -75,11 +85,6 @@ export async function findServices(opts: {
 
   // Giá theo người xem
   const settings = await getSettings();
-  let panel: any = null;
-  const panelId = opts.viewer?.panelId || null;
-  if (panelId) panel = await prisma.childPanel.findUnique({ where: { id: panelId } });
-  else if (opts.panelSlug) panel = await prisma.childPanel.findUnique({ where: { slug: opts.panelSlug } });
-  if (panel && panel.status !== "ACTIVE") panel = null;
   const overrides = panel
     ? await prisma.panelServicePrice.findMany({ where: { panelId: panel.id, serviceId: { in: picks.map((p) => p.id) } } })
     : [];

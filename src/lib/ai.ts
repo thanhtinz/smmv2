@@ -1,21 +1,35 @@
 import { getSettings } from "./settings";
 
 /** Lớp gọi AI dùng chung: OpenAI (và mọi endpoint tương thích) hoặc Google Gemini.
- *  Key do admin tự dán trong Cấu hình → tab AI. Chưa cấu hình thì aiConfigured() = false. */
-export async function aiConfigured() {
-  const s = await getSettings();
-  return s.ai_enabled === "1" && !!(s.ai_api_key || "").trim();
+ *  Mặc định dùng cấu hình toàn hệ thống do admin dán trong Cấu hình → tab AI.
+ *  Panel con có thể truyền AiConfig riêng (key của chính chủ panel) để ghi đè. */
+export type AiConfig = { enabled: boolean; provider: string; baseUrl?: string | null; apiKey?: string | null; model?: string | null };
+
+export function panelAiConfig(panel: { aiEnabled: boolean; aiProvider: string; aiBaseUrl?: string | null; aiApiKey?: string | null; aiModel?: string | null } | null | undefined): AiConfig | null {
+  if (!panel || !panel.aiEnabled || !(panel.aiApiKey || "").trim()) return null;
+  return { enabled: true, provider: panel.aiProvider || "openai", baseUrl: panel.aiBaseUrl, apiKey: panel.aiApiKey, model: panel.aiModel };
 }
 
-export async function aiChat(system: string, user: string): Promise<string> {
+async function resolveConfig(cfg?: AiConfig | null): Promise<AiConfig> {
+  if (cfg) return cfg;
   const s = await getSettings();
-  const key = (s.ai_api_key || "").trim();
-  if (s.ai_enabled !== "1" || !key) throw new Error("AI chưa được cấu hình");
-  const provider = s.ai_provider || "openai";
-  const model = (s.ai_model || "").trim() || (provider === "gemini" ? "gemini-2.0-flash" : "gpt-4o-mini");
+  return { enabled: s.ai_enabled === "1", provider: s.ai_provider || "openai", baseUrl: s.ai_base_url, apiKey: s.ai_api_key, model: s.ai_model };
+}
+
+export async function aiConfigured(cfg?: AiConfig | null) {
+  const c = await resolveConfig(cfg);
+  return c.enabled && !!(c.apiKey || "").trim();
+}
+
+export async function aiChat(system: string, user: string, cfg?: AiConfig | null): Promise<string> {
+  const c = await resolveConfig(cfg);
+  const key = (c.apiKey || "").trim();
+  if (!c.enabled || !key) throw new Error("AI chưa được cấu hình");
+  const provider = c.provider || "openai";
+  const model = (c.model || "").trim() || (provider === "gemini" ? "gemini-2.0-flash" : "gpt-4o-mini");
 
   if (provider === "gemini") {
-    const base = (s.ai_base_url || "https://generativelanguage.googleapis.com/v1beta").replace(/\/$/, "");
+    const base = (c.baseUrl || "https://generativelanguage.googleapis.com/v1beta").replace(/\/$/, "");
     const r = await fetch(`${base}/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -32,7 +46,7 @@ export async function aiChat(system: string, user: string): Promise<string> {
     return text;
   }
 
-  const base = (s.ai_base_url || "https://api.openai.com/v1").replace(/\/$/, "");
+  const base = (c.baseUrl || "https://api.openai.com/v1").replace(/\/$/, "");
   const r = await fetch(`${base}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
@@ -53,7 +67,7 @@ export async function aiChat(system: string, user: string): Promise<string> {
 }
 
 /** Kiểm tra kết nối: gửi một câu chào ngắn, trả về thông báo lỗi/thành công để admin thấy. */
-export async function testAiConnection(): Promise<string> {
-  const reply = await aiChat("Bạn là trợ lý kiểm tra kết nối. Trả lời đúng một từ: OK", "ping");
+export async function testAiConnection(cfg?: AiConfig | null): Promise<string> {
+  const reply = await aiChat("Bạn là trợ lý kiểm tra kết nối. Trả lời đúng một từ: OK", "ping", cfg);
   return reply.slice(0, 120);
 }

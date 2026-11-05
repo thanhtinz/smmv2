@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { notifyUser } from "@/lib/notify";
 import { sendMail, smtpConfigured } from "@/lib/mailer";
+import { panelAiConfig, testAiConnection } from "@/lib/ai";
 
 /** Actions riêng của chủ panel con — mọi thao tác đều khoá theo panel của chính
  *  người gọi (tra panel bằng ownerId, kiểm tra quyền sở hữu trên từng bản ghi). */
@@ -199,4 +200,48 @@ export async function panelSendMarketingEmail(formData: FormData) {
   const sent = await sendMail(emails, subject, html);
   await prisma.apiLog.create({ data: { kind: "panel_email", ref: `panel:${panel.id}`, detail: `${subject} → ${sent} khách (nhóm: ${segment || "all"})` } });
   done("/panel-admin/email-marketing", `Đã gửi email tới ${sent} khách của panel`);
+}
+
+/* ---------- Setup % hoa hồng của chủ panel ---------- */
+export async function panelSetCommissionAction(formData: FormData) {
+  const { panel } = await ownPanel("/panel-admin/hoa-hong");
+  const pct = Math.max(0, Math.min(200, int(formData, "commission")));
+  await prisma.childPanel.update({ where: { id: panel.id }, data: { markup: pct } });
+  done("/panel-admin/hoa-hong", `Đã đặt tỉ lệ hoa hồng ${pct}% — giá bán tại gian hàng = giá web mẹ + ${pct}%`);
+}
+
+/* ---------- AI riêng của panel (key do chủ panel tự thêm) ---------- */
+export async function panelSaveAiAction(formData: FormData) {
+  const { panel } = await ownPanel("/panel-admin/ai");
+  const rawKey = str(formData, "aiApiKey");
+  const data: any = {
+    aiEnabled: formData.get("aiEnabled") === "on",
+    aiProvider: str(formData, "aiProvider") === "gemini" ? "gemini" : "openai",
+    aiBaseUrl: str(formData, "aiBaseUrl") || null,
+    aiModel: str(formData, "aiModel") || null,
+  };
+  // Để trống ô key = giữ key đã lưu; nhập mới thì thay
+  if (rawKey && !rawKey.includes("•")) data.aiApiKey = rawKey;
+  await prisma.childPanel.update({ where: { id: panel.id }, data });
+  done("/panel-admin/ai", "Đã lưu cấu hình AI của panel");
+}
+
+export async function panelClearAiKeyAction(formData: FormData) {
+  const { panel } = await ownPanel("/panel-admin/ai");
+  void formData;
+  await prisma.childPanel.update({ where: { id: panel.id }, data: { aiApiKey: null, aiEnabled: false } });
+  done("/panel-admin/ai", "Đã xoá key AI của panel — livechat quay về AI hệ thống");
+}
+
+export async function panelTestAiAction(formData: FormData) {
+  const { panel } = await ownPanel("/panel-admin/ai");
+  void formData;
+  const cfg = panelAiConfig(panel);
+  if (!cfg) back("/panel-admin/ai", "err", "Panel chưa bật AI hoặc chưa lưu key — hãy lưu cấu hình trước khi kiểm tra");
+  try {
+    const reply = await testAiConnection(cfg!);
+    done("/panel-admin/ai", `Kết nối AI thành công — phản hồi: ${reply}`);
+  } catch (e: any) {
+    back("/panel-admin/ai", "err", `Kết nối AI thất bại: ${String(e?.message || e).slice(0, 160)}`);
+  }
 }

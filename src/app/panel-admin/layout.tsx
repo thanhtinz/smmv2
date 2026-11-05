@@ -47,6 +47,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
       ],
     },
     { href: "/panel-admin/bai-viet", label: "Bài viết", icon: "file" },
+    { href: "/panel-admin/ai", label: "AI tư vấn", icon: "cpu" },
     { href: "/panel-admin/cai-dat", label: "Cài đặt panel", icon: "gear" },
   ];
   const initial = (user.username || "A").slice(0, 1).toUpperCase();

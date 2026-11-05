@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { PageHead, Flash, Stat, I } from "@/components/ui";
+import { panelSetCommissionAction } from "@/app/actions/panel";
 import { vnd, num, dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ const PAGE_SIZE = 30;
  *  kèm số dư sau mỗi biến động — chỉ dữ liệu của chính chủ panel. */
 export default async function PanelCommissionPage({ searchParams }: { searchParams: { msg?: string; err?: string; days?: string; page?: string } }) {
   const user = (await getCurrentUser())!;
+  const panel = (await prisma.childPanel.findUnique({ where: { ownerId: user.id } }))!;
   const days = [7, 30, 90].includes(parseInt(searchParams.days || "30")) ? parseInt(searchParams.days || "30") : 30;
   const page = Math.max(1, parseInt(searchParams.page || "1") || 1);
   const since = new Date(Date.now() - days * 86400000);
@@ -27,6 +29,22 @@ export default async function PanelCommissionPage({ searchParams }: { searchPara
     <div>
       <PageHead title="Nhật ký hoa hồng" desc="Mọi biến động hoa hồng từ đơn qua gian hàng của bạn." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
+      <form action={panelSetCommissionAction} className="card mb-6 flex flex-wrap items-end gap-4 p-6">
+        <div className="min-w-[240px]">
+          <div className="font-bold text-slate-900">Setup % hoa hồng</div>
+          <p className="mt-0.5 text-sm text-slate-400">Giá bán tại gian hàng = giá web mẹ + % này. Phần chênh lệch (sau khi trừ % giảm theo cấp bậc bạn tặng khách) là hoa hồng của bạn trên mỗi đơn.</p>
+        </div>
+        <div className="ml-auto flex items-end gap-3">
+          <div>
+            <label className="lbl">% hoa hồng trên mỗi đơn</label>
+            <div className="flex items-center gap-2">
+              <input name="commission" type="number" min={0} max={200} step={1} defaultValue={panel.markup} className="inp !w-28 text-center font-bold" />
+              <span className="font-bold text-slate-500">%</span>
+            </div>
+          </div>
+          <button className="btn-primary !py-2.5">Lưu % hoa hồng</button>
+        </div>
+      </form>
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
         <Stat label={`Hoa hồng đã nhận (${days} ngày)`} value={vnd(earned._sum.amount || 0)} icon={I.wallet} tone="emerald" />
         <Stat label="Hoa hồng bị thu hồi (đơn hoàn/huỷ)" value={vnd(Math.abs(clawed._sum.amount || 0))} icon={I.money} tone="rose" />
