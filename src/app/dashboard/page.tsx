@@ -23,13 +23,12 @@ export default async function DashboardHome() {
   const nowD = new Date();
   const monthStart = new Date(nowD.getFullYear(), nowD.getMonth(), 1);
   const daysInMonth = new Date(nowD.getFullYear(), nowD.getMonth() + 1, 0).getDate();
-  const [statusGroup, topGroup, profitAgg, monthSmm, monthPre, myPanel] = await Promise.all([
+  const [statusGroup, topGroup, profitAgg, monthSmm, monthPre] = await Promise.all([
     prisma.smmOrder.groupBy({ by: ["status"], where: { userId: user.id }, _count: true }),
     prisma.smmOrder.groupBy({ by: ["serviceId"], where: { userId: user.id }, _count: true, _sum: { charge: true }, orderBy: { _count: { serviceId: "desc" } }, take: 5 }),
     prisma.transaction.aggregate({ where: { userId: user.id, type: { in: ["PANEL_COMMISSION", "REFERRAL_COMMISSION"] } }, _sum: { amount: true } }),
     prisma.smmOrder.aggregate({ where: { userId: user.id, createdAt: { gte: monthStart }, status: { not: "CANCELED" } }, _sum: { charge: true } }),
     prisma.premiumOrder.aggregate({ where: { userId: user.id, createdAt: { gte: monthStart }, status: { not: "CANCELED" } }, _sum: { total: true } }),
-    prisma.childPanel.findUnique({ where: { ownerId: user.id }, select: { id: true } }),
   ]);
   const stCount = (st: string) => statusGroup.find((g) => g.status === st)?._count || 0;
   const terminal = stCount("COMPLETED") + stCount("PARTIAL") + stCount("CANCELED") + stCount("REFUNDED");
@@ -114,11 +113,7 @@ export default async function DashboardHome() {
             <div className="flex justify-between"><span>Dự đoán chi cả tháng này</span><b className="text-brand-700">{vnd(projectedMonth)}</b></div>
             <div className="flex justify-between"><span>Ước tính tháng tới (cùng nhịp)</span><b className="text-slate-700">{vnd(projectedMonth)}</b></div>
           </div>
-          {myPanel ? (
-            <Link href="/panel-admin" className="btn-ghost btn-sm mt-4">Mở Panel Admin →</Link>
-          ) : (
-            <Link href="/dashboard/kiem-tien" className="btn-ghost btn-sm mt-4">Kiếm tiền với link giới thiệu →</Link>
-          )}
+          <Link href="/dashboard/kiem-tien" className="btn-ghost btn-sm mt-4">Kiếm tiền với link giới thiệu →</Link>
         </div>
       </div>
 
