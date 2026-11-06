@@ -23,6 +23,9 @@ const ICON_COLORS: Record<string, string> = {
   bell: "text-amber-400",
 };
 const GROUP_TILES: Record<string, string> = {
+  wallet: "bg-gradient-to-br from-emerald-500 to-teal-600",
+  megaphone: "bg-gradient-to-br from-amber-500 to-orange-600",
+  gear: "bg-gradient-to-br from-indigo-500 to-slate-600",
   cart: "bg-gradient-to-br from-sky-500 to-blue-600",
   gem: "bg-gradient-to-br from-fuchsia-500 to-violet-600",
   file: "bg-gradient-to-br from-orange-500 to-amber-600",
