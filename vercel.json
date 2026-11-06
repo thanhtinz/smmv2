@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/sync?services=1",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 3 * * *"
     }
   ],
   "buildCommand": "bash scripts/vercel-build.sh"
