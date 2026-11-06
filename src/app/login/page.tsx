@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SiteFooter, PublicHeader } from "@/components/site";
+import { AuthShell } from "@/components/auth-shell";
 import { Flash } from "@/components/ui";
 import { loginAction } from "@/app/actions/auth";
 import { getSettings } from "@/lib/settings";
@@ -12,11 +12,10 @@ export default async function LoginPage({ searchParams }: { searchParams: { msg?
   // Ở tên miền panel con: kiểu khung đăng nhập + nút Google theo cấu hình riêng của panel.
   const panel = await panelByHost().catch(() => null);
   const googleOn = panel ? !!panel.googleClientId : settings?.google_enabled === "1" && !!settings?.google_client_id;
+  const style = panel?.authStyle || settings?.auth_style;
   return (
-    <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
-      <PublicHeader />
-      <main className="flex-1 flex items-center justify-center px-4 py-14">
-        <div className={authCardClass(panel?.authStyle || settings?.auth_style)}>
+    <AuthShell style={style} brandName={panel?.name || settings?.site_name || "SMMv2"} tagline={panel?.tagline || settings?.site_tagline} panel={panel ? { name: panel.name, slug: panel.slug } : undefined} announcement={panel?.announcement} accent={panel?.accent}>
+        <div className={authCardClass(style)}>
           <h1 className="text-2xl font-extrabold text-slate-900">Đăng nhập</h1>
           <p className="text-sm text-slate-500 mt-1.5 mb-6">Vào bảng điều khiển để đặt đơn và quản lý số dư.</p>
           <Flash msg={searchParams.msg} err={searchParams.err} />
@@ -43,8 +42,6 @@ export default async function LoginPage({ searchParams }: { searchParams: { msg?
           </form>
           <p className="text-sm text-slate-500 mt-6 text-center">Chưa có tài khoản? <Link href="/register" className="text-brand-600 font-semibold">Đăng ký miễn phí</Link></p>
         </div>
-      </main>
-      <SiteFooter />
-    </div>
+    </AuthShell>
   );
 }

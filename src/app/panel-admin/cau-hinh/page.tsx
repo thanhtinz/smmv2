@@ -26,6 +26,12 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
     { code: "GLASS", value: "glass", name: "Kính mờ", tag: "Nền tối", desc: "Kính mờ trên nền gradient — phong cách hiện đại." },
     { code: "MINIMAL", value: "minimal", name: "Tối giản", tag: "Thẻ giữa màn hình", desc: "Không khung, ít chi tiết, tập trung vào form." },
     { code: "APP", value: "app", name: "Kiểu App", tag: "Thẻ giữa màn hình", desc: "Thẻ bo tròn lớn kiểu ứng dụng điện thoại." },
+    { code: "SPLIT", value: "split", name: "Chia đôi", tag: "Hai cột", desc: "Cột thương hiệu bên trái, form bên phải — kiểu panel quốc tế." },
+  ];
+  const landingTemplates = [
+    { code: "HIỆN ĐẠI", value: "hien-dai", name: "Hiện đại", desc: "Nền tối, header dạng pill, hero lớn — mẫu mặc định của web mẹ." },
+    { code: "SÁNG RỰC", value: "sang", name: "Sáng rực", desc: "Nền sáng, dải số liệu, thẻ nền tảng — kiểu SMMFlare quốc tế." },
+    { code: "CỔ ĐIỂN", value: "co-dien", name: "Cổ điển", desc: "Nền navy đậm, bảng nền tảng dạng bảng — kiểu panel SMM truyền thống." },
   ];
 
   /* ---------------- Landing Page ---------------- */
@@ -39,11 +45,27 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
           <div><label className="lbl">Phụ đề (Subtitle)</label><input className="inp" name="landingSubtitle" defaultValue={panel.landingSubtitle || ""} /><p className="mt-1 text-xs text-slate-400">Phụ đề ngay dưới tiêu đề chính — để trống dùng khẩu hiệu của gian hàng.</p></div>
         </div>
         <a href={`/cua-hang/${panel.slug}`} target="_blank" className="btn-ghost btn-sm inline-block">Xem gian hàng của bạn</a>
+        <div>
+          <label className="lbl">Mẫu Landing Page của gian hàng</label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {landingTemplates.map((a) => (
+              <label key={a.value} className="cursor-pointer">
+                <input type="radio" name="landingTemplate" value={a.value} defaultChecked={panel.landingTemplate === a.value} className="peer sr-only" />
+                <div className="h-full rounded-2xl border-2 border-slate-200 p-4 transition peer-checked:border-brand-600 peer-checked:bg-brand-50/60">
+                  <span className="rounded-md bg-slate-900 px-2 py-0.5 text-[11px] font-extrabold tracking-wide text-white">{a.code}</span>
+                  <div className="mt-2.5 text-sm font-bold text-slate-900">{a.name}</div>
+                  <p className="mt-2 text-[13px] leading-relaxed text-slate-500">{a.desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+          <label className="mt-3 flex items-center gap-2 text-sm text-slate-500"><input type="radio" name="landingTemplate" value="" defaultChecked={!panel.landingTemplate} className="accent-slate-900" /> Theo web mẹ</label>
+        </div>
       </section>
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Giao diện trang Đăng nhập / Đăng ký</div>
         <p className="text-sm text-slate-400">Áp dụng khi khách vào bằng tên miền riêng của gian hàng. Để trống là theo kiểu của web mẹ.</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {authStyles.map((a) => (
             <label key={a.value} className="cursor-pointer">
               <input type="radio" name="authStyle" value={a.value} defaultChecked={panel.authStyle === a.value} className="peer sr-only" />

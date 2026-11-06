@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { SiteFooter, PublicHeader } from "@/components/site";
+import { AuthShell } from "@/components/auth-shell";
+import { getSettings } from "@/lib/settings";
+import { authCardClass } from "@/lib/auth-style";
 import { Flash } from "@/components/ui";
 import { panelRegisterAction } from "@/app/actions/auth";
 
@@ -11,11 +13,11 @@ export const dynamic = "force-dynamic";
 export default async function PanelRegister({ params, searchParams }: { params: { slug: string }; searchParams: { err?: string; msg?: string; ref?: string } }) {
   const panel = await prisma.childPanel.findUnique({ where: { slug: params.slug } });
   if (!panel || panel.status !== "ACTIVE") notFound();
+  const settings = await getSettings().catch(() => null);
+  const style = panel.authStyle || settings?.auth_style;
   return (
-    <div data-accent={panel.accent} className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
-      <PublicHeader panel={{ name: panel.name, slug: panel.slug }} announcement={panel.announcement} />
-      <main className="flex-1 flex items-center justify-center px-4 py-14">
-        <div className="card p-8 w-full max-w-md">
+    <AuthShell style={style} brandName={panel.name} tagline={panel.tagline} panel={{ name: panel.name, slug: panel.slug }} announcement={panel.announcement} accent={panel.accent}>
+        <div className={authCardClass(style)}>
           <h1 className="text-2xl font-extrabold text-slate-900">Đăng ký tài khoản</h1>
           <p className="text-sm text-slate-500 mt-1.5 mb-6">Tại <b className="text-slate-700">{panel.name}</b> — tài khoản thuộc về panel này và mua theo bảng giá của panel.</p>
           <Flash msg={searchParams.msg} err={searchParams.err} />
@@ -49,8 +51,6 @@ export default async function PanelRegister({ params, searchParams }: { params: 
           <p className="text-sm text-slate-500 mt-6 text-center">Đã có tài khoản? <Link href="/login" className="text-brand-600 font-semibold">Đăng nhập</Link></p>
           <p className="text-xs text-slate-400 mt-2 text-center"><Link href={`/cua-hang/${panel.slug}`}>← Về trang panel {panel.name}</Link></p>
         </div>
-      </main>
-      <SiteFooter />
-    </div>
+    </AuthShell>
   );
 }

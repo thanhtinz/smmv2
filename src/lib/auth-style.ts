@@ -4,6 +4,7 @@ export function authCardClass(style: string | undefined): string {
     case "glass": return "w-full max-w-md rounded-3xl border border-white/50 bg-white/70 p-8 shadow-2xl backdrop-blur-xl";
     case "minimal": return "w-full max-w-md p-8";
     case "app": return "w-full max-w-md rounded-[2.5rem] bg-white p-8 shadow-2xl";
+    case "split": return "w-full max-w-md p-2 sm:p-4";
     default: return "card p-8 w-full max-w-md";
   }
 }

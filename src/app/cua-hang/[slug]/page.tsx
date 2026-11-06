@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { SiteFooter } from "@/components/site";
 import { getCurrentUser } from "@/lib/auth";
 import { LandingView } from "@/components/landing";
+import { LandingLight, LandingClassic } from "@/components/landing-variants";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,8 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
   const panel = await prisma.childPanel.findUnique({ where: { slug: params.slug } });
   if (!panel || panel.status !== "ACTIVE") notFound();
   const { getSettings } = await import("@/lib/settings");
-  if ((await getSettings()).module_panels === "0") notFound();
+  const motherSettings = await getSettings();
+  if (motherSettings.module_panels === "0") notFound();
   const user = await getCurrentUser().catch(() => null);
   const panelRate = (r: number) => Math.round(r * (1 + panel.markup / 100));
   const [services, categories, memberCount, panelOrderCount, panelPremiumCount, premiums, statusGroups] = await Promise.all([
@@ -41,9 +43,11 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
   const completion = panelOrderCount > 0 ? Math.round((doneCount / panelOrderCount) * 1000) / 10 : 100;
   const registerHref = `/cua-hang/${panel.slug}/dang-ky`;
 
+  const tpl = panel.landingTemplate || motherSettings.landing_template;
+  const Landing = tpl === "sang" ? LandingLight : tpl === "co-dien" ? LandingClassic : LandingView;
   return (
     <div data-accent={panel.accent}>
-      <LandingView
+      <Landing
         showSmm={panel.sellSmm}
         showPremium={panel.sellPremium}
         brandName={panel.name}

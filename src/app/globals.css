@@ -240,3 +240,12 @@ html[data-font="rounded"] body { font-family: Verdana, Geneva, "Segoe UI", sans-
 .dark .admin-scope .hover\:bg-slate-50:hover { background-color: #f8fafc; }
 .dark .admin-scope .hover\:bg-white:hover { background-color: #ffffff; }
 .dark .admin-scope .hover\:text-slate-900:hover { color: #0f172a; }
+
+/* Trang auth: form luôn theo tông sáng (thẻ trắng/kính) kể cả khi app ở dark mode */
+.auth-scope { color-scheme: light; }
+.auth-scope .inp { background-color: #fff !important; color: #0f172a !important; border-color: #e2e8f0 !important; }
+.auth-scope .inp::placeholder { color: #94a3b8 !important; }
+.auth-scope .lbl { color: #475569 !important; }
+.auth-scope h1 { color: #0f172a !important; }
+.auth-scope .text-slate-500 { color: #64748b !important; }
+.auth-scope .text-slate-400 { color: #94a3b8 !important; }

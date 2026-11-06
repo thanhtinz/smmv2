@@ -4,6 +4,7 @@ import { getSettings } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth";
 import { SiteFooter } from "@/components/site";
 import { LandingView } from "@/components/landing";
+import { LandingLight, LandingClassic } from "@/components/landing-variants";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +42,9 @@ export default async function HomePage() {
   const doneCount = statusGroups.filter((g) => g.status === "COMPLETED" || g.status === "PARTIAL").reduce((a, g) => a + g._count, 0);
   const completion = smmOrderCount > 0 ? Math.round((doneCount / smmOrderCount) * 1000) / 10 : 100;
 
+  const Landing = s.landing_template === "sang" ? LandingLight : s.landing_template === "co-dien" ? LandingClassic : LandingView;
   return (
-    <LandingView
+    <Landing
       showSmm={s.module_smm !== "0"}
       showPremium={s.module_premium !== "0"}
       brandName={s.site_name}

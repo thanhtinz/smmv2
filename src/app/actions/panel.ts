@@ -571,7 +571,8 @@ export async function panelSaveConfigAction(formData: FormData) {
       where: { id: panel.id },
       data: {
         landingHeadline: str(formData, "landingHeadline") || null, landingSubtitle: str(formData, "landingSubtitle") || null,
-        authStyle: ["classic", "glass", "minimal", "app"].includes(str(formData, "authStyle")) ? str(formData, "authStyle") : null,
+        authStyle: ["classic", "glass", "minimal", "app", "split"].includes(str(formData, "authStyle")) ? str(formData, "authStyle") : null,
+        landingTemplate: ["hien-dai", "sang", "co-dien"].includes(str(formData, "landingTemplate")) ? str(formData, "landingTemplate") : null,
       },
     });
     done(backTo, "Đã lưu trang giới thiệu & kiểu trang đăng nhập của panel");

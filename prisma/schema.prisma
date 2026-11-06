@@ -581,7 +581,8 @@ model ChildPanel {
   ogImageUrl      String? @db.VarChar(500)
   landingHeadline String? @db.VarChar(300)
   landingSubtitle String? @db.VarChar(300)
-  authStyle   String? @db.VarChar(20) // classic | glass | minimal | app (trống = theo web mẹ)
+  authStyle   String? @db.VarChar(20) // classic | glass | minimal | app | split (trống = theo web mẹ)
+  landingTemplate String? @db.VarChar(20) // hien-dai | sang | co-dien (trống = theo web mẹ)
   homeModalEnabled Boolean @default(false)
   homeModalContent String? @db.Text
   sysAnnounceEnabled  Boolean @default(true) // banner thông báo hệ thống ở trang chủ khách của panel

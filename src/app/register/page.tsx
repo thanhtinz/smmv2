@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SiteFooter, PublicHeader } from "@/components/site";
+import { AuthShell } from "@/components/auth-shell";
 import { Flash } from "@/components/ui";
 import { registerAction } from "@/app/actions/auth";
 import { prisma } from "@/lib/db";
@@ -11,11 +11,10 @@ export default async function RegisterPage({ searchParams }: { searchParams: { m
   const ref = (searchParams.ref || "").trim().toUpperCase();
   const referrer = ref ? await prisma.user.findUnique({ where: { refCode: ref }, select: { username: true } }) : null;
   const settings = await getSettings().catch(() => null);
+  const style = settings?.auth_style;
   return (
-    <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
-      <PublicHeader />
-      <main className="flex-1 flex items-center justify-center px-4 py-14">
-        <div className={authCardClass(settings?.auth_style)}>
+    <AuthShell style={style} brandName={settings?.site_name || "SMMv2"} tagline={settings?.site_tagline}>
+        <div className={authCardClass(style)}>
           <h1 className="text-2xl font-extrabold text-slate-900">Đăng ký tài khoản</h1>
           <p className="text-sm text-slate-500 mt-1.5 mb-6">Miễn phí — có ngay API key cho đại lý sau khi đăng ký.</p>
           {referrer && <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">Bạn được <b>{referrer.username}</b> giới thiệu</div>}
@@ -53,8 +52,6 @@ export default async function RegisterPage({ searchParams }: { searchParams: { m
           </form>
           <p className="text-sm text-slate-500 mt-6 text-center">Đã có tài khoản? <Link href="/login" className="text-brand-600 font-semibold">Đăng nhập</Link></p>
         </div>
-      </main>
-      <SiteFooter />
-    </div>
+    </AuthShell>
   );
 }
