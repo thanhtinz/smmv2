@@ -7,14 +7,37 @@ import { dshort } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function PostsPage({ searchParams }: { searchParams: { cat?: string } }) {
+export default async function PostsPage({ searchParams }: { searchParams: { cat?: string; q?: string } }) {
   const s = await getSettings();
   if (s.module_blog === "0") notFound();
   const catId = searchParams.cat ? parseInt(searchParams.cat) : undefined;
+  const q = (searchParams.q || "").trim();
+  const showPinned = !catId && !q;
+  const pinned = showPinned
+    ? await prisma.post.findMany({ where: { published: true, pinned: true }, orderBy: { id: "desc" }, take: 4, include: { category: true } })
+    : [];
   const [cats, posts] = await Promise.all([
     prisma.postCategory.findMany({ where: { active: true }, orderBy: { id: "asc" }, include: { _count: { select: { posts: { where: { published: true } } } } } }),
-    prisma.post.findMany({ where: { published: true, ...(catId ? { categoryId: catId } : {}) }, orderBy: { id: "desc" }, take: 60, include: { category: true } }),
+    prisma.post.findMany({ where: { published: true, ...(catId ? { categoryId: catId } : {}), ...(q ? { title: { contains: q } } : {}), ...(pinned.length ? { id: { notIn: pinned.map((p) => p.id) } } : {}) }, orderBy: { id: "desc" }, take: 60, include: { category: true } }),
   ]);
+  const card = (p: (typeof posts)[number]) => (
+    <Link key={p.id} href={`/bai-viet/${p.slug}`} className="card group overflow-hidden transition hover:shadow-lg">
+      {p.coverUrl ? (
+        <img src={p.coverUrl} alt="" className="h-44 w-full object-cover" />
+      ) : (
+        <div className="flex h-44 w-full items-center justify-center bg-gradient-to-br from-brand-500 to-brand-700 text-4xl font-black text-white/90">{(p.title || "B").slice(0, 1)}</div>
+      )}
+      <div className="p-5">
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          {p.category && <span className="rounded-full bg-brand-50 px-2 py-0.5 font-semibold text-brand-600">{p.category.name}</span>}
+          <span>{dshort(p.createdAt)}</span>
+          <span className="ml-auto">{p.views} lượt xem</span>
+        </div>
+        <h2 className="mt-2 line-clamp-2 font-bold text-slate-900 group-hover:text-brand-700">{p.title}</h2>
+        {p.excerpt && <p className="mt-1.5 line-clamp-3 text-sm text-slate-500">{p.excerpt}</p>}
+      </div>
+    </Link>
+  );
   return (
     <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
       <PublicHeader />
@@ -29,27 +52,22 @@ export default async function PostsPage({ searchParams }: { searchParams: { cat?
             ))}
           </div>
         )}
-        {posts.length === 0 ? (
+        <form method="get" className="mt-5 flex max-w-md gap-2">
+          {catId ? <input type="hidden" name="cat" value={catId} /> : null}
+          <input name="q" defaultValue={q} placeholder="Tìm kiếm bài viết..." className="inp flex-1" />
+          <button className="btn-primary !py-2">Tìm</button>
+        </form>
+        {pinned.length > 0 && (
+          <>
+            <h2 className="mt-10 text-lg font-extrabold text-slate-900">Bài viết ghim</h2>
+            <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">{pinned.map(card)}</div>
+          </>
+        )}
+        {posts.length === 0 && pinned.length === 0 ? (
           <div className="card mt-8 p-12 text-center text-slate-400">Chưa có bài viết nào trong mục này.</div>
         ) : (
           <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {posts.map((p) => (
-              <Link key={p.id} href={`/bai-viet/${p.slug}`} className="card group overflow-hidden transition hover:shadow-lg">
-                {p.coverUrl ? (
-                  <img src={p.coverUrl} alt="" className="h-44 w-full object-cover" />
-                ) : (
-                  <div className="flex h-44 w-full items-center justify-center bg-gradient-to-br from-brand-500 to-brand-700 text-4xl font-black text-white/90">{(p.title || "B").slice(0, 1)}</div>
-                )}
-                <div className="p-5">
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    {p.category && <span className="rounded-full bg-brand-50 px-2 py-0.5 font-semibold text-brand-600">{p.category.name}</span>}
-                    <span>{dshort(p.createdAt)}</span>
-                  </div>
-                  <h2 className="mt-2 line-clamp-2 font-bold text-slate-900 group-hover:text-brand-700">{p.title}</h2>
-                  {p.excerpt && <p className="mt-1.5 line-clamp-3 text-sm text-slate-500">{p.excerpt}</p>}
-                </div>
-              </Link>
-            ))}
+            {posts.map(card)}
           </div>
         )}
       </main>

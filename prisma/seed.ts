@@ -52,14 +52,6 @@ async function main() {
   });
   console.log("Admin:", admin.username, "| mật khẩu mẫu: Admin@123 (đổi ngay sau khi đăng nhập)");
 
-  await prisma.announcement.upsert({
-    where: { id: 1 },
-    create: {
-      title: "Chào mừng bạn đến với hệ thống mới",
-      body: "Nạp tiền chuyển khoản đúng nội dung SMM + mã nạp của bạn để được cộng tự động. Dịch vụ API chạy ngay khi đặt; dịch vụ thủ công được xử lý trong giờ hành chính.",
-    },
-    update: {},
-  });
 
   /* ---------- Dịch vụ SMM mẫu (thủ công) ---------- */
   if ((await prisma.smmService.count()) === 0) {

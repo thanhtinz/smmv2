@@ -72,7 +72,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/khuyen-mai", label: "Khuyến mãi", icon: "percent", adminOnly: true } as any,
         { href: "/admin/email-marketing", label: "Email Marketing", icon: "mail", adminOnly: true } as any,
         { href: "/admin/lien-he", label: "Widget Liên hệ", icon: "megaphone", adminOnly: true } as any,
-        { href: "/admin/thong-bao", label: "Thông báo", icon: "bell", adminOnly: true } as any,
       ],
     } as any,
     {

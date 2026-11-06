@@ -5,6 +5,7 @@ import { CopyBtn } from "@/components/client";
 import { adminSaveSettings } from "@/app/actions/admin";
 import SettingsTabs from "@/components/settings-tabs";
 import { BonusTiersEditor, TelegramBotsEditor, ToolKeyField } from "@/components/settings-editors";
+import { RichTextEditor } from "@/components/rich-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -254,6 +255,11 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
     <>
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Thông báo hệ thống</div>
+        <div>
+          <label className="lbl">Hiện banner thông báo ở trang chủ của khách</label>
+          <select className="inp" name="sys_announce_enabled" defaultValue={s.sys_announce_enabled === "1" ? "1" : "0"}><option value="0">Tắt</option><option value="1">Bật</option></select>
+        </div>
+        <div><label className="lbl">Nội dung thông báo (hiện trong banner xanh ở đầu trang chủ của khách)</label><RichTextEditor name="sys_announce_content" defaultValue={s.sys_announce_content} minHeight={140} /></div>
         <div><label className="lbl">Thanh thông báo trên cùng (để trống = tắt)</label><input className="inp" name="announcement_bar" defaultValue={s.announcement_bar} /></div>
       </section>
       <section className="card p-6 space-y-4">

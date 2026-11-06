@@ -48,6 +48,8 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   deposit_bonus_tiers: "[]",
   maintenance: "0",
   announcement_bar: "",
+  sys_announce_enabled: "1",
+  sys_announce_content: "",
   // Landing + thương hiệu mở rộng + SEO (Cài đặt → Landing Page / Chung)
   landing_enabled: "1",
   landing_headline: "",

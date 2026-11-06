@@ -3,7 +3,6 @@ import { prisma } from "@/lib/db";
 import { SiteFooter } from "@/components/site";
 import { getCurrentUser } from "@/lib/auth";
 import { LandingView } from "@/components/landing";
-import { getAnnouncementsFor, groupAnnouncements } from "@/lib/announcements";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +56,6 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
         sampleService={services[0]?.name}
         links={{ login: "/login", register: registerHref, dashboard: "/dashboard", order: "/dashboard/dat-hang", services: registerHref, api: `/cua-hang/${panel.slug}/tai-lieu-api` }}
         announcement={panel.announcement}
-        updates={{ groups: groupAnnouncements(await getAnnouncementsFor(panel.id, 5)), href: `/cua-hang/${panel.slug}/thong-bao` }}
         footer={<SiteFooter brand={{ slug: panel.slug, name: panel.name, tagline: panel.tagline, zalo: panel.supportZalo, telegram: panel.supportTelegram, facebook: panel.supportFacebook, hotline: panel.supportHotline }} />}
       />
     </div>

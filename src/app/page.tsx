@@ -4,7 +4,6 @@ import { getSettings } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth";
 import { SiteFooter } from "@/components/site";
 import { LandingView } from "@/components/landing";
-import { getAnnouncementsFor, groupAnnouncements } from "@/lib/announcements";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +41,6 @@ export default async function HomePage() {
   const doneCount = statusGroups.filter((g) => g.status === "COMPLETED" || g.status === "PARTIAL").reduce((a, g) => a + g._count, 0);
   const completion = smmOrderCount > 0 ? Math.round((doneCount / smmOrderCount) * 1000) / 10 : 100;
 
-  const annGroups = groupAnnouncements(await getAnnouncementsFor(null, 5));
   return (
     <LandingView
       showSmm={s.module_smm !== "0"}
@@ -56,7 +54,6 @@ export default async function HomePage() {
       premiums={premiums.filter((p) => p.variants[0]).map((p) => ({ name: p.name, tagline: p.tagline, from: p.variants[0].price, href: `/premium/${p.slug}` }))}
       sampleService={featured[0]?.name}
       links={{ login: "/login", register: "/register", dashboard: "/dashboard", order: "/dashboard/dat-hang", services: "/dich-vu", api: "/api-docs" }}
-      updates={{ groups: annGroups, href: "/thong-bao" }}
       footer={<SiteFooter />}
     />
   );

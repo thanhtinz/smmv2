@@ -6,6 +6,7 @@ import { panelSaveConfigAction } from "@/app/actions/panel";
 import { updatePanelAction } from "@/app/actions/user";
 import SettingsTabs from "@/components/settings-tabs";
 import { ToolKeyField } from "@/components/settings-editors";
+import { RichTextEditor } from "@/components/rich-editor";
 import { vnd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -227,6 +228,11 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Thanh thông báo của gian hàng</div>
         <div><label className="lbl">Nội dung thanh thông báo</label><input name="announcement" defaultValue={panel.announcement || ""} className="inp" placeholder="VD: Khuyến mãi nạp lần đầu +10% hôm nay" /><p className="mt-1 text-xs text-slate-400">Hiện ở đầu trang giới thiệu của gian hàng. Để trống là tắt.</p></div>
+      </section>
+      <section className="card p-6 space-y-4">
+        <div className="font-bold text-slate-900">Thông báo hệ thống ở trang chủ khách</div>
+        <label className="flex items-center justify-between gap-4"><span className="text-sm text-slate-600">Bật banner thông báo của panel</span><input type="checkbox" name="sysAnnounceEnabled" defaultChecked={panel.sysAnnounceEnabled} className="h-5 w-5 accent-slate-900" /></label>
+        <div><label className="lbl">Nội dung banner (để trống = dùng banner của web mẹ)</label><RichTextEditor name="sysAnnounceContent" defaultValue={panel.sysAnnounceContent || ""} minHeight={120} /></div>
       </section>
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Cửa sổ bật lên ở trang chủ (Modal)</div>

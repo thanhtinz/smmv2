@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { I } from "@/components/ui";
 import { vnd, num, PLATFORMS } from "@/lib/format";
-import { AnnouncementTimeline, AnnouncementGroupDTO } from "@/components/announcement-timeline";
 
 /**
  * Landing tối dùng chung cho web mẹ và gian hàng panel con (hai nơi hiển thị giống hệt nhau,
@@ -23,7 +22,6 @@ export function LandingView(props: {
   showSmm?: boolean;
   showPremium?: boolean;
   announcement?: string | null;
-  updates?: { groups: AnnouncementGroupDTO[]; href: string } | null;
   footer: React.ReactNode;
 }) {
   const { brandName, stats, platforms, premiums, links } = props;
@@ -137,20 +135,6 @@ export function LandingView(props: {
             </div>
           </div>
         </section>
-
-        {/* ===== Thông báo & cập nhật theo ngày ===== */}
-        {props.updates && props.updates.groups.length > 0 && (
-          <section className="mx-auto max-w-4xl scroll-mt-28 px-4 py-14">
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-[0.2em] text-rose-400">Thông báo</div>
-                <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white">Cập nhật mới nhất</h2>
-              </div>
-              <Link href={props.updates.href} className="text-sm font-bold text-rose-400 transition hover:text-rose-300">Xem tất cả →</Link>
-            </div>
-            <AnnouncementTimeline groups={props.updates.groups} />
-          </section>
-        )}
 
         {/* ===== Tính năng ===== */}
         <section id="tinh-nang" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-16 lg:py-20">

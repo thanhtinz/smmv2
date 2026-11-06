@@ -537,7 +537,7 @@ export async function adminSaveSettings(formData: FormData) {
     "site_name", "site_tagline", "support_telegram", "support_facebook", "support_zalo", "support_hotline",
     "child_ns1", "child_ns2",
     "bank_name", "bank_account", "bank_holder", "bank_branch",
-    "momo_phone", "momo_name", "deposit_min", "deposit_bonus_tiers", "maintenance", "announcement_bar", "affiliate_percent",
+    "momo_phone", "momo_name", "deposit_min", "deposit_bonus_tiers", "maintenance", "announcement_bar", "sys_announce_enabled", "sys_announce_content", "affiliate_percent",
     "usd_rate", "paypal_enabled", "paypal_client_id", "paypal_client_secret", "paypal_mode",
     "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret", "profit_protection",
     "default_accent", "default_mode",
@@ -567,23 +567,6 @@ export async function adminSaveSettings(formData: FormData) {
   done("/admin/cau-hinh", "Đã lưu cấu hình");
 }
 
-export async function adminSaveAnnouncement(formData: FormData) {
-  await requireAdmin();
-  const id = parseInt(String(formData.get("id") || "0"));
-  const data = {
-    title: String(formData.get("title") || "").trim(),
-    body: String(formData.get("body") || "").trim(),
-    active: formData.get("active") === "on",
-  };
-  if (!data.title || !data.body) back("/admin/thong-bao", "err", "Thiếu tiêu đề hoặc nội dung");
-  if (formData.get("delete") === "1") {
-    await prisma.announcement.delete({ where: { id } });
-    done("/admin/thong-bao", "Đã xoá thông báo");
-  }
-  if (id) await prisma.announcement.update({ where: { id }, data });
-  else await prisma.announcement.create({ data });
-  done("/admin/thong-bao", "Đã lưu thông báo");
-}
 
 /** Xoá giao dịch nạp: theo danh sách id đã chọn, hoặc toàn bộ (chỉ tài khoản web mẹ). */
 export async function adminDeleteDepositsAction(formData: FormData) {

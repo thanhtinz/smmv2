@@ -581,6 +581,7 @@ export async function panelSaveConfigAction(formData: FormData) {
       where: { id: panel.id },
       data: {
         announcement: str(formData, "announcement").slice(0, 500) || null,
+        sysAnnounceEnabled: formData.get("sysAnnounceEnabled") === "on", sysAnnounceContent: str(formData, "sysAnnounceContent") || null,
         homeModalEnabled: formData.get("homeModalEnabled") === "on", homeModalContent: str(formData, "homeModalContent") || null,
         termsEnabled: formData.get("termsEnabled") === "on", termsTitle: str(formData, "termsTitle") || null,
         termsContent: str(formData, "termsContent") || null, termsVersion: Math.max(1, int(formData, "termsVersion") || 1),
@@ -1030,24 +1031,3 @@ export async function panelDeleteDepositsAction(formData: FormData) {
   redirect("/panel-admin/nap-tien?msg=" + encodeURIComponent("Đã xoá giao dịch nạp"));
 }
 
-/** Đăng / sửa / xoá thông báo timeline trên trang chủ gian hàng (chỉ của panel mình). */
-export async function panelSaveAnnouncementAction(formData: FormData) {
-  const { panel } = await ownPanelOwner("/panel-admin/thong-bao");
-  const backTo = "/panel-admin/thong-bao";
-  const id = int(formData, "id");
-  if (formData.get("delete")) {
-    if (id) await prisma.announcement.deleteMany({ where: { id, panelId: panel.id } });
-    done(backTo, "Đã xoá thông báo");
-  }
-  const title = str(formData, "title").slice(0, 200);
-  const body = str(formData, "body");
-  if (!title || !body) back(backTo, "err", "Thiếu tiêu đề hoặc nội dung");
-  const data = { title, body, active: formData.get("active") != null };
-  if (id) {
-    const ok = await prisma.announcement.updateMany({ where: { id, panelId: panel.id }, data });
-    if (!ok.count) back(backTo, "err", "Không tìm thấy thông báo");
-    done(backTo, "Đã lưu thông báo");
-  }
-  await prisma.announcement.create({ data: { ...data, panelId: panel.id } });
-  done(backTo, "Đã đăng thông báo lên gian hàng");
-}

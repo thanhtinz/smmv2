@@ -443,17 +443,6 @@ model TicketMessage {
   createdAt DateTime @default(now())
 }
 
-model Announcement {
-  id        Int      @id @default(autoincrement())
-  panelId   Int? // null = thông báo của web mẹ; có giá trị = thông báo riêng của panel con đó
-  title     String   @db.VarChar(200)
-  body      String   @db.Text
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  @@index([panelId, active, createdAt])
-}
-
 // Cấu hình site dạng key-value: site_name, bank_*, momo_*, deposit_bonus_tiers,
 // support_*, maintenance...
 model ContactWidget {
@@ -595,6 +584,8 @@ model ChildPanel {
   authStyle   String? @db.VarChar(20) // classic | glass | minimal | app (trống = theo web mẹ)
   homeModalEnabled Boolean @default(false)
   homeModalContent String? @db.Text
+  sysAnnounceEnabled  Boolean @default(true) // banner thông báo hệ thống ở trang chủ khách của panel
+  sysAnnounceContent  String? @db.Text // nội dung HTML của banner đó (trống = dùng của web mẹ)
   termsEnabled     Boolean @default(false)
   termsTitle       String? @db.VarChar(200)
   termsContent     String? @db.Text
@@ -745,6 +736,7 @@ model Post {
   categoryId Int?
   category   PostCategory? @relation(fields: [categoryId], references: [id])
   published  Boolean       @default(false)
+  pinned     Boolean       @default(false)
   views      Int           @default(0)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt

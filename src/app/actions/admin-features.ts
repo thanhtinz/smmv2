@@ -119,6 +119,7 @@ export async function savePostAction(formData: FormData) {
     coverUrl: str(formData, "coverUrl") || null,
     categoryId: int(formData, "categoryId") || null,
     published: formData.get("published") === "on",
+    pinned: formData.get("pinned") === "on",
   };
   try {
     if (id) await prisma.post.update({ where: { id }, data });

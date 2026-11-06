@@ -3,7 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Stat, I, Badge, PageHead } from "@/components/ui";
 import { vnd, num, SMM_STATUS, LEVEL_NAME, dt } from "@/lib/format";
-import { getAnnouncementsFor } from "@/lib/announcements";
+import { getSettings } from "@/lib/settings";
+import { RichText } from "@/components/rich-text";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +12,10 @@ export default async function DashboardHome() {
   const user = (await getCurrentUser())!;
   const since = new Date(Date.now() - 13 * 86400000);
   since.setHours(0, 0, 0, 0);
-  const [smmCount, smmRunning, preCount, announcements, recent, spendSmm, spendPre] = await Promise.all([
+  const [smmCount, smmRunning, preCount, recent, spendSmm, spendPre] = await Promise.all([
     prisma.smmOrder.count({ where: { userId: user.id } }),
     prisma.smmOrder.count({ where: { userId: user.id, status: { in: ["PENDING", "PROCESSING", "IN_PROGRESS"] } } }),
     prisma.premiumOrder.count({ where: { userId: user.id } }),
-    getAnnouncementsFor(user.panelId ?? null, 3),
     prisma.smmOrder.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 6, include: { service: true } }),
     prisma.smmOrder.findMany({ where: { userId: user.id, createdAt: { gte: since }, status: { not: "CANCELED" } }, select: { charge: true, createdAt: true } }),
     prisma.premiumOrder.findMany({ where: { userId: user.id, createdAt: { gte: since }, status: { not: "CANCELED" } }, select: { total: true, createdAt: true } }),
@@ -53,9 +53,23 @@ export default async function DashboardHome() {
   for (const o of spendPre) addSpend(o.createdAt, o.total);
   const maxDay = Math.max(...days.map((d) => d.value), 1);
   const totalSpend14 = days.reduce((s, d) => s + d.value, 0);
+  // Banner thông báo hệ thống (như panel mẫu): 1 banner duy nhất ngay dưới lời chào —
+  // khách panel thấy banner của panel mình, panel chưa đặt thì dùng của web mẹ.
+  const s = await getSettings();
+  let bannerHtml: string | null = null;
+  if (user.panelId) {
+    const p = await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sysAnnounceEnabled: true, sysAnnounceContent: true } });
+    if (p?.sysAnnounceEnabled && p.sysAnnounceContent) bannerHtml = p.sysAnnounceContent;
+  }
+  if (!bannerHtml && s.sys_announce_enabled === "1" && s.sys_announce_content) bannerHtml = s.sys_announce_content;
   return (
     <div>
       <PageHead title={`Xin chào, ${user.fullName || user.username}`} desc={`Cấp bậc: ${LEVEL_NAME[user.level]} · Mã nạp tiền của bạn: SMM ${user.depositCode}`} />
+      {bannerHtml && (
+        <div className="mb-6 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4">
+          <RichText value={bannerHtml} />
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <Stat label="Số dư khả dụng" value={vnd(user.balance)} icon={I.wallet} sub={<Link href="/dashboard/nap-tien" className="text-brand-600 font-medium">Nạp thêm →</Link>} />
         <Stat label="Tổng đã nạp" value={vnd(user.totalDeposited)} icon={I.db} />
@@ -132,20 +146,6 @@ export default async function DashboardHome() {
           ))}
         </div>
       </div>
-
-      {announcements.length > 0 && (
-        <div className="card p-5 mt-6">
-          <div className="flex items-center gap-2 font-bold text-slate-900 mb-3"><span className="text-brand-600">{I.megaphone}</span>Thông báo</div>
-          <div className="space-y-3">
-            {announcements.map((a) => (
-              <div key={a.id} className="border-l-4 border-brand-500 bg-slate-50 rounded-r-xl px-4 py-3">
-                <div className="font-semibold text-sm text-slate-800">{a.title} <span className="text-slate-400 font-normal text-xs ml-2">{dt(a.createdAt)}</span></div>
-                <p className="text-sm text-slate-500 mt-0.5">{a.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="card mt-6 overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">

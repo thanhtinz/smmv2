@@ -36,7 +36,7 @@ export default async function AdminPosts({ searchParams }: { searchParams: { edi
                   {posts.map((p) => (
                     <tr key={p.id}>
                       <td className="td">
-                        <div className="max-w-[320px] truncate font-medium">{p.title}</div>
+                        <div className="max-w-[320px] truncate font-medium">{p.title}{p.pinned ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">Đã ghim</span> : null}</div>
                         <div className="max-w-[320px] truncate text-xs text-slate-400">{p.excerpt || p.slug}</div>
                       </td>
                       <td className="td text-slate-500">{p.category?.name || "—"}</td>
@@ -68,6 +68,7 @@ export default async function AdminPosts({ searchParams }: { searchParams: { edi
           <div><label className="lbl">Tóm tắt</label><textarea className="inp" name="excerpt" rows={2} defaultValue={edit?.excerpt || ""} /></div>
           <div><label className="lbl">Nội dung</label><textarea className="inp" name="content" rows={12} required defaultValue={edit?.content || ""} placeholder={"Mỗi dòng là một đoạn văn.\nDòng bắt đầu bằng ## là tiêu đề mục."} /></div>
           <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" name="published" defaultChecked={edit ? edit.published : true} className="h-4 w-4 accent-brand-600" /> Xuất bản ngay</label>
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" name="pinned" defaultChecked={edit?.pinned} className="h-4 w-4 accent-brand-600" /> Ghim lên đầu trang Bài viết</label>
           <button className="btn-primary w-full">{edit ? "Lưu thay đổi" : "Đăng bài"}</button>
         </form>
       </div>
