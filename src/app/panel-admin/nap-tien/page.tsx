@@ -1,60 +1,140 @@
 import { prisma } from "@/lib/db";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
-import { PageHead, Flash, Badge, Stat, I } from "@/components/ui";
-import { panelDepositAction, panelManualDepositAction, panelSaveDepositSettingsAction } from "@/app/actions/panel";
-import { vnd, dt, DEP_STATUS } from "@/lib/format";
+import { PageHead, Flash, Stat, I } from "@/components/ui";
+import { DepositTable, DeleteAllDeposits, type DepositRowDTO } from "@/components/deposit-table";
+import { panelDepositAction, panelManualDepositAction, panelDeleteDepositsAction } from "@/app/actions/panel";
+import { vnd, dt, relTime, DEP_METHOD } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-/** Nạp tiền của khách panel: duyệt yêu cầu nạp (USDT / chuyển khoản ngân hàng
- *  của panel / yêu cầu chờ) và cộng tiền tay cho khách của panel. */
-export default async function PanelDepositsPage({ searchParams }: { searchParams: { msg?: string; err?: string; status?: string } }) {
+const PAGE_SIZE = 20;
+const STATUS_OPTS: [string, string][] = [["", "Tất cả"], ["PENDING", "Chờ xử lý"], ["APPROVED", "Đã hoàn thành"], ["REJECTED", "Đã từ chối"]];
+
+/** Quản lý nạp tiền của khách panel — cùng cấu trúc trang của web mẹ, phạm vi dữ liệu riêng của panel. */
+export default async function PanelDepositsPage({ searchParams }: {
+  searchParams: { msg?: string; err?: string; q?: string; status?: string; method?: string; from?: string; to?: string; sort?: string; dir?: string; page?: string };
+}) {
   const { panel } = await requirePanelOwnerPage();
-  const status = searchParams.status || "";
-  const [pendingCount, approvedSum, deposits, members] = await Promise.all([
-    prisma.deposit.count({ where: { user: { panelId: panel.id }, status: "PENDING" } }),
-    prisma.deposit.aggregate({ where: { user: { panelId: panel.id }, status: "APPROVED" }, _sum: { amount: true } }),
-    prisma.deposit.findMany({
-      where: { user: { panelId: panel.id }, ...(status ? { status } : {}) } as any,
-      include: { user: { select: { username: true } } },
-      orderBy: { id: "desc" }, take: 50,
-    }),
+  const scope = { user: { panelId: panel.id } };
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const [totalSum, monthSum, pendingCount, todaySum, members] = await Promise.all([
+    prisma.deposit.aggregate({ where: { ...scope, status: "APPROVED" }, _sum: { amount: true } }),
+    prisma.deposit.aggregate({ where: { ...scope, status: "APPROVED", createdAt: { gte: monthStart } }, _sum: { amount: true } }),
+    prisma.deposit.count({ where: { ...scope, status: "PENDING" } }),
+    prisma.deposit.aggregate({ where: { ...scope, status: "APPROVED", createdAt: { gte: todayStart } }, _sum: { amount: true } }),
     prisma.user.findMany({ where: { panelId: panel.id }, select: { id: true, username: true }, orderBy: { username: "asc" }, take: 500 }),
   ]);
-  const chips: [string, string][] = [["", "Tất cả"], ["PENDING", "Chờ duyệt"], ["APPROVED", "Đã duyệt"], ["REJECTED", "Từ chối"]];
-  const myTiers = (() => { try { return JSON.parse(panel.depositBonusTiers || "[]") as { from: number; percent: number }[]; } catch { return []; } })();
+
+  const q = (searchParams.q || "").trim();
+  const where: any = { ...scope };
+  if (searchParams.status) where.status = searchParams.status;
+  if (searchParams.method) where.method = searchParams.method;
+  if (q) where.AND = [{ OR: [{ code: { contains: q.toUpperCase() } }, { user: { username: { contains: q } } }, { user: { email: { contains: q } } }] }];
+  if (searchParams.from || searchParams.to) {
+    where.createdAt = {};
+    if (searchParams.from) where.createdAt.gte = new Date(searchParams.from);
+    if (searchParams.to) where.createdAt.lte = new Date(`${searchParams.to}T23:59:59`);
+  }
+  const sort = searchParams.sort === "amount" ? "amount" : "time";
+  const dir = searchParams.dir === "asc" ? "asc" : "desc";
+  const page = Math.max(1, parseInt(searchParams.page || "1") || 1);
+  const [total, deposits] = await Promise.all([
+    prisma.deposit.count({ where }),
+    prisma.deposit.findMany({
+      where,
+      orderBy: sort === "amount" ? [{ amount: dir }, { id: dir }] : [{ createdAt: dir }, { id: dir }],
+      skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE,
+      include: { user: { select: { username: true, email: true } } },
+    }),
+  ]);
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageHref = (p: number) => {
+    const qs = new URLSearchParams();
+    if (q) qs.set("q", q);
+    if (searchParams.status) qs.set("status", searchParams.status);
+    if (searchParams.method) qs.set("method", searchParams.method);
+    if (searchParams.from) qs.set("from", searchParams.from);
+    if (searchParams.to) qs.set("to", searchParams.to);
+    if (searchParams.sort) qs.set("sort", searchParams.sort);
+    if (searchParams.dir) qs.set("dir", searchParams.dir);
+    qs.set("page", String(p));
+    return `/panel-admin/nap-tien?${qs.toString()}`;
+  };
+  const rows: DepositRowDTO[] = deposits.map((d) => ({
+    id: d.id, code: d.code, username: d.user.username, email: d.user.email, method: d.method,
+    amount: d.amount, bonus: d.bonus, content: d.content, auto: d.auto, status: d.status,
+    timeLabel: dt(d.createdAt), relLabel: relTime(d.createdAt),
+  }));
+
   return (
     <div>
-      <PageHead title="Nạp tiền của khách" desc="Duyệt các yêu cầu nạp chờ của khách panel (USDT về ví của bạn, chuyển khoản ngân hàng của bạn…) và cộng tiền tay." />
+      <PageHead title="Quản lý Nạp tiền" desc="Phê duyệt và theo dõi các giao dịch nạp của khách panel.">
+        <DeleteAllDeposits action={panelDeleteDepositsAction} />
+        <a href="/panel-admin/nap-tien" className="btn-primary">Cập nhật dữ liệu</a>
+      </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
-        <Stat label="Yêu cầu chờ duyệt" value={String(pendingCount)} icon={I.clock} />
-        <Stat label="Tổng đã duyệt cộng" value={vnd(approvedSum._sum.amount || 0)} icon={I.wallet} />
-        <Stat label="Khách của panel" value={String(members.length)} icon={I.users} />
+
+      <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <Stat label="Tổng nạp (Tất cả)" value={vnd(totalSum._sum.amount || 0)} icon={I.wallet} />
+        <Stat label="Nạp trong tháng" value={vnd(monthSum._sum.amount || 0)} icon={I.money} tone="emerald" />
+        <Stat label="Đang chờ xử lý" value={String(pendingCount)} icon={I.clock} tone="amber" />
+        <Stat label="Hôm nay" value={vnd(todaySum._sum.amount || 0)} icon={I.chart} tone="violet" />
       </div>
 
-      <form action={panelSaveDepositSettingsAction} className="card mb-6 space-y-4 p-5">
-        <div>
-          <div className="font-bold text-slate-900">Chính sách nạp riêng của panel</div>
-          <p className="mt-0.5 text-sm text-slate-400">Mốc thưởng nạp + số tiền nạp tối thiểu do panel TỰ SET cho khách của mình (mọi kênh: ngân hàng, USDT, PayPal, Stripe) — nạp của panel là riêng, không tính chung với web mẹ. Để trống mốc = khách của panel không có thưởng nạp.</p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-end gap-2">
-              <div className="flex-1"><label className="lbl">Mốc {i} — nạp từ (đ)</label><input name={`tierFrom${i}`} type="number" min={0} step={1000} defaultValue={myTiers[i - 1]?.from || ""} placeholder="VD: 1000000" className="inp" /></div>
-              <div className="w-24"><label className="lbl">Thưởng %</label><input name={`tierPct${i}`} type="number" min={0} max={100} defaultValue={myTiers[i - 1]?.percent || ""} placeholder="2" className="inp" /></div>
+      <form method="GET" action="/panel-admin/nap-tien" className="card mb-6 space-y-4 p-5">
+        <div className="font-bold text-slate-900">Tìm kiếm giao dịch</div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div>
+            <label className="lbl">Tìm kiếm</label>
+            <input className="inp" name="q" defaultValue={q} placeholder="Tên, Email hoặc Mã giao dịch..." />
+          </div>
+          <div>
+            <label className="lbl">Trạng thái</label>
+            <select className="inp" name="status" defaultValue={searchParams.status || ""}>
+              {STATUS_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="lbl">Phương thức</label>
+            <select className="inp" name="method" defaultValue={searchParams.method || ""}>
+              <option value="">Tất cả</option>
+              {Object.entries(DEP_METHOD).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="lbl">Thời gian</label>
+            <div className="flex items-center gap-2">
+              <input className="inp" type="date" name="from" defaultValue={searchParams.from || ""} />
+              <span className="text-slate-400">→</span>
+              <input className="inp" type="date" name="to" defaultValue={searchParams.to || ""} />
             </div>
-          ))}
+          </div>
         </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="w-56"><label className="lbl">Nạp tối thiểu (đ)</label><input name="depositMin" type="number" min={0} step={1000} defaultValue={panel.depositMin || ""} placeholder="Trống = theo web mẹ" className="inp" /></div>
-          <button className="btn-primary !py-2.5">Lưu chính sách nạp</button>
+        <div className="flex gap-2">
+          <button className="btn-primary !py-2.5">Tìm kiếm</button>
+          <a href="/panel-admin/nap-tien" className="btn-ghost !py-2.5">Làm mới</a>
         </div>
       </form>
 
-      <form action={panelManualDepositAction} className="card mb-6 flex flex-wrap items-end gap-3 p-5">
+      <div className="card mb-6 overflow-hidden">
+        <DepositTable rows={rows} depositAction={panelDepositAction} deleteAction={panelDeleteDepositsAction} sort={sort} dir={dir} basePath="/panel-admin/nap-tien" />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
+          <span className="text-sm text-slate-500">Tổng cộng {total} giao dịch</span>
+          <div className="flex items-center gap-1.5">
+            {page > 1 ? <a className="btn-ghost btn-sm" href={pageHref(page - 1)}>Trước</a> : <span className="btn-ghost btn-sm pointer-events-none opacity-40">Trước</span>}
+            {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
+              <a key={p} href={pageHref(p)} className={p === page ? "btn-primary btn-sm !px-3" : "btn-ghost btn-sm !px-3"}>{p}</a>
+            ))}
+            {page < pages ? <a className="btn-ghost btn-sm" href={pageHref(page + 1)}>Sau</a> : <span className="btn-ghost btn-sm pointer-events-none opacity-40">Sau</span>}
+          </div>
+        </div>
+      </div>
+
+      <form action={panelManualDepositAction} className="card flex flex-wrap items-end gap-3 p-5">
         <div className="min-w-[220px] flex-1">
-          <label className="lbl">Khách</label>
+          <label className="lbl">Cộng tiền tay — Khách</label>
           <select name="memberId" required className="inp">
             <option value="">— Chọn khách của panel —</option>
             {members.map((m) => <option key={m.id} value={m.id}>{m.username}</option>)}
@@ -66,44 +146,6 @@ export default async function PanelDepositsPage({ searchParams }: { searchParams
         </div>
         <button className="btn-primary !py-2.5">Cộng tiền tay</button>
       </form>
-
-      <div className="mb-4 flex flex-wrap gap-2">
-        {chips.map(([k, label]) => (
-          <a key={k} href={k ? `/panel-admin/nap-tien?status=${k}` : "/panel-admin/nap-tien"} className={`chip ${status === k ? "chip-on" : ""}`}>{label}</a>
-        ))}
-      </div>
-
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px]">
-            <thead className="bg-slate-50 border-b border-slate-200"><tr>
-              <th className="th">Mã</th><th className="th">Khách</th><th className="th">Phương thức</th><th className="th">Số tiền</th><th className="th">Nội dung / ghi chú</th><th className="th">Trạng thái</th><th className="th">Thời gian</th><th className="th !text-right">Duyệt</th>
-            </tr></thead>
-            <tbody className="divide-y divide-slate-100">
-              {deposits.map((d) => (
-                <tr key={d.id} className="hover:bg-slate-50/60">
-                  <td className="td font-mono text-xs font-semibold">{d.code}</td>
-                  <td className="td">{d.user.username}</td>
-                  <td className="td">{d.method}</td>
-                  <td className="td font-semibold">{vnd(d.amount)}{d.bonus > 0 && <div className="text-xs font-normal text-emerald-600">+{vnd(d.bonus)} thưởng</div>}</td>
-                  <td className="td max-w-[260px] truncate text-slate-500" title={d.content || ""}>{d.content || "—"}</td>
-                  <td className="td"><Badge cls={DEP_STATUS[d.status].cls}>{DEP_STATUS[d.status].label}</Badge></td>
-                  <td className="td whitespace-nowrap text-slate-500">{dt(d.createdAt)}</td>
-                  <td className="td">
-                    {d.status === "PENDING" ? (
-                      <span className="flex justify-end gap-1.5">
-                        <form action={panelDepositAction}><input type="hidden" name="id" value={d.id} /><input type="hidden" name="kind" value="approve" /><button className="btn-primary btn-sm !px-3 !py-1.5">Duyệt + cộng tiền</button></form>
-                        <form action={panelDepositAction}><input type="hidden" name="id" value={d.id} /><input type="hidden" name="kind" value="reject" /><button className="btn-ghost btn-sm !px-3 !py-1.5 !text-rose-600">Từ chối</button></form>
-                      </span>
-                    ) : <span className="block text-right text-xs text-slate-300">—</span>}
-                  </td>
-                </tr>
-              ))}
-              {deposits.length === 0 && <tr><td className="td text-slate-400" colSpan={8}>Chưa có yêu cầu nạp nào của khách panel.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }

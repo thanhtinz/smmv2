@@ -57,6 +57,25 @@ export const DEP_STATUS: Record<string, { label: string; cls: string }> = {
   APPROVED: { label: "Đã cộng tiền", cls: "bg-emerald-100 text-emerald-800" },
   REJECTED: { label: "Bị từ chối", cls: "bg-rose-100 text-rose-800" },
 };
+export const DEP_METHOD: Record<string, string> = {
+  BANK: "Ngân hàng", MOMO: "MoMo", CARD: "Thẻ cào", USDT: "USDT", PAYPAL: "PayPal", STRIPE: "Stripe",
+};
+
+/** Thời gian tương đối kiểu "3 giờ trước" — hiện dưới mốc thời gian tuyệt đối trong bảng. */
+export function relTime(d: Date | string): string {
+  const ms = Date.now() - new Date(d).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "vừa xong";
+  if (m < 60) return `${m} phút trước`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} giờ trước`;
+  const day = Math.floor(h / 24);
+  if (day < 30) return `${day} ngày trước`;
+  const mon = Math.floor(day / 30);
+  if (mon < 12) return `${mon} tháng trước`;
+  return `${Math.floor(mon / 12)} năm trước`;
+}
+
 export const PLATFORMS: Record<string, string> = {
   facebook: "Facebook",
   tiktok: "TikTok",

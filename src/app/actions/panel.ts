@@ -1002,3 +1002,15 @@ export async function panelPremiumOrderAction(formData: FormData) {
   }
   done(path, "Đã cập nhật đơn premium");
 }
+
+/** Xoá giao dịch nạp của khách panel: theo id đã chọn, hoặc toàn bộ của panel. */
+export async function panelDeleteDepositsAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/nap-tien");
+  if (formData.get("all") === "1") {
+    await prisma.deposit.deleteMany({ where: { user: { panelId: panel.id } } });
+  } else {
+    const ids = formData.getAll("ids").map((x) => parseInt(String(x))).filter((n) => n > 0);
+    if (ids.length) await prisma.deposit.deleteMany({ where: { id: { in: ids }, user: { panelId: panel.id } } });
+  }
+  redirect("/panel-admin/nap-tien?msg=" + encodeURIComponent("Đã xoá giao dịch nạp"));
+}

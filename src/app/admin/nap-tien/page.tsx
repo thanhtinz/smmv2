@@ -1,65 +1,134 @@
 import { prisma } from "@/lib/db";
 import { requireAdminPage } from "@/lib/auth";
-import { PageHead, Flash, Badge } from "@/components/ui";
-import { adminDepositAction, adminManualDeposit } from "@/app/actions/admin";
-import { vnd, DEP_STATUS, dt } from "@/lib/format";
+import { PageHead, Flash, Stat, I } from "@/components/ui";
+import { DepositTable, DeleteAllDeposits, type DepositRowDTO } from "@/components/deposit-table";
+import { adminDepositAction, adminDeleteDepositsAction } from "@/app/actions/admin";
+import { vnd, dt, relTime, DEP_METHOD } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDeposits({ searchParams }: { searchParams: { msg?: string; err?: string; status?: string } }) {
+const PAGE_SIZE = 20;
+const STATUS_OPTS: [string, string][] = [["", "Tất cả"], ["PENDING", "Chờ xử lý"], ["APPROVED", "Đã hoàn thành"], ["REJECTED", "Đã từ chối"]];
+
+export default async function AdminDeposits({ searchParams }: {
+  searchParams: { msg?: string; err?: string; q?: string; status?: string; method?: string; from?: string; to?: string; sort?: string; dir?: string; page?: string };
+}) {
   await requireAdminPage();
   // Chỉ nạp của TÀI KHOẢN WEB MẸ — nạp của khách site con do chủ panel tự quản lý, mẹ không xem
-  const where: any = { user: { panelId: null } };
+  const scope = { user: { panelId: null } };
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const [totalSum, monthSum, pendingCount, todaySum] = await Promise.all([
+    prisma.deposit.aggregate({ where: { ...scope, status: "APPROVED" }, _sum: { amount: true } }),
+    prisma.deposit.aggregate({ where: { ...scope, status: "APPROVED", createdAt: { gte: monthStart } }, _sum: { amount: true } }),
+    prisma.deposit.count({ where: { ...scope, status: "PENDING" } }),
+    prisma.deposit.aggregate({ where: { ...scope, status: "APPROVED", createdAt: { gte: todayStart } }, _sum: { amount: true } }),
+  ]);
+
+  const q = (searchParams.q || "").trim();
+  const where: any = { ...scope };
   if (searchParams.status) where.status = searchParams.status;
-  const deposits = await prisma.deposit.findMany({ where, orderBy: { id: "desc" }, take: 60, include: { user: true } });
-  const users = await prisma.user.findMany({ where: { panelId: null }, orderBy: { username: "asc" }, select: { id: true, username: true }, take: 500 });
+  if (searchParams.method) where.method = searchParams.method;
+  if (q) where.AND = [{ OR: [{ code: { contains: q.toUpperCase() } }, { user: { username: { contains: q } } }, { user: { email: { contains: q } } }] }];
+  if (searchParams.from || searchParams.to) {
+    where.createdAt = {};
+    if (searchParams.from) where.createdAt.gte = new Date(searchParams.from);
+    if (searchParams.to) where.createdAt.lte = new Date(`${searchParams.to}T23:59:59`);
+  }
+  const sort = searchParams.sort === "amount" ? "amount" : "time";
+  const dir = searchParams.dir === "asc" ? "asc" : "desc";
+  const page = Math.max(1, parseInt(searchParams.page || "1") || 1);
+  const [total, deposits] = await Promise.all([
+    prisma.deposit.count({ where }),
+    prisma.deposit.findMany({
+      where,
+      orderBy: sort === "amount" ? [{ amount: dir }, { id: dir }] : [{ createdAt: dir }, { id: dir }],
+      skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE,
+      include: { user: { select: { username: true, email: true } } },
+    }),
+  ]);
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageHref = (p: number) => {
+    const qs = new URLSearchParams();
+    if (q) qs.set("q", q);
+    if (searchParams.status) qs.set("status", searchParams.status);
+    if (searchParams.method) qs.set("method", searchParams.method);
+    if (searchParams.from) qs.set("from", searchParams.from);
+    if (searchParams.to) qs.set("to", searchParams.to);
+    if (searchParams.sort) qs.set("sort", searchParams.sort);
+    if (searchParams.dir) qs.set("dir", searchParams.dir);
+    qs.set("page", String(p));
+    return `/admin/nap-tien?${qs.toString()}`;
+  };
+  const rows: DepositRowDTO[] = deposits.map((d) => ({
+    id: d.id, code: d.code, username: d.user.username, email: d.user.email, method: d.method,
+    amount: d.amount, bonus: d.bonus, content: d.content, auto: d.auto, status: d.status,
+    timeLabel: dt(d.createdAt), relLabel: relTime(d.createdAt),
+  }));
+
   return (
     <div>
-      <PageHead title="Nạp tiền" desc="Giao dịch chuyển khoản đúng nội dung được webhook cộng tự động. Danh sách chờ duyệt là các khai báo cần kiểm tra tay." />
+      <PageHead title="Quản lý Nạp tiền" desc="Phê duyệt và theo dõi các giao dịch tài chính trên hệ thống.">
+        <DeleteAllDeposits action={adminDeleteDepositsAction} />
+        <a href="/admin/nap-tien" className="btn-primary">Cập nhật dữ liệu</a>
+      </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start [&>*]:min-w-0">
-        <div className="xl:col-span-2 card overflow-x-auto">
-          <table className="w-full min-w-[620px] [&_td]:px-3 [&_th]:px-3">
-            <thead className="bg-slate-50 border-b border-slate-200"><tr>
-              <th className="th">Mã</th><th className="th">Khách</th><th className="th">Kênh</th><th className="th">Số tiền</th><th className="th">Trạng thái</th><th className="th">Thời gian</th><th className="th"></th>
-            </tr></thead>
-            <tbody className="divide-y divide-slate-100">
-              {deposits.map((d) => (
-                <tr key={d.id}>
-                  <td className="td font-mono text-xs">{d.code}{d.auto && <div className="text-[11px] text-emerald-600">tự động (webhook)</div>}</td>
-                  <td className="td font-medium">{d.user.username}<div className="text-xs text-slate-400">{d.content || ""}</div></td>
-                  <td className="td">{d.method}</td>
-                  <td className="td font-semibold">{vnd(d.amount)}{d.bonus > 0 && <div className="text-xs text-emerald-600">+{vnd(d.bonus)} thưởng</div>}</td>
-                  <td className="td"><Badge cls={DEP_STATUS[d.status].cls}>{DEP_STATUS[d.status].label}</Badge></td>
-                  <td className="td text-xs text-slate-500">{dt(d.createdAt)}</td>
-                  <td className="td text-right">
-                    {d.status === "PENDING" && (
-                      <form action={adminDepositAction} className="flex gap-1.5 justify-end">
-                        <input type="hidden" name="id" value={d.id} />
-                        <button className="btn-primary btn-sm" name="kind" value="approve">Duyệt + cộng tiền</button>
-                        <button className="btn-ghost btn-sm !text-rose-600" name="kind" value="reject">Từ chối</button>
-                      </form>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {deposits.length === 0 && <tr><td colSpan={7} className="td text-center text-slate-400 py-8">Chưa có giao dịch nạp</td></tr>}
-            </tbody>
-          </table>
-        </div>
-        <form action={adminManualDeposit} className="card p-6 space-y-4">
-          <div className="font-bold text-slate-900">Cộng tiền tay cho khách</div>
+
+      <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <Stat label="Tổng nạp (Tất cả)" value={vnd(totalSum._sum.amount || 0)} icon={I.wallet} />
+        <Stat label="Nạp trong tháng" value={vnd(monthSum._sum.amount || 0)} icon={I.money} tone="emerald" />
+        <Stat label="Đang chờ xử lý" value={String(pendingCount)} icon={I.clock} tone="amber" />
+        <Stat label="Hôm nay" value={vnd(todaySum._sum.amount || 0)} icon={I.chart} tone="violet" />
+      </div>
+
+      <form method="GET" action="/admin/nap-tien" className="card mb-6 space-y-4 p-5">
+        <div className="font-bold text-slate-900">Tìm kiếm giao dịch</div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div>
-            <label className="lbl">Khách hàng</label>
-            <select className="inp" name="userId" required>
-              <option value="" disabled selected>— Chọn khách —</option>
-              {users.map((u) => <option key={u.id} value={u.id}>{u.username}</option>)}
+            <label className="lbl">Tìm kiếm</label>
+            <input className="inp" name="q" defaultValue={q} placeholder="Tên, Email hoặc Mã giao dịch..." />
+          </div>
+          <div>
+            <label className="lbl">Trạng thái</label>
+            <select className="inp" name="status" defaultValue={searchParams.status || ""}>
+              {STATUS_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </div>
-          <div><label className="lbl">Số tiền cộng (VND)</label><input className="inp" name="amount" type="number" required min={1000} /></div>
-          <button className="btn-primary w-full">Cộng tiền ngay</button>
-          <p className="text-xs text-slate-400">Dùng khi khách chuyển khoản sai nội dung hoặc nạp qua kênh ngoài hệ thống. Giao dịch được ghi sổ như một lần nạp đã duyệt.</p>
-        </form>
+          <div>
+            <label className="lbl">Phương thức</label>
+            <select className="inp" name="method" defaultValue={searchParams.method || ""}>
+              <option value="">Tất cả</option>
+              {Object.entries(DEP_METHOD).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="lbl">Thời gian</label>
+            <div className="flex items-center gap-2">
+              <input className="inp" type="date" name="from" defaultValue={searchParams.from || ""} />
+              <span className="text-slate-400">→</span>
+              <input className="inp" type="date" name="to" defaultValue={searchParams.to || ""} />
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-primary !py-2.5">Tìm kiếm</button>
+          <a href="/admin/nap-tien" className="btn-ghost !py-2.5">Làm mới</a>
+        </div>
+      </form>
+
+      <div className="card overflow-hidden">
+        <DepositTable rows={rows} depositAction={adminDepositAction} deleteAction={adminDeleteDepositsAction} sort={sort} dir={dir} basePath="/admin/nap-tien" />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
+          <span className="text-sm text-slate-500">Tổng cộng {total} giao dịch</span>
+          <div className="flex items-center gap-1.5">
+            {page > 1 ? <a className="btn-ghost btn-sm" href={pageHref(page - 1)}>Trước</a> : <span className="btn-ghost btn-sm pointer-events-none opacity-40">Trước</span>}
+            {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
+              <a key={p} href={pageHref(p)} className={p === page ? "btn-primary btn-sm !px-3" : "btn-ghost btn-sm !px-3"}>{p}</a>
+            ))}
+            {page < pages ? <a className="btn-ghost btn-sm" href={pageHref(page + 1)}>Sau</a> : <span className="btn-ghost btn-sm pointer-events-none opacity-40">Sau</span>}
+          </div>
+        </div>
       </div>
     </div>
   );

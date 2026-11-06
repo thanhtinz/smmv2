@@ -583,3 +583,15 @@ export async function adminSaveAnnouncement(formData: FormData) {
   else await prisma.announcement.create({ data });
   done("/admin/thong-bao", "Đã lưu thông báo");
 }
+
+/** Xoá giao dịch nạp: theo danh sách id đã chọn, hoặc toàn bộ (chỉ tài khoản web mẹ). */
+export async function adminDeleteDepositsAction(formData: FormData) {
+  await requireAdmin();
+  if (formData.get("all") === "1") {
+    await prisma.deposit.deleteMany({ where: { user: { panelId: null } } });
+  } else {
+    const ids = formData.getAll("ids").map((x) => parseInt(String(x))).filter((n) => n > 0);
+    if (ids.length) await prisma.deposit.deleteMany({ where: { id: { in: ids }, user: { panelId: null } } });
+  }
+  redirect("/admin/nap-tien?msg=" + encodeURIComponent("Đã xoá giao dịch nạp"));
+}
