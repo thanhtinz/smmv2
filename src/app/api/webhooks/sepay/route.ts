@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
   const qSecret = req.nextUrl.searchParams.get("secret") || "";
   const presented = auth.startsWith("Apikey ") ? auth.slice(7) : qSecret;
   let viaPanelId: number | null = null;
-  let authorized = !motherSecret && !presented;
+  // Fail-closed: KHÔNG có secret nào khớp (của mẹ ở env, hoặc của panel) là từ chối —
+  // không bao giờ mở khi máy chủ chưa đặt SEPAY_WEBHOOK_SECRET (tránh bị bắn giao dịch giả cộng tiền).
+  let authorized = false;
   if (motherSecret && presented === motherSecret) authorized = true;
   if (!authorized && presented) {
     const p = await prisma.childPanel.findFirst({ where: { sepayEnabled: true, sepaySecret: presented }, select: { id: true } }).catch(() => null);

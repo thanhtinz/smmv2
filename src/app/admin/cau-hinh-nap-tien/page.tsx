@@ -20,6 +20,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
   const s = await getSettings();
   const base = process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn";
   const banks = await prisma.bankAccount.findMany({ where: { active: true }, orderBy: { id: "asc" } });
+  const sepaySecretSet = !!process.env.SEPAY_WEBHOOK_SECRET;
   const back = "/admin/cau-hinh-nap-tien";
   return (
     <div>
@@ -40,7 +41,10 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
             </div>
           </div>
           <p className="text-sm text-slate-500">
-            Khoá bí mật webhook để ở máy chủ (biến môi trường), không sửa tại đây. Đang có {banks.length} tài khoản nhận tiền
+            Khoá bí mật webhook để ở máy chủ (biến môi trường), không sửa tại đây.{' '}
+            {sepaySecretSet
+              ? <span className="font-semibold text-emerald-600">Khoá máy chủ: đã thiết lập.</span>
+              : <span className="font-semibold text-rose-600">Khoá máy chủ: CHƯA thiết lập — nạp tự động đang bị khoá, cần đặt biến môi trường SEPAY_WEBHOOK_SECRET trên máy chủ.</span>} Đang có {banks.length} tài khoản nhận tiền
             {banks.length ? `: ${banks.map((b) => b.bankName).join(", ")}` : ""} — quản lý ở trang Ngân hàng.
           </p>
           <a href="/admin/ngan-hang" className="btn-ghost !py-2">Mở trang Ngân hàng</a>
