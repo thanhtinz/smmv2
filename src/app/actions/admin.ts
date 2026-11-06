@@ -595,3 +595,25 @@ export async function adminDeleteDepositsAction(formData: FormData) {
   }
   redirect("/admin/nap-tien?msg=" + encodeURIComponent("Đã xoá giao dịch nạp"));
 }
+
+/** Lưu cấu hình phương thức nạp + khuyến mãi (trang Cấu hình nạp tiền / Khuyến mãi).
+ *  Chỉ lưu key có mặt trong form; secret để trống = giữ nguyên giá trị cũ. */
+export async function adminSaveMethodsAction(formData: FormData) {
+  await requireAdmin();
+  const SECRET_KEYS = ["paypal_client_secret", "stripe_secret_key", "stripe_webhook_secret"];
+  const keys = [
+    "usd_rate", "deposit_min", "deposit_bonus_tiers", "affiliate_percent",
+    "usdt_enabled", "usdt_address", "usdt_network", "usdt_rate",
+    "paypal_enabled", "paypal_client_id", "paypal_client_secret", "paypal_mode",
+    "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret",
+  ];
+  for (const k of keys) {
+    const v = formData.get(k);
+    if (v === null) continue;
+    const val = String(v).trim();
+    if (!val && SECRET_KEYS.includes(k)) continue;
+    await setSetting(k, val);
+  }
+  const backTo = String(formData.get("back") || "/admin/cau-hinh-nap-tien");
+  redirect((backTo.startsWith("/admin/") ? backTo : "/admin/cau-hinh-nap-tien") + "?msg=" + encodeURIComponent("Đã lưu cấu hình"));
+}

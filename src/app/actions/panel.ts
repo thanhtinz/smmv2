@@ -463,14 +463,15 @@ export async function panelSeedContactWidgetsAction() {
 export async function panelSaveConfigAction(formData: FormData) {
   const { panel } = await ownPanelOwner("/panel-admin/cau-hinh");
   const section = str(formData, "section");
+  const backTo = str(formData, "back") || "/panel-admin/cau-hinh";
   const keep = (v: string, old: string | null) => (v.includes("•") ? old : v || null);
   if (section === "bank") {
     await prisma.childPanel.update({ where: { id: panel.id }, data: { bankName: str(formData, "bankName") || null, bankAccount: str(formData, "bankAccount") || null, bankHolder: str(formData, "bankHolder") || null } });
-    done("/panel-admin/cau-hinh", "Đã lưu tài khoản ngân hàng của panel");
+    done(backTo, "Đã lưu tài khoản ngân hàng của panel");
   }
   if (section === "usdt") {
     await prisma.childPanel.update({ where: { id: panel.id }, data: { usdtAddress: str(formData, "usdtAddress") || null, usdtNetwork: str(formData, "usdtNetwork") || null, usdtRate: int(formData, "usdtRate") || null } });
-    done("/panel-admin/cau-hinh", "Đã lưu ví USDT của panel");
+    done(backTo, "Đã lưu ví USDT của panel");
   }
   if (section === "smtp") {
     await prisma.childPanel.update({
@@ -481,15 +482,15 @@ export async function panelSaveConfigAction(formData: FormData) {
         smtpFrom: str(formData, "smtpFrom") || null, smtpSecure: formData.get("smtpSecure") === "on",
       },
     });
-    done("/panel-admin/cau-hinh", "Đã lưu cấu hình thư (SMTP) của panel");
+    done(backTo, "Đã lưu cấu hình thư (SMTP) của panel");
   }
   if (section === "telegram") {
     await prisma.childPanel.update({ where: { id: panel.id }, data: { telegramBotToken: keep(str(formData, "telegramBotToken"), panel.telegramBotToken), telegramChatId: str(formData, "telegramChatId") || null } });
-    done("/panel-admin/cau-hinh", "Đã lưu Telegram báo đơn của panel");
+    done(backTo, "Đã lưu Telegram báo đơn của panel");
   }
   if (section === "google") {
     await prisma.childPanel.update({ where: { id: panel.id }, data: { googleClientId: str(formData, "googleClientId") || null, googleClientSecret: keep(str(formData, "googleClientSecret"), panel.googleClientSecret) } });
-    done("/panel-admin/cau-hinh", "Đã lưu Google đăng nhập của panel");
+    done(backTo, "Đã lưu Google đăng nhập của panel");
   }
   if (section === "paypal") {
     await prisma.childPanel.update({
@@ -501,7 +502,7 @@ export async function panelSaveConfigAction(formData: FormData) {
         paypalMode: str(formData, "paypalMode") === "live" ? "live" : "sandbox",
       },
     });
-    done("/panel-admin/cau-hinh", "Đã lưu PayPal của panel — khách của bạn nạp PayPal sẽ trả vào tài khoản này");
+    done(backTo, "Đã lưu PayPal của panel — khách của bạn nạp PayPal sẽ trả vào tài khoản này");
   }
   if (section === "sepay") {
     await prisma.childPanel.update({
@@ -511,7 +512,7 @@ export async function panelSaveConfigAction(formData: FormData) {
         sepaySecret: keep(str(formData, "sepaySecret"), panel.sepaySecret),
       },
     });
-    done("/panel-admin/cau-hinh", "Đã lưu SePay của panel — từ giờ khách nạp ngân hàng vào tài khoản của bạn sẽ được cộng TỰ ĐỘNG, không cần duyệt tay");
+    done(backTo, "Đã lưu SePay của panel — từ giờ khách nạp ngân hàng vào tài khoản của bạn sẽ được cộng TỰ ĐỘNG, không cần duyệt tay");
   }
   if (section === "stripe") {
     await prisma.childPanel.update({
@@ -522,12 +523,12 @@ export async function panelSaveConfigAction(formData: FormData) {
         stripeWebhookSecret: keep(str(formData, "stripeWebhookSecret"), panel.stripeWebhookSecret),
       },
     });
-    done("/panel-admin/cau-hinh", "Đã lưu Stripe của panel — khách của bạn nạp Stripe sẽ trả vào tài khoản này");
+    done(backTo, "Đã lưu Stripe của panel — khách của bạn nạp Stripe sẽ trả vào tài khoản này");
   }
   if (section === "panelfee") {
     const fee = Math.max(0, int(formData, "panelFee"));
     await prisma.childPanel.update({ where: { id: panel.id }, data: { panelFee: fee } });
-    done("/panel-admin/cau-hinh", fee > 0 ? `Đã đặt phí tạo website con cho khách của panel: ${fee.toLocaleString("vi-VN")}₫ — tiền phí thuộc về bạn` : "Đã đặt tạo website con cho khách của panel là MIỄN PHÍ");
+    done(backTo, fee > 0 ? `Đã đặt phí tạo website con cho khách của panel: ${fee.toLocaleString("vi-VN")}₫ — tiền phí thuộc về bạn` : "Đã đặt tạo website con cho khách của panel là MIỄN PHÍ");
   }
   if (section === "brand") {
     const name = str(formData, "name");
@@ -542,14 +543,14 @@ export async function panelSaveConfigAction(formData: FormData) {
         supportFacebook: str(formData, "supportFacebook").slice(0, 120) || null, supportHotline: str(formData, "supportHotline").slice(0, 120) || null,
       },
     });
-    done("/panel-admin/cau-hinh", "Đã lưu thương hiệu & thông tin hỗ trợ của panel");
+    done(backTo, "Đã lưu thương hiệu & thông tin hỗ trợ của panel");
   }
   if (section === "seo") {
     await prisma.childPanel.update({
       where: { id: panel.id },
       data: { metaDescription: str(formData, "metaDescription") || null, metaKeywords: str(formData, "metaKeywords") || null, ogImageUrl: str(formData, "ogImageUrl") || null },
     });
-    done("/panel-admin/cau-hinh", "Đã lưu SEO & Meta của panel");
+    done(backTo, "Đã lưu SEO & Meta của panel");
   }
   if (section === "landing") {
     await prisma.childPanel.update({
@@ -559,7 +560,7 @@ export async function panelSaveConfigAction(formData: FormData) {
         authStyle: ["classic", "glass", "minimal", "app"].includes(str(formData, "authStyle")) ? str(formData, "authStyle") : null,
       },
     });
-    done("/panel-admin/cau-hinh", "Đã lưu trang giới thiệu & kiểu trang đăng nhập của panel");
+    done(backTo, "Đã lưu trang giới thiệu & kiểu trang đăng nhập của panel");
   }
   if (section === "thongbao") {
     await prisma.childPanel.update({
@@ -572,7 +573,7 @@ export async function panelSaveConfigAction(formData: FormData) {
         termsCheckboxText: str(formData, "termsCheckboxText") || null, termsButtonText: str(formData, "termsButtonText") || null,
       },
     });
-    done("/panel-admin/cau-hinh", "Đã lưu thông báo & điều khoản của panel");
+    done(backTo, "Đã lưu thông báo & điều khoản của panel");
   }
   if (section === "promo") {
     const tiers: { from: number; percent: number }[] = [];
@@ -587,29 +588,29 @@ export async function panelSaveConfigAction(formData: FormData) {
       where: { id: panel.id },
       data: { depositBonusTiers: tiers.length ? JSON.stringify(tiers) : null, depositMin: depositMin > 0 ? depositMin : null },
     });
-    done("/panel-admin/cau-hinh", "Đã lưu khuyến mãi nạp tiền của panel");
+    done(backTo, "Đã lưu khuyến mãi nạp tiền của panel");
   }
   if (section === "affiliate") {
     await prisma.childPanel.update({
       where: { id: panel.id },
       data: { moduleAffiliate: formData.get("moduleAffiliate") === "on", affiliatePercent: Math.min(50, Math.max(0, int(formData, "affiliatePercent"))) },
     });
-    done("/panel-admin/cau-hinh", "Đã lưu chương trình giới thiệu của panel");
+    done(backTo, "Đã lưu chương trình giới thiệu của panel");
   }
   if (section === "toolapi") {
     await prisma.childPanel.update({ where: { id: panel.id }, data: { toolApiKey: str(formData, "tool_api_key") || null } });
-    done("/panel-admin/cau-hinh", "Đã lưu Tool API Key của panel");
+    done(backTo, "Đã lưu Tool API Key của panel");
   }
   if (section === "aicheck") {
     await prisma.childPanel.update({ where: { id: panel.id }, data: { aiCheckEnabled: formData.get("aiCheckEnabled") === "on" } });
-    done("/panel-admin/cau-hinh", "Đã lưu cấu hình AI kiểm tra link của panel");
+    done(backTo, "Đã lưu cấu hình AI kiểm tra link của panel");
   }
   if (section === "script") {
     await prisma.childPanel.update({
       where: { id: panel.id },
       data: { customHeadHtml: str(formData, "customHeadHtml") || null, customBodyHtml: str(formData, "customBodyHtml") || null },
     });
-    done("/panel-admin/cau-hinh", "Đã lưu Script/HTML của panel");
+    done(backTo, "Đã lưu Script/HTML của panel");
   }
   back("/panel-admin/cau-hinh", "err", "Mục cấu hình không hợp lệ");
 }
