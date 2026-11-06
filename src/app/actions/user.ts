@@ -57,7 +57,8 @@ export async function placeSmmOrderAction(formData: FormData) {
   }
   // Chế độ nhiều link: tạo lần lượt từng đơn độc lập; mã giảm giá chỉ áp cho đơn đầu tiên
   if (multiLinks.length > 1) {
-    if (multiLinks.length > 50) back("/dashboard/dat-hang", "err", "Tối đa 50 link mỗi lần đặt");
+    const maxLinks = parseInt((await getSettings()).order_max_links) || 50;
+    if (multiLinks.length > maxLinks) back("/dashboard/dat-hang", "err", `Tối đa ${maxLinks} link mỗi lần đặt`);
     const codes: string[] = [];
     const errors: string[] = [];
     for (let i = 0; i < multiLinks.length; i++) {
@@ -91,7 +92,8 @@ export async function bulkPlaceOrdersAction(formData: FormData) {
   const raw = String(formData.get("bulk") || "");
   const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
   if (lines.length === 0) back("/dashboard/dat-hang-loat", "err", "Chưa có dòng nào để đặt");
-  if (lines.length > 50) back("/dashboard/dat-hang-loat", "err", "Tối đa 50 dòng mỗi lần đặt hàng loạt");
+  const maxLines = parseInt((await getSettings()).order_max_links) || 50;
+  if (lines.length > maxLines) back("/dashboard/dat-hang-loat", "err", `Tối đa ${maxLines} dòng mỗi lần đặt hàng loạt`);
   const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
   let ok = 0;
   const errors: string[] = [];
@@ -175,7 +177,7 @@ export async function createPanelAction(formData: FormData) {
   if (existing) back("/panel-admin", "err", "Mỗi tài khoản chỉ tạo 1 panel con");
   const name = String(formData.get("name") || "").trim();
   const slug = panelSlug(String(formData.get("slug") || ""));
-  const markup = Math.min(200, Math.max(0, parseInt(String(formData.get("markup") || "20")) || 0));
+  const markup = Math.min(200, Math.max(0, parseInt(String(formData.get("markup") || (await getSettings()).panel_default_markup || "20")) || 0));
   const accent = PANEL_ACCENTS.includes(String(formData.get("accent"))) ? String(formData.get("accent")) : "blue";
   const tagline = String(formData.get("tagline") || "").trim() || null;
   const support = String(formData.get("support") || "").trim() || null;
@@ -228,13 +230,14 @@ export async function registerChildSiteAction(formData: FormData) {
   const linkedKey = link ? link.apiKey : null;
   const linkedUser = link ? link.apiUserId : null;
   const feeInfo = await panelCreationFeeFor(user.id);
+  const st = await getSettings();
   if (feeInfo.fee > feeInfo.balance) back("/dashboard/panel-cua-toi", "err", `Số dư không đủ để tạo website con — phí tạo là ${feeInfo.fee.toLocaleString("vi-VN")}₫, số dư hiện tại ${feeInfo.balance.toLocaleString("vi-VN")}₫`);
   await prisma.$transaction(async (tx) => {
     const created = await tx.childPanel.create({
     data: {
-      ownerId: user.id, name: domain, slug, markup: 20, accent: "blue", domain, parentPanelId: feeInfo.parent?.id ?? null,
+      ownerId: user.id, name: domain, slug, markup: parseInt(st.panel_default_markup) || 20, accent: "blue", domain, parentPanelId: feeInfo.parent?.id ?? null,
       apiKey: linkedKey, apiUserId: linkedUser,
-      discountMember: 0, discountReseller: 5, discountAgency: 10, discountVip: 15,
+      discountMember: parseInt(st.level_discount_MEMBER) || 0, discountReseller: parseInt(st.level_discount_RESELLER) || 0, discountAgency: parseInt(st.level_discount_AGENCY) || 0, discountVip: parseInt(st.level_discount_VIP) || 0,
       setupDone: false,
     },
     });
@@ -498,7 +501,8 @@ export async function startStripeCheckoutAction(formData: FormData) {
   const cfg = await resolveIntlConfig(user.id);
   if (!cfg.stripe) back("/dashboard/nap-tien", "err", "Stripe chưa được cấu hình");
   const usd = parseFloat(String(formData.get("usd") || "0"));
-  if (!usd || usd < MIN_USD) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${MIN_USD}`);
+  const minUsd = parseInt((await getSettings()).intl_min_usd) || MIN_USD;
+  if (!usd || usd < minUsd) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${minUsd}`);
   const usdCents = Math.round(usd * 100);
   const amountVnd = Math.round(usd * cfg.rate);
   const dep = await createPendingDeposit(user.id, "STRIPE", amountVnd, usdCents);
@@ -526,7 +530,8 @@ export async function startPaypalCheckoutAction(formData: FormData) {
   const cfg = await resolveIntlConfig(user.id);
   if (!cfg.paypal) back("/dashboard/nap-tien", "err", "PayPal chưa được cấu hình");
   const usd = parseFloat(String(formData.get("usd") || "0"));
-  if (!usd || usd < MIN_USD) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${MIN_USD}`);
+  const minUsd = parseInt((await getSettings()).intl_min_usd) || MIN_USD;
+  if (!usd || usd < minUsd) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${minUsd}`);
   const usdCents = Math.round(usd * 100);
   const amountVnd = Math.round(usd * cfg.rate);
   const dep = await createPendingDeposit(user.id, "PAYPAL", amountVnd, usdCents);

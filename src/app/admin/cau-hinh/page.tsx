@@ -16,7 +16,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
   await requireAdminPage();
   const s = await getSettings();
   const base = process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn";
-  const cronUrl = `${base}/api/cron/sync?secret=<CRON_SECRET>&services=1`;
+  const cronUrl = `${base}/api/cron/sync?secret=${s.cron_secret || "<CRON_SECRET>"}&services=1`;
   const webhookUrl = `${base}/api/webhooks/sepay`;
 
   const infoBox = "rounded-xl bg-brand-50 px-4 py-3 text-[13px] leading-relaxed text-slate-600";
@@ -165,6 +165,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
         <div className="font-bold text-slate-900">Chính sách nạp tiền</div>
         <div><label className="lbl">Nạp tối thiểu (VND)</label><input className="inp" name="deposit_min" type="number" defaultValue={s.deposit_min} /></div>
         <div><label className="lbl">Phí tạo website con (VNĐ) — áp dụng cho khách của web mẹ</label><input className="inp" name="panel_fee" type="number" min="0" defaultValue={s.panel_fee} placeholder="0 = miễn phí" /></div>
+        <div><label className="lbl">Markup mặc định cho website con mới (%)</label><input className="inp" name="panel_default_markup" type="number" min="0" max="200" defaultValue={s.panel_default_markup} /></div>
         <p className="text-xs text-slate-400">Khách đăng ký website con sẽ bị trừ đúng số này vào số dư khi đăng ký thành công (0 = miễn phí như mặc định). Chủ panel con tự đặt phí riêng cho khách của họ trong Panel Admin — khách panel tạo website con thì phí đó thuộc về chủ panel. Mốc thưởng nạp chỉnh ở tab <b>Khuyến mãi</b>, hoa hồng giới thiệu ở tab <b>Giới thiệu</b>, nạp USDT ở tab <b>USDT</b>.</p>
         <div>
           <label className="lbl">Bảo vệ lợi nhuận (chặn đặt đơn khi giá bán sau chiết khấu thấp hơn giá vốn)</label>
@@ -328,6 +329,14 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
   const baomat = (
     <>
       <section className="card p-6 space-y-4">
+        <div className="font-bold text-slate-900">Phiên đăng nhập & giới hạn</div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div><label className="lbl">Phiên đăng nhập (ngày)</label><input className="inp" name="session_days" type="number" min="1" max="90" defaultValue={s.session_days} /></div>
+          <div><label className="lbl">Số lượng mua Premium tối đa / đơn</label><input className="inp" name="premium_max_qty" type="number" min="1" defaultValue={s.premium_max_qty} /></div>
+          <div><label className="lbl">Số link tối đa / lần đặt (nhiều link & hàng loạt)</label><input className="inp" name="order_max_links" type="number" min="1" defaultValue={s.order_max_links} /></div>
+        </div>
+      </section>
+      <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Google reCAPTCHA v2</div>
         <div>
           <label className="lbl">Bật reCAPTCHA</label>
@@ -389,8 +398,15 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
     <>
       <div className={warnBox}>Hệ thống chạy nền qua MỘT đường dẫn cron duy nhất: mỗi lần gọi, hệ thống tự đồng bộ trạng thái đơn hàng, thả đơn drip-feed và đăng ký định kỳ tới hạn, đồng bộ dịch vụ & giá từ nhà cung cấp, kiểm tra số dư nhà cung cấp, auto refill và gửi báo cáo ngày. Cài cron gọi mỗi 5–10 phút là đủ.</div>
       <section className="card p-6 space-y-3.5">
+        <div className="font-bold text-slate-900">Khoá bí mật Cron</div>
+        <div>
+          <label className="lbl">Khoá Cron (dùng trong URL cron bên dưới)</label>
+          <ToolKeyField initial={s.cron_secret} name="cron_secret" />
+        </div>
+      </section>
+      <section className="card p-6 space-y-3.5">
         <div className="font-bold text-slate-900">Danh sách đường dẫn Cron & Webhook</div>
-        {cronRow("Đồng bộ trạng thái đơn hàng, dịch vụ & refill", "mỗi 5–10 phút", cronUrl, "Trên VPS: crontab */5 * * * * curl -s \"URL trên\". Trên Vercel: vercel.json mục crons với header x-cron-secret. Thay <CRON_SECRET> bằng khoá bí mật cron của hệ thống.")}
+        {cronRow("Đồng bộ trạng thái đơn hàng, dịch vụ & refill", "mỗi 5–10 phút", cronUrl, "Trên VPS: crontab */5 * * * * curl -s \"URL trên\". Trên Vercel: vercel.json mục crons với header x-cron-secret.")}
         {cronRow("Webhook cộng tiền tự động (SePay / ngân hàng)", "theo giao dịch", webhookUrl, "Header: Authorization: Apikey <secret đặt ở trang Cấu hình nạp tiền>. Cộng tiền theo mã nạp trong nội dung chuyển khoản, chống cộng trùng theo mã giao dịch.")}
         {cronRow("Webhook Stripe", "theo sự kiện", `${base}/api/webhooks/stripe`, "Khai trong Stripe Dashboard, sự kiện checkout.session.completed, ký bằng Webhook Secret ở tab Thanh toán.")}
         {cronRow("Trang quay về sau thanh toán PayPal / Stripe", "sau thanh toán", `${base}/api/payments/paypal/return · ${base}/api/payments/stripe/return`)}

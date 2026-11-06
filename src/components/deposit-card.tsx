@@ -8,7 +8,7 @@ import { vnd } from "@/lib/format";
  *  Nội dung dưới đổi theo phương thức đang chọn. */
 type BankInfo = { name: string; account: string; holder: string; qr: string; content: string; min: number };
 type MomoInfo = { phone: string; name: string; content: string };
-type IntlInfo = { rate: number; paypal: boolean; stripe: boolean };
+type IntlInfo = { rate: number; paypal: boolean; stripe: boolean; minUsd?: number };
 type UsdtInfo = { address: string; network: string; rate: number };
 type MethodKey = "sepay" | "paypal" | "stripe" | "usdt";
 
@@ -93,12 +93,12 @@ export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: Ba
 
       {isIntl && intl && (
         <form action={method === "paypal" ? startPaypalCheckoutAction : startStripeCheckoutAction}>
-          <p className="text-sm text-slate-500 mb-4">Tỉ giá: <b className="text-slate-700">$1 = {rate.toLocaleString("vi-VN")}đ</b> · Tối thiểu $5 · Tiền cộng tự động ngay khi thanh toán thành công.</p>
+          <p className="text-sm text-slate-500 mb-4">Tỉ giá: <b className="text-slate-700">$1 = {rate.toLocaleString("vi-VN")}đ</b> · Tối thiểu ${intl.minUsd || 5} · Tiền cộng tự động ngay khi thanh toán thành công.</p>
           <div className="max-w-xs mb-5">
             <label className="lbl">Số tiền (USD)</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">$</span>
-              <input className="inp !pl-7" name="usd" type="number" min={5} step="1" value={usd} onChange={(e) => setUsd(e.target.value)} />
+              <input className="inp !pl-7" name="usd" type="number" min={intl.minUsd || 5} step="1" value={usd} onChange={(e) => setUsd(e.target.value)} />
             </div>
             <div className="text-sm mt-2 text-slate-500">Nhận được ≈ <b className="text-emerald-700">{vndVal.toLocaleString("vi-VN")}đ</b></div>
           </div>

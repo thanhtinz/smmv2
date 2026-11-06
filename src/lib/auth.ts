@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "./db";
+import { getSettings } from "./settings";
 
 const secret = new TextEncoder().encode(
   process.env.AUTH_SECRET || "dev-secret-can-thay-bang-chuoi-ngau-nhien-dai"
@@ -11,16 +12,17 @@ export const SESSION_COOKIE = "smmv2_session";
 export type SessionUser = { id: number; role: string; username: string };
 
 export async function createSession(user: SessionUser) {
+  const days = Math.min(90, Math.max(1, parseInt((await getSettings()).session_days) || 7));
   const token = await new SignJWT({ uid: user.id, role: user.role, username: user.username })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime(`${days}d`)
     .sign(secret);
   cookies().set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: 60 * 60 * 24 * days,
     secure: process.env.NODE_ENV === "production",
   });
 }

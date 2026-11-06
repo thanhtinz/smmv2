@@ -6,6 +6,7 @@ import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
 import { getSession } from "@/lib/auth";
 import { buyPremiumAction } from "@/app/actions/user";
+import { getSettings } from "@/lib/settings";
 import { vnd, parsePremiumFields, productImages } from "@/lib/format";
 import { ProductGallery } from "@/components/rich-editor";
 
@@ -22,6 +23,7 @@ export default async function PremiumDetail({ params, searchParams }: { params: 
   if (product.panelId != null && product.panelId !== viewer?.panelId) notFound();
   const stocks = await prisma.premiumStock.groupBy({ by: ["variantId"], where: { status: "AVAILABLE", variantId: { in: product.variants.map((v) => v.id) } }, _count: true });
   const stockMap = new Map(stocks.map((x) => [x.variantId, x._count]));
+  const maxQty = parseInt((await getSettings()).premium_max_qty) || 50;
   const related = await prisma.premiumProduct.findMany({
     where: { active: true, categoryId: product.categoryId, id: { not: product.id }, OR: [{ panelId: null }, ...(viewer?.panelId ? [{ panelId: viewer.panelId }] : [])] },
     orderBy: { sort: "asc" }, take: 3,
@@ -54,6 +56,7 @@ export default async function PremiumDetail({ params, searchParams }: { params: 
             <Flash msg={searchParams.msg} err={searchParams.err} />
             {session ? (
               <PremiumBuyForm
+                maxQty={maxQty}
                 slug={product.slug}
                 fulfillment={product.fulfillment}
                 action={buyPremiumAction}

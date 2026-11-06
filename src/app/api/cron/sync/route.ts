@@ -1,3 +1,4 @@
+import { getSettings } from "@/lib/settings";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { syncSmmOrderStatus, syncPremiumOrderStatus, processDripfeedOrders, processAutoRefills } from "@/lib/orders";
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET || "";
+  const secret = (await getSettings()).cron_secret || process.env.CRON_SECRET || "";
   const given =
     req.nextUrl.searchParams.get("secret") ||
     req.headers.get("x-cron-secret") ||

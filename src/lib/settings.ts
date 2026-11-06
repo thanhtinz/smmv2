@@ -28,6 +28,12 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // Thanh toán quốc tế (PayPal / Stripe) — khách trả USD, hệ thống cộng VND theo tỉ giá này
   usd_rate: "25000",
   sepay_secret: "",
+  cron_secret: "",
+  intl_min_usd: "5",
+  premium_max_qty: "50",
+  order_max_links: "50",
+  panel_default_markup: "20",
+  session_days: "7",
   paypal_enabled: "0",
   paypal_client_id: "",
   paypal_client_secret: "",

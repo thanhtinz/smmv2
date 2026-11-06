@@ -6,6 +6,7 @@ import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
 import { getSession } from "@/lib/auth";
 import { buyPremiumAction } from "@/app/actions/user";
+import { getSettings } from "@/lib/settings";
 import { vnd, parsePremiumFields, productImages } from "@/lib/format";
 import { ProductGallery } from "@/components/rich-editor";
 
@@ -59,6 +60,7 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
             <Flash msg={searchParams.msg} err={searchParams.err} />
             {session ? (
               <PremiumBuyForm
+                maxQty={parseInt((await getSettings()).premium_max_qty) || 50}
                 slug={product.slug}
                 fulfillment={product.fulfillment}
                 action={buyPremiumAction}

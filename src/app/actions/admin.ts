@@ -546,7 +546,7 @@ export async function adminSaveSettings(formData: FormData) {
     "custom_head_html", "custom_body_html", "password_min_length",
     "ai_enabled", "ai_provider", "ai_base_url", "ai_api_key", "ai_model", "ai_check_enabled", "tool_api_key", "panel_fee",
     "google_enabled", "google_client_id", "google_client_secret",
-    "sepay_secret",
+    "sepay_secret", "cron_secret",
     "usdt_enabled", "usdt_address", "usdt_network", "usdt_rate",
     "rate_eur", "rate_cny", "rate_thb", "rate_jpy", "rate_krw",
     "landing_enabled", "landing_headline", "landing_subtitle", "auth_style",
@@ -558,7 +558,7 @@ export async function adminSaveSettings(formData: FormData) {
     "recaptcha_enabled", "recaptcha_site_key", "recaptcha_secret", "recaptcha_login", "recaptcha_register",
     "bf_enabled", "bf_max_attempts", "bf_lock_seconds",
     "reg_honeypot", "reg_block_disposable", "reg_max_per_ip_hour", "reg_banned_domains",
-    "smtp_enabled", "smtp_from_name", "module_affiliate",
+    "smtp_enabled", "smtp_from_name", "module_affiliate", "panel_default_markup", "session_days", "premium_max_qty", "order_max_links",
   ];
   for (const k of keys) {
     const v = formData.get(k);
@@ -603,7 +603,7 @@ export async function adminSaveMethodsAction(formData: FormData) {
   await requireAdmin();
   const SECRET_KEYS = ["sepay_secret", "paypal_client_secret", "stripe_secret_key", "stripe_webhook_secret"];
   const keys = [
-    "sepay_secret", "usd_rate", "deposit_min", "deposit_bonus_tiers", "affiliate_percent",
+    "sepay_secret", "intl_min_usd", "usd_rate", "deposit_min", "deposit_bonus_tiers", "affiliate_percent",
     "usdt_enabled", "usdt_address", "usdt_network", "usdt_rate",
     "paypal_enabled", "paypal_client_id", "paypal_client_secret", "paypal_mode",
     "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret",

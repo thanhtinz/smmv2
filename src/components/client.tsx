@@ -916,13 +916,14 @@ export function PanelPriceEditor({ services, overrides, action, deleteAction }: 
 }
 
 /* ---------- Form mua premium ---------- */
-export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note }: {
+export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50 }: {
   variants: { id: number; name: string; price: number; warrantyDays: number; stock: number }[];
   slug: string;
   fulfillment: string;
   action: (formData: FormData) => void;
   fields?: PremiumCustomField[]; // trường tuỳ chỉnh của sản phẩm — có thì thay ô thông tin bàn giao mặc định
   note?: string | null; // hướng dẫn riêng của sản phẩm (hộp xanh phía trên các ô nhập)
+  maxQty?: number; // trần số lượng mỗi đơn — lấy từ cấu hình hệ thống
 }) {
   const [variantId, setVariantId] = useState(variants[0]?.id);
   const [qty, setQty] = useState(1);
@@ -951,8 +952,8 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
           <label className="lbl">Số lượng</label>
           <div className="flex items-stretch h-[46px]">
             <button type="button" aria-label="Giảm số lượng" onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-11 rounded-l-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">−</button>
-            <input className="w-16 border-y border-slate-300 bg-transparent text-center text-lg font-bold text-slate-900 outline-none" name="quantity" type="number" min={1} max={50} value={qty} onChange={(e) => setQty(parseInt(e.target.value) || 1)} />
-            <button type="button" aria-label="Tăng số lượng" onClick={() => setQty((q) => Math.min(50, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
+            <input className="w-16 border-y border-slate-300 bg-transparent text-center text-lg font-bold text-slate-900 outline-none" name="quantity" type="number" min={1} max={maxQty} value={qty} onChange={(e) => setQty(parseInt(e.target.value) || 1)} />
+            <button type="button" aria-label="Tăng số lượng" onClick={() => setQty((q) => Math.min(maxQty, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
           </div>
         </div>
         <div className="text-right">

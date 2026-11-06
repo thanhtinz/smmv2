@@ -498,7 +498,8 @@ export async function createPremiumOrder(input: {
   // Sản phẩm do panel con tự thêm: chỉ khách của đúng panel đó mua được
   const ownProduct = variant.product.panelId != null;
   if (ownProduct && variant.product.panelId !== input.user.panelId) throw new Error("Gói không tồn tại hoặc đã ngưng bán");
-  if (input.quantity < 1 || input.quantity > 50) throw new Error("Số lượng không hợp lệ");
+  const maxQty = parseInt((await getSettings()).premium_max_qty) || 50;
+  if (input.quantity < 1 || input.quantity > maxQty) throw new Error("Số lượng không hợp lệ");
   // Trường tuỳ chỉnh của sản phẩm: validate trường bắt buộc và gộp thành thông tin bàn giao
   const fields = parsePremiumFields(variant.product.customFields);
   let buyerInfo = input.buyerInfo;

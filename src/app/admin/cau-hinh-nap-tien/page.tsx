@@ -125,6 +125,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
           <div className="font-bold text-slate-900">Tỉ giá USD → VNĐ</div>
           <p className="text-sm text-slate-500">Tỉ giá quy đổi cho PayPal và Stripe.</p>
           <div><label className="lbl">1 USD = ? đ</label><input className="inp" name="usd_rate" type="number" min={0} defaultValue={s.usd_rate} /></div>
+          <div><label className="lbl">Số tiền nạp quốc tế tối thiểu (USD)</label><input className="inp" name="intl_min_usd" type="number" min={1} defaultValue={s.intl_min_usd} /></div>
           <button className="btn-primary !py-2.5">Lưu tỉ giá</button>
         </form>
       </div>

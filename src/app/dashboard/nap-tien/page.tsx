@@ -53,7 +53,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
           bank={panelSepayOn ? null : s.bank_account ? { name: s.bank_name, account: s.bank_account, holder: s.bank_holder, qr: vietQrUrl(s.bank_name, s.bank_account, 0, content, s.bank_holder), content, min: parseInt(s.deposit_min || "10000", 10) || 10000 } : null}
           momo={panelSepayOn ? null : s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}
           tiers={effTiers}
-          intl={paypalOn || stripeOn ? { rate: intlCfg.rate, paypal: paypalOn, stripe: stripeOn } : null}
+          intl={paypalOn || stripeOn ? { rate: intlCfg.rate, paypal: paypalOn, stripe: stripeOn, minUsd: parseInt(s.intl_min_usd) || 5 } : null}
           usdt={panelUsdt || (s.usdt_enabled === "1" && s.usdt_address ? { address: s.usdt_address, network: s.usdt_network || "TRC20", rate: parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") } : null)}
         />
         {myPanel && myPanel.status === "ACTIVE" && !panelSepayOn && (myPanel.bankAccount || myPanelBanks.length > 0) && (
