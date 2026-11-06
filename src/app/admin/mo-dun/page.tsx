@@ -8,20 +8,20 @@ export const dynamic = "force-dynamic";
 type Mod = { key: string; name: string; desc: string; icon: React.ReactNode };
 
 const MODULES: Mod[] = [
-  { key: "module_smm", name: "Đặt đơn SMM", desc: "Tắt là khách không đặt đơn SMM mới được (cả web và API).", icon: I.cart },
-  { key: "module_premium", name: "Tài khoản Premium", desc: "Tắt là khách không mua Premium mới được.", icon: I.gem },
-  { key: "module_panels", name: "Website con", desc: "Tắt là không mở website con mới, khách không đăng ký qua panel và gian hàng con ngừng hiển thị.", icon: I.panels },
-  { key: "module_register", name: "Đăng ký tài khoản", desc: "Tắt là không ai đăng ký tài khoản mới được (cả web chính lẫn qua website con).", icon: I.users },
-  { key: "module_bulk", name: "Đặt hàng loạt", desc: "Trang dán nhiều dòng đơn cùng lúc trong khu khách hàng.", icon: I.layers },
-  { key: "module_subscriptions", name: "Đăng ký định kỳ", desc: "Đơn hẹn giờ / lặp lại: tắt là khách không tạo gói mới và các gói đang chạy ngừng đặt tiếp.", icon: I.clock },
-  { key: "module_campaigns", name: "Chiến dịch", desc: "Gom đơn theo chiến dịch có trần ngân sách trong khu khách hàng.", icon: I.megaphone },
-  { key: "module_promo", name: "Mã giảm giá", desc: "Tắt là mọi mã giảm giá ngừng áp dụng khi đặt đơn (kể cả mã riêng của panel con).", icon: I.gift },
-  { key: "module_affiliate", name: "Giới thiệu (Affiliate)", desc: "Tắt là hệ thống ngừng cộng hoa hồng giới thiệu cho các đơn mới.", icon: I.money },
-  { key: "module_tickets", name: "Hỗ trợ / Ticket", desc: "Tắt là khách không mở ticket mới được và mục Hỗ trợ ẩn khỏi khu khách hàng.", icon: I.ticket },
-  { key: "module_api", name: "API đại lý", desc: "Tắt là API /api/v2 ngừng phục vụ mọi key và trang tài liệu API trong khu khách hàng bị ẩn.", icon: I.key },
-  { key: "module_blog", name: "Bài viết", desc: "Tắt là mục Bài viết (tin tức / hướng dẫn) ngừng hiển thị ở web chính và các gian hàng con.", icon: I.file },
-  { key: "livechat_enabled", name: "Tư vấn nổi (AI)", desc: "Nút Tư vấn nổi ở góc trang — gợi ý dịch vụ theo nhu cầu khách (dùng AI khi đã cấu hình).", icon: I.cpu },
-  { key: "support_widget_enabled", name: "Widget liên hệ nổi", desc: "Nút liên hệ nổi (Zalo / Telegram / Facebook / Hotline) ở góc trang khách.", icon: I.bell },
+  { key: "module_smm", name: "Đặt đơn SMM", desc: "Bán dịch vụ SMM cho khách.", icon: I.cart },
+  { key: "module_premium", name: "Tài khoản Premium", desc: "Bán tài khoản Premium cho khách.", icon: I.gem },
+  { key: "module_panels", name: "Website con", desc: "Cho khách mở gian hàng con bằng tên miền riêng.", icon: I.panels },
+  { key: "module_register", name: "Đăng ký tài khoản", desc: "Cho khách đăng ký tài khoản mới.", icon: I.users },
+  { key: "module_bulk", name: "Đặt hàng loạt", desc: "Đặt nhiều đơn cùng lúc.", icon: I.layers },
+  { key: "module_subscriptions", name: "Đăng ký định kỳ", desc: "Đơn hẹn giờ và lặp lại tự động.", icon: I.clock },
+  { key: "module_campaigns", name: "Chiến dịch", desc: "Gom đơn theo chiến dịch, có trần ngân sách.", icon: I.megaphone },
+  { key: "module_promo", name: "Mã giảm giá", desc: "Áp mã giảm giá khi đặt đơn.", icon: I.gift },
+  { key: "module_affiliate", name: "Giới thiệu (Affiliate)", desc: "Hoa hồng cho người giới thiệu.", icon: I.money },
+  { key: "module_tickets", name: "Hỗ trợ / Ticket", desc: "Khách mở ticket hỗ trợ.", icon: I.ticket },
+  { key: "module_api", name: "API đại lý", desc: "API /api/v2 cho đại lý.", icon: I.key },
+  { key: "module_blog", name: "Bài viết", desc: "Tin tức, hướng dẫn trên website.", icon: I.file },
+  { key: "livechat_enabled", name: "Tư vấn nổi (AI)", desc: "Nút tư vấn nổi gợi ý dịch vụ.", icon: I.cpu },
+  { key: "support_widget_enabled", name: "Widget liên hệ nổi", desc: "Nút liên hệ Zalo / Telegram / Facebook / Hotline.", icon: I.bell },
 ];
 
 /** Mô-đun — chỗ bật/tắt từng mảng chức năng của hệ thống, danh sách phẳng một thẻ.
@@ -31,7 +31,7 @@ export default async function AdminModules({ searchParams }: { searchParams: { m
   const s = await getSettings();
   return (
     <div>
-      <PageHead title="Mô-đun" desc="Bật / tắt từng mảng chức năng của hệ thống. Thay đổi áp dụng ngay khi lưu; panel con còn có công tắc riêng cho khách của panel đó.">
+      <PageHead title="Mô-đun" desc="Bật / tắt từng mảng chức năng của hệ thống.">
         <button className="btn-primary !py-2.5" form="modules-form" type="submit">Lưu thay đổi</button>
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
