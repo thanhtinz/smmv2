@@ -57,7 +57,7 @@ export async function placeSmmOrderAction(formData: FormData) {
   }
   // Chế độ nhiều link: tạo lần lượt từng đơn độc lập; mã giảm giá chỉ áp cho đơn đầu tiên
   if (multiLinks.length > 1) {
-    const maxLinks = parseInt((await getSettings()).order_max_links) || 50;
+    const maxLinks = await orderMaxLinksFor(user.id);
     if (multiLinks.length > maxLinks) back("/dashboard/dat-hang", "err", `Tối đa ${maxLinks} link mỗi lần đặt`);
     const codes: string[] = [];
     const errors: string[] = [];
@@ -92,7 +92,7 @@ export async function bulkPlaceOrdersAction(formData: FormData) {
   const raw = String(formData.get("bulk") || "");
   const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
   if (lines.length === 0) back("/dashboard/dat-hang-loat", "err", "Chưa có dòng nào để đặt");
-  const maxLines = parseInt((await getSettings()).order_max_links) || 50;
+  const maxLines = await orderMaxLinksFor(user.id);
   if (lines.length > maxLines) back("/dashboard/dat-hang-loat", "err", `Tối đa ${maxLines} dòng mỗi lần đặt hàng loạt`);
   const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
   let ok = 0;
@@ -231,13 +231,14 @@ export async function registerChildSiteAction(formData: FormData) {
   const linkedUser = link ? link.apiUserId : null;
   const feeInfo = await panelCreationFeeFor(user.id);
   const st = await getSettings();
+  const parentCfg = feeInfo.parent ? await prisma.childPanel.findUnique({ where: { id: feeInfo.parent.id }, select: { panelDefaultMarkup: true, discountMember: true, discountReseller: true, discountAgency: true, discountVip: true } }) : null;
   if (feeInfo.fee > feeInfo.balance) back("/dashboard/panel-cua-toi", "err", `Số dư không đủ để tạo website con — phí tạo là ${feeInfo.fee.toLocaleString("vi-VN")}₫, số dư hiện tại ${feeInfo.balance.toLocaleString("vi-VN")}₫`);
   await prisma.$transaction(async (tx) => {
     const created = await tx.childPanel.create({
     data: {
-      ownerId: user.id, name: domain, slug, markup: parseInt(st.panel_default_markup) || 20, accent: "blue", domain, parentPanelId: feeInfo.parent?.id ?? null,
+      ownerId: user.id, name: domain, slug, markup: (parentCfg?.panelDefaultMarkup ?? parseInt(st.panel_default_markup)) || 20, accent: "blue", domain, parentPanelId: feeInfo.parent?.id ?? null,
       apiKey: linkedKey, apiUserId: linkedUser,
-      discountMember: parseInt(st.level_discount_MEMBER) || 0, discountReseller: parseInt(st.level_discount_RESELLER) || 0, discountAgency: parseInt(st.level_discount_AGENCY) || 0, discountVip: parseInt(st.level_discount_VIP) || 0,
+      discountMember: parentCfg ? parentCfg.discountMember : parseInt(st.level_discount_MEMBER) || 0, discountReseller: parentCfg ? parentCfg.discountReseller : parseInt(st.level_discount_RESELLER) || 0, discountAgency: parentCfg ? parentCfg.discountAgency : parseInt(st.level_discount_AGENCY) || 0, discountVip: parentCfg ? parentCfg.discountVip : parseInt(st.level_discount_VIP) || 0,
       setupDone: false,
     },
     });
@@ -501,7 +502,7 @@ export async function startStripeCheckoutAction(formData: FormData) {
   const cfg = await resolveIntlConfig(user.id);
   if (!cfg.stripe) back("/dashboard/nap-tien", "err", "Stripe chưa được cấu hình");
   const usd = parseFloat(String(formData.get("usd") || "0"));
-  const minUsd = parseInt((await getSettings()).intl_min_usd) || MIN_USD;
+  const minUsd = cfg.minUsd || MIN_USD;
   if (!usd || usd < minUsd) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${minUsd}`);
   const usdCents = Math.round(usd * 100);
   const amountVnd = Math.round(usd * cfg.rate);
@@ -530,7 +531,7 @@ export async function startPaypalCheckoutAction(formData: FormData) {
   const cfg = await resolveIntlConfig(user.id);
   if (!cfg.paypal) back("/dashboard/nap-tien", "err", "PayPal chưa được cấu hình");
   const usd = parseFloat(String(formData.get("usd") || "0"));
-  const minUsd = parseInt((await getSettings()).intl_min_usd) || MIN_USD;
+  const minUsd = cfg.minUsd || MIN_USD;
   if (!usd || usd < minUsd) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${minUsd}`);
   const usdCents = Math.round(usd * 100);
   const amountVnd = Math.round(usd * cfg.rate);
@@ -604,4 +605,14 @@ export async function createUsdtDepositAction(formData: FormData) {
     back("/dashboard/nap-tien", "err", "Mã giao dịch này đã được khai báo trước đó");
   }
   back("/dashboard/nap-tien", "msg", "Đã ghi nhận — admin sẽ đối chiếu giao dịch USDT và cộng tiền trong ít phút");
+}
+
+/** Trần link mỗi lần đặt: panel có đặt riêng thì theo panel, không thì theo cấu hình chung. */
+async function orderMaxLinksFor(userId: number): Promise<number> {
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { panelId: true } });
+  if (u?.panelId) {
+    const p = await prisma.childPanel.findUnique({ where: { id: u.panelId }, select: { orderMaxLinks: true } });
+    if (p?.orderMaxLinks && p.orderMaxLinks > 0) return p.orderMaxLinks;
+  }
+  return parseInt((await getSettings()).order_max_links) || 50;
 }

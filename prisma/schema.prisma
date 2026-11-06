@@ -575,6 +575,11 @@ model ChildPanel {
   depositMin Int? // nạp tối thiểu riêng (VNĐ)
   affiliatePercent Int? // % hoa hồng giới thiệu riêng cho khách của panel
   panelFee    Int  @default(0) // phí khách của panel phải trả để tạo website con của riêng họ (VNĐ, 0 = miễn phí)
+  intlMinUsd         Int? // nạp quốc tế tối thiểu riêng (USD) — null = theo web mẹ
+  premiumMaxQty      Int? // trần số lượng mua Premium / đơn riêng — null = theo web mẹ
+  orderMaxLinks      Int? // trần link mỗi lần đặt riêng — null = theo web mẹ
+  sessionDays        Int? // hạn phiên đăng nhập cho khách vào từ domain của panel — null = theo web mẹ
+  panelDefaultMarkup Int? // markup mặc định cho website con do khách của panel tạo — null = theo web mẹ
   parentPanelId Int? // website con này được tạo từ trong panel nào (null = tạo từ web mẹ)
   // Cấu hình hiển thị riêng của panel (đồng bộ trang Cài đặt của web mẹ, phạm vi panel)
   logoUrl     String? @db.VarChar(500)

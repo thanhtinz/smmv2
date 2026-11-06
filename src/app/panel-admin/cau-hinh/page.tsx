@@ -180,6 +180,13 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
         <div><label className="lbl">Webhook Secret (whsec_...) {panel.stripeWebhookSecret && <span className="font-semibold text-emerald-600">— đã lưu</span>}</label><input name="stripeWebhookSecret" type="password" autoComplete="off" placeholder={mask(panel.stripeWebhookSecret)} className="inp" /></div>
         <button className="btn-primary !py-2.5">Lưu Stripe</button>
       </form>
+
+      <form action={panelSaveConfigAction} className="card space-y-4 p-6">
+        <input type="hidden" name="section" value="intl" />
+        <div className="font-bold text-slate-900">Nạp quốc tế của panel</div>
+        <div><label className="lbl">Số tiền nạp PayPal / Stripe tối thiểu (USD)</label><input name="intlMinUsd" type="number" min={0} defaultValue={panel.intlMinUsd || ""} className="inp" placeholder="Để trống = theo web mẹ" /></div>
+        <button className="btn-primary !py-2.5">Lưu nạp quốc tế</button>
+      </form>
     </>
   );
 
@@ -289,11 +296,23 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
 
   /* ---------------- Bảo mật ---------------- */
   const baomat = (
-    <div className="card space-y-4 p-6">
-      <div className="font-bold text-slate-900">Bảo mật của panel</div>
-      <p className="text-sm leading-relaxed text-slate-500">Panel có mục Bảo mật riêng: chặn IP theo phạm vi gian hàng của bạn và xem nhật ký hoạt động quản trị của panel. Chính sách mật khẩu, giới hạn đăng nhập sai và CAPTCHA là cấu hình bảo mật chung của toàn hệ thống do web mẹ quản lý.</p>
-      <a href="/panel-admin/bao-mat" className="btn-primary inline-block !py-2.5">Mở mục Bảo mật của panel</a>
-    </div>
+    <>
+      <div className="card space-y-4 p-6">
+        <div className="font-bold text-slate-900">Bảo mật của panel</div>
+        <p className="text-sm leading-relaxed text-slate-500">Panel có mục Bảo mật riêng: chặn IP theo phạm vi gian hàng của bạn và xem nhật ký hoạt động quản trị của panel. Chính sách mật khẩu, giới hạn đăng nhập sai và CAPTCHA là cấu hình bảo mật chung của toàn hệ thống do web mẹ quản lý.</p>
+        <a href="/panel-admin/bao-mat" className="btn-primary inline-block !py-2.5">Mở mục Bảo mật của panel</a>
+      </div>
+      <form action={panelSaveConfigAction} className="card mt-6 space-y-4 p-6">
+        <input type="hidden" name="section" value="limits" />
+        <div className="font-bold text-slate-900">Giới hạn riêng của panel</div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div><label className="lbl">Phiên đăng nhập (ngày)</label><input name="sessionDays" type="number" min={0} max={90} defaultValue={panel.sessionDays || ""} className="inp" placeholder="Theo web mẹ" /></div>
+          <div><label className="lbl">Số lượng mua Premium tối đa / đơn</label><input name="premiumMaxQty" type="number" min={0} defaultValue={panel.premiumMaxQty || ""} className="inp" placeholder="Theo web mẹ" /></div>
+          <div><label className="lbl">Số link tối đa / lần đặt</label><input name="orderMaxLinks" type="number" min={0} defaultValue={panel.orderMaxLinks || ""} className="inp" placeholder="Theo web mẹ" /></div>
+        </div>
+        <button className="btn-primary !py-2.5">Lưu giới hạn</button>
+      </form>
+    </>
   );
 
   /* ---------------- Cron Job ---------------- */
@@ -392,6 +411,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
         <div className="font-bold text-slate-900">Phí tạo website con cho khách của panel</div>
         <p className="text-sm leading-relaxed text-slate-400">Giống web mẹ: khách của panel cũng tạo được website con của riêng họ ngay tại trang Đăng ký website con. Bạn đặt phí ở đây — khi khách đăng ký thành công, phí được trừ vào số dư của khách và <b className="text-slate-600">cộng thẳng vào số dư của bạn</b>. Đặt 0₫ là miễn phí.</p>
         <div><label className="lbl">Phí tạo website con (VNĐ)</label><input name="panelFee" type="number" min={0} defaultValue={panel.panelFee || 0} className="inp" placeholder="0 = miễn phí" /></div>
+        <div><label className="lbl">Markup mặc định cho website con mới (%)</label><input name="panelDefaultMarkup" type="number" min={0} max={200} defaultValue={panel.panelDefaultMarkup || ""} className="inp" placeholder="Để trống = theo web mẹ" /></div>
         <p className="text-xs text-slate-400">Đang áp dụng: {panel.panelFee > 0 ? vnd(panel.panelFee) : "Miễn phí"} cho mỗi website con khách của bạn tạo.</p>
         <button className="btn-primary !py-2.5">Lưu phí tạo website con</button>
       </form>

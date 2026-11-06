@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "./db";
 import { getSettings } from "./settings";
+import { panelByHost } from "./panel-host";
 
 const secret = new TextEncoder().encode(
   process.env.AUTH_SECRET || "dev-secret-can-thay-bang-chuoi-ngau-nhien-dai"
@@ -12,7 +13,11 @@ export const SESSION_COOKIE = "smmv2_session";
 export type SessionUser = { id: number; role: string; username: string };
 
 export async function createSession(user: SessionUser) {
-  const days = Math.min(90, Math.max(1, parseInt((await getSettings()).session_days) || 7));
+  let days = Math.min(90, Math.max(1, parseInt((await getSettings()).session_days) || 7));
+  try {
+    const hostPanel = await panelByHost();
+    if (hostPanel?.sessionDays && hostPanel.sessionDays > 0) days = Math.min(90, Math.max(1, hostPanel.sessionDays));
+  } catch { /* ngoài ngữ cảnh request thì dùng cấu hình chung */ }
   const token = await new SignJWT({ uid: user.id, role: user.role, username: user.username })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()

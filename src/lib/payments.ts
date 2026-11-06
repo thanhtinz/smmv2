@@ -18,6 +18,7 @@ export const MIN_USD = 5;
 export type IntlConfig = {
   source: "panel" | "mother";
   rate: number;
+  minUsd: number;
   paypal: { clientId: string; secret: string; mode: string } | null;
   stripe: { secretKey: string; webhookSecret: string | null } | null;
 };
@@ -33,12 +34,14 @@ export async function resolveIntlConfig(userId: number): Promise<IntlConfig> {
     s.stripe_enabled === "1" && s.stripe_secret_key
       ? { secretKey: s.stripe_secret_key, webhookSecret: s.stripe_webhook_secret || null }
       : null;
+  let minUsd = parseInt(s.intl_min_usd) || MIN_USD;
   let source: IntlConfig["source"] = "mother";
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { panelId: true } });
   const panel = user?.panelId
     ? await prisma.childPanel.findUnique({ where: { id: user.panelId } })
     : await prisma.childPanel.findUnique({ where: { ownerId: userId } });
   if (panel) {
+    if (panel.intlMinUsd && panel.intlMinUsd > 0) minUsd = panel.intlMinUsd;
     const pr = parseFloat(panel.rateUsd || "");
     if (Number.isFinite(pr) && pr > 0) rate = Math.round(pr);
     if (panel.paypalEnabled && panel.paypalClientId && panel.paypalSecret) {
@@ -50,7 +53,7 @@ export async function resolveIntlConfig(userId: number): Promise<IntlConfig> {
       source = "panel";
     }
   }
-  return { source, rate, paypal, stripe };
+  return { source, rate, paypal, stripe, minUsd };
 }
 
 /** Như resolveIntlConfig nhưng tra từ externalId của Deposit (trang quay về / capture). */

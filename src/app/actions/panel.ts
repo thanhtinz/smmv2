@@ -525,9 +525,23 @@ export async function panelSaveConfigAction(formData: FormData) {
     });
     done(backTo, "Đã lưu Stripe của panel — khách của bạn nạp Stripe sẽ trả vào tài khoản này");
   }
+  if (section === "intl") {
+    const minUsd = int(formData, "intlMinUsd");
+    await prisma.childPanel.update({ where: { id: panel.id }, data: { intlMinUsd: minUsd > 0 ? minUsd : null } });
+    done(backTo, "Đã lưu cấu hình nạp quốc tế của panel");
+  }
+  if (section === "limits") {
+    const num = (k: string) => { const v = int(formData, k); return v > 0 ? v : null; };
+    await prisma.childPanel.update({
+      where: { id: panel.id },
+      data: { premiumMaxQty: num("premiumMaxQty"), orderMaxLinks: num("orderMaxLinks"), sessionDays: num("sessionDays") },
+    });
+    done(backTo, "Đã lưu giới hạn riêng của panel");
+  }
   if (section === "panelfee") {
     const fee = Math.max(0, int(formData, "panelFee"));
-    await prisma.childPanel.update({ where: { id: panel.id }, data: { panelFee: fee } });
+    const defMarkup = int(formData, "panelDefaultMarkup");
+    await prisma.childPanel.update({ where: { id: panel.id }, data: { panelFee: fee, panelDefaultMarkup: defMarkup > 0 ? defMarkup : null } });
     done(backTo, fee > 0 ? `Đã đặt phí tạo website con cho khách của panel: ${fee.toLocaleString("vi-VN")}₫ — tiền phí thuộc về bạn` : "Đã đặt tạo website con cho khách của panel là MIỄN PHÍ");
   }
   if (section === "brand") {

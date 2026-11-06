@@ -498,7 +498,11 @@ export async function createPremiumOrder(input: {
   // Sản phẩm do panel con tự thêm: chỉ khách của đúng panel đó mua được
   const ownProduct = variant.product.panelId != null;
   if (ownProduct && variant.product.panelId !== input.user.panelId) throw new Error("Gói không tồn tại hoặc đã ngưng bán");
-  const maxQty = parseInt((await getSettings()).premium_max_qty) || 50;
+  let maxQty = parseInt((await getSettings()).premium_max_qty) || 50;
+  if (input.user.panelId) {
+    const p = await prisma.childPanel.findUnique({ where: { id: input.user.panelId }, select: { premiumMaxQty: true } });
+    if (p?.premiumMaxQty && p.premiumMaxQty > 0) maxQty = p.premiumMaxQty;
+  }
   if (input.quantity < 1 || input.quantity > maxQty) throw new Error("Số lượng không hợp lệ");
   // Trường tuỳ chỉnh của sản phẩm: validate trường bắt buộc và gộp thành thông tin bàn giao
   const fields = parsePremiumFields(variant.product.customFields);
