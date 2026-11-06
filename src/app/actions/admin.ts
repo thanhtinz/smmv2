@@ -400,7 +400,6 @@ export async function adminSaveVariant(formData: FormData) {
 export async function adminDeleteVariant(formData: FormData) {
   await requireAdmin();
   const id = parseInt(String(formData.get("id")));
-  const productId = parseInt(String(formData.get("productId")));
   const count = await prisma.premiumOrder.count({ where: { variantId: id } });
   if (count) {
     await prisma.premiumVariant.update({ where: { id }, data: { active: false } });

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { requirePanelAccessPage } from "@/lib/panel-access";
 import { PageHead, Flash, Badge, Stat, I } from "@/components/ui";
 import { vnd, num, dt } from "@/lib/format";
@@ -8,7 +7,7 @@ import { vnd, num, dt } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function PanelAdminHome({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const { user, panel, isOwner } = await requirePanelAccessPage();
+  const { user, panel } = await requirePanelAccessPage();
   const [memberCount, orderAgg, commissionAgg, members, orders, depositAgg, deposits] = await Promise.all([
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.smmOrder.aggregate({ where: { panelId: panel.id }, _count: true, _sum: { charge: true } }),

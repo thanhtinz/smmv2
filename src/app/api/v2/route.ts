@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { userByApiKey } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder, refundSmmOrder } from "@/lib/orders";
-import { LEVEL_DISCOUNT, smmCharge, vnd } from "@/lib/format";
+import { smmCharge, vnd } from "@/lib/format";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { moduleOn } from "@/lib/modules";
 import { providerCancel, providerRefill } from "@/lib/provider";

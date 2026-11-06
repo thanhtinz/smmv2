@@ -1,5 +1,3 @@
-import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { getStats } from "@/lib/stats";
 import { ALERT_EVENTS } from "@/lib/alerts";
@@ -20,7 +18,7 @@ const mask = (v: string | null | undefined) => (v ? "•••••••••
 /** Báo cáo & báo tin của panel con: cùng chuẩn web mẹ nhưng chỉ tính dữ liệu
  *  của gian hàng mình; kênh gửi là cấu hình riêng của chủ panel. */
 export default async function PanelReportPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const { user, panel } = await requirePanelOwnerPage();
+  const { panel } = await requirePanelOwnerPage();
   const st = await getStats({ panelId: panel.id });
   const enabledEvents = new Set((panel.alertEvents || "").split(",").map((x) => x.trim()).filter(Boolean));
   const allEvents = enabledEvents.size === 0;

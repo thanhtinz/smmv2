@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
+import { SiteFooter, PublicHeader } from "@/components/site";
 import { Flash } from "@/components/ui";
 import { registerAction } from "@/app/actions/auth";
 import { prisma } from "@/lib/db";

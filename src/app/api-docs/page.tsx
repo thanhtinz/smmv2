@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
+import { SiteFooter, PublicHeader } from "@/components/site";
 import { ApiDocsView } from "@/components/apidocs";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";

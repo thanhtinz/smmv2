@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
+import { SiteFooter, PublicHeader } from "@/components/site";
 import { ServicesExplorer, ServiceDTO } from "@/components/client";
 import { getSession } from "@/lib/auth";
 import { avgTimesFromRecentOrders } from "@/lib/avg-time";

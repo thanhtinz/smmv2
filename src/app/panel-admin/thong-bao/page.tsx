@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash } from "@/components/ui";
 import { panelBroadcastAction } from "@/app/actions/panel";
@@ -9,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 /** Gửi thông báo tới toàn bộ khách của panel + xem các đợt đã gửi. */
 export default async function PanelBroadcastPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const { user, panel } = await requirePanelOwnerPage();
+  const { panel } = await requirePanelOwnerPage();
   const [memberCount, history] = await Promise.all([
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.apiLog.findMany({ where: { kind: "panel_broadcast", ref: `panel:${panel.id}` }, orderBy: { createdAt: "desc" }, take: 15 }),

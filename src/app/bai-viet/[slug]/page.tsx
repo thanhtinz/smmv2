@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
+import { SiteFooter, PublicHeader } from "@/components/site";
 import { getSettings } from "@/lib/settings";
 import { dshort } from "@/lib/format";
 
@@ -12,7 +12,6 @@ export default async function PostDetail({ params }: { params: { slug: string } 
   const post = await prisma.post.findUnique({ where: { slug: params.slug }, include: { category: true } });
   if (!post || !post.published) notFound();
   await prisma.post.update({ where: { id: post.id }, data: { views: { increment: 1 } } });
-  const s = await getSettings();
   const related = await prisma.post.findMany({
     where: { published: true, id: { not: post.id }, ...(post.categoryId ? { categoryId: post.categoryId } : {}) },
     orderBy: { id: "desc" }, take: 3,

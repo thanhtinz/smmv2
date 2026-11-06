@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { requirePanelAccessPage } from "@/lib/panel-access";
 import { PageHead, Flash, Stat, I, Badge } from "@/components/ui";
 import { setPanelMemberLevelAction } from "@/app/actions/user";
@@ -18,7 +17,7 @@ const LEVELS = [
 
 /** Chi tiết một khách của panel: số liệu, đơn SMM/Premium và nạp tiền qua panel. */
 export default async function PanelMemberDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
-  const { user, panel, isOwner } = await requirePanelAccessPage();
+  const { panel, isOwner } = await requirePanelAccessPage();
   const member = await prisma.user.findFirst({ where: { id: parseInt(params.id), panelId: panel.id } });
   if (!member) notFound();
   const [smmAgg, smmOrders, preOrders, depAgg, deposits] = await Promise.all([

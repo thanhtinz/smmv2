@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { getRealtimeFeed } from "@/lib/realtime";
 
 export const dynamic = "force-dynamic";

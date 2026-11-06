@@ -3,8 +3,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Modal, Switch } from "@/components/admin-catalog";
 import { PremiumFieldsEditor } from "@/components/client";
-import { adminSavePremiumCategory, adminDeletePremiumCategory, adminTogglePremiumCategory, adminSaveProduct, adminDeleteProduct, adminToggleProduct, adminSaveVariant, adminDeleteVariant } from "@/app/actions/admin";
-import { vnd, num, parsePremiumFields } from "@/lib/format";
+import { adminSavePremiumCategory, adminDeletePremiumCategory, adminTogglePremiumCategory, adminSaveProduct, adminDeleteProduct, adminToggleProduct, adminSaveVariant } from "@/app/actions/admin";
+import { num, parsePremiumFields } from "@/lib/format";
 
 const inp = "inp";
 const lbl = "lbl";

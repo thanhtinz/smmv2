@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { SiteHeader, SiteFooter, PublicHeader, PremiumInfoSections } from "@/components/site";
+import { SiteFooter, PublicHeader, PremiumInfoSections } from "@/components/site";
 import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
 import { getSession } from "@/lib/auth";

@@ -2,7 +2,6 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { PageHead, Flash } from "@/components/ui";
 import { OrderForm, ServiceDTO } from "@/components/client";
-import { LEVEL_DISCOUNT } from "@/lib/format";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { panelTierDiscount } from "@/lib/orders";
 import { placeSmmOrderAction } from "@/app/actions/user";

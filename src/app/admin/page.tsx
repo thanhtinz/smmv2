@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { Stat, I, Badge, PageHead } from "@/components/ui";
 import { vnd, num, SMM_STATUS, dt } from "@/lib/format";
 
@@ -16,8 +15,6 @@ const TX_LABEL: Record<string, string> = {
  *  Phân Tích Tài Chính (Thu–Chi + Top 5 nền tảng) → Báo cáo chi tiết
  *  (Giao dịch gần đây + Hoạt động gần đây) → Đơn hàng mới nhất + số dư/ticket. */
 export default async function AdminHome() {
-  const me = await getCurrentUser();
-  void me;
   const now = new Date();
   const startDay = new Date(now); startDay.setHours(0, 0, 0, 0);
   const notRefunded = { notIn: ["REFUNDED"] } as any;

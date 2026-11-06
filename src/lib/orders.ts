@@ -1,6 +1,6 @@
 import { prisma } from "./db";
 import { applyBalance, creditReferralCommission, clawbackReferralCommission } from "./wallet";
-import { LEVEL_DISCOUNT, smmCharge, genCode, parsePremiumFields, vnd } from "./format";
+import { smmCharge, genCode, parsePremiumFields, vnd } from "./format";
 import { checkPromo, consumePromo } from "./promo";
 import { levelDiscountFromSettings } from "./settings";
 import { getSettings } from "./settings";

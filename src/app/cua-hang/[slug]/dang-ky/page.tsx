@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { SiteHeader, SiteFooter, PublicHeader } from "@/components/site";
+import { SiteFooter, PublicHeader } from "@/components/site";
 import { Flash } from "@/components/ui";
 import { panelRegisterAction } from "@/app/actions/auth";
 

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { requirePanelAccessPage } from "@/lib/panel-access";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { dt } from "@/lib/format";
@@ -16,7 +15,7 @@ const CAT: Record<string, string> = { smm: "Đơn SMM", premium: "Premium", depo
 
 /** Ticket hỗ trợ của khách panel — chỉ ticket do khách của panel này tạo. */
 export default async function PanelTicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string; status?: string } }) {
-  const { user, panel, isOwner } = await requirePanelAccessPage();
+  const { panel } = await requirePanelAccessPage();
   const status = ["OPEN", "ANSWERED", "CLOSED"].includes(searchParams.status || "") ? searchParams.status : "";
   const tickets = await prisma.ticket.findMany({
     where: { user: { panelId: panel.id }, ...(status ? { status: status as any } : {}) },

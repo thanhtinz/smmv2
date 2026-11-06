@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       body: new URLSearchParams({
         code,
         client_id: clientId,
-        client_secret: s.google_client_secret,
+        client_secret: clientSecret,
         redirect_uri: redirectUri,
         grant_type: "authorization_code",
       }),

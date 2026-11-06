@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { requirePanelAccessPage } from "@/lib/panel-access";
 import { PageHead, Flash, Stat, I, RankBadge } from "@/components/ui";
 import { vnd, num } from "@/lib/format";
@@ -10,7 +9,7 @@ export const dynamic = "force-dynamic";
 /** Phân tích riêng của panel: doanh thu + hoa hồng 30 ngày, top dịch vụ,
  *  top khách và phễu chuyển đổi — chỉ tính trên dữ liệu của panel này. */
 export default async function PanelAnalyticsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const { user, panel, isOwner } = await requirePanelAccessPage();
+  const { panel } = await requirePanelAccessPage();
   const since = new Date(Date.now() - 30 * 86400000);
   const [orders, commissionAgg, memberCount, depositedMembers, topServices, topCustomers, premiumAgg] = await Promise.all([
     prisma.smmOrder.findMany({ where: { panelId: panel.id, createdAt: { gte: since } }, select: { charge: true, createdAt: true } }),

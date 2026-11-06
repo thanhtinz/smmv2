@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { requirePanelAccessPage } from "@/lib/panel-access";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { panelReplyTicket, panelToggleTicket } from "@/app/actions/panel";
@@ -17,7 +16,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 /** Chi tiết ticket của khách panel: đọc hội thoại + trả lời + đóng/mở lại. */
 export default async function PanelTicketDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
-  const { user, panel, isOwner } = await requirePanelAccessPage();
+  const { panel } = await requirePanelAccessPage();
   const ticket = await prisma.ticket.findFirst({
     where: { id: parseInt(params.id), user: { panelId: panel.id } },
     include: { user: { select: { username: true, email: true } }, messages: { orderBy: { createdAt: "asc" } } },

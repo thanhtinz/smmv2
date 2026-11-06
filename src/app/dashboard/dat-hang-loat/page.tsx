@@ -4,7 +4,6 @@ import { moduleOn } from "@/lib/modules";
 import { PageHead, Flash } from "@/components/ui";
 import { BulkOrderForm, type ServiceDTO } from "@/components/client";
 import { bulkPlaceOrdersAction } from "@/app/actions/user";
-import { LEVEL_DISCOUNT } from "@/lib/format";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { panelTierDiscount } from "@/lib/orders";
 

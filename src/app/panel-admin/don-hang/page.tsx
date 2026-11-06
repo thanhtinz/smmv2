@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { requirePanelAccessPage } from "@/lib/panel-access";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { panelOwnOrderAction } from "@/app/actions/panel";
@@ -20,7 +19,7 @@ const STATUS_CLS: Record<string, string> = {
 
 /** Đơn hàng qua panel — chỉ xem (xử lý đơn do web mẹ đảm nhiệm), kèm hoa hồng từng đơn. */
 export default async function PanelOrdersPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const { user, panel, isOwner } = await requirePanelAccessPage();
+  const { panel } = await requirePanelAccessPage();
   const orders = await prisma.smmOrder.findMany({
     where: { panelId: panel.id },
     orderBy: { createdAt: "desc" },

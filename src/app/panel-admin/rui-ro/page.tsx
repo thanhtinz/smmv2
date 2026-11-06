@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { vnd, num, dt } from "@/lib/format";
@@ -10,7 +9,7 @@ export const dynamic = "force-dynamic";
 /** Đơn qua panel bị hệ thống gắn cờ rủi ro/trùng lặp — chủ panel theo dõi
  *  để chủ động hỗ trợ khách và tránh thất thoát hoa hồng. */
 export default async function PanelRiskPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const { user, panel } = await requirePanelOwnerPage();
+  const { panel } = await requirePanelOwnerPage();
   const orders = await prisma.smmOrder.findMany({
     where: { panelId: panel.id, flagNote: { not: null } },
     orderBy: { id: "desc" },

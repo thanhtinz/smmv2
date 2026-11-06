@@ -9,11 +9,8 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminAnalytics() {
   await requireAdminPage();
-  const now = new Date();
-  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const since30 = new Date(Date.now() - 29 * 86400000); since30.setHours(0, 0, 0, 0);
   const notRefunded = { notIn: ["REFUNDED"] } as any;
-  const preValid = { notIn: ["REFUNDED", "CANCELED"] } as any;
 
   const [days, topServices, topCustomers, byProvider, funnel] = await Promise.all([
     prisma.smmOrder.findMany({ where: { createdAt: { gte: since30 }, status: notRefunded }, select: { createdAt: true, charge: true, cost: true } }),
@@ -118,7 +115,7 @@ export default async function AdminAnalytics() {
                 { label: "Đăng ký tài khoản", value: totalUsers },
                 { label: "Đã nạp tiền", value: depositedUsers },
                 { label: "Đã đặt đơn SMM", value: orderedUsers },
-              ].map((f, i, arr) => (
+              ].map((f, _i, arr) => (
                 <div key={f.label}>
                   <div className="mb-1 flex justify-between text-sm"><span className="text-slate-600">{f.label}</span><b>{num(f.value)}</b></div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-brand-400" style={{ width: `${arr[0].value ? Math.round((f.value / arr[0].value) * 100) : 0}%` }} /></div>

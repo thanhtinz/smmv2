@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash, Stat, I } from "@/components/ui";
 import { panelSetCommissionAction } from "@/app/actions/panel";

@@ -1,7 +1,7 @@
 import { prisma } from "./db";
 import { getSettings, setSetting } from "./settings";
 import { getStats, Scope, StatsBundle } from "./stats";
-import { sendDiscord, sendTelegramTo, alertEmailHtml } from "./alerts";
+import { sendDiscord, sendTelegramTo } from "./alerts";
 import { sendMail } from "./mailer";
 import { vnd, num } from "./format";
 
