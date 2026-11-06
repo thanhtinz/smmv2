@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // các mục tiền/nguồn/dịch vụ/kho/người dùng/thông báo/cấu hình là của ADMIN.
   const isAdmin = user.role === "ADMIN";
   // Thứ tự + tên mục bám đúng sidebar admin của panel mẫu (trumapi): Tổng quan → Quản lý SMM ▾ →
-  // Tài khoản Premium ▾ → Người dùng → Ticket hỗ trợ → tiền → ... → Cửa hàng Addon → Cài đặt →
+  // Tài khoản Premium ▾ → Người dùng → Ticket hỗ trợ → tiền → ... → Mô-đun → Cài đặt →
   // Bảo mật nâng cao → Bài viết ▾ → Cập nhật hệ thống → Dọn dẹp hệ thống.
   // Các tính năng riêng của SMMv2 (Phân tích, Panel con, Báo cáo, Rủi ro, Nhật ký API, Hệ thống)
   // đặt ngay sau mục gần nhất của mẫu để không phá thứ tự gốc.
@@ -64,7 +64,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/lien-he", label: "Widget Liên hệ", icon: "megaphone", adminOnly: true },
     { href: "/admin/bao-cao", label: "Báo cáo & Thông báo", icon: "bell", adminOnly: true },
     { href: "/admin/thong-bao", label: "Thông báo", icon: "megaphone", adminOnly: true },
-    { href: "/admin/mo-dun", label: "Cửa hàng Addon", icon: "layers", adminOnly: true },
+    { href: "/admin/mo-dun", label: "Mô-đun", icon: "layers", adminOnly: true },
     { href: "/admin/cau-hinh", label: "Cài đặt", icon: "gear", adminOnly: true },
     { href: "/admin/bao-mat", label: "Bảo mật nâng cao", icon: "shield", adminOnly: true },
     { href: "/admin/rui-ro", label: "Phát hiện rủi ro", icon: "shield", adminOnly: true },

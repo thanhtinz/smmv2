@@ -30,7 +30,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
     prisma.deposit.count({ where: { user: { panelId: panel.id }, status: "PENDING" } }),
   ]);
   // Thứ tự + tên mục bám đúng sidebar admin web mẹ / panel mẫu: Tổng quan → Quản lý SMM ▾ →
-  // Tài khoản Premium ▾ → Khách hàng → Ticket hỗ trợ → tiền → ... → Cửa hàng Addon → Cài đặt →
+  // Tài khoản Premium ▾ → Khách hàng → Ticket hỗ trợ → tiền → ... → Mô-đun → Cài đặt →
   // Bảo mật nâng cao → Bài viết ▾ → Dọn dẹp hệ thống (mọi mục đều trong phạm vi dữ liệu của panel).
   const allEntries: AdminNavEntry[] = [
     { href: "/panel-admin", label: "Tổng quan", icon: "home" },
@@ -65,7 +65,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
     { href: "/panel-admin/lien-he", label: "Widget Liên hệ", icon: "megaphone" },
     { href: "/panel-admin/bao-cao", label: "Báo cáo & Thông báo", icon: "bell" },
     { href: "/panel-admin/thong-bao", label: "Thông báo khách", icon: "megaphone" },
-    { href: "/panel-admin/mo-dun", label: "Cửa hàng Addon", icon: "layers" },
+    { href: "/panel-admin/mo-dun", label: "Mô-đun", icon: "layers" },
     { href: "/panel-admin/cau-hinh", label: "Cài đặt", icon: "gear" },
     { href: "/panel-admin/bao-mat", label: "Bảo mật nâng cao", icon: "shield" },
     { href: "/panel-admin/rui-ro", label: "Đơn rủi ro", icon: "shield" },
