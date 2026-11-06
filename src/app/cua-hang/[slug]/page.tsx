@@ -62,7 +62,7 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
         sampleService={services[0]?.name}
         links={{ login: "/login", register: registerHref, dashboard: "/dashboard", order: "/dashboard/dat-hang", services: registerHref, api: "/dashboard/api-docs" }}
         announcement={panel.announcement}
-        footer={<SiteFooter noTabBar brand={{ slug: panel.slug, name: panel.name, tagline: panel.tagline, zalo: panel.supportZalo, telegram: panel.supportTelegram, facebook: panel.supportFacebook, hotline: panel.supportHotline }} />}
+        footer={<SiteFooter brand={{ slug: panel.slug, name: panel.name, tagline: panel.tagline, zalo: panel.supportZalo, telegram: panel.supportTelegram, facebook: panel.supportFacebook, hotline: panel.supportHotline }} />}
       />
     </div>
   );

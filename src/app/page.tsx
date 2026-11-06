@@ -58,7 +58,7 @@ export default async function HomePage({ searchParams }: { searchParams: { previ
       premiums={premiums.filter((p) => p.variants[0]).map((p) => ({ name: p.name, tagline: p.tagline, from: p.variants[0].price, href: `/premium/${p.slug}` }))}
       sampleService={featured[0]?.name}
       links={{ login: "/login", register: "/register", dashboard: "/dashboard", order: "/dashboard/dat-hang", services: "/dashboard/dich-vu", api: "/dashboard/api-docs" }}
-      footer={<SiteFooter noTabBar />}
+      footer={<SiteFooter />}
     />
   );
 }

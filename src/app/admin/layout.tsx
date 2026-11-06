@@ -6,7 +6,6 @@ import { logoutAction } from "@/app/actions/auth";
 import { DisplaySettings } from "@/components/display";
 import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
 import AdminRealtime from "@/components/admin-realtime";
-import TabBar from "@/components/tabbar";
 import { prisma } from "@/lib/db";
 import { vnd } from "@/lib/format";
 
@@ -114,7 +113,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="flex min-h-screen flex-col lg:pl-[260px]">
         <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
-            <Link href="/admin" className="flex items-center gap-2.5 lg:hidden">
+            <Link href="/admin" className="ml-11 flex items-center gap-2.5 lg:hidden">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 font-black text-white">{s.site_logo_text || "S"}</span>
               <span className="font-extrabold text-slate-900">{s.site_name} <span className="font-medium text-slate-400">/ Admin</span></span>
             </Link>
@@ -140,10 +139,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 pb-24 lg:px-6 lg:pb-6">{children}</main>
-        <footer className="pb-24 text-center text-xs text-slate-400 lg:pb-6">© {new Date().getFullYear()} {s.site_name} · Admin Panel</footer>
+        <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 lg:px-6">{children}</main>
+        <footer className="pb-6 text-center text-xs text-slate-400">© {new Date().getFullYear()} {s.site_name} · Admin Panel</footer>
       </div>
-      <TabBar variant={isAdmin ? "admin" : "staff"} />
     </div>
   );
 }

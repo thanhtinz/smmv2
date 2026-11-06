@@ -1,7 +1,7 @@
 import { RichText } from "@/components/rich-text";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import TabBar from "@/components/tabbar";
+import { PublicBurger } from "@/components/public-burger";
 import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { vnd } from "@/lib/format";
@@ -20,6 +20,7 @@ export async function SiteHeader() {
         <div className="bg-brand-600 text-white text-center text-xs sm:text-sm py-2 px-4 font-medium">{s.announcement_bar}</div>
       )}
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3 sm:gap-6">
+        <PublicBurger tone="light" home="/" loggedIn={!!session} registerHref="/register" />
         <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 shrink-0">
           <span className="w-9 h-9 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center text-lg">{s.site_logo_text || "S"}</span>
           <span className="font-extrabold text-lg text-slate-900 hidden min-[420px]:inline">{s.site_name}</span>
@@ -79,7 +80,8 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
       <div className="fixed inset-x-0 top-0 z-50">
         {note && <div className="bg-rose-600 px-4 py-1.5 text-center text-xs font-medium text-white sm:text-sm">{note}</div>}
         <div className="px-3 pt-3 sm:pt-4">
-          <header className="mx-auto flex max-w-5xl items-center gap-2 rounded-full border border-white/10 bg-black/60 py-2 pl-4 pr-2 shadow-2xl shadow-black/40 backdrop-blur-xl sm:gap-3 sm:pl-5">
+          <header className="mx-auto flex max-w-5xl items-center gap-2 rounded-full border border-white/10 bg-black/60 py-2 pl-2 pr-2 shadow-2xl shadow-black/40 backdrop-blur-xl sm:gap-3 sm:pl-3">
+            <PublicBurger tone="dark" home={home} panelSlug={panel?.slug} loggedIn={!!session} registerHref={registerHref} />
             <Link href={panel ? home : user ? "/dashboard" : home} className="flex shrink-0 items-center gap-2.5">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600 text-sm font-black text-white">{name.charAt(0).toUpperCase()}</span>
               <span className="max-w-[140px] truncate text-[15px] font-extrabold tracking-tight text-white">{name}</span>
@@ -127,9 +129,8 @@ export type FooterBrand = {
 
 /** Footer dùng chung. Trang panel con truyền `brand` để footer + nút liên hệ nổi
  *  mang thương hiệu và kênh hỗ trợ RIÊNG của panel (kênh nào panel để trống thì dùng của web mẹ). */
-export async function SiteFooter({ brand, noTabBar }: { brand?: FooterBrand; noTabBar?: boolean } = {}) {
+export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
   const s = await getSettings();
-  const session = await getSession().catch(() => null);
   const merged = brand
     ? {
         ...s,
@@ -180,8 +181,6 @@ export async function SiteFooter({ brand, noTabBar }: { brand?: FooterBrand; noT
       </div>
       <div className="border-t border-slate-800 py-5 text-center text-xs">© {new Date().getFullYear()} {brand?.name || s.site_name}. Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.</div>
     </footer>
-    {!noTabBar && <div className="h-[68px] lg:hidden" />}
-    {!noTabBar && <TabBar variant={session ? "app" : "site"} />}
     </>
   );
 }
@@ -199,7 +198,7 @@ function FloatingSupport({ items }: { items: FloatingContact[] }) {
   };
   if (items.length === 0) return null;
   return (
-    <div className="fixed bottom-[5.5rem] lg:bottom-5 right-4 sm:right-5 z-50 flex flex-col gap-2.5">
+    <div className="fixed bottom-5 right-4 sm:right-5 z-50 flex flex-col gap-2.5">
       {items.map((it, i) => (
         <a key={i} href={it.href} target={it.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" title={it.name}
           className="group flex items-center gap-0 hover:gap-2.5 flex-row-reverse transition-all">

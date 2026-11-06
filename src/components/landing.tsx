@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { I } from "@/components/ui";
+import { PublicBurger } from "@/components/public-burger";
 import { vnd, num, PLATFORMS } from "@/lib/format";
 
 /**
@@ -32,7 +33,8 @@ export function LandingView(props: {
     <div className="min-h-screen bg-[#07090d] text-slate-300 antialiased">
       {/* ===== Header nổi dạng pill ===== */}
       <div className="fixed inset-x-0 top-3 z-50 px-3 sm:top-4">
-        <header className="mx-auto flex max-w-5xl items-center gap-2 rounded-full border border-white/10 bg-black/60 py-2 pl-4 pr-2 shadow-2xl shadow-black/40 backdrop-blur-xl sm:gap-4 sm:pl-5">
+        <header className="mx-auto flex max-w-5xl items-center gap-2 rounded-full border border-white/10 bg-black/60 py-2 pl-2 pr-2 shadow-2xl shadow-black/40 backdrop-blur-xl sm:gap-4 sm:pl-3">
+          <PublicBurger tone="dark" home="/" loggedIn={props.loggedIn} registerHref={links.register} items={[{ href: "#tinh-nang", label: "Tính năng" }, { href: "#dich-vu", label: "Dịch vụ" }, { href: "#quy-trinh", label: "Quy trình" }, { href: links.api, label: "Tài liệu API" }, { href: "#faq", label: "Hỏi đáp" }, { href: links.services, label: "Bảng giá" }, { href: links.order, label: "Đặt đơn SMM" }]} />
           <Link href={links.order === "/dashboard/dat-hang" ? "/" : "#"} className="flex shrink-0 items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600 text-sm font-black text-white">{brandName.charAt(0).toUpperCase()}</span>
             <span className="max-w-[150px] truncate text-[15px] font-extrabold tracking-tight text-white">{brandName}</span>

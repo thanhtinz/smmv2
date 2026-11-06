@@ -77,17 +77,16 @@ function Group({ entry, pathname }: { entry: { group: string; icon: string; chil
   );
 }
 
-export default function AdminNav({ siteName, logoText, entries }: { siteName: string; logoText: string; entries: AdminNavEntry[] }) {
-  const pathname = usePathname() || "/admin";
+function NavBody({ siteName, logoText, entries, pathname, onNavigate }: { siteName: string; logoText: string; entries: AdminNavEntry[]; pathname: string; onNavigate?: () => void }) {
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 hidden w-[260px] flex-col bg-[#081c36] text-slate-300 lg:flex">
+    <>
       <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-white/10 px-5">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 font-black text-white shadow-lg shadow-brand-900/50">{logoText}</span>
         <span className="truncate font-extrabold text-white">
           {siteName} <span className="font-medium text-slate-400">/ Admin</span>
         </span>
       </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3" onClick={onNavigate}>
         {entries.map((e) =>
           "group" in e ? <Group key={e.group} entry={e} pathname={pathname} /> : <Leaf key={e.href} it={e} pathname={pathname} />
         )}
@@ -98,6 +97,32 @@ export default function AdminNav({ siteName, logoText, entries }: { siteName: st
           <span>Về website</span>
         </Link>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export default function AdminNav({ siteName, logoText, entries }: { siteName: string; logoText: string; entries: AdminNavEntry[] }) {
+  const pathname = usePathname() || "/admin";
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-[260px] flex-col bg-[#081c36] text-slate-300 lg:flex">
+        <NavBody siteName={siteName} logoText={logoText} entries={entries} pathname={pathname} />
+      </aside>
+      {/* Điện thoại: nút burger cố định ở góc trái thanh trên + ngăn kéo trượt chứa toàn bộ menu
+          (thay thanh menu footer dưới đáy đã bỏ). Layout chừa ml cho logo để không đè nút. */}
+      <button type="button" onClick={() => setOpen(true)} aria-label="Mở menu"
+        className="fixed left-3 top-[13px] z-[60] flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 lg:hidden">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[70] bg-slate-950/50 lg:hidden" onClick={() => setOpen(false)} />
+          <div className="fixed inset-y-0 left-0 z-[80] flex w-[280px] max-w-[85vw] flex-col bg-[#081c36] text-slate-300 shadow-2xl lg:hidden">
+            <NavBody siteName={siteName} logoText={logoText} entries={entries} pathname={pathname} onNavigate={() => setOpen(false)} />
+          </div>
+        </>
+      )}
+    </>
   );
 }

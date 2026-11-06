@@ -3,9 +3,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
-import { SideNav } from "@/components/nav";
+import { SideNav, MobileSideNav } from "@/components/nav";
 import { DisplaySettings } from "@/components/display";
-import TabBar from "@/components/tabbar";
 import { LiveChat } from "@/components/livechat";
 import { TermsGate, HomeModal } from "@/components/gates";
 import { I } from "@/components/ui";
@@ -75,7 +74,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen">
       <header className="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-40">
-        <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center gap-4">
+        <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center gap-3 sm:gap-4">
+          <MobileSideNav items={items} siteName={s.site_name} />
           <Link href="/" className="flex items-center gap-2.5">
             <span className="w-9 h-9 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center">{s.site_logo_text || "S"}</span>
             <span className="font-extrabold text-slate-900 hidden sm:inline">{s.site_name}</span>
@@ -85,18 +85,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hidden sm:inline-block">{LEVEL_NAME[user.level]}</span>
             <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3.5 py-1.5 text-sm font-bold">{vnd(user.balance)}</span>
             <span className="hidden md:inline text-sm font-medium text-slate-700">{user.username}</span>
-            <form action={logoutAction}><button className="btn-ghost btn-sm !py-2">Đăng xuất</button></form>
+            <form action={logoutAction}><button className="btn-ghost btn-sm !py-2 whitespace-nowrap">Đăng xuất</button></form>
           </div>
         </div>
       </header>
       <div className="max-w-[1400px] mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[248px_1fr] gap-6 items-start">
-        <aside className="lg:sticky lg:top-24 lg:bg-white lg:rounded-2xl lg:border lg:border-slate-200/60 lg:shadow-soft lg:p-3">
+        <aside className="hidden lg:block lg:sticky lg:top-24 lg:bg-white lg:rounded-2xl lg:border lg:border-slate-200/60 lg:shadow-soft lg:p-3">
           <SideNav items={items} />
         </aside>
-        <main className="min-w-0 pb-20 lg:pb-0">{children}</main>
+        <main className="min-w-0">{children}</main>
       </div>
-      {/* Menu footer kiểu webapp cho điện thoại */}
-      <TabBar variant="app" />
       {s.livechat_enabled !== "0" && <LiveChat />}
       {termsGate}
       {homeModalContent ? <HomeModal content={homeModalContent} /> : null}

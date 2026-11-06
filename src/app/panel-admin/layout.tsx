@@ -5,7 +5,6 @@ import { logoutAction } from "@/app/actions/auth";
 import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
 import AdminRealtime from "@/components/admin-realtime";
 import { DisplaySettings } from "@/components/display";
-import TabBar from "@/components/tabbar";
 import { prisma } from "@/lib/db";
 import { vnd } from "@/lib/format";
 
@@ -123,7 +122,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
       <div className="flex min-h-screen flex-col lg:pl-[260px]">
         <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
-            <Link href="/panel-admin" className="flex items-center gap-2.5 lg:hidden">
+            <Link href="/panel-admin" className="ml-11 flex items-center gap-2.5 lg:hidden">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 font-black text-white">{panel.name.charAt(0).toUpperCase()}</span>
               <span className="font-extrabold text-slate-900">{panel.name} <span className="font-medium text-slate-400">/ Panel Admin</span></span>
             </Link>
@@ -150,7 +149,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 pb-24 lg:px-6 lg:pb-6">
+        <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 lg:px-6">
           {!isOwner && (
             <div className="card px-5 py-4 mb-6 border !border-amber-200 bg-amber-50 text-sm text-amber-800">
               Bạn đang vào Panel Admin của <b>{panel.name}</b> với quyền <b>Nhân viên</b> — chỉ xử lý đơn hàng, trả lời ticket và xem khách hàng/thống kê. Giá, tiền, cấu hình và nhân sự do chủ panel quản lý.
@@ -169,9 +168,8 @@ export default async function PanelAdminLayout({ children }: { children: React.R
           )}
           {children}
         </main>
-        <footer className="pb-24 text-center text-xs text-slate-400 lg:pb-6">© {new Date().getFullYear()} {panel.name} · Panel Admin</footer>
+        <footer className="pb-6 text-center text-xs text-slate-400">© {new Date().getFullYear()} {panel.name} · Panel Admin</footer>
       </div>
-      <TabBar variant="app" />
     </div>
   );
 }

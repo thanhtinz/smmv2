@@ -2,6 +2,7 @@ import Link from "next/link";
 import { I } from "@/components/ui";
 import { vnd, num, PLATFORMS } from "@/lib/format";
 import type { LandingView } from "@/components/landing";
+import { PublicBurger } from "@/components/public-burger";
 
 type P = React.ComponentProps<typeof LandingView>;
 
@@ -30,6 +31,7 @@ export function LandingLight(props: P) {
       {props.announcement && <div className="bg-brand-600 px-4 py-2 text-center text-sm font-medium text-white">{props.announcement}</div>}
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4">
+          <PublicBurger tone="light" home="/" loggedIn={props.loggedIn} registerHref={links.register} items={[{ href: "#tinh-nang", label: "Tính năng" }, ...(showSmm ? [{ href: "#dich-vu", label: "Dịch vụ" }] : []), { href: "#quy-trinh", label: "Quy trình" }, { href: links.api, label: "Tài liệu API" }, { href: "#faq", label: "Hỏi đáp" }, { href: links.services, label: "Bảng giá" }, { href: links.order, label: "Đặt đơn SMM" }]} />
           <span className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-base font-black text-white">{brandName.charAt(0).toUpperCase()}</span>
             <span className="text-lg font-extrabold tracking-tight text-slate-900">{brandName}</span>
@@ -207,6 +209,7 @@ export function LandingClassic(props: P) {
       {props.announcement && <div className="bg-brand-600 px-4 py-2 text-center text-sm font-medium text-white">{props.announcement}</div>}
       <header className="border-b border-white/10">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4">
+          <PublicBurger tone="dark" home="/" loggedIn={props.loggedIn} registerHref={links.register} items={[{ href: "#tinh-nang", label: "Tính năng" }, ...(showSmm ? [{ href: "#dich-vu", label: "Dịch vụ" }] : []), { href: "#quy-trinh", label: "Quy trình" }, { href: links.api, label: "Tài liệu API" }, { href: "#faq", label: "Hỏi đáp" }, { href: links.services, label: "Bảng giá" }, { href: links.order, label: "Đặt đơn SMM" }]} />
           <span className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-base font-black text-white">{brandName.charAt(0).toUpperCase()}</span>
             <span className="text-lg font-extrabold tracking-tight text-white">{brandName}</span>

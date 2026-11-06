@@ -530,7 +530,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
               <span className="text-[17px] font-bold text-slate-800">Đặt lịch chạy</span>
             </div>
             {schedOn && (
-              <div className="mt-3 pl-[76px]">
+              <div className="mt-3 pl-[52px] sm:pl-[76px]">
                 <input type="hidden" name="schedule" value="1" />
                 <input className="inp" type="datetime-local" name="scheduleAt" required value={schedAt} onChange={(e) => setSchedAt(e.target.value)} />
                 <p className="mt-1.5 text-xs text-slate-400">Đơn tự đặt vào thời gian bạn chọn, tiền trừ khi đơn chạy.</p>
@@ -545,7 +545,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
               <span className="text-[17px] font-bold text-slate-800">Đặt hàng lặp lại</span>
             </div>
             {loopOn && (
-              <div className="mt-3 grid grid-cols-2 gap-3 pl-[76px]">
+              <div className="mt-3 grid grid-cols-2 gap-3 pl-[52px] sm:pl-[76px]">
                 <input type="hidden" name="loop" value="1" />
                 <div>
                   <label className="lbl">Số lần lặp</label>
@@ -560,15 +560,15 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             )}
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-[26px] border border-[#d9e6fd] bg-[#eaf1fe] px-5 py-5 dark:border-white/10 dark:bg-white/5">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#d3e4ff] text-brand-600 dark:bg-white/10">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7H5a2 2 0 0 1 0-4h13v4" /><path d="M3 5.5V18a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2Z" /><circle cx="17" cy="15" r="1.15" fill="currentColor" stroke="none" /></svg>
+        <div className="flex flex-wrap items-center gap-3 rounded-[26px] border border-[#d9e6fd] bg-[#eaf1fe] px-4 py-4 dark:border-white/10 dark:bg-white/5 sm:gap-4 sm:px-5 sm:py-5">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#d3e4ff] text-brand-600 dark:bg-white/10 sm:h-14 sm:w-14">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 sm:h-7 sm:w-7"><path d="M20 7H5a2 2 0 0 1 0-4h13v4" /><path d="M3 5.5V18a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2Z" /><circle cx="17" cy="15" r="1.15" fill="currentColor" stroke="none" /></svg>
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-bold uppercase tracking-wide text-slate-600">Tổng thanh toán</span>
-            <span className="block truncate text-[28px] font-extrabold leading-tight text-brand-600">{vnd(shownCharge)}{multiOn && orderCount === 0 && <span className="text-sm font-semibold text-slate-400"> / link</span>}</span>
+          <span className="min-w-[136px] flex-1">
+            <span className="block whitespace-nowrap text-[11px] font-bold uppercase tracking-wide text-slate-600 sm:text-[13px]">Tổng thanh toán</span>
+            <span className="block whitespace-nowrap text-[22px] font-extrabold leading-tight text-brand-600 sm:text-[28px]">{vnd(shownCharge)}{multiOn && orderCount === 0 && <span className="text-sm font-semibold text-slate-400"> / link</span>}</span>
           </span>
-          <button type="submit" disabled={notEnough} className="shrink-0 rounded-[18px] bg-brand-500 px-7 py-3.5 text-lg font-semibold text-white shadow-md shadow-brand-500/30 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">Đặt hàng</button>
+          <button type="submit" disabled={notEnough} className="ml-auto shrink-0 rounded-[18px] bg-brand-500 px-5 py-3 text-base font-semibold text-white shadow-md shadow-brand-500/30 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50 sm:px-7 sm:py-3.5 sm:text-lg">Đặt hàng</button>
         </div>
         {notEnough && <p className="-mt-2 text-right text-xs font-medium text-rose-600">Chưa đủ số dư cho đơn này — nạp thêm để đặt hàng.</p>}
       </form>

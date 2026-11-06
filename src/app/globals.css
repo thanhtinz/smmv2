@@ -277,3 +277,12 @@ html[data-font="rounded"] body { font-family: Verdana, Geneva, "Segoe UI", sans-
 .auth-scope h1 { color: #0f172a !important; }
 .auth-scope .text-slate-500 { color: #64748b !important; }
 .auth-scope .text-slate-400 { color: #94a3b8 !important; }
+/* Thẻ classic của trang auth nằm trên nền tối cố định (khung .dark): đảo chữ sang tông sáng,
+   riêng ô nhập vẫn trắng như các kiểu thẻ sáng. Chỉ áp khi AuthShell gắn thêm .auth-on-dark. */
+.auth-scope.auth-on-dark h1 { color: #f1f5f9 !important; }
+.auth-scope.auth-on-dark .lbl { color: #aebdd2 !important; }
+.auth-scope.auth-on-dark .text-slate-500 { color: #94a3b8 !important; }
+.auth-scope.auth-on-dark .text-slate-400 { color: #94a3b8 !important; }
+.auth-scope.auth-on-dark .text-slate-900 { color: #f1f5f9 !important; }
+.auth-scope.auth-on-dark .text-slate-700 { color: #d7e1ef !important; }
+.auth-scope.auth-on-dark .text-slate-600 { color: #aebdd2 !important; }

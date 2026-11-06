@@ -86,11 +86,14 @@ export function AuthShell(props: {
     );
   }
 
-  // classic + app: nền tối, thẻ giữa màn hình (khác nhau ở lớp thẻ)
+  // classic + app: nền tối, thẻ giữa màn hình (khác nhau ở lớp thẻ).
+  // Thẻ classic (.card) bám nền tối của khung -> cần .auth-on-dark để chữ sáng;
+  // thẻ app là thẻ trắng nên giữ tông chữ tối như các kiểu thẻ sáng.
+  const scopeCls = style === "app" ? "auth-scope contents" : "auth-scope auth-on-dark contents";
   return (
     <div data-accent={props.accent || undefined} className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
       <PublicHeader panel={panelProp} announcement={props.announcement} />
-      <main className="flex-1 flex items-center justify-center px-4 py-14"><div className="auth-scope contents">{props.children}</div></main>
+      <main className="flex-1 flex items-center justify-center px-4 py-14"><div className={scopeCls}>{props.children}</div></main>
       <SiteFooter />
     </div>
   );

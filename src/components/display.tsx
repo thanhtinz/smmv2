@@ -60,7 +60,7 @@ export function DisplaySettings({ tone = "light" }: { tone?: "light" | "dark" })
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-11 z-50 w-[300px] card p-4 text-left max-h-[80vh] overflow-y-auto">
+          <div className="fixed inset-x-3 top-[76px] z-50 card p-4 text-left max-h-[80vh] overflow-y-auto sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:w-[300px]">
             <div className="font-bold text-slate-900 mb-3">Cài đặt hiển thị</div>
             <div className="space-y-4">
               <div><Label>Chế độ</Label><Seg options={[{ key: "light", name: "Sáng" }, { key: "dark", name: "Tối" }]} value={prefs.mode} onPick={(k) => set({ mode: k })} /></div>
