@@ -14,6 +14,8 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
   const motherSettings = await getSettings();
   if (motherSettings.module_panels === "0") notFound();
   const user = await getCurrentUser().catch(() => null);
+  // Khách của panel này đã đăng nhập thì về thẳng bảng điều khiển (chủ panel vẫn xem được gian hàng của mình)
+  if (user && user.panelId === panel.id) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
   const panelRate = (r: number) => Math.round(r * (1 + panel.markup / 100));
   const [services, categories, memberCount, panelOrderCount, panelPremiumCount, premiums, statusGroups] = await Promise.all([
     prisma.smmService.findMany({ where: { active: true, OR: [{ panelId: null }, { panelId: panel.id }] }, include: { category: true }, orderBy: [{ categoryId: "asc" }, { sort: "asc" }, { id: "asc" }] }),
@@ -60,7 +62,7 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
         sampleService={services[0]?.name}
         links={{ login: "/login", register: registerHref, dashboard: "/dashboard", order: "/dashboard/dat-hang", services: registerHref, api: "/dashboard/api-docs" }}
         announcement={panel.announcement}
-        footer={<SiteFooter brand={{ slug: panel.slug, name: panel.name, tagline: panel.tagline, zalo: panel.supportZalo, telegram: panel.supportTelegram, facebook: panel.supportFacebook, hotline: panel.supportHotline }} />}
+        footer={<SiteFooter noTabBar brand={{ slug: panel.slug, name: panel.name, tagline: panel.tagline, zalo: panel.supportZalo, telegram: panel.supportTelegram, facebook: panel.supportFacebook, hotline: panel.supportHotline }} />}
       />
     </div>
   );

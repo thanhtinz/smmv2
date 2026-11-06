@@ -8,9 +8,11 @@ import { LandingLight, LandingClassic } from "@/components/landing-variants";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: { preview?: string } }) {
   const s = await getSettings();
   const user = await getCurrentUser().catch(() => null);
+  // Đã đăng nhập là về thẳng bảng điều khiển, không quay lại landing (admin xem trước bằng ?preview=1)
+  if (user && !(user.role === "ADMIN" && searchParams.preview)) redirect("/dashboard");
   if (s.landing_enabled === "0") redirect(user ? "/dashboard" : "/login");
   const [serviceCount, premiumCount, smmOrderCount, premiumOrderCount, userCount, featured, premiums, allServices, categories, statusGroups] = await Promise.all([
     prisma.smmService.count({ where: { active: true } }),
@@ -56,7 +58,7 @@ export default async function HomePage() {
       premiums={premiums.filter((p) => p.variants[0]).map((p) => ({ name: p.name, tagline: p.tagline, from: p.variants[0].price, href: `/premium/${p.slug}` }))}
       sampleService={featured[0]?.name}
       links={{ login: "/login", register: "/register", dashboard: "/dashboard", order: "/dashboard/dat-hang", services: "/dashboard/dich-vu", api: "/dashboard/api-docs" }}
-      footer={<SiteFooter />}
+      footer={<SiteFooter noTabBar />}
     />
   );
 }

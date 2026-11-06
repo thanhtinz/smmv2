@@ -51,7 +51,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <div><label className="lbl">Tiêu đề Hero (H1)</label><input className="inp" name="landing_headline" defaultValue={s.landing_headline} placeholder="VD: SMM Panel Số 1 Việt Nam" /><p className="mt-1 text-xs text-slate-400">Tiêu đề chính hiển thị ở trang Landing Page — để trống dùng câu mặc định.</p></div>
           <div><label className="lbl">Phụ đề (Subtitle)</label><input className="inp" name="landing_subtitle" defaultValue={s.landing_subtitle} /><p className="mt-1 text-xs text-slate-400">Phụ đề hiển thị ngay dưới tiêu đề chính — để trống dùng khẩu hiệu của site.</p></div>
         </div>
-        <a href="/" target="_blank" className="btn-ghost btn-sm inline-block">Xem trước Landing Page</a>
+        <a href="/?preview=1" target="_blank" className="btn-ghost btn-sm inline-block">Xem trước Landing Page</a>
         <div>
           <label className="lbl">Mẫu Landing Page</label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
