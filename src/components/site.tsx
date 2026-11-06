@@ -72,12 +72,14 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
     ? [
         { href: home, label: "Trang chủ" },
         { href: `/cua-hang/${panel.slug}/premium`, label: "Premium" },
+        { href: `/cua-hang/${panel.slug}/thong-bao`, label: "Thông báo" },
         ...(blogOn ? [{ href: `/cua-hang/${panel.slug}/bai-viet`, label: "Bài viết" }] : []),
         ...(apiDocOn ? [{ href: `/cua-hang/${panel.slug}/tai-lieu-api`, label: "Tài liệu API" }] : []),
       ]
     : [
         { href: "/dich-vu", label: "Bảng giá" },
         { href: "/premium", label: "Premium" },
+        { href: "/thong-bao", label: "Thông báo" },
         ...(blogOn ? [{ href: "/bai-viet", label: "Bài viết" }] : []),
         ...(apiDocOn ? [{ href: "/api-docs", label: "Tài liệu API" }] : []),
       ];

@@ -445,10 +445,13 @@ model TicketMessage {
 
 model Announcement {
   id        Int      @id @default(autoincrement())
+  panelId   Int? // null = thông báo của web mẹ; có giá trị = thông báo riêng của panel con đó
   title     String   @db.VarChar(200)
   body      String   @db.Text
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  @@index([panelId, active, createdAt])
 }
 
 // Cấu hình site dạng key-value: site_name, bank_*, momo_*, deposit_bonus_tiers,

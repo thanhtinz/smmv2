@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Stat, I, Badge, PageHead } from "@/components/ui";
 import { vnd, num, SMM_STATUS, LEVEL_NAME, dt } from "@/lib/format";
+import { getAnnouncementsFor } from "@/lib/announcements";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export default async function DashboardHome() {
     prisma.smmOrder.count({ where: { userId: user.id } }),
     prisma.smmOrder.count({ where: { userId: user.id, status: { in: ["PENDING", "PROCESSING", "IN_PROGRESS"] } } }),
     prisma.premiumOrder.count({ where: { userId: user.id } }),
-    prisma.announcement.findMany({ where: { active: true }, orderBy: { id: "desc" }, take: 3 }),
+    getAnnouncementsFor(user.panelId ?? null, 3),
     prisma.smmOrder.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 6, include: { service: true } }),
     prisma.smmOrder.findMany({ where: { userId: user.id, createdAt: { gte: since }, status: { not: "CANCELED" } }, select: { charge: true, createdAt: true } }),
     prisma.premiumOrder.findMany({ where: { userId: user.id, createdAt: { gte: since }, status: { not: "CANCELED" } }, select: { total: true, createdAt: true } }),

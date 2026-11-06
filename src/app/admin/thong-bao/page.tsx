@@ -13,7 +13,7 @@ export default async function AdminAnnouncements({ searchParams }: { searchParam
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
       <div className="xl:col-span-3">
-        <PageHead title="Thông báo" desc="Thông báo đang bật sẽ hiện ở trang Tổng quan của khách." />
+        <PageHead title="Thông báo" desc="Hiện theo dòng thời gian ở trang chủ, trang Thông báo và trang Tổng quan của khách." />
         <Flash msg={searchParams.msg} err={searchParams.err} />
       </div>
       <div className="xl:col-span-2">
