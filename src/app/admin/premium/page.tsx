@@ -13,7 +13,7 @@ export default async function AdminPremiumProducts({ searchParams }: { searchPar
   if (searchParams.status === "on") where.active = true;
   if (searchParams.status === "off") where.active = false;
   const [products, categories, providers] = await Promise.all([
-    prisma.premiumProduct.findMany({ where, orderBy: [{ sort: "asc" }, { id: "asc" }], include: { category: true, variants: { orderBy: [{ sort: "asc" }, { id: "asc" }] } } }),
+    prisma.premiumProduct.findMany({ where: { ...where, panelId: null }, orderBy: [{ sort: "asc" }, { id: "asc" }], include: { category: true, variants: { orderBy: [{ sort: "asc" }, { id: "asc" }] } } }),
     prisma.premiumCategory.findMany({ orderBy: [{ sort: "asc" }, { id: "asc" }], include: { _count: { select: { products: true } } } }),
     prisma.provider.findMany({ where: { kind: { in: ["PREMIUM", "BOTH"] } }, select: { id: true, name: true }, orderBy: { id: "asc" } }),
   ]);

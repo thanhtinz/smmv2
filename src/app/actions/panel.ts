@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { notifyUser } from "@/lib/notify";
 import { sendMail, smtpConfigured } from "@/lib/mailer";
 import { panelAiConfig, testAiConnection } from "@/lib/ai";
-import { applyBalance } from "@/lib/wallet";
+import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
 import { genCode } from "@/lib/format";
 import { refundSmmOrder } from "@/lib/orders";
 import { orderTransition } from "@/lib/notify";
@@ -865,4 +865,136 @@ export async function panelSendReportNowAction() {
   if (ok.length && !fail.length) done(REPORT_PAGE, `Đã gửi báo cáo qua: ${ok.map((r) => r.channel).join(", ")}`);
   if (ok.length && fail.length) done(REPORT_PAGE, `Đã gửi qua ${ok.map((r) => r.channel).join(", ")}; lỗi: ${fail.map((r) => `${r.channel} (${r.note})`).join("; ")}`);
   back(REPORT_PAGE, "err", `Gửi báo cáo thất bại: ${fail.map((r) => `${r.channel} (${r.note})`).join("; ")}`);
+}
+
+/* ---------- Sản phẩm Premium của panel (chủ panel tự thêm, tự giao) ---------- */
+const PRE_PAGE = "/panel-admin/premium";
+
+export async function panelSavePremiumProductAction(formData: FormData) {
+  const { panel } = await ownPanelOwner(PRE_PAGE);
+  const id = int(formData, "id");
+  const name = str(formData, "name");
+  if (name.length < 2) back(PRE_PAGE, "err", "Tên sản phẩm quá ngắn");
+  const categoryId = int(formData, "categoryId");
+  const cat = await prisma.premiumCategory.findUnique({ where: { id: categoryId } });
+  if (!cat) back(PRE_PAGE, "err", "Chưa chọn danh mục");
+  const data = {
+    name: name.slice(0, 150),
+    categoryId,
+    tagline: str(formData, "tagline").slice(0, 255) || null,
+    imageUrl: str(formData, "imageUrl").slice(0, 500) || null,
+    buyNote: str(formData, "buyNote").slice(0, 500) || null,
+    warrantyInfo: str(formData, "warrantyInfo") || null,
+    usageGuide: str(formData, "usageGuide") || null,
+    sort: int(formData, "sort"),
+    active: formData.get("active") === "on",
+  };
+  if (id) {
+    const p = await prisma.premiumProduct.findFirst({ where: { id, panelId: panel.id } });
+    if (!p) back(PRE_PAGE, "err", "Không tìm thấy sản phẩm của panel");
+    await prisma.premiumProduct.update({ where: { id }, data });
+    done(PRE_PAGE, `Đã lưu sản phẩm ${name}`);
+  }
+  let slug = slugify(name) || `sp-panel-${panel.id}`;
+  if (await prisma.premiumProduct.findUnique({ where: { slug } })) slug = `${slug}-p${panel.id}`;
+  if (await prisma.premiumProduct.findUnique({ where: { slug } })) slug = `${slug}-${Date.now()}`;
+  await prisma.premiumProduct.create({ data: { ...data, slug, panelId: panel.id, fulfillment: "MANUAL" } });
+  done(PRE_PAGE, `Đã thêm sản phẩm ${name} — bấm nút Gói để thêm gói bán`);
+}
+
+export async function panelTogglePremiumProductAction(formData: FormData) {
+  const { panel } = await ownPanelOwner(PRE_PAGE);
+  const id = int(formData, "id");
+  const p = await prisma.premiumProduct.findFirst({ where: { id, panelId: panel.id }, select: { active: true } });
+  if (!p) back(PRE_PAGE, "err", "Không tìm thấy sản phẩm của panel");
+  await prisma.premiumProduct.update({ where: { id }, data: { active: !p.active } });
+  done(PRE_PAGE, p.active ? "Đã tắt bán sản phẩm" : "Đã mở bán sản phẩm");
+}
+
+export async function panelDeletePremiumProductAction(formData: FormData) {
+  const { panel } = await ownPanelOwner(PRE_PAGE);
+  const id = int(formData, "id");
+  const p = await prisma.premiumProduct.findFirst({ where: { id, panelId: panel.id }, include: { variants: { select: { id: true } } } });
+  if (!p) back(PRE_PAGE, "err", "Không tìm thấy sản phẩm của panel");
+  const orders = await prisma.premiumOrder.count({ where: { variantId: { in: p.variants.map((v) => v.id) } } });
+  if (orders > 0) {
+    await prisma.premiumProduct.update({ where: { id }, data: { active: false } });
+    done(PRE_PAGE, "Sản phẩm đã có đơn nên chỉ tắt bán");
+  }
+  await prisma.premiumVariant.deleteMany({ where: { productId: id } });
+  await prisma.premiumProduct.delete({ where: { id } });
+  done(PRE_PAGE, "Đã xoá sản phẩm");
+}
+
+export async function panelSavePremiumVariantAction(formData: FormData) {
+  const { panel } = await ownPanelOwner(PRE_PAGE);
+  const productId = int(formData, "productId");
+  const product = await prisma.premiumProduct.findFirst({ where: { id: productId, panelId: panel.id } });
+  if (!product) back(PRE_PAGE, "err", "Không tìm thấy sản phẩm của panel");
+  const id = int(formData, "id");
+  const name = str(formData, "name");
+  if (!name) back(PRE_PAGE, "err", "Chưa nhập tên gói");
+  const data = {
+    name: name.slice(0, 100),
+    price: Math.max(0, int(formData, "price")),
+    warrantyDays: Math.max(0, int(formData, "warrantyDays")),
+    sort: int(formData, "sort"),
+    active: formData.get("active") === "on",
+  };
+  if (id) {
+    const v = await prisma.premiumVariant.findFirst({ where: { id, productId } });
+    if (!v) back(PRE_PAGE, "err", "Không tìm thấy gói");
+    await prisma.premiumVariant.update({ where: { id }, data });
+  } else {
+    await prisma.premiumVariant.create({ data: { ...data, productId } });
+  }
+  done(PRE_PAGE, `Đã lưu gói ${name}`);
+}
+
+export async function panelDeletePremiumVariantAction(formData: FormData) {
+  const { panel } = await ownPanelOwner(PRE_PAGE);
+  const id = int(formData, "id");
+  const v = await prisma.premiumVariant.findFirst({ where: { id, product: { panelId: panel.id } } });
+  if (!v) back(PRE_PAGE, "err", "Không tìm thấy gói của panel");
+  const count = await prisma.premiumOrder.count({ where: { variantId: id } });
+  if (count) {
+    await prisma.premiumVariant.update({ where: { id }, data: { active: false } });
+    done(PRE_PAGE, "Gói đã có đơn nên chỉ tắt bán");
+  }
+  await prisma.premiumStock.deleteMany({ where: { variantId: id } });
+  await prisma.premiumVariant.delete({ where: { id } });
+  done(PRE_PAGE, "Đã xoá gói");
+}
+
+/** Giao / huỷ đơn Premium thuộc sản phẩm của chính panel (chủ panel tự giao). */
+export async function panelPremiumOrderAction(formData: FormData) {
+  const { panel } = await ownPanel("/panel-admin/don-premium");
+  const id = int(formData, "id");
+  const kind = str(formData, "kind");
+  const path = `/panel-admin/don-premium/${id}`;
+  const order = await prisma.premiumOrder.findFirst({
+    where: { id, panelId: panel.id },
+    include: { variant: { include: { product: { select: { panelId: true } } } } },
+  });
+  if (!order || order.variant.product.panelId !== panel.id) back("/panel-admin/don-premium", "err", "Đơn này không thuộc sản phẩm của panel bạn");
+  if (kind === "cancel") {
+    if (order.status === "REFUNDED") back(path, "err", "Đơn đã hoàn tiền trước đó");
+    await prisma.$transaction(async (tx) => {
+      await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Chủ panel huỷ đơn premium — hoàn tiền");
+      if (order.commission > 0) {
+        await applyBalance(tx, panel.ownerId, -order.commission, "PANEL_COMMISSION", order.code, "Thu hồi hoa hồng — đơn premium bị huỷ");
+      }
+      await tx.premiumOrder.update({ where: { id }, data: { status: "REFUNDED" } });
+    });
+    await clawbackReferralCommission(order.userId, order.total, order.code);
+    done(path, "Đã huỷ đơn và hoàn tiền cho khách");
+  }
+  const deliveryData = str(formData, "deliveryData") || order.deliveryData;
+  const status = (str(formData, "status") || order.status) as any;
+  const adminNote = str(formData, "adminNote") || order.adminNote;
+  await prisma.premiumOrder.update({ where: { id }, data: { status, deliveryData, adminNote } });
+  if ((status === "DELIVERED" || status === "COMPLETED") && deliveryData) {
+    await notifyUser(order.userId, "Đơn Premium đã được giao", `Đơn ${order.code} đã giao — xem nội dung trong mục Đơn Premium của bạn.`, "/dashboard/don-premium");
+  }
+  done(path, "Đã cập nhật đơn premium");
 }

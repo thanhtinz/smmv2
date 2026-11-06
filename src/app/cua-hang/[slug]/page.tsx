@@ -19,7 +19,7 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.smmOrder.count({ where: { panelId: panel.id } }),
     prisma.premiumOrder.count({ where: { panelId: panel.id } }),
-    prisma.premiumProduct.findMany({ where: { active: true }, take: 4, orderBy: { sort: "asc" }, include: { variants: { where: { active: true }, orderBy: { price: "asc" }, take: 1 } } }),
+    prisma.premiumProduct.findMany({ where: { active: true, OR: [{ panelId: null }, { panelId: panel.id }] }, take: 4, orderBy: { sort: "asc" }, include: { variants: { where: { active: true }, orderBy: { price: "asc" }, take: 1 } } }),
     prisma.smmOrder.groupBy({ by: ["status"], where: { panelId: panel.id }, _count: true }),
   ]);
   const platformStats = Object.values(
@@ -52,7 +52,7 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
         loggedIn={!!user}
         stats={{ services: services.length, premium: premiums.length, orders: panelOrderCount + panelPremiumCount, users: memberCount, completion }}
         platforms={platformStats.map((p) => ({ ...p, points: catsByPlatform.get(p.platform) || [] }))}
-        premiums={premiums.filter((p) => p.variants[0]).map((p) => ({ name: p.name, tagline: p.tagline, from: panelRate(p.variants[0].price), href: `/cua-hang/${panel.slug}/premium/${p.slug}` }))}
+        premiums={premiums.filter((p) => p.variants[0]).map((p) => ({ name: p.name, tagline: p.tagline, from: p.panelId ? p.variants[0].price : panelRate(p.variants[0].price), href: `/cua-hang/${panel.slug}/premium/${p.slug}` }))}
         sampleService={services[0]?.name}
         links={{ login: "/login", register: registerHref, dashboard: "/dashboard", order: "/dashboard/dat-hang", services: registerHref, api: `/cua-hang/${panel.slug}/tai-lieu-api` }}
         announcement={panel.announcement}

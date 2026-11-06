@@ -434,8 +434,9 @@ export async function adminPremiumOrderAction(formData: FormData) {
   await requireStaff();
   const id = parseInt(String(formData.get("id")));
   const kind = String(formData.get("kind"));
-  const order = await prisma.premiumOrder.findUnique({ where: { id } });
+  const order = await prisma.premiumOrder.findUnique({ where: { id }, include: { variant: { include: { product: { select: { panelId: true } } } } } });
   if (!order) back("/admin/don-premium", "err", "Không tìm thấy đơn");
+  if (order.variant.product.panelId != null) back("/admin/don-premium", "err", "Đơn thuộc sản phẩm của panel con — chủ panel tự xử lý");
   const path = `/admin/don-premium/${id}`;
   if (kind === "sync") {
     try {

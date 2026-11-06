@@ -32,7 +32,7 @@ export default async function PanelPremiumPage({ params, searchParams }: { param
   const catId = searchParams.cat ? parseInt(searchParams.cat) : undefined;
   const q = (searchParams.q || "").trim().toLowerCase();
   const allProducts = await prisma.premiumProduct.findMany({
-    where: { active: true, ...(catId ? { categoryId: catId } : {}) },
+    where: { active: true, ...(catId ? { categoryId: catId } : {}), OR: [{ panelId: null }, { panelId: panel.id }] },
     orderBy: { sort: "asc" },
     include: { category: true, variants: { where: { active: true }, orderBy: { price: "asc" } } },
   });
@@ -73,7 +73,7 @@ export default async function PanelPremiumPage({ params, searchParams }: { param
                 <div className="font-bold text-lg text-slate-900 group-hover:text-brand-700 mt-4">{p.name}</div>
                 <div className="text-xs text-slate-400">{p.category.name} · {p.variants.length} gói</div>
                 <p className="text-sm text-slate-500 mt-2 line-clamp-2 flex-1">{p.tagline}</p>
-                {from && <div className="mt-4">Chỉ từ <span className="font-extrabold text-brand-700 text-lg">{vnd(panelRate(from.price))}</span></div>}
+                {from && <div className="mt-4">Chỉ từ <span className="font-extrabold text-brand-700 text-lg">{vnd(p.panelId ? from.price : panelRate(from.price))}</span></div>}
               </Link>
             );
           })}

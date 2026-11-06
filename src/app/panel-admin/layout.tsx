@@ -53,6 +53,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
       group: "Tài khoản Premium", icon: "gem",
       children: [
         { href: "/panel-admin/dich-vu", label: "Giá Premium", icon: "gem" },
+        { href: "/panel-admin/premium", label: "Sản phẩm & Gói", icon: "box" },
         { href: "/panel-admin/don-premium", label: "Quản lý đơn hàng", icon: "box", badge: premiumPending || undefined },
       ],
     },

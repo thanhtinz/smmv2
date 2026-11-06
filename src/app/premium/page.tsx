@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
+import { getSession } from "@/lib/auth";
 import { SiteFooter, PublicHeader } from "@/components/site";
 import { vnd } from "@/lib/format";
 
@@ -22,11 +23,13 @@ export default async function PremiumPage({ searchParams }: { searchParams: { ca
       </div>
     );
   }
+  const session = await getSession();
+  const viewer = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { panelId: true } }) : null;
   const cats = await prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } });
   const catId = searchParams.cat ? parseInt(searchParams.cat) : undefined;
   const q = (searchParams.q || "").trim().toLowerCase();
   const allProducts = await prisma.premiumProduct.findMany({
-    where: { active: true, ...(catId ? { categoryId: catId } : {}) },
+    where: { active: true, ...(catId ? { categoryId: catId } : {}), OR: [{ panelId: null }, ...(viewer?.panelId ? [{ panelId: viewer.panelId }] : [])] },
     orderBy: { sort: "asc" },
     include: {
       category: true,

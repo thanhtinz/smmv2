@@ -11,7 +11,7 @@ export default async function AdminPremiumOrderDetail({ params, searchParams }: 
     where: { id: parseInt(params.id) },
     include: { variant: { include: { product: true } }, user: true },
   });
-  if (!o) notFound();
+  if (!o || o.variant.product.panelId != null) notFound();
   return (
     <div>
       <BackLink href="/admin/don-premium">Danh sách đơn Premium</BackLink>

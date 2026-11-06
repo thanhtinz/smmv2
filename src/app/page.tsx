@@ -18,7 +18,7 @@ export default async function HomePage() {
     prisma.premiumOrder.count(),
     prisma.user.count(),
     prisma.smmService.findMany({ where: { active: true }, take: 5, orderBy: { id: "asc" }, include: { category: true } }),
-    prisma.premiumProduct.findMany({ where: { active: true }, take: 4, orderBy: { sort: "asc" }, include: { variants: { where: { active: true }, orderBy: { price: "asc" }, take: 1 } } }),
+    prisma.premiumProduct.findMany({ where: { active: true, panelId: null }, take: 4, orderBy: { sort: "asc" }, include: { variants: { where: { active: true }, orderBy: { price: "asc" }, take: 1 } } }),
     prisma.smmService.findMany({ where: { active: true }, select: { rate: true, category: { select: { platform: true } } } }),
     prisma.smmCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } }),
     prisma.smmOrder.groupBy({ by: ["status"], _count: true }),

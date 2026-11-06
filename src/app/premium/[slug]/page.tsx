@@ -17,10 +17,12 @@ export default async function PremiumDetail({ params, searchParams }: { params: 
   });
   if (!product || !product.active) notFound();
   const session = await getSession();
+  const viewer = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { panelId: true } }) : null;
+  if (product.panelId != null && product.panelId !== viewer?.panelId) notFound();
   const stocks = await prisma.premiumStock.groupBy({ by: ["variantId"], where: { status: "AVAILABLE", variantId: { in: product.variants.map((v) => v.id) } }, _count: true });
   const stockMap = new Map(stocks.map((x) => [x.variantId, x._count]));
   const related = await prisma.premiumProduct.findMany({
-    where: { active: true, categoryId: product.categoryId, id: { not: product.id } },
+    where: { active: true, categoryId: product.categoryId, id: { not: product.id }, OR: [{ panelId: null }, ...(viewer?.panelId ? [{ panelId: viewer.panelId }] : [])] },
     orderBy: { sort: "asc" }, take: 3,
     include: { variants: { where: { active: true }, orderBy: { price: "asc" }, take: 1 } },
   });

@@ -261,7 +261,10 @@ model PremiumProduct {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
+  panelId     Int? // sản phẩm do panel con tự thêm (chỉ khách của panel đó thấy/mua; chủ panel tự giao)
   variants PremiumVariant[]
+
+  @@index([panelId])
 }
 
 model PremiumVariant {

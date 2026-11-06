@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminStock({ searchParams }: { searchParams: { msg?: string; err?: string; variant?: string; status?: string } }) {
   await requireAdminPage();
   const variants = await prisma.premiumVariant.findMany({
-    where: { product: { fulfillment: "AUTO_STOCK" } },
+    where: { product: { fulfillment: "AUTO_STOCK", panelId: null } },
     include: { product: true },
     orderBy: [{ productId: "asc" }, { price: "asc" }],
   });

@@ -20,13 +20,14 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
     include: { category: true, variants: { where: { active: true }, orderBy: [{ sort: "asc" }, { price: "asc" }] } },
   });
   if (!product || !product.active) notFound();
+  if (product.panelId != null && product.panelId !== panel.id) notFound();
   const panelRate = (r: number) => Math.round(r * (1 + panel.markup / 100));
   const base = `/cua-hang/${panel.slug}/premium`;
   const session = await getSession();
   const stocks = await prisma.premiumStock.groupBy({ by: ["variantId"], where: { status: "AVAILABLE", variantId: { in: product.variants.map((v) => v.id) } }, _count: true });
   const stockMap = new Map(stocks.map((x) => [x.variantId, x._count]));
   const related = await prisma.premiumProduct.findMany({
-    where: { active: true, categoryId: product.categoryId, id: { not: product.id } },
+    where: { active: true, categoryId: product.categoryId, id: { not: product.id }, OR: [{ panelId: null }, { panelId: panel.id }] },
     orderBy: { sort: "asc" }, take: 3,
     include: { variants: { where: { active: true }, orderBy: { price: "asc" }, take: 1 } },
   });
@@ -51,7 +52,7 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
               <div className="flex gap-2"><span className="text-emerald-600 mt-0.5">{I.check}</span>Bảo hành theo số ngày ghi trên từng gói — lỗi là đổi mới hoặc hoàn tiền</div>
               <div className="flex gap-2"><span className="text-emerald-600 mt-0.5">{I.check}</span>Thanh toán bằng số dư, xem lại nội dung đã giao bất cứ lúc nào trong mục Đơn Premium</div>
             </div>
-            <div className="mt-4 text-sm text-slate-400">Giá tại {panel.name} — gói rẻ nhất: {product.variants[0] ? vnd(panelRate(product.variants[0].price)) : "—"}</div>
+            <div className="mt-4 text-sm text-slate-400">Giá tại {panel.name} — gói rẻ nhất: {product.variants[0] ? vnd(product.panelId ? product.variants[0].price : panelRate(product.variants[0].price)) : "—"}</div>
           </div>
           <div className="card p-6 lg:col-span-3">
             <h2 className="font-bold text-slate-900 mb-4">Chọn gói</h2>
@@ -63,7 +64,7 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
                 action={buyPremiumAction}
                 fields={parsePremiumFields(product.customFields)}
                 note={product.buyNote}
-                variants={product.variants.map((v) => ({ id: v.id, name: v.name, price: panelRate(v.price), warrantyDays: v.warrantyDays, stock: stockMap.get(v.id) || 0 }))}
+                variants={product.variants.map((v) => ({ id: v.id, name: v.name, price: product.panelId ? v.price : panelRate(v.price), warrantyDays: v.warrantyDays, stock: stockMap.get(v.id) || 0 }))}
               />
             ) : (
               <div className="text-center py-6">
@@ -84,7 +85,7 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
                   <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-black text-lg" style={{ background: p.color }}>{p.name.charAt(0)}</div>
                   <div className="font-bold text-slate-900 mt-3.5 group-hover:text-brand-700">{p.name}</div>
                   <p className="text-sm text-slate-500 mt-1 line-clamp-2">{p.tagline}</p>
-                  {p.variants[0] && <div className="mt-3 text-sm">Chỉ từ <span className="font-extrabold text-brand-700">{vnd(panelRate(p.variants[0].price))}</span></div>}
+                  {p.variants[0] && <div className="mt-3 text-sm">Chỉ từ <span className="font-extrabold text-brand-700">{vnd(p.panelId ? p.variants[0].price : panelRate(p.variants[0].price))}</span></div>}
                 </Link>
               ))}
             </div>

@@ -495,6 +495,9 @@ export async function createPremiumOrder(input: {
     include: { product: true },
   });
   if (!variant || !variant.active || !variant.product.active) throw new Error("Gói không tồn tại hoặc đã ngưng bán");
+  // Sản phẩm do panel con tự thêm: chỉ khách của đúng panel đó mua được
+  const ownProduct = variant.product.panelId != null;
+  if (ownProduct && variant.product.panelId !== input.user.panelId) throw new Error("Gói không tồn tại hoặc đã ngưng bán");
   if (input.quantity < 1 || input.quantity > 50) throw new Error("Số lượng không hợp lệ");
   // Trường tuỳ chỉnh của sản phẩm: validate trường bắt buộc và gộp thành thông tin bàn giao
   const fields = parsePremiumFields(variant.product.customFields);
@@ -517,7 +520,7 @@ export async function createPremiumOrder(input: {
   const panel = panelRow && panelRow.status === "ACTIVE" ? panelRow : null;
   let total = variant.price * input.quantity;
   let commission = 0;
-  if (panel) {
+  if (panel && !ownProduct) {
     // Giá riêng từng gói do chủ panel đặt (nếu có) là giá cuối, thay cho công thức markup + giảm bậc
     const override = await prisma.panelPremiumPrice.findUnique({ where: { panelId_variantId: { panelId: panel.id, variantId: variant.id } } });
     if (override) {
@@ -537,6 +540,9 @@ export async function createPremiumOrder(input: {
     promo = await checkPromo(input.promoCode, "PREMIUM", total, input.user.panelId ?? null);
     if (promo) total -= promo.discount;
   }
+
+  // Sản phẩm của chính panel: giá gói là giá cuối, chủ panel nhận toàn bộ tiền bán (tự giao hàng)
+  if (ownProduct && panel) commission = total;
 
   const created = await prisma.$transaction(async (tx) => {
     await applyBalance(tx, input.user.id, -total, "PREMIUM_ORDER", undefined, `Mua ${variant.product.name} — ${variant.name}`);
@@ -595,7 +601,7 @@ export async function createPremiumOrder(input: {
     }
     return { ...o, code };
   });
-  void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
+  if (!ownProduct) void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
   if (panel) void alertPanelOwner(panel.id, "premium_order", `Đơn Premium mới ${created.code}`, `Qua gian hàng ${panel.name}: ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
 
   // Đấu API mua sản phẩm (kiểu ThaTim): gọi action=buy cho từng đơn vị
