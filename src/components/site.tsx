@@ -25,9 +25,7 @@ export async function SiteHeader() {
           <span className="font-extrabold text-lg text-slate-900 hidden min-[420px]:inline">{s.site_name}</span>
         </Link>
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-          <Link href="/dich-vu" className="hover:text-brand-600">Bảng giá</Link>
           <Link href="/premium" className="hover:text-brand-600">Tài khoản Premium</Link>
-          <Link href="/api-docs" className="hover:text-brand-600">API đại lý</Link>
         </nav>
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5">
           <DisplaySettings />
@@ -65,21 +63,14 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
   const name = panel?.name || s.site_name;
   const home = panel ? `/cua-hang/${panel.slug}` : "/";
   // Mô-đun Bài viết / API đang tắt thì ẩn luôn liên kết trên header
-  const panelFlags = panel ? await prisma.childPanel.findUnique({ where: { slug: panel.slug }, select: { moduleBlog: true, moduleApi: true } }) : null;
-  const blogOn = s.module_blog !== "0" && (panelFlags ? panelFlags.moduleBlog : true);
-  const apiDocOn = s.module_api !== "0" && (panelFlags ? panelFlags.moduleApi : true);
   const links = panel
     ? [
         { href: home, label: "Trang chủ" },
         { href: `/cua-hang/${panel.slug}/premium`, label: "Premium" },
-        ...(blogOn ? [{ href: `/cua-hang/${panel.slug}/bai-viet`, label: "Bài viết" }] : []),
-        ...(apiDocOn ? [{ href: `/cua-hang/${panel.slug}/tai-lieu-api`, label: "Tài liệu API" }] : []),
       ]
     : [
-        { href: "/dich-vu", label: "Bảng giá" },
+        { href: home, label: "Trang chủ" },
         { href: "/premium", label: "Premium" },
-        ...(blogOn ? [{ href: "/bai-viet", label: "Bài viết" }] : []),
-        ...(apiDocOn ? [{ href: "/api-docs", label: "Tài liệu API" }] : []),
       ];
   const registerHref = panel ? `/cua-hang/${panel.slug}/dang-ky` : "/register";
   const note = announcement ?? s.announcement_bar;
@@ -165,10 +156,8 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
         <div>
           <div className="text-white font-semibold mb-3">Dịch vụ</div>
           <ul className="space-y-2">
-            <li><Link href="/dich-vu" className="hover:text-white">Tăng tương tác SMM</Link></li>
             <li><Link href="/premium" className="hover:text-white">Tài khoản Premium</Link></li>
-            {s.module_api !== "0" && <li><Link href="/api-docs" className="hover:text-white">API cho đại lý</Link></li>}
-            {s.module_blog !== "0" && <li><Link href="/bai-viet" className="hover:text-white">Bài viết</Link></li>}
+            <li><Link href="/dashboard/dich-vu" className="hover:text-white">Bảng giá dịch vụ</Link></li>
           </ul>
         </div>
         <div>

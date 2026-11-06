@@ -54,7 +54,7 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
         platforms={platformStats.map((p) => ({ ...p, points: catsByPlatform.get(p.platform) || [] }))}
         premiums={premiums.filter((p) => p.variants[0]).map((p) => ({ name: p.name, tagline: p.tagline, from: p.panelId ? p.variants[0].price : panelRate(p.variants[0].price), href: `/cua-hang/${panel.slug}/premium/${p.slug}` }))}
         sampleService={services[0]?.name}
-        links={{ login: "/login", register: registerHref, dashboard: "/dashboard", order: "/dashboard/dat-hang", services: registerHref, api: `/cua-hang/${panel.slug}/tai-lieu-api` }}
+        links={{ login: "/login", register: registerHref, dashboard: "/dashboard", order: "/dashboard/dat-hang", services: registerHref, api: "/dashboard/api-docs" }}
         announcement={panel.announcement}
         footer={<SiteFooter brand={{ slug: panel.slug, name: panel.name, tagline: panel.tagline, zalo: panel.supportZalo, telegram: panel.supportTelegram, facebook: panel.supportFacebook, hotline: panel.supportHotline }} />}
       />

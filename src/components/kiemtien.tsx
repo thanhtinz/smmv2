@@ -100,7 +100,6 @@ export async function KiemTienView({ userId, linkBase, sp, tabBase }: { userId: 
           </div>
         )
       )}
-      <div className="mt-3 text-xs text-slate-400">Tổng nạp của người được mời: {vnd(depositedAgg._sum.totalDeposited || 0)}</div>
     </div>
   );
 }

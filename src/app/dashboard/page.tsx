@@ -118,7 +118,7 @@ export default async function DashboardHome() {
           <div className="card p-5">
             <div className="font-bold text-slate-900">Bảng giá dịch vụ</div>
             <p className="mt-1 text-sm text-slate-500">Khám phá {num(serviceCount)} dịch vụ đang bán với giá theo cấp bậc của bạn.</p>
-            <Link href={user.panelId ? "/dashboard/dat-hang" : "/dich-vu"} className="btn-primary btn-sm mt-3">Xem tất cả dịch vụ</Link>
+            <Link href="/dashboard/dich-vu" className="btn-primary btn-sm mt-3">Xem tất cả dịch vụ</Link>
           </div>
           <div className="card p-5">
             <div className="font-bold text-slate-900">Kết nối API</div>

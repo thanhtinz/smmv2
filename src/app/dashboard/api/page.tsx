@@ -41,7 +41,7 @@ key=...&action=add&service=12&link=https://...&quantity=1000
 # Trạng thái
 key=...&action=status&order=48213`}</pre>
         </div>
-        <a href="/api-docs" className="btn-ghost">Xem tài liệu API đầy đủ</a>
+        <a href="/dashboard/api-docs" className="btn-ghost">Xem tài liệu API đầy đủ</a>
       </div>
     </div>
   );

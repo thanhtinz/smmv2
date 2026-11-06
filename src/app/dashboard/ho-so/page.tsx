@@ -118,7 +118,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
           </div>
           <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
             <b className="text-slate-800">Hướng dẫn sử dụng API:</b> xem tài liệu đầy đủ kèm ví dụ cURL/PHP/Python tại{" "}
-            <Link href="/api-docs" className="font-semibold text-brand-600">Tài liệu API</Link>. Dùng key này để đặt đơn, tra trạng thái và số dư tự động qua endpoint phía trên.
+            <Link href="/dashboard/api-docs" className="font-semibold text-brand-600">Tài liệu API</Link>. Dùng key này để đặt đơn, tra trạng thái và số dư tự động qua endpoint phía trên.
           </div>
         </div>
       )}

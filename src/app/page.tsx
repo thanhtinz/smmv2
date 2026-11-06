@@ -53,7 +53,7 @@ export default async function HomePage() {
       platforms={platformStats.map((p) => ({ ...p, points: catsByPlatform.get(p.platform) || [] }))}
       premiums={premiums.filter((p) => p.variants[0]).map((p) => ({ name: p.name, tagline: p.tagline, from: p.variants[0].price, href: `/premium/${p.slug}` }))}
       sampleService={featured[0]?.name}
-      links={{ login: "/login", register: "/register", dashboard: "/dashboard", order: "/dashboard/dat-hang", services: "/dich-vu", api: "/api-docs" }}
+      links={{ login: "/login", register: "/register", dashboard: "/dashboard", order: "/dashboard/dat-hang", services: "/dashboard/dich-vu", api: "/dashboard/api-docs" }}
       footer={<SiteFooter />}
     />
   );

@@ -62,24 +62,24 @@ export async function CashflowView({ userId, sp, base }: { userId: number; sp: S
           <div className="font-bold text-slate-900">Chi tiết giao dịch</div>
           <Link href={base} className="btn-ghost btn-sm">Tải lại</Link>
         </div>
-        <form className="flex flex-wrap items-end gap-2 border-b border-slate-100 px-5 py-4">
-          <label className="text-xs font-semibold text-slate-500">Từ ngày
-            <input type="date" name="from" defaultValue={from} className="inp mt-1 !w-[9.5rem] !py-2" />
+        <form className="flex flex-wrap items-end gap-3 border-b border-slate-100 px-5 py-4">
+          <label className="flex w-[9.5rem] flex-col gap-1 text-xs font-semibold text-slate-500">Từ ngày
+            <input type="date" name="from" defaultValue={from} className="inp w-full !py-2" />
           </label>
-          <label className="text-xs font-semibold text-slate-500">Đến ngày
-            <input type="date" name="to" defaultValue={to} className="inp mt-1 !w-[9.5rem] !py-2" />
+          <label className="flex w-[9.5rem] flex-col gap-1 text-xs font-semibold text-slate-500">Đến ngày
+            <input type="date" name="to" defaultValue={to} className="inp w-full !py-2" />
           </label>
-          <label className="flex-1 text-xs font-semibold text-slate-500">Tìm nội dung
-            <input className="inp mt-1 min-w-[140px] !py-2" name="q" placeholder="Tìm nội dung, mã giao dịch..." defaultValue={q} />
+          <label className="flex min-w-[180px] flex-1 flex-col gap-1 text-xs font-semibold text-slate-500">Tìm nội dung
+            <input className="inp w-full !py-2" name="q" placeholder="Tìm nội dung, mã giao dịch..." defaultValue={q} />
           </label>
-          <label className="text-xs font-semibold text-slate-500">Loại giao dịch
-            <select className="inp mt-1 !w-40 !py-2" name="type" defaultValue={type}>
+          <label className="flex w-44 flex-col gap-1 text-xs font-semibold text-slate-500">Loại giao dịch
+            <select className="inp w-full !py-2" name="type" defaultValue={type}>
               <option value="">Tất cả loại</option>
               {Object.entries(TX_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </label>
-          <label className="text-xs font-semibold text-slate-500">Hiển thị
-            <select className="inp mt-1 !w-24 !py-2" name="size" defaultValue={String(size)}>
+          <label className="flex w-28 flex-col gap-1 text-xs font-semibold text-slate-500">Hiển thị
+            <select className="inp w-full !py-2" name="size" defaultValue={String(size)}>
               {[10, 20, 30, 50, 100].map((n) => <option key={n} value={n}>{n} mục</option>)}
             </select>
           </label>

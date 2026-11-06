@@ -548,7 +548,7 @@ Content-Type: application/json
           <code className="block bg-slate-950 text-slate-100 rounded-xl px-4 py-3 break-all">{base}/api/v2</code>
         </div>
         <p className="text-slate-600">Xác thực: gửi kèm <span className="font-mono">key</span> = API key riêng của từng tài khoản (khách tự lấy ở mục API đại lý trong tài khoản). Các action: <span className="font-mono">services · add · status · orders · balance · refill · refills · refill_status · cancel</span>.</p>
-        <p className="text-slate-600">Tài liệu đầy đủ cho khách ở trang <a className="text-brand-600 font-semibold" href="/api-docs" target="_blank">Tài liệu API</a>.</p>
+        <p className="text-slate-600">Tài liệu đầy đủ cho khách ở trang <a className="text-brand-600 font-semibold" href="/dashboard/api-docs" target="_blank">Tài liệu API</a>.</p>
       </section>
     </>
   );

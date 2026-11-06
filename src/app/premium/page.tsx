@@ -16,7 +16,7 @@ export default async function PremiumPage({ searchParams }: { searchParams: { ca
           <div className="card max-w-md p-8 text-center">
             <div className="text-lg font-bold text-slate-900">Mảng Premium đang tạm ngưng</div>
             <p className="mt-2 text-sm text-slate-500">Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau hoặc dùng dịch vụ SMM.</p>
-            <Link href="/dich-vu" className="btn-primary mt-5 inline-block">Xem dịch vụ SMM</Link>
+            <Link href="/dashboard/dich-vu" className="btn-primary mt-5 inline-block">Xem dịch vụ SMM</Link>
           </div>
         </main>
         <SiteFooter />
