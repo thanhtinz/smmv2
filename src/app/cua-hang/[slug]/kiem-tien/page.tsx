@@ -7,7 +7,7 @@ import { KiemTienView } from "@/components/kiemtien";
 
 export const dynamic = "force-dynamic";
 
-export default async function PanelEarn({ params }: { params: { slug: string } }) {
+export default async function PanelEarn({ params, searchParams }: { params: { slug: string }; searchParams: Record<string, string | string[] | undefined> }) {
   const panel = await prisma.childPanel.findUnique({ where: { slug: params.slug } });
   if (!panel || panel.status !== "ACTIVE") notFound();
   const user = await getCurrentUser();
@@ -27,7 +27,7 @@ export default async function PanelEarn({ params }: { params: { slug: string } }
   const proto = h.get("x-forwarded-proto") || (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
   return (
     <PanelShell panel={panel} user={user}>
-      <KiemTienView userId={user.id} linkBase={`${proto}://${host}/cua-hang/${panel.slug}/dang-ky`} />
+      <KiemTienView userId={user.id} linkBase={`${proto}://${host}/cua-hang/${panel.slug}/dang-ky`} sp={searchParams} tabBase={`/cua-hang/${panel.slug}/kiem-tien`} />
     </PanelShell>
   );
 }

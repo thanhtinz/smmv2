@@ -474,6 +474,8 @@ export async function changePasswordAction(formData: FormData) {
   const user = await requireUser();
   const old = String(formData.get("oldPassword") || "");
   const next = String(formData.get("newPassword") || "");
+  const confirmPw = String(formData.get("newPassword2") || "");
+  if (confirmPw && confirmPw !== next) back("/dashboard/ho-so", "err", "Mật khẩu mới nhập lại không khớp");
   const pwErr = passwordError(next, await getSettings());
   if (pwErr) back("/dashboard/ho-so", "err", pwErr);
   const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;

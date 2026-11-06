@@ -44,16 +44,28 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
   if (sort === "asc") list = [...list].sort((a, b) => a.rate - b.rate);
   if (sort === "desc") list = [...list].sort((a, b) => b.rate - a.rate);
   const orderHref = (id: number) => (orderMode ? `/dashboard/dat-hang?service=${id}` : registerHref || "/register");
+  const platCounts = new Map<string, number>();
+  services.forEach((s) => platCounts.set(s.platform, (platCounts.get(s.platform) || 0) + 1));
+  const catCount = new Set(services.map((s) => s.categoryId)).size;
   return (
     <div>
+      <div className="grid grid-cols-2 gap-3 mb-3 sm:grid-cols-3 lg:grid-cols-5">
+        {platforms.map((p) => (
+          <button key={p} type="button" onClick={() => setPlatform(platform === p ? "all" : p)} className={`card flex items-center gap-3 p-3.5 text-left transition hover:shadow-md ${platform === p ? "ring-2 ring-brand-600" : ""}`}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-white" style={{ background: PLATFORM_COLORS[p] || "#64748b" }}>{(PLATFORMS[p] || p).charAt(0)}</span>
+            <span className="min-w-0">
+              <span className="block truncate font-bold text-slate-900">{PLATFORMS[p] || p}</span>
+              <span className="block text-xs text-slate-400">{platCounts.get(p) || 0} dịch vụ</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="mb-5 text-sm text-slate-500">
+        Tổng cộng: <b className="text-slate-800">{services.length} dịch vụ</b> · {catCount} danh mục · {platforms.length} nền tảng
+        {platform !== "all" && <button type="button" onClick={() => setPlatform("all")} className="ml-3 font-semibold text-brand-600">Xem tất cả</button>}
+      </div>
       <div className="flex flex-col xl:flex-row gap-3 mb-5">
         <input className="inp xl:max-w-xs" placeholder="Tìm dịch vụ... (vd: follow TikTok)" value={q} onChange={(e) => setQ(e.target.value)} />
-        <div className="flex flex-wrap gap-2 items-center">
-          <button onClick={() => setPlatform("all")} className={`btn-sm rounded-full font-semibold ${platform === "all" ? "bg-brand-600 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>Tất cả</button>
-          {platforms.map((p) => (
-            <button key={p} onClick={() => setPlatform(p)} className={`btn-sm rounded-full font-semibold ${platform === p ? "bg-brand-600 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>{PLATFORMS[p] || p}</button>
-          ))}
-        </div>
         <div className="flex flex-wrap gap-2 items-center xl:ml-auto">
           <select className="inp !w-auto !py-2 text-sm" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} title="Sắp xếp">
             <option value="default">Mặc định</option>
