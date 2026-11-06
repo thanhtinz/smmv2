@@ -20,17 +20,17 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
   const s = await getSettings();
   const base = process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn";
   const banks = await prisma.bankAccount.findMany({ where: { active: true }, orderBy: { id: "asc" } });
-  const sepaySecretSet = !!process.env.SEPAY_WEBHOOK_SECRET;
   const back = "/admin/cau-hinh-nap-tien";
   return (
     <div>
       <PageHead title="Cấu hình nạp tiền" desc="Bật/tắt và cấu hình từng phương thức nạp tiền của hệ thống." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid items-start gap-6 xl:grid-cols-2">
-        <div className="card space-y-4 p-6">
+        <form action={adminSaveMethodsAction} className="card space-y-4 p-6">
+          <input type="hidden" name="back" value={back} />
           <div className="flex items-center justify-between">
             <div className="font-bold text-slate-900">QR ngân hàng (SePay)</div>
-            <Badge cls="bg-emerald-100 text-emerald-800">Tự động</Badge>
+            {s.sepay_secret ? <Badge cls="bg-emerald-100 text-emerald-800">Đã có secret</Badge> : <Badge cls="bg-rose-100 text-rose-700">Chưa có secret</Badge>}
           </div>
           <p className="text-sm text-slate-500">Ngân hàng và MoMo dùng chung kênh này — khách chuyển đúng nội dung là tiền cộng tự động.</p>
           <div>
@@ -40,15 +40,18 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
               <CopyBtn text={`${base}/api/webhooks/sepay`} />
             </div>
           </div>
+          <div>
+            <label className="lbl">Secret webhook (API Key của SePay) {s.sepay_secret && <span className="font-semibold text-emerald-600">— đã lưu</span>}</label>
+            <input className="inp" name="sepay_secret" type="password" autoComplete="off" placeholder={s.sepay_secret ? "Để trống = giữ nguyên" : "Dán API Key từ SePay vào đây"} />
+          </div>
           <p className="text-sm text-slate-500">
-            Khoá bí mật webhook để ở máy chủ (biến môi trường), không sửa tại đây.{' '}
-            {sepaySecretSet
-              ? <span className="font-semibold text-emerald-600">Khoá máy chủ: đã thiết lập.</span>
-              : <span className="font-semibold text-rose-600">Khoá máy chủ: CHƯA thiết lập — nạp tự động đang bị khoá, cần đặt biến môi trường SEPAY_WEBHOOK_SECRET trên máy chủ.</span>} Đang có {banks.length} tài khoản nhận tiền
-            {banks.length ? `: ${banks.map((b) => b.bankName).join(", ")}` : ""} — quản lý ở trang Ngân hàng.
+            Đang có {banks.length} tài khoản nhận tiền{banks.length ? `: ${banks.map((b) => b.bankName).join(", ")}` : ""} — quản lý ở trang Ngân hàng.
           </p>
-          <a href="/admin/ngan-hang" className="btn-ghost !py-2">Mở trang Ngân hàng</a>
-        </div>
+          <div className="flex gap-2">
+            <button className="btn-primary !py-2.5">Lưu SePay</button>
+            <a href="/admin/ngan-hang" className="btn-ghost !py-2.5">Mở trang Ngân hàng</a>
+          </div>
+        </form>
 
         <form action={adminSaveMethodsAction} className="card space-y-4 p-6">
           <input type="hidden" name="back" value={back} />

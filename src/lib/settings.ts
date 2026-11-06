@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   profit_protection: "1",
   // Thanh toán quốc tế (PayPal / Stripe) — khách trả USD, hệ thống cộng VND theo tỉ giá này
   usd_rate: "25000",
+  sepay_secret: "",
   paypal_enabled: "0",
   paypal_client_id: "",
   paypal_client_secret: "",

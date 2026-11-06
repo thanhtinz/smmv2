@@ -7,7 +7,7 @@ import { genCode } from "@/lib/format";
 /**
  * Webhook cộng tiền tự động — tương thích SePay (và mọi hệ thống bắn JSON tương tự).
  * Bảo mật: header Authorization: Apikey <secret> hoặc query ?secret=<secret>.
- * Một endpoint dùng chung: secret của WEB MẸ (env SEPAY_WEBHOOK_SECRET) hoặc secret
+ * Một endpoint dùng chung: secret của WEB MẸ (cấu hình ở Admin, lưu DB; env SEPAY_WEBHOOK_SECRET chỉ là dự phòng) hoặc secret
  * SePay RIÊNG của từng panel (chủ panel nối SePay của họ — tiền về ngân hàng của panel).
  * Nhận diện khách bằng nội dung CK chứa mã nạp (depositCode, vd "SMM AB12CD").
  * Chống cộng trùng: mỗi giao dịch (id phía ngân hàng/SePay) chỉ xử lý 1 lần (lưu ở ApiLog.ref).
@@ -15,13 +15,14 @@ import { genCode } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const motherSecret = process.env.SEPAY_WEBHOOK_SECRET || "";
+  const settings = await getSettings();
+  const motherSecret = settings.sepay_secret || process.env.SEPAY_WEBHOOK_SECRET || "";
   const auth = req.headers.get("authorization") || "";
   const qSecret = req.nextUrl.searchParams.get("secret") || "";
   const presented = auth.startsWith("Apikey ") ? auth.slice(7) : qSecret;
   let viaPanelId: number | null = null;
   // Fail-closed: KHÔNG có secret nào khớp (của mẹ ở env, hoặc của panel) là từ chối —
-  // không bao giờ mở khi máy chủ chưa đặt SEPAY_WEBHOOK_SECRET (tránh bị bắn giao dịch giả cộng tiền).
+  // không bao giờ mở khi chưa cấu hình secret nào (tránh bị bắn giao dịch giả cộng tiền).
   let authorized = false;
   if (motherSecret && presented === motherSecret) authorized = true;
   if (!authorized && presented) {
@@ -55,7 +56,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, skipped: "user not matched" });
   }
 
-  const settings = await getSettings();
   const matchedPanel = matched.panelId ? await prisma.childPanel.findUnique({ where: { id: matched.panelId }, select: { depositBonusTiers: true } }) : null;
   const bonus = calcBonus(amount, bonusTiersFor(matchedPanel?.depositBonusTiers, !!matched.panelId, settings.deposit_bonus_tiers));
   const dep = await prisma.$transaction(async (tx) => {

@@ -546,6 +546,7 @@ export async function adminSaveSettings(formData: FormData) {
     "custom_head_html", "custom_body_html", "password_min_length",
     "ai_enabled", "ai_provider", "ai_base_url", "ai_api_key", "ai_model", "ai_check_enabled", "tool_api_key", "panel_fee",
     "google_enabled", "google_client_id", "google_client_secret",
+    "sepay_secret",
     "usdt_enabled", "usdt_address", "usdt_network", "usdt_rate",
     "rate_eur", "rate_cny", "rate_thb", "rate_jpy", "rate_krw",
     "landing_enabled", "landing_headline", "landing_subtitle", "auth_style",
@@ -600,9 +601,9 @@ export async function adminDeleteDepositsAction(formData: FormData) {
  *  Chỉ lưu key có mặt trong form; secret để trống = giữ nguyên giá trị cũ. */
 export async function adminSaveMethodsAction(formData: FormData) {
   await requireAdmin();
-  const SECRET_KEYS = ["paypal_client_secret", "stripe_secret_key", "stripe_webhook_secret"];
+  const SECRET_KEYS = ["sepay_secret", "paypal_client_secret", "stripe_secret_key", "stripe_webhook_secret"];
   const keys = [
-    "usd_rate", "deposit_min", "deposit_bonus_tiers", "affiliate_percent",
+    "sepay_secret", "usd_rate", "deposit_min", "deposit_bonus_tiers", "affiliate_percent",
     "usdt_enabled", "usdt_address", "usdt_network", "usdt_rate",
     "paypal_enabled", "paypal_client_id", "paypal_client_secret", "paypal_mode",
     "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret",
