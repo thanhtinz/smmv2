@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash } from "@/components/ui";
 import { PanelProductsClient, type PanelProductDTO } from "@/components/panel-premium";
+import { productImages } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function PanelPremiumProducts({ searchParams }: { searchPar
   const orderCountByVariant = new Map(orderGroups.map((g) => [g.variantId, g._count._all]));
   const dtos: PanelProductDTO[] = products.map((p) => ({
     id: p.id, name: p.name, slug: p.slug, categoryId: p.categoryId, categoryName: p.category.name,
-    tagline: p.tagline, imageUrl: p.imageUrl, buyNote: p.buyNote, warrantyInfo: p.warrantyInfo,
+    tagline: p.tagline, description: p.description, customFields: p.customFields, images: productImages(p.images, p.imageUrl), buyNote: p.buyNote, warrantyInfo: p.warrantyInfo,
     usageGuide: p.usageGuide, active: p.active, sort: p.sort,
     orderCount: p.variants.reduce((sum, v) => sum + (orderCountByVariant.get(v.id) || 0), 0),
     variants: p.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, warrantyDays: v.warrantyDays, active: v.active, sort: v.sort })),

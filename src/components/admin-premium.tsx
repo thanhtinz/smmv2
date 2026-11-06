@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Modal, Switch } from "@/components/admin-catalog";
 import { PremiumFieldsEditor } from "@/components/client";
+import { RichTextEditor, ImagesField } from "@/components/rich-editor";
 import { adminSavePremiumCategory, adminDeletePremiumCategory, adminTogglePremiumCategory, adminSaveProduct, adminDeleteProduct, adminToggleProduct, adminSaveVariant } from "@/app/actions/admin";
 import { num, parsePremiumFields } from "@/lib/format";
 
@@ -109,7 +110,7 @@ export type PremiumVariantDTO = { id: number; name: string; price: number; cost:
 export type PremiumProductDTO = {
   id: number; categoryId: number; categoryName: string; name: string; slug: string; tagline: string | null; description: string | null;
   color: string; fulfillment: string; providerId: number | null; providerProductId: string | null; customFields: string | null;
-  buyNote: string | null; imageUrl: string | null; usageGuide: string | null; warrantyInfo: string | null;
+  buyNote: string | null; imageUrl: string | null; images: string[]; usageGuide: string | null; warrantyInfo: string | null;
   active: boolean; sort: number; orderCount: number; variants: PremiumVariantDTO[];
 };
 export type PremiumProviderOpt = { id: number; name: string };
@@ -146,9 +147,9 @@ export function ProductModal({ product, categories, providers, onClose }: { prod
             <div><label className={lbl}>Thứ tự hiển thị</label><input name="sort" type="number" defaultValue={p?.sort ?? 0} className={inp} /></div>
             <div className="flex items-end pb-1"><Switch name="active" defaultChecked={p ? p.active : true} label="Trạng thái: Đang bán" /></div>
           </div>
-          <div><label className={lbl}>Logo sản phẩm (URL ảnh)</label><input name="imageUrl" defaultValue={p?.imageUrl || ""} className={inp} placeholder="URL logo sản phẩm..." /></div>
+          <div><label className={lbl}>Ảnh sản phẩm</label><ImagesField defaults={p?.images || []} /></div>
           <div><label className={lbl}>Mô tả ngắn</label><textarea name="tagline" rows={2} defaultValue={p?.tagline || ""} className={inp} placeholder="Mô tả ngắn gọn về sản phẩm..." /></div>
-          <div><label className={lbl}>Mô tả chi tiết</label><textarea name="description" rows={3} defaultValue={p?.description || ""} className={inp} placeholder="Mô tả đầy đủ, tính năng, hướng dẫn sử dụng..." /></div>
+          <div><label className={lbl}>Mô tả chi tiết</label><RichTextEditor name="description" defaultValue={p?.description} minHeight={160} /></div>
           <div><label className={lbl}>Lưu ý khi mua</label><textarea name="buyNote" rows={2} defaultValue={p?.buyNote || ""} className={inp} placeholder="Các lưu ý quan trọng cho khách hàng..." /></div>
           <details className="rounded-xl border border-slate-200 px-4 py-3" open={!!p && (p.fulfillment !== "MANUAL" || !!p.warrantyInfo || !!p.usageGuide)}>
             <summary className="cursor-pointer text-sm font-semibold text-slate-700">Cài đặt nâng cao: hình thức giao, bảo hành, trường tuỳ chỉnh</summary>
@@ -176,8 +177,8 @@ export function ProductModal({ product, categories, providers, onClose }: { prod
                   <div><label className={lbl}>ID sản phẩm tại NCC</label><input name="providerProductId" defaultValue={p?.providerProductId || ""} className={inp} /></div>
                 </div>
               )}
-              <div><label className={lbl}>Thông tin bảo hành</label><textarea name="warrantyInfo" rows={2} defaultValue={p?.warrantyInfo || ""} className={inp} placeholder="Điều kiện bảo hành riêng của sản phẩm..." /></div>
-              <div><label className={lbl}>Hướng dẫn sử dụng</label><textarea name="usageGuide" rows={2} defaultValue={p?.usageGuide || ""} className={inp} placeholder="Hướng dẫn sau khi mua..." /></div>
+              <div><label className={lbl}>Thông tin bảo hành</label><RichTextEditor name="warrantyInfo" defaultValue={p?.warrantyInfo} minHeight={100} /></div>
+              <div><label className={lbl}>Hướng dẫn sử dụng</label><RichTextEditor name="usageGuide" defaultValue={p?.usageGuide} minHeight={100} /></div>
               <div>
                 <label className={lbl}>Trường tuỳ chỉnh khách điền khi mua</label>
                 <PremiumFieldsEditor initial={parsePremiumFields(p?.customFields)} />

@@ -1,6 +1,9 @@
 "use client";
 import { useState } from "react";
 import { Modal } from "@/components/admin-catalog";
+import { RichTextEditor, ImagesField } from "@/components/rich-editor";
+import { PremiumFieldsEditor } from "@/components/client";
+import { parsePremiumFields } from "@/lib/format";
 import { Badge } from "@/components/ui";
 import { vnd, num } from "@/lib/format";
 import {
@@ -11,7 +14,8 @@ import {
 export type PanelVariantDTO = { id: number; name: string; price: number; warrantyDays: number; active: boolean; sort: number };
 export type PanelProductDTO = {
   id: number; name: string; slug: string; categoryId: number; categoryName: string;
-  tagline: string | null; imageUrl: string | null; buyNote: string | null;
+  tagline: string | null; description: string | null; customFields: string | null;
+  images: string[]; buyNote: string | null;
   warrantyInfo: string | null; usageGuide: string | null; active: boolean; sort: number;
   orderCount: number; variants: PanelVariantDTO[];
 };
@@ -33,11 +37,16 @@ function ProductModal({ product, categories, onClose }: { product?: PanelProduct
             </div>
           </div>
           <div><label className="lbl">Dòng mô tả ngắn</label><input className="inp" name="tagline" defaultValue={product?.tagline || ""} placeholder="VD: Xem phim 4K, 5 thiết bị" /></div>
-          <div><label className="lbl">Link ảnh sản phẩm</label><input className="inp" name="imageUrl" defaultValue={product?.imageUrl || ""} placeholder="https://..." /></div>
+          <div><label className="lbl">Ảnh sản phẩm</label><ImagesField defaults={product?.images || []} /></div>
+          <div><label className="lbl">Mô tả chi tiết</label><RichTextEditor name="description" defaultValue={product?.description} minHeight={150} /></div>
           <div><label className="lbl">Hướng dẫn hiện khi mua</label><textarea className="inp" name="buyNote" rows={2} defaultValue={product?.buyNote || ""} placeholder="VD: Gửi email của bạn để được nâng cấp chính chủ" /></div>
+          <div>
+            <label className="lbl">Trường tuỳ chỉnh khách điền khi mua</label>
+            <PremiumFieldsEditor initial={parsePremiumFields(product?.customFields)} />
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <div><label className="lbl">Thông tin bảo hành</label><textarea className="inp" name="warrantyInfo" rows={3} defaultValue={product?.warrantyInfo || ""} /></div>
-            <div><label className="lbl">Hướng dẫn sử dụng</label><textarea className="inp" name="usageGuide" rows={3} defaultValue={product?.usageGuide || ""} /></div>
+            <div><label className="lbl">Thông tin bảo hành</label><RichTextEditor name="warrantyInfo" defaultValue={product?.warrantyInfo} minHeight={90} /></div>
+            <div><label className="lbl">Hướng dẫn sử dụng</label><RichTextEditor name="usageGuide" defaultValue={product?.usageGuide} minHeight={90} /></div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div><label className="lbl">Thứ tự hiển thị</label><input className="inp" name="sort" type="number" defaultValue={product?.sort ?? 0} /></div>

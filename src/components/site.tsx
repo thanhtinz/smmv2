@@ -1,3 +1,4 @@
+import { RichText } from "@/components/rich-text";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import TabBar from "@/components/tabbar";
@@ -246,7 +247,7 @@ export function PremiumInfoSections({ product }: {
     <div className="mt-12 space-y-6">
       <section className="card p-6">
         <h2 className="text-lg font-extrabold text-slate-900 mb-4">Thông tin sản phẩm</h2>
-        {product.description && <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-line mb-5">{product.description}</div>}
+        {product.description && <RichText value={product.description} className="text-sm text-slate-600 leading-relaxed mb-5" />}
         <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Danh mục</dt><dd className="font-semibold text-slate-800 mt-1">{product.categoryName}</dd></div>
           <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Hình thức giao</dt><dd className="font-semibold text-slate-800 mt-1">{fulfillmentLabel}</dd></div>
@@ -256,7 +257,7 @@ export function PremiumInfoSections({ product }: {
       <section className="card p-6">
         <h2 className="text-lg font-extrabold text-slate-900 mb-4">Thông tin bảo hành</h2>
         {product.warrantyInfo
-          ? <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{product.warrantyInfo}</div>
+          ? <RichText value={product.warrantyInfo} className="text-sm text-slate-600 leading-relaxed" />
           : (
             <ul className="text-sm text-slate-600 space-y-1.5">
               {product.variants.map((v) => (
@@ -268,7 +269,7 @@ export function PremiumInfoSections({ product }: {
       {product.usageGuide && (
         <section className="card p-6">
           <h2 className="text-lg font-extrabold text-slate-900 mb-4">Hướng dẫn sử dụng</h2>
-          <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{product.usageGuide}</div>
+          <RichText value={product.usageGuide} className="text-sm text-slate-600 leading-relaxed" />
         </section>
       )}
     </div>

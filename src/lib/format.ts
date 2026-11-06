@@ -30,6 +30,20 @@ export const SMM_STATUS: Record<string, { label: string; cls: string }> = {
   CANCELED: { label: "Đã huỷ", cls: "bg-rose-100 text-rose-800" },
   REFUNDED: { label: "Đã hoàn tiền", cls: "bg-slate-200 text-slate-700" },
 };
+/** Danh sách ảnh của sản phẩm premium: mảng images (JSON) — rỗng thì dùng imageUrl cũ. */
+export function productImages(images: string | null | undefined, imageUrl?: string | null): string[] {
+  if (images) {
+    try {
+      const arr = JSON.parse(images);
+      if (Array.isArray(arr)) {
+        const list = arr.map((x) => String(x || "").trim()).filter(Boolean);
+        if (list.length) return list;
+      }
+    } catch { /* JSON hỏng -> rơi xuống imageUrl */ }
+  }
+  return imageUrl ? [imageUrl] : [];
+}
+
 export const PRE_STATUS: Record<string, { label: string; cls: string }> = {
   PENDING: { label: "Chờ giao", cls: "bg-amber-100 text-amber-800" },
   DELIVERED: { label: "Đã giao", cls: "bg-emerald-100 text-emerald-800" },

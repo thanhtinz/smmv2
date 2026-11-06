@@ -254,6 +254,7 @@ model PremiumProduct {
   customFields String?  @db.Text // JSON: trường tuỳ chỉnh khách điền khi mua [{label,type,required,placeholder,options}]
   buyNote     String?  @db.VarChar(500) // hướng dẫn riêng của sản phẩm, hiện trong hộp phía trên form mua (kiểu thatim)
   imageUrl    String?  @db.VarChar(500) // ảnh sản phẩm hiện ở trang chi tiết
+  images      String?  @db.Text // JSON mảng URL — nhiều ảnh sản phẩm (ảnh đầu = ảnh bìa, đồng bộ vào imageUrl)
   usageGuide  String?  @db.Text // hướng dẫn sử dụng sau khi mua
   warrantyInfo String? @db.Text // thông tin/điều kiện bảo hành riêng của sản phẩm
   active      Boolean            @default(true)

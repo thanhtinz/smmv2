@@ -6,7 +6,7 @@ import { notifyUser } from "@/lib/notify";
 import { sendMail, smtpConfigured } from "@/lib/mailer";
 import { panelAiConfig, testAiConnection } from "@/lib/ai";
 import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
-import { genCode } from "@/lib/format";
+import { genCode, normalizePremiumFieldsJson } from "@/lib/format";
 import { refundSmmOrder } from "@/lib/orders";
 import { orderTransition } from "@/lib/notify";
 
@@ -878,11 +878,15 @@ export async function panelSavePremiumProductAction(formData: FormData) {
   const categoryId = int(formData, "categoryId");
   const cat = await prisma.premiumCategory.findUnique({ where: { id: categoryId } });
   if (!cat) back(PRE_PAGE, "err", "Chưa chọn danh mục");
+  const imgList = formData.getAll("images").map((v) => String(v).trim()).filter(Boolean).slice(0, 10);
   const data = {
     name: name.slice(0, 150),
     categoryId,
     tagline: str(formData, "tagline").slice(0, 255) || null,
-    imageUrl: str(formData, "imageUrl").slice(0, 500) || null,
+    description: str(formData, "description") || null,
+    customFields: normalizePremiumFieldsJson(str(formData, "customFields")),
+    images: imgList.length ? JSON.stringify(imgList) : null,
+    imageUrl: imgList[0] ? imgList[0].slice(0, 500) : null,
     buyNote: str(formData, "buyNote").slice(0, 500) || null,
     warrantyInfo: str(formData, "warrantyInfo") || null,
     usageGuide: str(formData, "usageGuide") || null,

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash } from "@/components/ui";
+import { productImages } from "@/lib/format";
 import { ProductsClient, type PremiumProductDTO } from "@/components/admin-premium";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,7 @@ export default async function AdminPremiumProducts({ searchParams }: { searchPar
   const dtos: PremiumProductDTO[] = products.map((p) => ({
     id: p.id, categoryId: p.categoryId, categoryName: p.category.name, name: p.name, slug: p.slug, tagline: p.tagline, description: p.description,
     color: p.color, fulfillment: p.fulfillment, providerId: p.providerId, providerProductId: p.providerProductId, customFields: p.customFields,
-    buyNote: p.buyNote, imageUrl: p.imageUrl, usageGuide: p.usageGuide, warrantyInfo: p.warrantyInfo,
+    buyNote: p.buyNote, imageUrl: p.imageUrl, images: productImages(p.images, p.imageUrl), usageGuide: p.usageGuide, warrantyInfo: p.warrantyInfo,
     active: p.active, sort: p.sort, orderCount: p.variants.reduce((sum, v) => sum + (orderCountByVariant.get(v.id) || 0), 0),
     variants: p.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, cost: v.cost, warrantyDays: v.warrantyDays, providerCycle: v.providerCycle, active: v.active, sort: v.sort, stockAvailable: stockMap.get(v.id)?.avail || 0, stockTotal: stockMap.get(v.id)?.total || 0 })),
   }));

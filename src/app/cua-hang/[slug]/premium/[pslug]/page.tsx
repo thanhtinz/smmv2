@@ -6,7 +6,8 @@ import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
 import { getSession } from "@/lib/auth";
 import { buyPremiumAction } from "@/app/actions/user";
-import { vnd, parsePremiumFields } from "@/lib/format";
+import { vnd, parsePremiumFields, productImages } from "@/lib/format";
+import { ProductGallery } from "@/components/rich-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -39,9 +40,8 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
         <Link href={base} className="text-sm font-medium text-brand-600">← Tất cả sản phẩm Premium của {panel.name}</Link>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-6 items-start">
           <div className="lg:col-span-2">
-            {product.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.imageUrl} alt={product.name} className="w-full aspect-[16/9] object-cover rounded-3xl border border-slate-200 mb-5" />
+            {productImages(product.images, product.imageUrl).length ? (
+              <ProductGallery images={productImages(product.images, product.imageUrl)} name={product.name} />
             ) : (
               <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-white font-black text-3xl" style={{ background: product.color }}>{product.name.charAt(0)}</div>
             )}
