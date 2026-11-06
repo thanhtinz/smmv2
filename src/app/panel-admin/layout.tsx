@@ -23,11 +23,12 @@ export default async function PanelAdminLayout({ children }: { children: React.R
   if (!access) redirect("/dashboard/panel-cua-toi/thiet-lap");
   const panel = access.panel;
   const isOwner = access.isOwner;
-  const [memberCount, orderCount, openTickets, pendingDeposits] = await Promise.all([
+  const [memberCount, orderCount, openTickets, pendingDeposits, premiumPending] = await Promise.all([
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.smmOrder.count({ where: { panelId: panel.id } }),
     prisma.ticket.count({ where: { user: { panelId: panel.id }, status: "OPEN" } }),
     prisma.deposit.count({ where: { user: { panelId: panel.id }, status: "PENDING" } }),
+    prisma.premiumOrder.count({ where: { panelId: panel.id, status: { in: ["PENDING", "WARRANTY"] } } }),
   ]);
   // Thứ tự + tên mục bám đúng sidebar admin web mẹ / panel mẫu: Tổng quan → Quản lý SMM ▾ →
   // Tài khoản Premium ▾ → Khách hàng → Ticket hỗ trợ → tiền → ... → Mô-đun → Cài đặt →
@@ -52,9 +53,11 @@ export default async function PanelAdminLayout({ children }: { children: React.R
       group: "Tài khoản Premium", icon: "gem",
       children: [
         { href: "/panel-admin/dich-vu", label: "Giá Premium", icon: "gem" },
+        { href: "/panel-admin/don-premium", label: "Quản lý đơn hàng", icon: "box", badge: premiumPending || undefined },
       ],
     },
     { href: "/panel-admin/khach-hang", label: "Khách hàng", icon: "users", badge: memberCount },
+    { href: "/panel-admin/panel-con", label: "Website con", icon: "panels" },
     { href: "/panel-admin/ho-tro", label: "Ticket hỗ trợ", icon: "ticket", badge: openTickets },
     { href: "/panel-admin/nap-tien", label: "Quản lý Nạp tiền", icon: "money", badge: pendingDeposits || undefined },
     { href: "/panel-admin/bien-dong", label: "Biến động số dư", icon: "chart" },
@@ -81,7 +84,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
     { href: "/panel-admin/he-thong", label: "Dọn dẹp hệ thống", icon: "cpu" },
   ];
   // Phân quyền 2 tầng: NHÂN VIÊN chỉ thấy Tổng quan / Phân tích / Đơn hàng / Ticket / Khách hàng.
-  const STAFF_ALLOWED = new Set(["/panel-admin", "/panel-admin/phan-tich", "/panel-admin/don-hang", "/panel-admin/ho-tro", "/panel-admin/khach-hang"]);
+  const STAFF_ALLOWED = new Set(["/panel-admin", "/panel-admin/phan-tich", "/panel-admin/don-hang", "/panel-admin/don-premium", "/panel-admin/ho-tro", "/panel-admin/khach-hang"]);
   const entries: AdminNavEntry[] = [];
   if (isOwner) {
     entries.push(...allEntries);
