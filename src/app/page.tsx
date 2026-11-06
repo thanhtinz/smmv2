@@ -36,7 +36,7 @@ export default async function HomePage() {
   const catsByPlatform = new Map<string, string[]>();
   for (const c of categories) {
     const arr = catsByPlatform.get(c.platform) || [];
-    arr.push(c.name.replace(/^(Facebook|TikTok|Instagram|YouTube|Telegram|Shopee)\s*/i, ""));
+    const pt = c.name.replace(/^(Facebook|TikTok|Instagram|YouTube|Telegram|Shopee)\s*/i, "").trim(); if (pt) arr.push(pt);
     catsByPlatform.set(c.platform, arr);
   }
   const doneCount = statusGroups.filter((g) => g.status === "COMPLETED" || g.status === "PARTIAL").reduce((a, g) => a + g._count, 0);

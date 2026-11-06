@@ -261,7 +261,7 @@ export function LandingClassic(props: P) {
               <thead>
                 <tr className="bg-white/[0.06] text-xs uppercase tracking-wide text-slate-400">
                   <th className="px-5 py-3.5 font-bold">Nền tảng</th>
-                  <th className="px-5 py-3.5 font-bold">Số dịch vụ</th>
+                  <th className="hidden px-5 py-3.5 font-bold sm:table-cell">Số dịch vụ</th>
                   <th className="px-5 py-3.5 font-bold">Giá từ / 1.000</th>
                   <th className="px-5 py-3.5" />
                 </tr>
@@ -270,9 +270,9 @@ export function LandingClassic(props: P) {
                 {platforms.map((p) => (
                   <tr key={p.platform} className="border-t border-white/[0.06] transition hover:bg-white/[0.03]">
                     <td className="px-5 py-4 font-bold text-white">{platName(p.platform)}</td>
-                    <td className="px-5 py-4">{p.count}</td>
+                    <td className="hidden px-5 py-4 sm:table-cell">{p.count}</td>
                     <td className="px-5 py-4 font-semibold text-brand-300">{vnd(p.from)}</td>
-                    <td className="px-5 py-4 text-right"><Link href={links.order} className="font-bold text-brand-300 transition hover:text-brand-200">Đặt đơn →</Link></td>
+                    <td className="whitespace-nowrap px-5 py-4 text-right"><Link href={links.order} className="font-bold text-brand-300 transition hover:text-brand-200">Đặt đơn →</Link></td>
                   </tr>
                 ))}
               </tbody>
