@@ -549,7 +549,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           </div>
         </div>
         <div className="flex items-center gap-4 rounded-[26px] border border-[#d9e6fd] bg-[#eaf1fe] px-5 py-5 dark:border-white/10 dark:bg-white/5">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#d3e4ff] text-brand-600">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#d3e4ff] text-brand-600 dark:bg-white/10">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7H5a2 2 0 0 1 0-4h13v4" /><path d="M3 5.5V18a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2Z" /><circle cx="17" cy="15" r="1.15" fill="currentColor" stroke="none" /></svg>
           </span>
           <span className="min-w-0 flex-1">
@@ -951,7 +951,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
           <label className="lbl">Số lượng</label>
           <div className="flex items-stretch h-[46px]">
             <button type="button" aria-label="Giảm số lượng" onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-11 rounded-l-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">−</button>
-            <input className="w-16 border-y border-slate-300 text-center text-lg font-bold outline-none" name="quantity" type="number" min={1} max={50} value={qty} onChange={(e) => setQty(parseInt(e.target.value) || 1)} />
+            <input className="w-16 border-y border-slate-300 bg-transparent text-center text-lg font-bold text-slate-900 outline-none" name="quantity" type="number" min={1} max={50} value={qty} onChange={(e) => setQty(parseInt(e.target.value) || 1)} />
             <button type="button" aria-label="Tăng số lượng" onClick={() => setQty((q) => Math.min(50, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
           </div>
         </div>
