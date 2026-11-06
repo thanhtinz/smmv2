@@ -1,1 +1,9 @@
-{"crons":[{"path":"/api/cron/sync?services=1","schedule":"*/10 * * * *"}]}
+{
+  "crons": [
+    {
+      "path": "/api/cron/sync?services=1",
+      "schedule": "*/10 * * * *"
+    }
+  ],
+  "buildCommand": "bash scripts/vercel-build.sh"
+}
