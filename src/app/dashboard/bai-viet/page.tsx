@@ -25,7 +25,7 @@ export default async function DashPostsPage({ searchParams }: { searchParams: { 
     : [];
   const [cats, posts] = await Promise.all([
     prisma.postCategory.findMany({ where: { active: true }, orderBy: { id: "asc" }, include: { _count: { select: { posts: { where: { published: true, panelId: scopePid } } } } } }),
-    prisma.post.findMany({ where: { published: true, panelId: scopePid, ...(catId ? { categoryId: catId } : {}), ...(q ? { title: { contains: q } } : {}), ...(pinned.length ? { id: { notIn: pinned.map((p) => p.id) } } : {}) }, orderBy: { id: "desc" }, take: 60, include: { category: true } }),
+    prisma.post.findMany({ where: { published: true, panelId: scopePid, ...(catId ? { categoryId: catId } : {}), ...(q ? { title: { contains: q, mode: "insensitive" } } : {}), ...(pinned.length ? { id: { notIn: pinned.map((p) => p.id) } } : {}) }, orderBy: { id: "desc" }, take: 60, include: { category: true } }),
   ]);
   const card = (p: (typeof posts)[number]) => (
     <Link key={p.id} href={`/dashboard/bai-viet/${p.slug}`} className="card group overflow-hidden transition hover:shadow-lg">

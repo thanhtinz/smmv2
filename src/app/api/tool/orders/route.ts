@@ -24,7 +24,7 @@ export async function GET(req: Request) {
       status: { in: statuses },
       ...(ctx.panelId != null ? { panelId: ctx.panelId } : {}),
       ...(serviceId ? { serviceId } : {}),
-      ...(search ? { OR: [{ link: { contains: search } }, { code: { contains: search } }] } : {}),
+      ...(search ? { OR: [{ link: { contains: search, mode: "insensitive" } }, { code: { contains: search, mode: "insensitive" } }] } : {}),
     },
     orderBy: { id: "asc" },
     take: 200,

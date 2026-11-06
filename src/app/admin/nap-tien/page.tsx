@@ -30,7 +30,7 @@ export default async function AdminDeposits({ searchParams }: {
   const where: any = { ...scope };
   if (searchParams.status) where.status = searchParams.status;
   if (searchParams.method) where.method = searchParams.method;
-  if (q) where.AND = [{ OR: [{ code: { contains: q.toUpperCase() } }, { user: { username: { contains: q } } }, { user: { email: { contains: q } } }] }];
+  if (q) where.AND = [{ OR: [{ code: { contains: q.toUpperCase(), mode: "insensitive" } }, { user: { username: { contains: q, mode: "insensitive" } } }, { user: { email: { contains: q, mode: "insensitive" } } }] }];
   if (searchParams.from || searchParams.to) {
     where.createdAt = {};
     if (searchParams.from) where.createdAt.gte = new Date(searchParams.from);

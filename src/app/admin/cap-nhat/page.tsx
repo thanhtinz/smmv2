@@ -22,7 +22,8 @@ export default async function AdminUpdate() {
   let dbOk = false;
   try {
     const r = await prisma.$queryRawUnsafe<{ v: string }[]>("SELECT VERSION() AS v");
-    dbVersion = (r[0]?.v || "—").split("-")[0];
+    const v = r[0]?.v || "—";
+    dbVersion = v.includes("PostgreSQL") ? v.split(" ").slice(0, 2).join(" ") : `MariaDB ${v.split("-")[0]}`;
     dbOk = true;
   } catch { /* bỏ qua */ }
   let migrations: MigRow[] = [];
@@ -41,7 +42,7 @@ export default async function AdminUpdate() {
         <Stat label="Phiên bản" value={`v${version}`} icon={I.cpu} tone="brand" />
         <Stat label="Cập nhật lần cuối" value={lastMig ? dt(lastMig) : "—"} icon={I.clock} tone="blue" />
         <Stat label="Node.js" value={process.version} icon={I.server} tone="violet" />
-        <Stat label="Database" value={dbOk ? `MariaDB ${dbVersion}` : "Mất kết nối"} icon={I.landmark} tone={dbOk ? "emerald" : "rose"} />
+        <Stat label="Database" value={dbOk ? dbVersion : "Mất kết nối"} icon={I.landmark} tone={dbOk ? "emerald" : "rose"} />
       </div>
       <div className="card mt-5 p-6">
         <div className="font-bold text-slate-900">Tiến trình cập nhật</div>

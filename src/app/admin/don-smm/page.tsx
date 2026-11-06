@@ -11,7 +11,7 @@ export default async function AdminSmmOrders({ searchParams }: { searchParams: {
   const where: any = {};
   if (searchParams.status) where.status = searchParams.status;
   if (searchParams.mode) where.fulfillment = searchParams.mode;
-  if (searchParams.q) where.OR = [{ code: { contains: searchParams.q } }, { link: { contains: searchParams.q } }, { user: { username: { contains: searchParams.q } } }];
+  if (searchParams.q) where.OR = [{ code: { contains: searchParams.q, mode: "insensitive" } }, { link: { contains: searchParams.q, mode: "insensitive" } }, { user: { username: { contains: searchParams.q, mode: "insensitive" } } }];
   const [total, orders, manualPending] = await Promise.all([
     prisma.smmOrder.count({ where }),
     prisma.smmOrder.findMany({ where, orderBy: { id: "desc" }, skip: (page - 1) * PAGE, take: PAGE, include: { service: true, user: true } }),

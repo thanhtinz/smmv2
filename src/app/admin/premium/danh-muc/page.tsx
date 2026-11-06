@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPremiumCategories({ searchParams }: { searchParams: { q?: string; status?: string; msg?: string; err?: string } }) {
   await requireAdminPage();
   const where: any = {};
-  if (searchParams.q) where.OR = [{ name: { contains: searchParams.q } }, { slug: { contains: searchParams.q.toLowerCase() } }];
+  if (searchParams.q) where.OR = [{ name: { contains: searchParams.q, mode: "insensitive" } }, { slug: { contains: searchParams.q.toLowerCase(), mode: "insensitive" } }];
   if (searchParams.status === "on") where.active = true;
   if (searchParams.status === "off") where.active = false;
   const cats = await prisma.premiumCategory.findMany({ where, orderBy: [{ sort: "asc" }, { id: "asc" }], include: { _count: { select: { products: true } } } });

@@ -193,7 +193,7 @@ async function handle(req: NextRequest) {
       let variant = await prisma.premiumVariant.findFirst({ where: { id: productParam, active: true }, include: { product: true } });
       if (!variant && cycleParam) {
         variant = await prisma.premiumVariant.findFirst({
-          where: { productId: productParam, active: true, OR: [{ providerCycle: cycleParam }, { name: { contains: `${cycleParam} tháng` } }] },
+          where: { productId: productParam, active: true, OR: [{ providerCycle: cycleParam }, { name: { contains: `${cycleParam} tháng`, mode: "insensitive" } }] },
           include: { product: true },
         });
       }

@@ -24,7 +24,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
   const [counts, tickets] = await Promise.all([
     prisma.ticket.groupBy({ by: ["status"], where: { userId: user.id }, _count: true }),
     prisma.ticket.findMany({
-      where: { userId: user.id, ...(st ? { status: st as any } : {}), ...(q ? { subject: { contains: q } } : {}) },
+      where: { userId: user.id, ...(st ? { status: st as any } : {}), ...(q ? { subject: { contains: q, mode: "insensitive" } } : {}) },
       orderBy: { updatedAt: "desc" }, take: 30, include: { _count: { select: { messages: true } } },
     }),
   ]);

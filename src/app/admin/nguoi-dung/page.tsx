@@ -11,7 +11,7 @@ export default async function AdminUsers({ searchParams }: { searchParams: { q?:
   // Web mẹ CHỈ quản lý tài khoản của mẹ: tài khoản thuộc site con (panelId != null)
   // là riêng của site con — mẹ không xem account, không xem số dư của họ.
   const where: any = { panelId: null, ...(searchParams.q
-    ? { OR: [{ username: { contains: searchParams.q } }, { email: { contains: searchParams.q } }, { phone: { contains: searchParams.q } }] }
+    ? { OR: [{ username: { contains: searchParams.q, mode: "insensitive" } }, { email: { contains: searchParams.q, mode: "insensitive" } }, { phone: { contains: searchParams.q, mode: "insensitive" } }] }
     : {}) };
   const users = await prisma.user.findMany({ where, orderBy: { id: "desc" }, take: 100, include: { _count: { select: { smmOrders: true, premiumOrders: true } } } });
   const totalBalance = await prisma.user.aggregate({ where: { panelId: null }, _sum: { balance: true } });

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPremiumOrders({ searchParams }: { searchParams: { status?: string; q?: string; msg?: string; err?: string } }) {
   const where: any = { variant: { product: { panelId: null } } };
   if (searchParams.status) where.status = searchParams.status;
-  if (searchParams.q) where.OR = [{ code: { contains: searchParams.q } }, { user: { username: { contains: searchParams.q } } }];
+  if (searchParams.q) where.OR = [{ code: { contains: searchParams.q, mode: "insensitive" } }, { user: { username: { contains: searchParams.q, mode: "insensitive" } } }];
   const orders = await prisma.premiumOrder.findMany({ where, orderBy: { id: "desc" }, take: 50, include: { variant: { include: { product: true } }, user: true } });
   return (
     <div>
