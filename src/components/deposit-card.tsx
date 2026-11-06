@@ -18,7 +18,7 @@ export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: Ba
   const curBank: BankInfo | null = bankList[Math.min(bankIdx, Math.max(0, bankList.length - 1))] || null;
   const methods: { key: MethodKey; brand: React.ReactNode; desc: string }[] = [
     ...(curBank || momo ? [{ key: "sepay" as const, brand: <span className="text-slate-800">QR ngân hàng</span>, desc: "Ngân hàng & MoMo · cộng tự động" }] : []),
-    ...(intl?.paypal ? [{ key: "paypal" as const, brand: <><span className="text-[#003087]">Pay</span><span className="text-[#0079C1]">Pal</span></>, desc: "Trả USD · cộng theo tỉ giá" }] : []),
+    ...(intl?.paypal ? [{ key: "paypal" as const, brand: <><span className="text-[#003087] dark:text-[#7aa7ff]">Pay</span><span className="text-[#0079C1] dark:text-[#4db2ff]">Pal</span></>, desc: "Trả USD · cộng theo tỉ giá" }] : []),
     ...(intl?.stripe ? [{ key: "stripe" as const, brand: <span className="text-[#635BFF]">Stripe</span>, desc: "Thẻ Visa / Mastercard" }] : []),
     ...(usdt ? [{ key: "usdt" as const, brand: <span className="text-[#26A17B]">USDT</span>, desc: "Crypto · duyệt tay" }] : []),
   ];

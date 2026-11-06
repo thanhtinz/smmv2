@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
-import { PageHead, Flash, Badge, Stat } from "@/components/ui";
+import { PageHead, Flash, Badge, Stat, I } from "@/components/ui";
 import { panelDepositAction, panelManualDepositAction, panelSaveDepositSettingsAction } from "@/app/actions/panel";
 import { vnd, dt, DEP_STATUS } from "@/lib/format";
 
@@ -28,9 +28,9 @@ export default async function PanelDepositsPage({ searchParams }: { searchParams
       <PageHead title="Nạp tiền của khách" desc="Duyệt các yêu cầu nạp chờ của khách panel (USDT về ví của bạn, chuyển khoản ngân hàng của bạn…) và cộng tiền tay." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
-        <Stat label="Yêu cầu chờ duyệt" value={String(pendingCount)} icon="clock" />
-        <Stat label="Tổng đã duyệt cộng" value={vnd(approvedSum._sum.amount || 0)} icon="wallet" />
-        <Stat label="Khách của panel" value={String(members.length)} icon="users" />
+        <Stat label="Yêu cầu chờ duyệt" value={String(pendingCount)} icon={I.clock} />
+        <Stat label="Tổng đã duyệt cộng" value={vnd(approvedSum._sum.amount || 0)} icon={I.wallet} />
+        <Stat label="Khách của panel" value={String(members.length)} icon={I.users} />
       </div>
 
       <form action={panelSaveDepositSettingsAction} className="card mb-6 space-y-4 p-5">
