@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { logoutAction } from "@/app/actions/auth";
 
 /** Nút burger cho các header công khai trên điện thoại — gom các mục điều hướng
  *  chính vào một menu thả xuống (thay thanh menu footer dưới đáy đã bỏ). */
@@ -48,6 +49,13 @@ export function PublicBurger({ tone = "dark", home, panelSlug, loggedIn, registe
                 </Link>
               );
             })}
+            {loggedIn && (
+              <div className={`mt-1 border-t pt-1 ${dark ? "border-white/10" : "border-slate-100"}`}>
+                <form action={logoutAction}>
+                  <button className={`block w-full rounded-xl px-3.5 py-2.5 text-left text-sm font-semibold transition ${dark ? "text-rose-300 hover:bg-white/5" : "text-rose-600 hover:bg-rose-50"}`}>Đăng xuất</button>
+                </form>
+              </div>
+            )}
           </div>
         </>
       )}

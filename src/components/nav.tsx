@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { logoutAction } from "@/app/actions/auth";
 
 type NavItem = { href: string; label: string; icon: ReactNode; badge?: number };
 
@@ -59,6 +60,11 @@ export function MobileSideNav({ items, siteName }: { items: NavItem[]; siteName:
             <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
               <NavLinks items={items} onNavigate={() => setOpen(false)} />
             </nav>
+            <div className="shrink-0 border-t border-slate-100 p-3">
+              <form action={logoutAction}>
+                <button className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">Đăng xuất</button>
+              </form>
+            </div>
           </div>
         </>,
         document.body

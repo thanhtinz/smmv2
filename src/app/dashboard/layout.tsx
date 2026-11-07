@@ -81,13 +81,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <span className="w-9 h-9 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center">{s.site_logo_text || "S"}</span>
             <span className="font-extrabold text-slate-900 hidden sm:inline">{s.site_name}</span>
           </Link>
-          <div className="ml-auto flex items-center gap-2.5">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5">
             <NotificationBell />
             <DisplaySettings />
             <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hidden sm:inline-block">{LEVEL_NAME[user.level]}</span>
-            <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3.5 py-1.5 text-sm font-bold">{vnd(user.balance)}</span>
+            <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1.5 text-sm font-bold sm:px-3.5">{vnd(user.balance)}</span>
             <span className="hidden md:inline text-sm font-medium text-slate-700">{user.username}</span>
-            <form action={logoutAction}><button className="btn-ghost btn-sm !py-2 whitespace-nowrap">Đăng xuất</button></form>
+            <form action={logoutAction} className="hidden sm:block"><button className="btn-ghost btn-sm !py-2 whitespace-nowrap">Đăng xuất</button></form>
           </div>
         </div>
       </header>

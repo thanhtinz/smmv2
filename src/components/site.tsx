@@ -40,7 +40,7 @@ export async function SiteHeader() {
               {user?.role === "ADMIN" && (
                 <Link href="/admin" className="btn btn-sm !px-4 !py-2 whitespace-nowrap bg-slate-900 text-white hover:bg-slate-700">Admin Panel</Link>
               )}
-              <form action={logoutAction}>
+              <form action={logoutAction} className="hidden sm:block">
                 <button className="btn-ghost btn-sm !px-3 !py-2">Đăng xuất</button>
               </form>
             </>
@@ -86,7 +86,7 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
             <PublicBurger tone="dark" home={home} panelSlug={panel?.slug} loggedIn={!!session} registerHref={registerHref} />
             <Link href={panel ? home : user ? "/dashboard" : home} className="flex shrink-0 items-center gap-2.5">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600 text-sm font-black text-white">{name.charAt(0).toUpperCase()}</span>
-              <span className="max-w-[140px] truncate text-[15px] font-extrabold tracking-tight text-white">{name}</span>
+              <span className="hidden max-w-[140px] truncate text-[15px] font-extrabold tracking-tight text-white min-[420px]:inline">{name}</span>
             </Link>
             <nav className="mx-auto hidden items-center gap-6 text-sm font-medium text-slate-300 lg:flex">
               {links.map((l) => (
