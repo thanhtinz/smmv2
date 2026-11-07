@@ -6,7 +6,9 @@ import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
 import { refundSmmOrder, syncSmmOrderStatus, syncPremiumOrderStatus } from "@/lib/orders";
 import { orderTransition } from "@/lib/notify";
 import { providerBalance, syncProviderServices, syncProviderPremium } from "@/lib/provider";
-import { setSetting } from "@/lib/settings";
+import { getSettings, setSetting } from "@/lib/settings";
+import { DICT } from "@/lib/i18n";
+import { LANG_KEYS, sanitizeEnabled, sanitizeOverrides, type LangOverrides } from "@/lib/lang-config";
 import { encryptSecret } from "@/lib/secret-box";
 import { genCode, normalizePremiumFieldsJson } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -643,4 +645,63 @@ export async function adminSaveMethodsAction(formData: FormData) {
   }
   const backTo = String(formData.get("back") || "/admin/cau-hinh-nap-tien");
   redirect((backTo.startsWith("/admin/") ? backTo : "/admin/cau-hinh-nap-tien") + "?msg=" + encodeURIComponent("Đã lưu cấu hình"));
+}
+
+/* ---------- Quản lý ngôn ngữ (Admin → Ngôn ngữ) ---------- */
+function readMotherLangOverrides(s: Record<string, string>): LangOverrides {
+  try {
+    return sanitizeOverrides(JSON.parse(s.lang_overrides || "{}"));
+  } catch {
+    return {};
+  }
+}
+const langDest = (lang: string) => `/admin/ngon-ngu?lang=${encodeURIComponent(lang)}`;
+
+export async function adminSaveLangSettingsAction(formData: FormData) {
+  await requireAdmin();
+  const enabled = formData.getAll("lang_enabled").map(String);
+  const def = String(formData.get("default_lang") || "");
+  if (!enabled.length) back("/admin/ngon-ngu", "err", "Phải bật ít nhất một ngôn ngữ");
+  if (!LANG_KEYS.includes(def)) back("/admin/ngon-ngu", "err", "Ngôn ngữ mặc định không hợp lệ");
+  if (!enabled.includes(def)) back("/admin/ngon-ngu", "err", "Ngôn ngữ mặc định phải nằm trong danh sách đang bật — hãy bật nó hoặc chọn mặc định khác");
+  await setSetting("langs_enabled", JSON.stringify(sanitizeEnabled(enabled)));
+  await setSetting("default_lang", def);
+  done("/admin/ngon-ngu", "Đã lưu cấu hình ngôn ngữ");
+}
+
+export async function adminSaveLangOverridesAction(formData: FormData) {
+  await requireAdmin();
+  const lang = String(formData.get("lang") || "");
+  if (!LANG_KEYS.includes(lang) || lang === "vi") back("/admin/ngon-ngu", "err", "Ngôn ngữ không hợp lệ");
+  const s = await getSettings();
+  const all = readMotherLangOverrides(s);
+  const cur: Record<string, string> = { ...(all[lang] || {}) };
+  const n = parseInt(String(formData.get("n") || "0")) || 0;
+  for (let i = 0; i < n; i++) {
+    const key = String(formData.get(`k_${i}`) || "");
+    if (!key || !(key in DICT)) continue;
+    const val = String(formData.get(`v_${i}`) || "").trim();
+    const dictVal = (DICT[key] as unknown as Record<string, string>)?.[lang] || "";
+    if (!val || val === dictVal) delete cur[key];
+    else cur[key] = val;
+  }
+  if (Object.keys(cur).length) all[lang] = cur;
+  else delete all[lang];
+  await setSetting("lang_overrides", JSON.stringify(all));
+  redirect(langDest(lang) + "&msg=" + encodeURIComponent("Đã lưu bản dịch tuỳ chỉnh — áp dụng ngay trên toàn bộ website"));
+}
+
+export async function adminResetLangOverrideAction(formData: FormData) {
+  await requireAdmin();
+  const lang = String(formData.get("lang") || "");
+  const key = String(formData.get("rk") || "");
+  if (!LANG_KEYS.includes(lang) || lang === "vi" || !key) back("/admin/ngon-ngu", "err", "Dữ liệu không hợp lệ");
+  const s = await getSettings();
+  const all = readMotherLangOverrides(s);
+  if (all[lang]) {
+    delete all[lang][key];
+    if (!Object.keys(all[lang]).length) delete all[lang];
+  }
+  await setSetting("lang_overrides", JSON.stringify(all));
+  redirect(langDest(lang) + "&msg=" + encodeURIComponent("Đã đưa chuỗi về bản dịch gốc"));
 }

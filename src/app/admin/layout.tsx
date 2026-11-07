@@ -7,8 +7,7 @@ import { DisplaySettings } from "@/components/display";
 import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
 import AdminRealtime from "@/components/admin-realtime";
 import { prisma } from "@/lib/db";
-import { tr } from "@/lib/i18n";
-import { getLang } from "@/lib/lang-server";
+import { getServerI18n } from "@/lib/lang-server";
 import { vnd } from "@/lib/format";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -31,8 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Bảo mật nâng cao → Bài viết ▾ → Cập nhật hệ thống → Dọn dẹp hệ thống.
   // Các tính năng riêng của SMMv2 (Phân tích, Panel con, Báo cáo, Rủi ro, Nhật ký API, Hệ thống)
   // đặt ngay sau mục gần nhất của mẫu để không phá thứ tự gốc.
-  const lang = getLang();
-  const L = (t: string) => tr(lang, t);
+  const { L } = await getServerI18n(null);
   const all: (AdminNavEntry & { adminOnly?: boolean })[] = [
     { href: "/admin", label: L("Tổng quan"), icon: "home" },
     { href: "/admin/phan-tich", label: L("Phân tích"), icon: "chart", adminOnly: true },
@@ -90,6 +88,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       children: [
         { href: "/admin/mo-dun", label: L("Mô-đun"), icon: "layers", adminOnly: true } as any,
         { href: "/admin/cau-hinh", label: L("Cài đặt"), icon: "gear", adminOnly: true } as any,
+        { href: "/admin/ngon-ngu", label: L("Quản lý ngôn ngữ"), icon: "globe", adminOnly: true } as any,
         { href: "/admin/bao-cao", label: L("Báo cáo & Thông báo"), icon: "bell", adminOnly: true } as any,
         { href: "/admin/bao-mat", label: L("Bảo mật nâng cao"), icon: "shield", adminOnly: true } as any,
         { href: "/admin/rui-ro", label: L("Phát hiện rủi ro"), icon: "shield", adminOnly: true } as any,

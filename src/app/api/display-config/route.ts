@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { getSettings, DEFAULT_SETTINGS } from "@/lib/settings";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { resolveLangConfig, parsePanelLangConfig } from "@/lib/lang-config";
 
 /** Cấu hình hiển thị công khai cho phía khách: tỉ giá quy đổi hiển thị (VND vẫn là tiền thật).
  *  Khách thuộc panel nào thì dùng tỉ giá RIÊNG của panel đó nếu chủ panel đã đặt
@@ -19,10 +20,11 @@ export async function GET() {
     KRW: parseFloat(s?.rate_krw || DEFAULT_SETTINGS.rate_krw) || Number(DEFAULT_SETTINGS.rate_krw),
   };
   let overridden = false;
+  let panelLangRaw: string | null = null;
   try {
-    type RateFields = { rateUsd: string | null; rateEur: string | null; rateCny: string | null; rateThb: string | null; rateJpy: string | null; rateKrw: string | null };
+    type RateFields = { rateUsd: string | null; rateEur: string | null; rateCny: string | null; rateThb: string | null; rateJpy: string | null; rateKrw: string | null; langConfig: string | null };
     let panel: RateFields | null = null;
-    const fields = { rateUsd: true, rateEur: true, rateCny: true, rateThb: true, rateJpy: true, rateKrw: true } as const;
+    const fields = { rateUsd: true, rateEur: true, rateCny: true, rateThb: true, rateJpy: true, rateKrw: true, langConfig: true } as const;
     const user = await getCurrentUser().catch(() => null);
     if (user?.panelId) panel = await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: fields });
     else if (user) panel = await prisma.childPanel.findFirst({ where: { ownerId: user.id }, select: fields });
@@ -31,6 +33,7 @@ export async function GET() {
       if (host) panel = await prisma.childPanel.findFirst({ where: { domain: host }, select: fields });
     }
     if (panel) {
+      panelLangRaw = panel.langConfig;
       const map: Record<string, string | null> = { USD: panel.rateUsd, EUR: panel.rateEur, CNY: panel.rateCny, THB: panel.rateThb, JPY: panel.rateJpy, KRW: panel.rateKrw };
       for (const k of Object.keys(map)) {
         const v = parseFloat(map[k] || "");
@@ -38,8 +41,12 @@ export async function GET() {
       }
     }
   } catch { /* không xác định được panel thì dùng tỉ giá web mẹ */ }
+  // Cấu hình ngôn ngữ hiệu lực của site này (Admin → Ngôn ngữ): ngôn ngữ đang bật,
+  // ngôn ngữ mặc định cho khách mới và bản dịch tuỳ chỉnh đã hợp nhất mẹ -> panel.
+  const langCfg = resolveLangConfig(s ?? {}, parsePanelLangConfig(panelLangRaw));
+  const hasOverrides = Object.keys(langCfg.overrides).length > 0;
   return NextResponse.json(
-    { rates },
-    { headers: { "Cache-Control": overridden ? "private, no-store" : "public, max-age=300" } }
+    { rates, langsEnabled: langCfg.enabled, defaultLang: langCfg.defaultLang, overrides: langCfg.overrides },
+    { headers: { "Cache-Control": overridden || hasOverrides || panelLangRaw ? "private, no-store" : "public, max-age=300" } }
   );
 }

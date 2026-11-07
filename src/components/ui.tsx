@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 export function Badge({ children, cls }: { children: ReactNode; cls: string }) {
   return <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{children}</span>;
 }
-export function PageHead({ title, desc, children }: { title: string; desc?: string; children?: ReactNode }) {
+export function PageHead({ title, desc, children }: { title: string; desc?: ReactNode; children?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
       <div className="flex items-start gap-3">
@@ -101,6 +101,7 @@ const P = ({ d, size = 20 }: { d: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>
 );
 export const I = {
+  globe: <P d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM3 12h18M12 3c2.5 2.6 3.9 5.7 3.9 9S14.5 18.4 12 21c-2.5-2.6-3.9-5.7-3.9-9S9.5 5.6 12 3Z" />,
   home: <P d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,
   cart: <P d="M2 3h3l2.6 12.5a1 1 0 0 0 1 .5h8.9a1 1 0 0 0 1-.8L20.5 7H6M9 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />,
   box: <P d="M21 8 12 3 3 8v8l9 5 9-5V8ZM3 8l9 5 9-5M12 13v8" />,

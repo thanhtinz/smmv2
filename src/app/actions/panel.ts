@@ -1055,3 +1055,67 @@ export async function panelDeleteDepositsAction(formData: FormData) {
   redirect("/panel-admin/nap-tien?msg=" + encodeURIComponent("Đã xoá giao dịch nạp"));
 }
 
+
+/* ---------- Quản lý ngôn ngữ riêng của panel (Panel Admin → Ngôn ngữ) ---------- */
+export async function panelSaveLangSettingsAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/ngon-ngu");
+  const { LANG_KEYS, sanitizeEnabled, parsePanelLangConfig } = await import("@/lib/lang-config");
+  const cfg = parsePanelLangConfig(panel.langConfig);
+  if (formData.get("own_list") === "on") {
+    const enabled = formData.getAll("lang_enabled").map(String);
+    const def = String(formData.get("default_lang") || "");
+    if (!enabled.length) back("/panel-admin/ngon-ngu", "err", "Phải bật ít nhất một ngôn ngữ");
+    if (!LANG_KEYS.includes(def)) back("/panel-admin/ngon-ngu", "err", "Ngôn ngữ mặc định không hợp lệ");
+    if (!enabled.includes(def)) back("/panel-admin/ngon-ngu", "err", "Ngôn ngữ mặc định phải nằm trong danh sách đang bật — hãy bật nó hoặc chọn mặc định khác");
+    cfg.enabled = sanitizeEnabled(enabled);
+    cfg.defaultLang = def;
+  } else {
+    delete cfg.enabled;
+    delete cfg.defaultLang;
+  }
+  await prisma.childPanel.update({ where: { id: panel.id }, data: { langConfig: JSON.stringify(cfg) } });
+  done("/panel-admin/ngon-ngu", "Đã lưu cấu hình ngôn ngữ của website");
+}
+
+export async function panelSaveLangOverridesAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/ngon-ngu");
+  const { LANG_KEYS, parsePanelLangConfig, resolveLangConfig } = await import("@/lib/lang-config");
+  const { DICT } = await import("@/lib/i18n");
+  const lang = String(formData.get("lang") || "");
+  if (!LANG_KEYS.includes(lang) || lang === "vi") back("/panel-admin/ngon-ngu", "err", "Ngôn ngữ không hợp lệ");
+  const s = await getSettings();
+  const baseOv = resolveLangConfig(s, null).overrides[lang] || {};
+  const cfg = parsePanelLangConfig(panel.langConfig);
+  const cur: Record<string, string> = { ...(cfg.overrides?.[lang] || {}) };
+  const n = parseInt(String(formData.get("n") || "0")) || 0;
+  for (let i = 0; i < n; i++) {
+    const key = String(formData.get(`k_${i}`) || "");
+    if (!key || !(key in DICT)) continue;
+    const val = String(formData.get(`v_${i}`) || "").trim();
+    const baseVal = baseOv[key] ?? (DICT[key] as unknown as Record<string, string>)?.[lang] ?? "";
+    if (!val || val === baseVal) delete cur[key];
+    else cur[key] = val;
+  }
+  cfg.overrides = { ...(cfg.overrides || {}) };
+  if (Object.keys(cur).length) cfg.overrides[lang] = cur;
+  else delete cfg.overrides[lang];
+  if (!Object.keys(cfg.overrides).length) delete cfg.overrides;
+  await prisma.childPanel.update({ where: { id: panel.id }, data: { langConfig: JSON.stringify(cfg) } });
+  redirect(`/panel-admin/ngon-ngu?lang=${encodeURIComponent(lang)}&msg=` + encodeURIComponent("Đã lưu bản dịch tuỳ chỉnh của website — áp dụng ngay"));
+}
+
+export async function panelResetLangOverrideAction(formData: FormData) {
+  const { panel } = await ownPanelOwner("/panel-admin/ngon-ngu");
+  const { LANG_KEYS, parsePanelLangConfig } = await import("@/lib/lang-config");
+  const lang = String(formData.get("lang") || "");
+  const key = String(formData.get("rk") || "");
+  if (!LANG_KEYS.includes(lang) || lang === "vi" || !key) back("/panel-admin/ngon-ngu", "err", "Dữ liệu không hợp lệ");
+  const cfg = parsePanelLangConfig(panel.langConfig);
+  if (cfg.overrides?.[lang]) {
+    delete cfg.overrides[lang][key];
+    if (!Object.keys(cfg.overrides[lang]).length) delete cfg.overrides[lang];
+    if (!Object.keys(cfg.overrides).length) delete cfg.overrides;
+  }
+  await prisma.childPanel.update({ where: { id: panel.id }, data: { langConfig: JSON.stringify(cfg) } });
+  redirect(`/panel-admin/ngon-ngu?lang=${encodeURIComponent(lang)}&msg=` + encodeURIComponent("Đã đưa chuỗi về bản dịch gốc"));
+}

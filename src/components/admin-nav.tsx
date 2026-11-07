@@ -20,7 +20,7 @@ const ICON_COLORS: Record<string, string> = {
   file: "text-orange-300", mail: "text-blue-300", megaphone: "text-yellow-400", users: "text-violet-300",
   chart: "text-cyan-300", shield: "text-red-400", panels: "text-indigo-300", ticket: "text-rose-400",
   clock: "text-slate-300", cpu: "text-emerald-300", key: "text-amber-300", gear: "text-slate-300",
-  bell: "text-amber-400",
+  bell: "text-amber-400", globe: "text-cyan-300",
 };
 const GROUP_TILES: Record<string, string> = {
   wallet: "bg-gradient-to-br from-emerald-500 to-teal-600",

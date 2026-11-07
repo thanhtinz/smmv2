@@ -185,6 +185,11 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // SEO & đo lường: Google Analytics (GA4 measurement id) + mã xác minh Google Search Console
   ga_id: "",
   gsc_verification: "",
+  // Quản lý ngôn ngữ (Admin → Ngôn ngữ): ngôn ngữ đang bật (JSON mảng mã), ngôn ngữ mặc định
+  // cho khách mới, và bản dịch tuỳ chỉnh đè lên từ điển gốc (JSON {lang: {chuỗi Việt: bản dịch}})
+  langs_enabled: JSON.stringify(["vi", "en", "zh", "th", "ja", "ko"]),
+  default_lang: "en",
+  lang_overrides: "{}",
 };
 
 export async function getSettings(): Promise<Record<string, string>> {

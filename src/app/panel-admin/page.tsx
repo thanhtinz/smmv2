@@ -19,7 +19,7 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
   ]);
   return (
     <div>
-      <PageHead title="Tổng quan panel" desc={`Website của bạn: /cua-hang/${panel.slug}${panel.domain ? ` · tên miền ${panel.domain}` : ""}`}>
+      <PageHead title="Tổng quan panel" desc={<>Website của bạn: <span>/cua-hang/{panel.slug}</span>{panel.domain ? <> · tên miền {panel.domain}</> : null}</>}>
         <Link href={`/cua-hang/${panel.slug}`} className="btn-primary btn-sm !px-4 !py-2">Xem website</Link>
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />

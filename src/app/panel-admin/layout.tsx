@@ -7,8 +7,7 @@ import AdminRealtime from "@/components/admin-realtime";
 import { PanelSwitcher } from "@/components/panel-switcher";
 import { DisplaySettings } from "@/components/display";
 import { prisma } from "@/lib/db";
-import { tr } from "@/lib/i18n";
-import { getLang } from "@/lib/lang-server";
+import { getServerI18n } from "@/lib/lang-server";
 import { vnd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -37,8 +36,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
   // Thứ tự + tên mục bám đúng sidebar admin web mẹ / panel mẫu: Tổng quan → Quản lý SMM ▾ →
   // Tài khoản Premium ▾ → Khách hàng → Ticket hỗ trợ → tiền → ... → Mô-đun → Cài đặt →
   // Bảo mật nâng cao → Bài viết ▾ → Dọn dẹp hệ thống (mọi mục đều trong phạm vi dữ liệu của panel).
-  const lang = getLang();
-  const L = (t: string) => tr(lang, t);
+  const { L } = await getServerI18n(panel.langConfig);
   const allEntries: AdminNavEntry[] = [
     { href: "/panel-admin", label: L("Tổng quan"), icon: "home" },
     { href: "/panel-admin/phan-tich", label: L("Phân tích"), icon: "chart" },
@@ -97,6 +95,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
       children: [
         { href: "/panel-admin/mo-dun", label: L("Mô-đun"), icon: "layers" },
         { href: "/panel-admin/cau-hinh", label: L("Cài đặt"), icon: "gear" },
+        { href: "/panel-admin/ngon-ngu", label: L("Quản lý ngôn ngữ"), icon: "globe" },
         { href: "/panel-admin/bao-cao", label: L("Báo cáo & Thông báo"), icon: "bell" },
         { href: "/panel-admin/bao-mat", label: L("Bảo mật nâng cao"), icon: "shield" },
         { href: "/panel-admin/rui-ro", label: L("Đơn rủi ro"), icon: "shield" },

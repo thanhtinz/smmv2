@@ -10,7 +10,7 @@ import { ProfileTabs } from "@/components/profile-tabs";
 import { backupCodesLeft } from "@/lib/twofa";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { LEVEL_NAME, vnd, num, dt } from "@/lib/format";
-import { getLang } from "@/lib/lang-server";
+import { getServerI18n } from "@/lib/lang-server";
 import { trd } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,10 @@ export const dynamic = "force-dynamic";
  *  3 tab Hồ sơ cá nhân | Kết nối API | Bảo mật & Phiên đăng nhập. */
 export default async function ProfilePage({ searchParams }: { searchParams: { msg?: string; err?: string; tab?: string; bat2fa?: string } }) {
   const user = (await getCurrentUser())!;
-  const lang = getLang();
+  const panelLangRaw = user.panelId
+    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
+    : undefined;
+  const { lang } = await getServerI18n(panelLangRaw);
   const tab = searchParams.tab === "api" ? "api" : searchParams.tab === "security" ? "security" : "profile";
   const s = await getSettings();
   const [preCount, commissionAgg, refCount, loginHistory] = await Promise.all([

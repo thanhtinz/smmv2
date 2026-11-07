@@ -10,8 +10,7 @@ import { LiveChat } from "@/components/livechat";
 import { TermsGate, HomeModal } from "@/components/gates";
 import { I } from "@/components/ui";
 import { vnd, LEVEL_NAME } from "@/lib/format";
-import { tr } from "@/lib/i18n";
-import { getLang } from "@/lib/lang-server";
+import { getServerI18n } from "@/lib/lang-server";
 import { prisma } from "@/lib/db";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -21,15 +20,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (s.maintenance === "1" && user.role === "USER") {
     return <div className="min-h-screen flex items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold mb-2">Hệ thống đang bảo trì</h1><p className="text-slate-500">Vui lòng quay lại sau ít phút.</p></div></div>;
   }
-  const lang = getLang();
-  const L = (t: string) => tr(lang, t);
   const openTickets = await prisma.ticket.count({ where: { userId: user.id, status: "ANSWERED" } });
   // Khách của panel: điều khoản + modal trang chủ dùng bản RIÊNG của panel (nếu panel có bật);
   // panel không bật thì theo web mẹ như cũ.
   const myPanelGate = user.panelId ? await prisma.childPanel.findUnique({
     where: { id: user.panelId },
-    select: { termsEnabled: true, termsTitle: true, termsContent: true, termsVersion: true, termsCheckboxText: true, termsButtonText: true, homeModalEnabled: true, homeModalContent: true },
+    select: { termsEnabled: true, termsTitle: true, termsContent: true, termsVersion: true, termsCheckboxText: true, termsButtonText: true, homeModalEnabled: true, homeModalContent: true, langConfig: true },
   }) : null;
+  const { L } = await getServerI18n(myPanelGate?.langConfig ?? undefined);
   const panelTermsOn = !!(myPanelGate?.termsEnabled && myPanelGate.termsContent?.trim());
   let termsGate: React.ReactNode = null;
   if (panelTermsOn || (s.terms_enabled === "1" && s.terms_content?.trim())) {

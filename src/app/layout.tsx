@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getSettings } from "@/lib/settings";
 import { panelByHost } from "@/lib/panel-host";
+import { getServerI18n } from "@/lib/lang-server";
 import { DisplayEngine } from "@/components/display";
 
 export const viewport: Viewport = {
@@ -42,20 +43,24 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Áp tuỳ chọn hiển thị khách đã chọn (localStorage) trước khi trang vẽ để không chớp
-const THEME_SCRIPT = `(function(){try{var h=document.documentElement;var a=localStorage.getItem('smmv2-accent');var m=localStorage.getItem('smmv2-mode');if(a)h.setAttribute('data-accent',a);if(m==='dark')h.classList.add('dark');else if(m==='light')h.classList.remove('dark');var d=localStorage.getItem('smmv2-dir');if(d)h.setAttribute('dir',d);var f=localStorage.getItem('smmv2-font');if(f)h.setAttribute('data-font',f);var s=localStorage.getItem('smmv2-fsize');if(s)h.setAttribute('data-fsize',s);var l=localStorage.getItem('smmv2-lang');if(l)h.setAttribute('lang',l);if((l||'en')!=='vi'){h.setAttribute('data-i18n-pending','1');setTimeout(function(){h.removeAttribute('data-i18n-pending');},1600);}}catch(e){}})();`;
+const THEME_SCRIPT = `(function(){try{var h=document.documentElement;var a=localStorage.getItem('smmv2-accent');var m=localStorage.getItem('smmv2-mode');if(a)h.setAttribute('data-accent',a);if(m==='dark')h.classList.add('dark');else if(m==='light')h.classList.remove('dark');var d=localStorage.getItem('smmv2-dir');if(d)h.setAttribute('dir',d);var f=localStorage.getItem('smmv2-font');if(f)h.setAttribute('data-font',f);var s=localStorage.getItem('smmv2-fsize');if(s)h.setAttribute('data-fsize',s);var l=localStorage.getItem('smmv2-lang');if(l)h.setAttribute('lang',l);if((l||'__DEFAULT_LANG__')!=='vi'){h.setAttribute('data-i18n-pending','1');setTimeout(function(){h.removeAttribute('data-i18n-pending');},1600);}}catch(e){}})();`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const s = await getSettings().catch(() => null);
   const panel = await panelByHost().catch(() => null);
+  const i18n = await getServerI18n(panel?.langConfig ?? undefined).catch(() => null);
+  const langCfgJson = i18n ? JSON.stringify(i18n.cfg).replace(/</g, "\\u003c") : "{}";
+  const themeScript = THEME_SCRIPT.replace("__DEFAULT_LANG__", i18n?.cfg.defaultLang || "en");
   const accent = panel?.accent || s?.default_accent || "blue";
   const dark = s?.default_mode === "dark";
   // Script/HTML: ở tên miền panel thì dùng bản riêng của panel, ở web mẹ dùng bản của mẹ.
   const headHtml = panel ? panel.customHeadHtml : s?.custom_head_html;
   const bodyHtml = panel ? panel.customBodyHtml : s?.custom_body_html;
   return (
-    <html lang="en" data-accent={accent} className={dark ? "dark" : undefined} suppressHydrationWarning>
+    <html lang={i18n?.lang || "en"} data-accent={accent} className={dark ? "dark" : undefined} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: `window.__LANGCFG__=${langCfgJson};` }} />
         {s?.gsc_verification ? <meta name="google-site-verification" content={s.gsc_verification} /> : null}
         {s?.ga_id ? (
           <>

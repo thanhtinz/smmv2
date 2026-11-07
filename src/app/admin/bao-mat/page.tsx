@@ -5,14 +5,13 @@ import { getSettings } from "@/lib/settings";
 import { PageHead, Flash, Empty, Badge } from "@/components/ui";
 import { saveIpBanAction, deleteIpBanAction, saveSecurityPolicyAction } from "@/app/actions/admin-features";
 import { dt } from "@/lib/format";
-import { getLang } from "@/lib/lang-server";
-import { trd } from "@/lib/i18n";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSecurity({ searchParams }: { searchParams: { msg?: string; err?: string; fail?: string } }) {
   await requireAdminPage();
-  const lang = getLang();
+  const { Ld } = await getServerI18n(null);
   const onlyFail = searchParams.fail === "1";
   const [bans, s, activity, logins] = await Promise.all([
     prisma.ipBan.findMany({ orderBy: { id: "desc" }, take: 200 }),
@@ -32,15 +31,15 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
           <div>
             <label className="lbl">Bắt buộc tài khoản quản trị bật xác thực hai lớp (2FA)</label>
             <select className="inp" name="admin_2fa_required" defaultValue={s.admin_2fa_required === "0" ? "0" : "1"}>
-              <option value="1">{trd(lang, "Bật — Admin/Staff chưa bật 2FA chưa vào được khu quản trị")}</option>
-              <option value="0">{trd(lang, "Tắt — không bắt buộc")}</option>
+              <option value="1">{Ld("Bật — Admin/Staff chưa bật 2FA chưa vào được khu quản trị")}</option>
+              <option value="0">{Ld("Tắt — không bắt buộc")}</option>
             </select>
             <p className="mt-1.5 text-xs text-slate-400">Áp cho Admin/Staff web mẹ và chủ/Admin của panel con. Người chưa bật 2FA được dẫn tới Hồ sơ → Bảo mật để thiết lập, không bị khoá tài khoản.</p>
           </div>
           <div>
             <label className="lbl">IP được phép vào khu quản trị (mỗi dòng 1 IP, để trống = không giới hạn)</label>
             <textarea className="inp font-mono" name="admin_ip_whitelist" rows={3} defaultValue={s.admin_ip_whitelist} placeholder={"VD:\n203.0.113.10"} />
-            <p className="mt-1.5 text-xs text-slate-400">{trd(lang, "IP hiện tại của bạn:")} <b className="font-mono text-slate-700">{myIp}</b> {trd(lang, "— hãy thêm IP này trước khi lưu danh sách, tránh tự khoá mình khỏi khu quản trị.")}</p>
+            <p className="mt-1.5 text-xs text-slate-400">{Ld("IP hiện tại của bạn:")} <b className="font-mono text-slate-700">{myIp}</b> {Ld("— hãy thêm IP này trước khi lưu danh sách, tránh tự khoá mình khỏi khu quản trị.")}</p>
           </div>
         </div>
         <button className="btn-primary">Lưu bảo mật khu quản trị</button>
@@ -79,11 +78,11 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
           <div><label className="lbl">Độ dài tối thiểu (ký tự)</label><input className="inp" name="password_min_length" type="number" min={4} max={32} defaultValue={s.password_min_length} /></div>
           <div className="grid grid-cols-3 gap-3">
             <div><label className="lbl">Chữ hoa</label>
-              <select className="inp" name="pw_require_upper" defaultValue={s.pw_require_upper === "1" ? "1" : "0"}><option value="0">{trd(lang, "Không bắt")}</option><option value="1">{trd(lang, "Bắt buộc")}</option></select></div>
+              <select className="inp" name="pw_require_upper" defaultValue={s.pw_require_upper === "1" ? "1" : "0"}><option value="0">{Ld("Không bắt")}</option><option value="1">{Ld("Bắt buộc")}</option></select></div>
             <div><label className="lbl">Chữ số</label>
-              <select className="inp" name="pw_require_number" defaultValue={s.pw_require_number === "1" ? "1" : "0"}><option value="0">{trd(lang, "Không bắt")}</option><option value="1">{trd(lang, "Bắt buộc")}</option></select></div>
+              <select className="inp" name="pw_require_number" defaultValue={s.pw_require_number === "1" ? "1" : "0"}><option value="0">{Ld("Không bắt")}</option><option value="1">{Ld("Bắt buộc")}</option></select></div>
             <div><label className="lbl">Ký tự đặc biệt</label>
-              <select className="inp" name="pw_require_special" defaultValue={s.pw_require_special === "1" ? "1" : "0"}><option value="0">{trd(lang, "Không bắt")}</option><option value="1">{trd(lang, "Bắt buộc")}</option></select></div>
+              <select className="inp" name="pw_require_special" defaultValue={s.pw_require_special === "1" ? "1" : "0"}><option value="0">{Ld("Không bắt")}</option><option value="1">{Ld("Bắt buộc")}</option></select></div>
           </div>
           <div className="border-t border-slate-100 pt-4 font-bold text-slate-900">Phòng chống Brute Force</div>
           <div className="grid grid-cols-3 gap-3">

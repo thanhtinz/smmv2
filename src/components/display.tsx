@@ -16,6 +16,35 @@ export function readPrefs(): Prefs {
     return p;
   } catch { return DEF; }
 }
+
+/* ===== Cấu hình ngôn ngữ do server cấu hình (Admin → Ngôn ngữ), tiêm sẵn vào trang
+ * qua window.__LANGCFG__ và làm mới qua /api/display-config: ngôn ngữ đang bật,
+ * ngôn ngữ mặc định cho khách mới, bản dịch tuỳ chỉnh (đã hợp nhất mẹ -> panel). ===== */
+export type LangCfg = { enabled: string[]; defaultLang: string; overrides: Record<string, Record<string, string>> };
+let langCfgCache: LangCfg | null = null;
+export function readLangCfg(): LangCfg | null {
+  if (langCfgCache) return langCfgCache;
+  try {
+    const g = (window as unknown as { __LANGCFG__?: LangCfg }).__LANGCFG__;
+    if (g && Array.isArray(g.enabled) && g.enabled.length) langCfgCache = { enabled: g.enabled, defaultLang: g.defaultLang || "en", overrides: g.overrides || {} };
+  } catch { /* chưa tiêm */ }
+  return langCfgCache;
+}
+export function setLangCfg(c: LangCfg | null) { if (c && Array.isArray(c.enabled) && c.enabled.length) langCfgCache = c; }
+
+/** Tuỳ chọn hiệu lực: khách CHƯA từng chọn ngôn ngữ -> dùng ngôn ngữ mặc định của site;
+ *  ngôn ngữ đã chọn bị tắt -> rơi về mặc định. */
+export function effectivePrefs(): Prefs {
+  const p = readPrefs();
+  const cfg = readLangCfg();
+  if (cfg) {
+    let stored: string | null = null;
+    try { stored = localStorage.getItem(KEYS.lang); } catch { /* bỏ qua */ }
+    if (!stored) p.lang = cfg.defaultLang;
+    else if (!cfg.enabled.includes(p.lang)) p.lang = cfg.defaultLang;
+  }
+  return p;
+}
 export function applyPrefs(p: Prefs) {
   const h = document.documentElement;
   h.setAttribute("data-accent", p.accent);
@@ -49,7 +78,15 @@ export function DisplaySettings({ tone = "light" }: { tone?: "light" | "dark" })
   const router = useRouter();
   const [prefs, setPrefs] = useState<Prefs>(DEF);
   const [open, setOpen] = useState(false);
-  useEffect(() => { setPrefs(readPrefs()); }, []);
+  const [cfg, setCfgState] = useState<LangCfg | null>(null);
+  useEffect(() => {
+    setPrefs(effectivePrefs());
+    const c = readLangCfg();
+    if (c) setCfgState(c);
+    else fetch("/api/display-config", { cache: "no-store" }).then((r) => r.json()).then((j) => {
+      if (Array.isArray(j?.langsEnabled)) { const nc = { enabled: j.langsEnabled, defaultLang: j.defaultLang || "en", overrides: j.overrides || {} }; setLangCfg(nc); setCfgState(nc); setPrefs(effectivePrefs()); }
+    }).catch(() => {});
+  }, []);
   const set = (patch: Partial<Prefs>) => { const p = { ...prefs, ...patch }; setPrefs(p); applyPrefs(p); if (patch.lang) router.refresh(); };
   const cur = ACCENTS.find((a) => a.key === prefs.accent) || ACCENTS[0];
   return (
@@ -78,7 +115,7 @@ export function DisplaySettings({ tone = "light" }: { tone?: "light" | "dark" })
               <div><Label>Hướng hiển thị</Label><Seg options={[{ key: "ltr", name: "LTR" }, { key: "rtl", name: "RTL" }]} value={prefs.dir} onPick={(k) => set({ dir: k })} /></div>
               <div><Label>Font chữ</Label><Seg options={FONTS.map((f) => ({ key: f.key, name: f.name }))} value={prefs.font} onPick={(k) => set({ font: k })} /></div>
               <div><Label>Cỡ chữ</Label><Seg options={FSIZES.map((f) => ({ key: f.key, name: f.name }))} value={prefs.fsize} onPick={(k) => set({ fsize: k })} /></div>
-              <div><Label>Ngôn ngữ</Label><Seg options={LANGS.map((l) => ({ key: l.key, name: l.name }))} value={prefs.lang} onPick={(k) => set({ lang: k })} /></div>
+              <div><Label>Ngôn ngữ</Label><Seg options={LANGS.filter((l) => !cfg || cfg.enabled.includes(l.key)).map((l) => ({ key: l.key, name: l.name }))} value={cfg && !cfg.enabled.includes(prefs.lang) ? cfg.defaultLang : prefs.lang} onPick={(k) => set({ lang: k })} /></div>
               <div><Label>Tiền tệ</Label><Seg options={CURRENCIES.map((c) => ({ key: c.key, name: c.name }))} value={prefs.cur} onPick={(k) => set({ cur: k })} /></div>
             </div>
           </div>
@@ -96,6 +133,8 @@ const originals = new Map<Text, string>();
 const written = new Map<Text, string>();
 const phOriginals = new Map<Element, string>();
 const phWritten = new Map<Element, string>();
+const ttOriginals = new Map<Element, string>();
+const ttWritten = new Map<Element, string>();
 let applying = false;
 
 function fmtMoney(vndInt: number, cur: string, lang: string) {
@@ -106,9 +145,27 @@ function fmtMoney(vndInt: number, cur: string, lang: string) {
   return new Intl.NumberFormat(LOCALES[lang] || "en-US", { style: "currency", currency: cur, minimumFractionDigits: zero ? 0 : undefined, maximumFractionDigits: zero ? 0 : 2 }).format(val);
 }
 
+/* Chỉ mục ngược theo ngôn ngữ: bản dịch -> chuỗi tiếng Việt gốc, để nhận diện các
+ * chuỗi server đã dịch sẵn bằng tr() rồi áp bản dịch tuỳ chỉnh lên trên. */
+const revIndexes = new Map<string, Map<string, string>>();
+function revIndex(lang: string): Map<string, string> {
+  let m = revIndexes.get(lang);
+  if (!m) {
+    m = new Map<string, string>();
+    for (const [k, v] of Object.entries(DICT)) {
+      const t = (v as unknown as Record<string, string>)[lang];
+      if (t && !m.has(t)) m.set(t, k);
+    }
+    revIndexes.set(lang, m);
+  }
+  return m;
+}
+
 function runDisplay() {
   if (applying || typeof document === "undefined" || !document.body) return;
-  const p = readPrefs();
+  const p = effectivePrefs();
+  const ovAll = readLangCfg()?.overrides;
+  const ov = ovAll?.[p.lang];
   applying = true;
   try {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
@@ -128,11 +185,18 @@ function runDisplay() {
       let out = src;
       if (p.lang !== "vi") {
         const t = src.trim();
-        const tr = (DICT[t] as any)?.[p.lang];
-        if (tr) out = src.replace(t, tr);
-        // Mảnh ghép chỉ áp cho dòng CÓ SỐ (đơn giá/số lượng/còn lại...) — áp vào câu văn xuôi
-        // sẽ sinh lẫn ngôn ngữ kiểu "Updated dữ liệu", "Bắt đầu" -> "Start ngay hôm nay", "mục tiêu" -> "items tiêu".
-        else if (/\d/.test(out)) for (const [frag, map] of FRAGMENTS) { const r = map[p.lang]; if (r && out.includes(frag)) out = out.split(frag).join(r); }
+        const dictTr = (DICT[t] as any)?.[p.lang];
+        const ovTr = ov?.[t];
+        if (ovTr) out = src.replace(t, ovTr);
+        else if (dictTr) out = src.replace(t, dictTr);
+        else {
+          // Chuỗi server đã dịch sẵn bằng tr(): tra ngược về chuỗi gốc để áp tuỳ chỉnh.
+          const k2 = ov ? revIndex(p.lang).get(t) : undefined;
+          if (k2 && ov?.[k2]) out = src.replace(t, ov[k2]);
+          // Mảnh ghép chỉ áp cho dòng CÓ SỐ (đơn giá/số lượng/còn lại...) — áp vào câu văn xuôi
+          // sẽ sinh lẫn ngôn ngữ kiểu "Updated dữ liệu", "Bắt đầu" -> "Start ngay hôm nay", "mục tiêu" -> "items tiêu".
+          else if (/\d/.test(out)) for (const [frag, map] of FRAGMENTS) { const r = map[p.lang]; if (r && out.includes(frag)) out = out.split(frag).join(r); }
+        }
       }
       if (p.cur !== "VND") {
         out = out.replace(MONEY, (m, num: string) => fmtMoney(parseInt(num.replace(/\./g, ""), 10), p.cur, p.lang) ?? m);
@@ -145,9 +209,38 @@ function runDisplay() {
       if (!phOriginals.has(el) || (phWritten.has(el) && el.getAttribute("placeholder") !== phWritten.get(el))) phOriginals.set(el, el.getAttribute("placeholder") || "");
       const src = phOriginals.get(el)!;
       let out = src;
-      if (p.lang !== "vi") { const tr = (DICT[src.trim()] as any)?.[p.lang]; if (tr) out = tr; }
+      if (p.lang !== "vi") {
+        const key = src.trim();
+        const o = ov?.[key];
+        const tr = (DICT[key] as any)?.[p.lang];
+        if (o) out = o;
+        else if (tr) out = tr;
+        else if (ov) { const k2 = revIndex(p.lang).get(key); if (k2 && ov[k2]) out = ov[k2]; }
+      }
+      if (out === src && p.lang !== "vi" && /\d/.test(src)) {
+        // placeholder ghép có số (vd "Đang dùng của web mẹ: 165") — áp mảnh câu như node chữ
+        let f = src;
+        for (const [frag, map] of FRAGMENTS) { const r = map[p.lang]; if (r && f.includes(frag)) f = f.split(frag).join(r); }
+        out = f;
+      }
       if (out !== el.getAttribute("placeholder")) el.setAttribute("placeholder", out);
       phWritten.set(el, out);
+    });
+    // title (chú thích khi di chuột) của nút/ô nhập — vd nút Cài đặt hiển thị, thanh công cụ soạn thảo
+    document.querySelectorAll("[title]").forEach((el) => {
+      if (!ttOriginals.has(el) || (ttWritten.has(el) && el.getAttribute("title") !== ttWritten.get(el))) ttOriginals.set(el, el.getAttribute("title") || "");
+      const src = ttOriginals.get(el)!;
+      let out = src;
+      if (p.lang !== "vi") {
+        const key = src.trim();
+        const o = ov?.[key];
+        const tr = (DICT[key] as any)?.[p.lang];
+        if (o) out = o;
+        else if (tr) out = tr;
+        else if (ov) { const k2 = revIndex(p.lang).get(key); if (k2 && ov[k2]) out = ov[k2]; }
+      }
+      if (out !== el.getAttribute("title")) el.setAttribute("title", out);
+      ttWritten.set(el, out);
     });
     // dọn node đã rời khỏi trang
     for (const k of Array.from(originals.keys())) if (!k.isConnected) { originals.delete(k); written.delete(k); }
@@ -174,7 +267,7 @@ export function DisplayEngine() {
     // thiếu/khác -> ghi lại rồi refresh ĐÚNG 1 lần để menu hiện đúng ngôn ngữ
     // đã chọn (cờ sessionStorage chống vòng lặp khi trình duyệt chặn cookie).
     try {
-      const p = readPrefs();
+      const p = effectivePrefs();
       const m = document.cookie.match(/(?:^|; )smmv2-lang=([^;]*)/);
       const cookieLang = m ? decodeURIComponent(m[1]) : null;
       applyPrefs(p);
@@ -183,17 +276,23 @@ export function DisplayEngine() {
         router.refresh();
       }
     } catch {}
-    // Nạp tỉ giá hiển thị admin đã cấu hình (mặc định dùng bộ tỉ giá sẵn trong code)
-    fetch("/api/display-config")
+    // Nạp tỉ giá + cấu hình ngôn ngữ admin đã cấu hình (mặc định dùng bộ sẵn trong code)
+    fetch("/api/display-config", { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {
+        let changed = false;
         if (j?.rates) {
           for (const c of CURRENCIES) {
             const v = parseFloat(j.rates[c.key]);
             if (v > 0) c.rate = v;
           }
-          runDisplay();
+          changed = true;
         }
+        if (Array.isArray(j?.langsEnabled) && j.langsEnabled.length) {
+          setLangCfg({ enabled: j.langsEnabled, defaultLang: j.defaultLang || "en", overrides: j.overrides || {} });
+          changed = true;
+        }
+        if (changed) runDisplay();
       })
       .catch(() => {});
     let raf = 0;
