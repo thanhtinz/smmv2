@@ -1660,6 +1660,8 @@ export const DICT: Record<string, Tr> = {
   "Áp dụng khi khách vào bằng tên miền riêng của website. Để trống là theo kiểu của web mẹ.": e("Applies when customers arrive via the website's own domain. Leave empty to follow the main site's style.", "客户通过网站自有域名进入时适用。留空则跟随主站样式。", "ใช้เมื่อลูกค้าเข้าผ่านโดเมนของเว็บไซต์เอง เว้นว่างไว้เพื่อตามสไตล์ของเว็บหลัก", "顧客がウェブサイト独自ドメインから入る場合に適用。空欄でメインサイトのスタイルに従います。", "고객이 웹사이트 자체 도메인으로 들어올 때 적용됩니다. 비우면 메인 사이트 스타일을 따릅니다."),
   "Điều chỉnh theo %": e("Adjust by %", "按 % 调整", "ปรับตาม %", "%で調整", "%로 조정"),
   "Điều khoản sử dụng": e("Terms of use", "使用条款", "ข้อกำหนดการใช้งาน", "利用規約", "이용 약관"),
+  "Điều khoản": e("Terms", "条款", "ข้อกำหนด", "規約", "약관"),
+  "Nội dung điều khoản đang được cập nhật.": e("The terms content is being updated.", "条款内容正在更新。", "เนื้อหาข้อกำหนดกำลังอัปเดต", "規約の内容は更新中です。", "약관 내용이 업데이트 중입니다."),
   "Đoạn thường": e("Normal paragraph", "普通段落", "ย่อหน้าปกติ", "通常段落", "일반 단락"),
   "Ghi chú cho khách (tuỳ chọn)": e("Note for the customer (optional)", "给客户的备注(可选)", "หมายเหตุสำหรับลูกค้า (ไม่บังคับ)", "顧客へのメモ（任意）", "고객 메모(선택)"),
   "Cấu hình panel (ngân hàng, SMTP, Telegram, Google...)": e("Panel settings (bank, SMTP, Telegram, Google...)", "Panel 配置(银行、SMTP、Telegram、Google...)", "การตั้งค่า panel (ธนาคาร, SMTP, Telegram, Google...)", "パネル設定（銀行、SMTP、Telegram、Google...）", "패널 설정(은행, SMTP, Telegram, Google...)"),

@@ -104,39 +104,62 @@ function NavLinks({ items, onNavigate }: { items: NavEntry[]; onNavigate?: () =>
   );
 }
 
-/** Cụm thẻ cuối menu (theo mẫu Tín gửi 2026-11-07): thẻ Nạp tiền riêng + thẻ thông tin
- *  tài khoản ở dưới cùng (avatar chữ viết tắt, tên đậm, email xám). */
-export function MenuFooter({ depositLabel, accountName, accountEmail, accountInitials }: {
-  depositLabel: string; accountName: string; accountEmail: string; accountInitials: string;
+/** Cụm đáy menu GHIM CỐ ĐỊNH (lệnh Tín 2026-11-07 15:18 — thay bố cục "cuối danh sách"
+ *  của đợt trước): luôn hiện ở đáy khung menu không cần cuộn, các thẻ to/rõ hơn hàng menu
+ *  thường. Thứ tự: thẻ tài khoản → Nạp tiền → Điều khoản → Admin Panel (nếu có quyền) →
+ *  nút Đăng xuất (nút bấm rõ ràng, có icon). Cụm này đứng NGOÀI vùng cuộn của danh sách
+ *  (drawer mobile: thanh riêng shrink-0; sidebar desktop: chân thẻ, danh sách cuộn nội bộ). */
+export function MenuBottomCluster({ accountName, accountEmail, accountInitials, depositLabel, termsLabel, adminLabel, logoutLabel }: {
+  accountName: string; accountEmail: string; accountInitials: string;
+  depositLabel: string; termsLabel: string; adminLabel: string | null; logoutLabel: string;
 }) {
+  const card = "flex w-full items-center justify-center gap-2.5 rounded-2xl border px-4 py-3.5 text-base font-bold transition";
   return (
-    <div className="mt-4 space-y-2.5 border-t border-slate-100 pt-4">
-      <Link href="/dashboard/nap-tien"
-        className="flex items-center justify-center gap-2.5 rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3.5 text-[15px] font-bold text-slate-800 transition hover:bg-slate-100">
+    <div className="space-y-2.5">
+      <Link href="/dashboard/ho-so"
+        className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3 transition hover:bg-slate-100">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-lg font-extrabold text-slate-800">{accountInitials}</span>
+        <span className="min-w-0">
+          <span className="block truncate text-base font-bold text-slate-900">{accountName}</span>
+          <span className="block truncate text-sm text-slate-500">{accountEmail}</span>
+        </span>
+      </Link>
+      <Link href="/dashboard/nap-tien" className={`${card} border-slate-200/80 bg-slate-50 text-slate-800 hover:bg-slate-100`}>
         <span className="relative shrink-0 text-slate-700 [&>svg]:h-6 [&>svg]:w-6">
           {I.wallet}
           <span className="absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-slate-700 [&>svg]:h-3 [&>svg]:w-3">{I.plus}</span>
         </span>
         {depositLabel}
       </Link>
-      <Link href="/dashboard/ho-so"
-        className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3 transition hover:bg-slate-100">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-base font-extrabold text-slate-800">{accountInitials}</span>
-        <span className="min-w-0">
-          <span className="block truncate text-[15px] font-bold text-slate-900">{accountName}</span>
-          <span className="block truncate text-[13px] text-slate-500">{accountEmail}</span>
-        </span>
+      <Link href="/dashboard/dieu-khoan" className={`${card} border-slate-200/80 bg-slate-50 text-brand-700 hover:bg-brand-50`}>
+        <span className="shrink-0 text-brand-600 [&>svg]:h-6 [&>svg]:w-6">{I.book}</span>
+        {termsLabel}
       </Link>
+      {adminLabel && (
+        <Link href="/admin" className={`${card} border-slate-200/80 bg-slate-50 text-slate-800 hover:bg-slate-100`}>
+          <span className="shrink-0 [&>svg]:h-6 [&>svg]:w-6">{I.shield}</span>
+          {adminLabel}
+        </Link>
+      )}
+      <form action={logoutAction}>
+        <button className={`${card} border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100`}>
+          <span className="shrink-0 [&>svg]:h-6 [&>svg]:w-6">{I.logout}</span>
+          {logoutLabel}
+        </button>
+      </form>
     </div>
   );
 }
 
-/** Menu dọc cho màn hình lớn (sidebar khu khách hàng). */
+/** Menu dọc cho màn hình lớn (sidebar khu khách hàng). Danh sách cuộn nội bộ khi dài hơn
+ *  khung hình; cụm đáy (footer) ghim ở chân thẻ, luôn thấy. */
 export function SideNav({ items, footer }: { items: NavEntry[]; footer?: ReactNode }) {
   return (
-    <nav className="hidden lg:flex lg:flex-col gap-1">
-      <NavLinks items={items} />
-      {footer}
+    <nav className="hidden lg:flex lg:flex-col lg:max-h-[calc(100vh-8.5rem)]">
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+        <NavLinks items={items} />
+      </div>
+      {footer && <div className="mt-3 shrink-0 border-t border-slate-100 pt-3">{footer}</div>}
     </nav>
   );
 }
@@ -172,15 +195,14 @@ export function MobileSideNav({ items, siteName, footer, logoUrl, logoText }: {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
               </button>
             </div>
-            <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+            <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-3">
               <NavLinks items={items} onNavigate={() => setOpen(false)} />
-              {footer}
             </nav>
-            <div className="shrink-0 border-t border-slate-100 p-3">
-              <form action={logoutAction}>
-                <button className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">Đăng xuất</button>
-              </form>
-            </div>
+            {footer && (
+              <div className="shrink-0 border-t border-slate-100 bg-white p-3">
+                {footer}
+              </div>
+            )}
           </div>
         </>,
         document.body

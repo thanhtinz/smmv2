@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
-import { SideNav, MobileSideNav, MenuFooter, type NavEntry } from "@/components/nav";
+import { SideNav, MobileSideNav, MenuBottomCluster, type NavEntry } from "@/components/nav";
 import { DisplaySettings } from "@/components/display";
 import { NotificationBell } from "@/components/notification-bell";
 import { LiveChat } from "@/components/livechat";
@@ -109,12 +109,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ...(supportChildren.length ? [{ label: L("Hỗ trợ"), icon: I.ticket, children: supportChildren }] : []),
     ...platformEntries,
     { href: "/dashboard/ho-so", label: L("Hồ sơ"), icon: I.users },
-    ...(user.role === "ADMIN" ? [{ href: "/admin", label: "Admin Panel", icon: I.shield }] : []),
   ];
-  // Cụm thẻ cuối menu: Nạp tiền (thẻ riêng) + thẻ tài khoản (tên/email thật của người dùng)
+  // Cụm đáy menu ghim cố định: tài khoản + Nạp tiền + Điều khoản + Admin Panel (chỉ đúng
+  // tài khoản đang thấy link Admin Panel như hiện tại: role ADMIN) + Đăng xuất.
   const nameParts = (user.fullName || user.username).trim().split(/\s+/);
   const accountInitials = (nameParts.length > 1 ? nameParts[0][0] + nameParts[nameParts.length - 1][0] : (user.fullName || user.username).slice(0, 2)).toUpperCase();
-  const menuFooter = <MenuFooter depositLabel={L("Nạp tiền")} accountName={user.fullName || user.username} accountEmail={user.email} accountInitials={accountInitials} />;
+  const menuFooter = <MenuBottomCluster accountName={user.fullName || user.username} accountEmail={user.email} accountInitials={accountInitials} depositLabel={L("Nạp tiền")} termsLabel={L("Điều khoản")} adminLabel={user.role === "ADMIN" ? "Admin Panel" : null} logoutLabel={L("Đăng xuất")} />;
   // Logo đầu menu burger: panel có logo riêng thì dùng logo panel, không thì logo web mẹ (settings logo_url)
   const drawerLogoUrl = (user.panelId ? myPanelGate?.logoUrl : null) || s.logo_url || null;
   return (
