@@ -97,6 +97,9 @@ const FRAGMENTS: [string, Record<string, string>][] = [
   ["Cập nhật ", { en: "Updated ", zh: "更新 ", th: "อัปเดต ", ja: "更新 ", ko: "업데이트 " }],
   ["qua API", { en: "via API", zh: "通过 API", th: "ผ่าน API", ja: "API経由", ko: "API 경유" }],
   [" mục", { en: " items", zh: " 条", th: " รายการ", ja: " 件", ko: " 개" }],
+  ["Tổng: ", { en: "Total: ", zh: "总计: ", th: "ทั้งหมด: ", ja: "合計：", ko: "총: " }],
+  [" dịch vụ", { en: " services", zh: " 项服务", th: " บริการ", ja: " サービス", ko: " 서비스" }],
+  ["Giao ngay · còn ", { en: "Instant delivery · only ", zh: "现货速发 · 仅剩 ", th: "ส่งทันที · เหลือเพียง ", ja: "即時配送 · 残り ", ko: "즉시 배송 · 남은 수량 " }],
 ];
 const MONEY = /(\d{1,3}(?:\.\d{3})+|\d+)đ/g;
 const LOCALES: Record<string, string> = { vi: "vi-VN", en: "en-US", zh: "zh-CN", th: "th-TH", ja: "ja-JP", ko: "ko-KR" };
@@ -138,7 +141,9 @@ function runDisplay() {
         const t = src.trim();
         const tr = (DICT[t] as any)?.[p.lang];
         if (tr) out = src.replace(t, tr);
-        else for (const [frag, map] of FRAGMENTS) { const r = map[p.lang]; if (r && out.includes(frag)) out = out.split(frag).join(r); }
+        // Mảnh ghép chỉ áp cho dòng CÓ SỐ (đơn giá/số lượng/còn lại...) — áp vào câu văn xuôi
+        // sẽ sinh lẫn ngôn ngữ kiểu "Updated dữ liệu", "Bắt đầu" -> "Start ngay hôm nay", "mục tiêu" -> "items tiêu".
+        else if (/\d/.test(out)) for (const [frag, map] of FRAGMENTS) { const r = map[p.lang]; if (r && out.includes(frag)) out = out.split(frag).join(r); }
       }
       if (p.cur !== "VND") {
         out = out.replace(MONEY, (m, num: string) => fmtMoney(parseInt(num.replace(/\./g, ""), 10), p.cur, p.lang) ?? m);
@@ -158,6 +163,17 @@ function runDisplay() {
     // dọn node đã rời khỏi trang
     for (const k of Array.from(originals.keys())) if (!k.isConnected) { originals.delete(k); written.delete(k); }
   } finally { applying = false; }
+}
+
+/** Ngày hiện tại định dạng theo ngôn ngữ người dùng đã chọn (server không biết lựa chọn này). */
+export function TodayText() {
+  const [txt, setTxt] = useState("");
+  useEffect(() => {
+    const lang = readPrefs().lang || "en";
+    const loc = LOCALES[lang] || "en-US";
+    setTxt(new Intl.DateTimeFormat(loc, { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date()));
+  }, []);
+  return <>{txt}</>;
 }
 
 export function DisplayEngine() {

@@ -135,7 +135,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{vnd(user.balance)}</span>
                 <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-500">{user.role}</span>
               </span>
-              <form action={logoutAction}><button className="btn btn-sm bg-slate-900 text-white hover:bg-slate-700">Đăng xuất</button></form>
+              <form action={logoutAction}><button className="btn btn-sm whitespace-nowrap bg-slate-900 text-white hover:bg-slate-700">Đăng xuất</button></form>
             </div>
           </div>
         </header>

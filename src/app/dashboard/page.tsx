@@ -7,6 +7,7 @@ import { vnd, num, SMM_STATUS, LEVEL_NAME, dt } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { RichText } from "@/components/rich-text";
 import { CopyBtn } from "@/components/client";
+import { TodayText } from "@/components/display";
 import { ensureRefCode } from "@/lib/wallet";
 
 export const dynamic = "force-dynamic";
@@ -49,7 +50,6 @@ export default async function DashboardHome() {
   const host = h.get("host") || "localhost:3000";
   const proto = h.get("x-forwarded-proto") || (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
   const refLink = affiliateOn ? `${proto}://${host}/register?ref=${await ensureRefCode(user.id)}` : null;
-  const today = new Intl.DateTimeFormat("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
 
   return (
     <div>
@@ -57,7 +57,7 @@ export default async function DashboardHome() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Tổng quan</h1>
           <p className="mt-1 text-sm text-slate-500">Chào mừng trở lại, <b className="text-slate-800">{user.fullName || user.username}</b></p>
-          <p className="mt-0.5 text-xs capitalize text-slate-400">{today} · Cấp bậc: {LEVEL_NAME[user.level]} · Mã nạp tiền: SMM {user.depositCode}</p>
+          <p className="mt-0.5 text-xs capitalize text-slate-400"><TodayText /> · Cấp bậc: {LEVEL_NAME[user.level]} · Mã nạp tiền: SMM {user.depositCode}</p>
         </div>
         {refLink && (
           <div className="card w-full max-w-sm px-4 py-3.5">

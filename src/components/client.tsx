@@ -560,15 +560,15 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             )}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3 rounded-[26px] border border-[#d9e6fd] bg-[#eaf1fe] px-4 py-4 dark:border-white/10 dark:bg-white/5 sm:gap-4 sm:px-5 sm:py-5">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#d3e4ff] text-brand-600 dark:bg-white/10 sm:h-14 sm:w-14">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 sm:h-7 sm:w-7"><path d="M20 7H5a2 2 0 0 1 0-4h13v4" /><path d="M3 5.5V18a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2Z" /><circle cx="17" cy="15" r="1.15" fill="currentColor" stroke="none" /></svg>
+        <div className="flex items-center gap-2.5 rounded-[26px] border border-[#d9e6fd] bg-[#eaf1fe] px-3.5 py-3.5 dark:border-white/10 dark:bg-white/5 sm:gap-4 sm:px-5 sm:py-5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#d3e4ff] text-brand-600 dark:bg-white/10 sm:h-14 sm:w-14">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 sm:h-7 sm:w-7"><path d="M20 7H5a2 2 0 0 1 0-4h13v4" /><path d="M3 5.5V18a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2Z" /><circle cx="17" cy="15" r="1.15" fill="currentColor" stroke="none" /></svg>
           </span>
-          <span className="min-w-[136px] flex-1">
-            <span className="block whitespace-nowrap text-[11px] font-bold uppercase tracking-wide text-slate-600 sm:text-[13px]">Tổng thanh toán</span>
-            <span className="block whitespace-nowrap text-[22px] font-extrabold leading-tight text-brand-600 sm:text-[28px]">{vnd(shownCharge)}{multiOn && orderCount === 0 && <span className="text-sm font-semibold text-slate-400"> / link</span>}</span>
+          <span className="min-w-0 flex-1">
+            <span className="block whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-slate-600 sm:text-[13px]">Tổng thanh toán</span>
+            <span className="block whitespace-nowrap text-[19px] font-extrabold leading-tight text-brand-600 sm:text-[28px]">{vnd(shownCharge)}{multiOn && orderCount === 0 && <span className="text-xs font-semibold text-slate-400 sm:text-sm"> / link</span>}</span>
           </span>
-          <button type="submit" disabled={notEnough} className="ml-auto shrink-0 rounded-[18px] bg-brand-500 px-5 py-3 text-base font-semibold text-white shadow-md shadow-brand-500/30 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50 sm:px-7 sm:py-3.5 sm:text-lg">Đặt hàng</button>
+          <button type="submit" disabled={notEnough} className="shrink-0 whitespace-nowrap rounded-2xl bg-brand-500 px-4 py-2.5 text-[15px] font-semibold text-white shadow-md shadow-brand-500/30 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-[18px] sm:px-7 sm:py-3.5 sm:text-lg">Đặt hàng</button>
         </div>
         {notEnough && <p className="-mt-2 text-right text-xs font-medium text-rose-600">Chưa đủ số dư cho đơn này — nạp thêm để đặt hàng.</p>}
       </form>
@@ -1172,12 +1172,12 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
   if (!cur) return null;
   return (
     <div className="grid md:grid-cols-[220px_1fr] gap-4 items-start">
-      <div className="card p-2 flex md:flex-col gap-1 overflow-x-auto">
+      <div className="card p-2 flex md:flex-col gap-1 overflow-x-auto min-w-0 max-w-full">
         {actions.map((a) => (
           <button key={a.id} type="button" onClick={() => setActive(a.id)} className={`text-left whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${a.id === cur.id ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{a.label}</button>
         ))}
       </div>
-      <div className="card p-5">
+      <div className="card p-5 min-w-0">
         <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Parameters</div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[480px]">

@@ -145,7 +145,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{vnd(user.balance)}</span>
                 <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isOwner ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-700"}`}>{isOwner ? "CHỦ PANEL" : "NHÂN VIÊN"}</span>
               </span>
-              <form action={logoutAction}><button className="btn btn-sm bg-slate-900 text-white hover:bg-slate-700">Đăng xuất</button></form>
+              <form action={logoutAction}><button className="btn btn-sm whitespace-nowrap bg-slate-900 text-white hover:bg-slate-700">Đăng xuất</button></form>
             </div>
           </div>
         </header>

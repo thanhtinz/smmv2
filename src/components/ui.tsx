@@ -37,7 +37,7 @@ export function Stat({ label, value, sub, icon, tone = "brand" }: { label: strin
         <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-lg ${t.tile}`}>{icon}</div>
         <div className="min-w-0">
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
-          <div className="truncate text-xl font-extrabold text-slate-900">{value}</div>
+          <div className="whitespace-nowrap text-[clamp(15px,4.2vw,20px)] font-extrabold leading-snug text-slate-900">{value}</div>
           {sub && <div className="mt-0.5 text-xs text-slate-400">{sub}</div>}
         </div>
       </div>
