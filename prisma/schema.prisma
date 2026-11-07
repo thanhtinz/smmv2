@@ -56,6 +56,7 @@ model User {
 
   smmOrders     SmmOrder[]
   premiumOrders PremiumOrder[]
+  premiumReviews PremiumReview[]
   campaigns     Campaign[]
   subscriptions Subscription[]
   deposits      Deposit[]
@@ -264,6 +265,7 @@ model PremiumProduct {
 
   panelId     Int? // sản phẩm do panel con tự thêm (chỉ khách của panel đó thấy/mua; chủ panel tự giao)
   variants PremiumVariant[]
+  reviews  PremiumReview[]
 
   @@index([panelId])
 }
@@ -299,6 +301,21 @@ model PanelPremiumPrice {
   price     Int // giá cuối mỗi đơn vị do chủ panel đặt
 
   @@unique([panelId, variantId])
+}
+
+model PremiumReview {
+  id        Int            @id @default(autoincrement())
+  productId Int
+  product   PremiumProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int // 1..5 sao
+  content   String         @db.Text
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([productId, userId])
+  @@index([productId])
 }
 
 model PremiumStock {

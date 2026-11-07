@@ -715,3 +715,29 @@ async function orderMaxLinksFor(userId: number): Promise<number> {
   }
   return parseInt((await getSettings()).order_max_links) || 50;
 }
+
+/** Đánh giá sản phẩm Premium — CHỈ khách đã mua (đơn không huỷ/hoàn tiền) mới
+ *  được gửi; mỗi khách 1 đánh giá cho mỗi sản phẩm, gửi lại là sửa. */
+export async function submitPremiumReviewAction(formData: FormData) {
+  const user = await requireUser();
+  const slug = String(formData.get("slug") || "");
+  const returnToRaw = String(formData.get("returnTo") || "");
+  const returnTo = returnToRaw.startsWith("/dashboard/premium/") || returnToRaw.startsWith("/premium/") ? returnToRaw : `/dashboard/premium/${slug}`;
+  const product = await prisma.premiumProduct.findUnique({ where: { slug }, select: { id: true, variants: { select: { id: true } } } });
+  if (!product) back(returnTo, "err", "Không tìm thấy sản phẩm");
+  const bought = await prisma.premiumOrder.findFirst({
+    where: { userId: user.id, variantId: { in: product.variants.map((v) => v.id) }, status: { notIn: ["CANCELED", "REFUNDED"] } },
+    select: { id: true },
+  });
+  if (!bought) back(returnTo, "err", "Chỉ khách đã mua sản phẩm mới được đánh giá");
+  const rating = Math.min(5, Math.max(1, parseInt(String(formData.get("rating") || "5")) || 5));
+  const content = String(formData.get("content") || "").trim().slice(0, 1000);
+  if (content.length < 3) back(returnTo, "err", "Vui lòng viết vài dòng nhận xét về sản phẩm");
+  await prisma.premiumReview.upsert({
+    where: { productId_userId: { productId: product.id, userId: user.id } },
+    create: { productId: product.id, userId: user.id, rating, content },
+    update: { rating, content },
+  });
+  revalidatePath(returnTo);
+  back(returnTo, "msg", "Cảm ơn bạn đã đánh giá sản phẩm");
+}

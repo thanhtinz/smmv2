@@ -5,11 +5,12 @@ import { getSettings } from "@/lib/settings";
 import { getSession } from "@/lib/auth";
 import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
-import { buyPremiumAction } from "@/app/actions/user";
+import { buyPremiumAction, submitPremiumReviewAction } from "@/app/actions/user";
 import { vnd, parsePremiumFields, productImages } from "@/lib/format";
 import { ProductGallery } from "@/components/rich-editor";
 import { RichText } from "@/components/rich-text";
-import { PremiumCard, type PremiumCardData } from "@/components/premium-card";
+import { PremiumCard, Stars, type PremiumCardData } from "@/components/premium-card";
+import { PremiumReviewForm } from "@/components/premium-review-form";
 import { PremiumGrid } from "@/components/premium-grid";
 
 /** Dựng dữ liệu thẻ cho một nhóm sản phẩm: khoảng giá gói, tổng đã bán, còn kho. */
@@ -35,8 +36,13 @@ async function buildCardData(
     const pid = variantProduct.get(r.variantId);
     if (pid) stockByProduct.set(pid, (stockByProduct.get(pid) || 0) + (typeof r._count === "number" ? r._count : 0));
   }
+  const reviewRows = products.length
+    ? await prisma.premiumReview.groupBy({ by: ["productId"], where: { productId: { in: products.map((p) => p.id) } }, _avg: { rating: true }, _count: true })
+    : [];
+  const reviewMap = new Map(reviewRows.map((r) => [r.productId, { avg: r._avg.rating || 0, count: typeof r._count === "number" ? r._count : 0 }]));
   return products.map((p) => {
     const prices = p.variants.map((v) => v.price).filter((x) => x > 0);
+    const rv = reviewMap.get(p.id);
     return {
       slug: p.slug,
       name: p.name,
@@ -47,6 +53,8 @@ async function buildCardData(
       sold: soldMap.get(p.id) || 0,
       instant: p.fulfillment === "AUTO_STOCK",
       hasStock: (stockByProduct.get(p.id) || 0) > 0,
+      rating: rv?.avg || 0,
+      reviewCount: rv?.count || 0,
     };
   });
 }
@@ -169,12 +177,56 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   const stockMap = new Map(stocks.map((x) => [x.variantId, x._count]));
   const sold = await prisma.premiumOrder.count({ where: { variantId: { in: product.variants.map((v) => v.id) }, status: { not: "CANCELED" } } });
   const maxQty = parseInt((await getSettings()).premium_max_qty) || 50;
+  const variantIds = product.variants.map((v) => v.id);
+  const [reviewAgg, reviewDist, reviewList] = await Promise.all([
+    prisma.premiumReview.aggregate({ where: { productId: product.id }, _avg: { rating: true }, _count: true }),
+    prisma.premiumReview.groupBy({ by: ["rating"], where: { productId: product.id }, _count: true }),
+    prisma.premiumReview.findMany({ where: { productId: product.id }, orderBy: { createdAt: "desc" }, take: 10, include: { user: { select: { username: true } } } }),
+  ]);
+  const reviewAvg = reviewAgg._avg.rating || 0;
+  const reviewCount = reviewAgg._count || 0;
+  const distMap = new Map(reviewDist.map((r) => [r.rating, typeof r._count === "number" ? r._count : 0]));
+  const myPurchase = session
+    ? await prisma.premiumOrder.findFirst({ where: { userId: session.id, variantId: { in: variantIds }, status: { notIn: ["CANCELED", "REFUNDED"] } }, select: { id: true } })
+    : null;
+  const myReview = session
+    ? await prisma.premiumReview.findUnique({ where: { productId_userId: { productId: product.id, userId: session.id } }, select: { rating: true, content: true } })
+    : null;
   const relatedRaw = await prisma.premiumProduct.findMany({
     where: { active: true, categoryId: product.categoryId, id: { not: product.id }, OR: [{ panelId: null }, ...(viewer?.panelId ? [{ panelId: viewer.panelId }] : [])] },
     orderBy: { sort: "asc" }, take: 4,
     include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, price: true } } },
   });
   const related = await buildCardData(relatedRaw);
+  const infoSections = (
+    <>
+      {product.description && (
+        <DetailSection title="Thông tin sản phẩm" open>
+          <RichText value={product.description} className="text-sm leading-relaxed text-slate-600" />
+        </DetailSection>
+      )}
+      <DetailSection title="Chi tiết gói">
+        <ul className="space-y-2 text-sm text-slate-600">
+          {product.variants.map((v) => (
+            <li key={v.id} className="flex flex-wrap items-baseline justify-between gap-2">
+              <span><b className="text-slate-800">{v.name}</b> — {v.warrantyDays ? `bảo hành ${v.warrantyDays} ngày` : "không bảo hành"}{product.fulfillment === "AUTO_STOCK" ? (stockMap.get(v.id) ? ` · còn ${stockMap.get(v.id)} trong kho` : " · hết kho, giao tay") : ""}</span>
+              <span className="font-bold text-rose-600">{vnd(v.price)}</span>
+            </li>
+          ))}
+        </ul>
+      </DetailSection>
+      {product.warrantyInfo && (
+        <DetailSection title="Thông tin bảo hành">
+          <RichText value={product.warrantyInfo} className="text-sm leading-relaxed text-slate-600" />
+        </DetailSection>
+      )}
+      {product.usageGuide && (
+        <DetailSection title="Hướng dẫn sử dụng">
+          <RichText value={product.usageGuide} className="text-sm leading-relaxed text-slate-600" />
+        </DetailSection>
+      )}
+    </>
+  );
   const images = productImages(product.images, product.imageUrl);
   const homeHref = base.startsWith("/dashboard") ? "/dashboard" : "/";
   const fulfillmentTag = product.fulfillment === "AUTO_STOCK" ? "Giao ngay" : product.fulfillment === "API" ? "Giao qua đối tác" : "Nâng cấp chính chủ";
@@ -207,6 +259,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             <h1 className="mt-3 text-3xl font-extrabold leading-tight">{product.name}</h1>
             {product.tagline && <p className="mt-2 text-sm leading-relaxed text-white/85">{product.tagline}</p>}
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              {reviewCount > 0 && <span className="inline-flex items-center gap-1.5 font-semibold text-white/95"><Stars value={reviewAvg} /> {reviewAvg.toFixed(1)} ({reviewCount} đánh giá)</span>}
               {sold > 0 && <span className="font-semibold text-white/90">Đã bán {sold.toLocaleString("vi-VN")}</span>}
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{fulfillmentTag}</span>
               {session && <Link href="/dashboard/api-docs" className="rounded-lg border border-white/40 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/10">API</Link>}
@@ -230,6 +283,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
           productImage={images[0] || null}
           productColor={product.color}
           variants={product.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, warrantyDays: v.warrantyDays, stock: stockMap.get(v.id) || 0 }))}
+          belowVariants={infoSections}
         />
       ) : (
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-5">
@@ -243,6 +297,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
                 </div>
               ))}
             </div>
+            {infoSections}
           </div>
           <div className="card p-6 text-center lg:col-span-2">
             <p className="mb-4 text-sm text-slate-500">Đăng nhập để mua bằng số dư — nạp tiền bằng chuyển khoản, cộng tự động.</p>
@@ -252,31 +307,60 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
         </div>
       )}
 
-      <DetailSection title="Chi tiết gói" open>
-        <ul className="space-y-2 text-sm text-slate-600">
-          {product.variants.map((v) => (
-            <li key={v.id} className="flex flex-wrap items-baseline justify-between gap-2">
-              <span><b className="text-slate-800">{v.name}</b> — {v.warrantyDays ? `bảo hành ${v.warrantyDays} ngày` : "không bảo hành"}{product.fulfillment === "AUTO_STOCK" ? (stockMap.get(v.id) ? ` · còn ${stockMap.get(v.id)} trong kho` : " · hết kho, giao tay") : ""}</span>
-              <span className="font-bold text-rose-600">{vnd(v.price)}</span>
-            </li>
-          ))}
-        </ul>
-      </DetailSection>
-      {product.description && (
-        <DetailSection title="Giới thiệu">
-          <RichText value={product.description} className="text-sm leading-relaxed text-slate-600" />
-        </DetailSection>
-      )}
-      {product.usageGuide && (
-        <DetailSection title="Hướng dẫn sử dụng">
-          <RichText value={product.usageGuide} className="text-sm leading-relaxed text-slate-600" />
-        </DetailSection>
-      )}
-      {product.warrantyInfo && (
-        <DetailSection title="Thông tin bảo hành">
-          <RichText value={product.warrantyInfo} className="text-sm leading-relaxed text-slate-600" />
-        </DetailSection>
-      )}
+      <div className="card mt-10 p-6">
+        <h2 className="text-xl font-extrabold text-slate-900">Đánh giá sản phẩm</h2>
+        <div className="mt-5 grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div>
+            <div className="flex items-end gap-2">
+              <span className="text-4xl font-black text-slate-900">{reviewCount > 0 ? reviewAvg.toFixed(1) : "—"}</span>
+              <span className="pb-1.5 text-sm text-slate-500">/ 5 · {reviewCount} đánh giá</span>
+            </div>
+            <div className="mt-2"><Stars value={reviewAvg} className="h-5 w-5" /></div>
+            <div className="mt-4 space-y-1.5">
+              {[5, 4, 3, 2, 1].map((n) => (
+                <div key={n} className="flex items-center gap-2 text-xs text-slate-500">
+                  <span className="w-10 shrink-0 whitespace-nowrap font-semibold">{n} sao</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                    <span className="block h-full rounded-full bg-amber-400" style={{ width: `${reviewCount > 0 ? ((distMap.get(n) || 0) / reviewCount) * 100 : 0}%` }} />
+                  </span>
+                  <span className="w-6 shrink-0 text-right">{distMap.get(n) || 0}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 border-t border-slate-100 pt-5">
+              <div className="text-sm font-extrabold text-slate-900">{myReview ? "Đánh giá của bạn" : "Viết đánh giá"}</div>
+              {session && myPurchase ? (
+                <PremiumReviewForm slug={product.slug} returnTo={`${base}/${product.slug}`} action={submitPremiumReviewAction} mine={myReview} />
+              ) : session ? (
+                <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">Chỉ khách đã mua sản phẩm mới được đánh giá.</p>
+              ) : (
+                <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">Chỉ khách đã mua sản phẩm mới được đánh giá. <Link href="/login" className="font-bold text-brand-700">Đăng nhập</Link></p>
+              )}
+            </div>
+          </div>
+          <div className="lg:col-span-2">
+            {reviewList.length === 0 ? (
+              <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">Chưa có đánh giá nào cho sản phẩm này.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {reviewList.map((r) => (
+                  <li key={r.id} className="py-4 first:pt-0">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-black text-white">{r.user.username.charAt(0).toUpperCase()}</span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold text-slate-900">{r.user.username}</div>
+                        <div className="text-xs text-slate-400">{r.createdAt.toLocaleDateString("vi-VN")}</div>
+                      </div>
+                      <span className="ml-auto"><Stars value={r.rating} className="h-3.5 w-3.5" /></span>
+                    </div>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-600">{r.content}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
 
       {related.length > 0 && (
         <div className="mt-12">

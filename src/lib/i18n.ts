@@ -1211,6 +1211,16 @@ export const DICT: Record<string, Tr> = {
   "Đặt lại bộ lọc": e("Reset filters", "重置筛选", "รีเซ็ตตัวกรอง", "フィルターをリセット", "필터 초기화"),
   "Liên hệ": e("Contact us", "联系我们", "ติดต่อเรา", "お問い合わせ", "문의하기"),
   "sản phẩm": e("products", "个产品", "รายการสินค้า", "商品", "개 상품"),
+  "Đánh giá sản phẩm": e("Product reviews", "产品评价", "รีวิวสินค้า", "商品レビュー", "상품 리뷰"),
+  "Viết đánh giá": e("Write a review", "写评价", "เขียนรีวิว", "レビューを書く", "리뷰 작성"),
+  "Đánh giá của bạn": e("Your review", "您的评价", "รีวิวของคุณ", "あなたのレビュー", "내 리뷰"),
+  "Cập nhật đánh giá": e("Update review", "更新评价", "อัปเดตรีวิว", "レビューを更新", "리뷰 수정"),
+  "Gửi đánh giá": e("Submit review", "提交评价", "ส่งรีวิว", "レビューを送信", "리뷰 등록"),
+  "Thông tin sản phẩm": e("Product information", "产品信息", "ข้อมูลสินค้า", "商品情報", "상품 정보"),
+  "Chỉ khách đã mua sản phẩm mới được đánh giá": e("Only customers who bought this product can review it", "只有购买过的客户才能评价", "เฉพาะลูกค้าที่ซื้อสินค้าแล้วเท่านั้นที่รีวิวได้", "購入したお客様のみレビューできます", "구매한 고객만 리뷰를 작성할 수 있습니다"),
+  "Chưa có đánh giá nào cho sản phẩm này.": e("No reviews for this product yet.", "该产品暂无评价。", "สินค้านี้ยังไม่มีรีวิว", "この商品のレビューはまだありません。", "아직 이 상품의 리뷰가 없습니다."),
+  "Cảm ơn bạn đã đánh giá sản phẩm": e("Thank you for reviewing this product", "感谢您的评价", "ขอบคุณสำหรับรีวิว", "レビューありがとうございます", "리뷰를 남겨주셔서 감사합니다"),
+  "Chia sẻ trải nghiệm của bạn về sản phẩm...": e("Share your experience with this product...", "分享您对该产品的使用体验...", "แบ่งปันประสบการณ์ของคุณเกี่ยวกับสินค้า...", "この商品の感想を共有...", "이 상품에 대한 경험을 공유해 주세요..."),
 };
 
 /* Dịch theo MẢNH cho các dòng ghép (vd "Đơn giá 45.000đ/1000", "Số lượng 500 · Bắt đầu —") */

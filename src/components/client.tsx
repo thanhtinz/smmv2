@@ -928,7 +928,7 @@ export function PanelPriceEditor({ services, overrides, action, deleteAction }: 
 }
 
 /* ---------- Form mua premium ---------- */
-export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50, backBase, layout, productImage, productColor }: {
+export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50, backBase, layout, productImage, productColor, belowVariants }: {
   variants: { id: number; name: string; price: number; warrantyDays: number; stock: number }[];
   slug: string;
   fulfillment: string;
@@ -940,6 +940,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   layout?: "stacked" | "split"; // split = bố cục 2 cột kiểu shopkey ở trang chi tiết web mẹ (gói trái, hộp đặt hàng phải); stacked = dạng cũ ở website con
   productImage?: string | null;
   productColor?: string;
+  belowVariants?: React.ReactNode; // khối hiển thị dưới danh sách gói ở cột trái (bố cục split): thông tin / bảo hành / hướng dẫn
 }) {
   const [variantId, setVariantId] = useState(variants[0]?.id);
   const [qty, setQty] = useState(1);
@@ -1023,6 +1024,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
               );
             })}
           </div>
+          {belowVariants}
         </div>
         <div className="card space-y-4 p-5 lg:sticky lg:top-24 lg:col-span-2">
           <div>
