@@ -1,8 +1,23 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { prisma } from "./db";
-import { getCurrentUser } from "./auth";
+import { getCurrentUser, adminIpBlocked } from "./auth";
+import { getSettings } from "./settings";
 import type { ChildPanel, User } from "@prisma/client";
+
+/** Bảo mật Enterprise GĐ1 cho Panel Admin (đồng bộ web mẹ):
+ *  - Whitelist IP: kiến trúc settings hiện tại là TOÀN CỤC (chưa có setting riêng
+ *    theo panel) nên áp whitelist toàn cục cho cả /panel-admin.
+ *  - Bắt buộc 2FA: áp cho CHỦ panel và nhân viên vai ADMIN của panel (isOwner)
+ *    khi setting admin_2fa_required đang bật và tài khoản chưa bật 2FA. */
+export async function enforcePanelSecurity(user: User, isOwner: boolean) {
+  const wl = await adminIpBlocked();
+  if (wl.blocked) redirect("/admin-blocked");
+  if (isOwner && !user.totpEnabled) {
+    const s = await getSettings().catch(() => null);
+    if (s?.admin_2fa_required !== "0") redirect("/dashboard/ho-so?tab=security&bat2fa=1");
+  }
+}
 
 /** Phân quyền Panel Admin 2 tầng (như web mẹ ADMIN/STAFF):
  *  - CHỦ PANEL (ChildPanel.ownerId): toàn quyền trong panel của mình.
@@ -51,6 +66,7 @@ export async function requirePanelOwnerPage(): Promise<{ user: User; panel: Chil
   const acc = await getPanelAccess(user!.id);
   if (!acc) redirect("/dashboard/panel-cua-toi/thiet-lap");
   if (!acc!.isOwner) redirect("/panel-admin?err=" + encodeURIComponent("Chỉ chủ panel mới vào được mục này — tài khoản của bạn là Nhân viên panel"));
+  await enforcePanelSecurity(user!, true);
   return { user: user!, panel: acc!.panel, isOwner: true };
 }
 
@@ -60,5 +76,6 @@ export async function requirePanelAccessPage(): Promise<{ user: User; panel: Chi
   if (!user) redirect("/login");
   const acc = await getPanelAccess(user!.id);
   if (!acc) redirect("/dashboard/panel-cua-toi/thiet-lap");
+  await enforcePanelSecurity(user!, acc!.isOwner);
   return { user: user!, panel: acc!.panel, isOwner: acc!.isOwner };
 }

@@ -1,9 +1,10 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "./db";
 import { getSettings } from "./settings";
 import { panelByHost } from "./panel-host";
+import { clientIp } from "./rate-limit";
 
 /* Khoá ký phiên: production KHÔNG dùng khoá dự phòng công khai (ai đọc code cũng
    giả mạo được phiên admin) — thiếu AUTH_SECRET thì sinh khoá ngẫu nhiên theo
@@ -42,6 +43,80 @@ export async function createSession(user: SessionUser) {
 
 export function destroySession() {
   cookies().delete(SESSION_COOKIE);
+  cookies().delete(PENDING_2FA_COOKIE);
+}
+
+/* ---------- 2FA: cookie chờ xác thực hai lớp (JWT ký riêng, hạn 5 phút) ---------- */
+export const PENDING_2FA_COOKIE = "smmv2_2fa_pending";
+
+export async function createPending2fa(user: { id: number; username: string }) {
+  const token = await new SignJWT({ uid: user.id, username: user.username, purpose: "2fa" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("5m")
+    .sign(secret);
+  cookies().set(PENDING_2FA_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 5,
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
+export async function getPending2fa(): Promise<{ id: number; username: string } | null> {
+  const token = cookies().get(PENDING_2FA_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secret);
+    if (payload.purpose !== "2fa") return null;
+    return { id: Number(payload.uid), username: String(payload.username) };
+  } catch {
+    return null;
+  }
+}
+
+export function clearPending2fa() {
+  cookies().delete(PENDING_2FA_COOKIE);
+}
+
+/* ---------- Bảo mật Enterprise GĐ1: whitelist IP + bắt buộc 2FA cho khu quản trị ---------- */
+
+/** IP hiện tại của request (qua proxy tin cậy) — chỉ dùng trong request context */
+export function currentIp(): string {
+  try {
+    return clientIp(headers());
+  } catch {
+    return "?";
+  }
+}
+
+/** Whitelist IP vào khu quản trị: setting admin_ip_whitelist, mỗi IP 1 dòng.
+ *  Danh sách TRỐNG = tắt tính năng (không chặn ai — mặc định an toàn để không khoá admin). */
+export async function adminIpBlocked(): Promise<{ blocked: boolean; ip: string; list: string[] }> {
+  const s = await getSettings().catch(() => null);
+  const list = (s?.admin_ip_whitelist || "").split(/[\n,]+/).map((x) => x.trim()).filter(Boolean);
+  const ip = currentIp();
+  if (!list.length) return { blocked: false, ip, list };
+  return { blocked: !list.includes(ip), ip, list };
+}
+
+/** Tài khoản quản trị (ADMIN/STAFF web mẹ) có bị bắt buộc bật 2FA mà chưa bật không */
+export async function adminNeeds2fa(user: { role: string; totpEnabled: boolean }): Promise<boolean> {
+  if (user.totpEnabled) return false;
+  if (user.role !== "ADMIN" && user.role !== "STAFF") return false;
+  const s = await getSettings().catch(() => null);
+  return s?.admin_2fa_required !== "0";
+}
+
+/** Chốt chặn dùng chung cho layout + guard trang quản trị web mẹ:
+ *  - IP ngoài whitelist -> trang /admin-blocked
+ *  - Quản trị chưa bật 2FA (khi đang bắt buộc) -> trang Hồ sơ > Bảo mật để thiết lập
+ *  Trang thiết lập 2FA nằm NGOÀI /admin nên không khoá vòng lặp. */
+export async function enforceAdminSecurity(user: { role: string; totpEnabled: boolean }) {
+  const wl = await adminIpBlocked();
+  if (wl.blocked) redirect("/admin-blocked");
+  if (await adminNeeds2fa(user)) redirect("/dashboard/ho-so?tab=security&bat2fa=1");
 }
 
 export async function getSession(): Promise<SessionUser | null> {
@@ -77,12 +152,14 @@ export async function requireUser() {
 export async function requireStaff() {
   const u = await getCurrentUser();
   if (!u || (u.role !== "ADMIN" && u.role !== "STAFF")) throw new Error("FORBIDDEN");
+  await enforceAdminSecurity(u);
   return u;
 }
 
 export async function requireAdmin() {
   const u = await getCurrentUser();
   if (!u || u.role !== "ADMIN") throw new Error("FORBIDDEN");
+  await enforceAdminSecurity(u);
   return u;
 }
 
@@ -91,6 +168,7 @@ export async function requireAdminPage() {
   const u = await getCurrentUser();
   if (!u) redirect("/login");
   if (u.role !== "ADMIN") redirect("/admin");
+  await enforceAdminSecurity(u);
   return u;
 }
 

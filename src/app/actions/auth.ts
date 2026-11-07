@@ -15,7 +15,9 @@ async function assertNotBanned(panelId?: number) {
     .catch(() => null);
   if (ban) throw new Error("Địa chỉ IP của bạn đã bị chặn" + (ban.panelId ? " khỏi website này" : " khỏi hệ thống") + (ban.reason ? `: ${ban.reason}` : ""));
 }
-import { createSession, destroySession } from "@/lib/auth";
+import { createSession, destroySession, createPending2fa } from "@/lib/auth";
+import { recordLoginEvent } from "@/lib/login-events";
+import { panelByHost } from "@/lib/panel-host";
 import { getSettings } from "@/lib/settings";
 import { passwordError, loginLockSeconds, recordLoginFail, clearLoginFails, verifyRecaptcha, isDisposableEmail, regIpExceeded, recordRegAttempt } from "@/lib/security";
 
@@ -114,31 +116,58 @@ export async function panelRegisterAction(formData: FormData) {
 }
 
 export async function loginAction(formData: FormData) {
-  try { await assertNotBanned(); } catch (e: any) { back("/login", "err", String(e?.message || "IP bị chặn")); }
   const login = String(formData.get("login") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
   const ip = await clientIp();
+  const ua = headers().get("user-agent") || "";
+  const hostPanel = await panelByHost().catch(() => null);
+  const ev = (input: { userId?: number | null; success: boolean; reason?: string; panelId?: number | null }) =>
+    recordLoginEvent({ username: login, ip, userAgent: ua, panelId: input.panelId ?? hostPanel?.id ?? null, ...input });
+  try { await assertNotBanned(); } catch (e: any) {
+    await ev({ success: false, reason: String(e?.message || "IP bị chặn") });
+    back("/login", "err", String(e?.message || "IP bị chặn"));
+  }
   const gs = await getSettings();
   const lockSec = await loginLockSeconds(ip, login);
-  if (lockSec > 0) back("/login", "err", `Đăng nhập sai quá nhiều lần — thử lại sau ${Math.ceil(lockSec / 60)} phút`);
-  if (!(await verifyRecaptcha(String(formData.get("g-recaptcha-response") || "") || null, gs.recaptcha_login === "1")))
+  if (lockSec > 0) {
+    await ev({ success: false, reason: "Bị khoá tạm do đăng nhập sai nhiều lần" });
+    back("/login", "err", `Đăng nhập sai quá nhiều lần — thử lại sau ${Math.ceil(lockSec / 60)} phút`);
+  }
+  if (!(await verifyRecaptcha(String(formData.get("g-recaptcha-response") || "") || null, gs.recaptcha_login === "1"))) {
+    await ev({ success: false, reason: "Chưa hoàn thành reCAPTCHA" });
     back("/login", "err", "Vui lòng hoàn thành xác minh reCAPTCHA");
+  }
   const user = await prisma.user.findFirst({ where: { OR: [{ username: login }, { email: login }] } });
   if (!user) {
     // Chạy bcrypt với hash giả để thời gian phản hồi giống hệt trường hợp sai mật khẩu
     await bcrypt.compare(password, "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy");
     await recordLoginFail(ip, login);
+    await ev({ success: false, reason: "Sai tài khoản hoặc mật khẩu" });
     back("/login", "err", "Sai tài khoản hoặc mật khẩu");
   }
   if (!(await bcrypt.compare(password, user.passwordHash))) {
     await recordLoginFail(ip, login);
+    await ev({ userId: user.id, success: false, reason: "Sai tài khoản hoặc mật khẩu", panelId: user.panelId ?? hostPanel?.id ?? null });
     back("/login", "err", "Sai tài khoản hoặc mật khẩu");
   }
   await clearLoginFails(ip, login);
-  if (user.status === "BANNED") back("/login", "err", "Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
-  if (user.panelId) {
-    try { await assertNotBanned(user.panelId); } catch (e: any) { back("/login", "err", String(e?.message || "IP bị chặn")); }
+  if (user.status === "BANNED") {
+    await ev({ userId: user.id, success: false, reason: "Tài khoản đã bị khoá", panelId: user.panelId ?? hostPanel?.id ?? null });
+    back("/login", "err", "Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
   }
+  if (user.panelId) {
+    try { await assertNotBanned(user.panelId); } catch (e: any) {
+      await ev({ userId: user.id, success: false, reason: String(e?.message || "IP bị chặn"), panelId: user.panelId });
+      back("/login", "err", String(e?.message || "IP bị chặn"));
+    }
+  }
+  // Đã qua mật khẩu: tài khoản bật 2FA thì CHƯA tạo phiên — cấp cookie chờ 5 phút, sang trang nhập mã.
+  // Sự kiện đăng nhập thành công chỉ ghi khi qua nốt bước mã (ở /api/auth/2fa/verify).
+  if (user.totpEnabled) {
+    await createPending2fa({ id: user.id, username: user.username });
+    redirect("/login/2fa");
+  }
+  await ev({ userId: user.id, success: true, reason: "Đăng nhập bằng mật khẩu", panelId: user.panelId ?? hostPanel?.id ?? null });
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await createSession({ id: user.id, role: user.role, username: user.username });
   redirect(user.role === "ADMIN" || user.role === "STAFF" ? "/admin" : "/dashboard");

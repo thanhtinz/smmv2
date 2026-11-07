@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, enforceAdminSecurity } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { DisplaySettings } from "@/components/display";
@@ -15,6 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "ADMIN" && user.role !== "STAFF") redirect("/dashboard");
+  await enforceAdminSecurity(user);
   const s = await getSettings();
   const [manualPending, prePending, depPending, ticketOpen] = await Promise.all([
     prisma.smmOrder.count({ where: { fulfillment: "MANUAL", status: { in: ["PENDING", "PROCESSING"] } } }),

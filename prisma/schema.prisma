@@ -37,6 +37,9 @@ model User {
   fullName       String?    @db.VarChar(100)
   passwordHash   String     @db.VarChar(191)
   sessionVersion Int        @default(0) // tăng khi đổi mật khẩu -> mọi phiên JWT cũ bị huỷ
+  totpSecret     String?    @db.VarChar(255) // khoá TOTP 2FA (mã hoá bằng secret-box khi có APP_ENC_KEY)
+  totpEnabled    Boolean    @default(false)
+  backupCodes    String?    @db.Text // JSON mảng HASH bcrypt của mã dự phòng 2FA (mỗi mã dùng 1 lần)
   role           Role       @default(USER)
   status         UserStatus @default(ACTIVE)
   level          UserLevel  @default(MEMBER)
@@ -65,6 +68,7 @@ model User {
   transactions  Transaction[]
   tickets       Ticket[]
   notifications Notification[]
+  loginEvents   LoginEvent[]
 
   // Panel con (child panel): khách đăng ký qua panel của đại lý khác
   panelId    Int?
@@ -856,6 +860,27 @@ model Campaign {
   active    Boolean    @default(true)
   createdAt DateTime   @default(now())
   orders    SmmOrder[]
+}
+
+// Lịch sử đăng nhập (bảo mật Enterprise GĐ1): mọi lần đăng nhập thành công/thất bại,
+// kèm dấu vết thiết bị để cảnh báo đăng nhập từ thiết bị mới.
+model LoginEvent {
+  id         Int      @id @default(autoincrement())
+  userId     Int? // null khi sai cả tên đăng nhập (không xác định được tài khoản)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  username   String   @db.VarChar(80)
+  success    Boolean
+  reason     String?  @db.VarChar(255)
+  ip         String   @db.VarChar(64)
+  userAgent  String?  @db.VarChar(400)
+  deviceHash String?  @db.VarChar(64) // sha256(ip + userAgent)
+  isNewDevice Boolean @default(false)
+  panelId    Int? // khách thuộc panel nào (null = khách web mẹ)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([panelId, createdAt])
 }
 
 // Chống brute-force đăng nhập: đếm lần sai theo khoá (ip|username), khoá tạm khi vượt ngưỡng

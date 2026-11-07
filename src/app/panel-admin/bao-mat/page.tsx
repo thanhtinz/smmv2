@@ -12,10 +12,11 @@ export const dynamic = "force-dynamic";
  *  (chặn đăng ký + đăng nhập của khách panel từ IP đó) + nhật ký hoạt động gần đây. */
 export default async function PanelSecurity({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { panel } = await requirePanelOwnerPage();
-  const [bans, globalCount, codes] = await Promise.all([
+  const [bans, globalCount, codes, logins] = await Promise.all([
     prisma.ipBan.findMany({ where: { panelId: panel.id }, orderBy: { id: "desc" }, take: 200 }),
     prisma.ipBan.count({ where: { panelId: null } }),
     panelOrderCodes(panel.id),
+    prisma.loginEvent.findMany({ where: { panelId: panel.id }, orderBy: { id: "desc" }, take: 30 }),
   ]);
   const activity = await prisma.apiLog.findMany({
     where: { OR: [{ ref: { in: codes } }, { ref: panel.slug }] },
@@ -55,6 +56,24 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
               </table>
             )}
             <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">Ngoài ra hệ thống đang áp {globalCount} IP cấm toàn hệ thống do web mẹ đặt — các IP đó cũng bị chặn ở website của bạn.</p>
+          </div>
+
+          <div className="card overflow-hidden">
+            <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Lịch sử đăng nhập của khách panel</div>
+            {logins.length === 0 ? <Empty text="Chưa có lần đăng nhập nào của khách panel" /> : (
+              <div className="divide-y divide-slate-50">
+                {logins.map((ev) => (
+                  <div key={ev.id} className="flex items-center gap-3 px-5 py-3 text-sm">
+                    {ev.success ? <Badge cls="bg-emerald-100 text-emerald-700">Thành công</Badge> : <Badge cls="bg-rose-100 text-rose-700">Thất bại</Badge>}
+                    <span className="font-medium">@{ev.username}</span>
+                    <span className="font-mono text-xs text-slate-400">{ev.ip}</span>
+                    {ev.isNewDevice ? <Badge cls="bg-amber-100 text-amber-700">Thiết bị mới</Badge> : null}
+                    <span className="min-w-0 flex-1 truncate text-slate-500">{ev.reason || "—"}</span>
+                    <span className="whitespace-nowrap text-xs text-slate-400">{dt(ev.createdAt)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="card overflow-hidden">

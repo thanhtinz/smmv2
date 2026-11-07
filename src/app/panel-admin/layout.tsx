@@ -20,10 +20,11 @@ export const dynamic = "force-dynamic";
 export default async function PanelAdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const { getPanelAccess, listAccessiblePanels } = await import("@/lib/panel-access");
+  const { getPanelAccess, listAccessiblePanels, enforcePanelSecurity } = await import("@/lib/panel-access");
   const access = await getPanelAccess(user.id);
   const accessiblePanels = await listAccessiblePanels(user.id);
   if (!access) redirect("/dashboard/panel-cua-toi/thiet-lap");
+  await enforcePanelSecurity(user, access!.isOwner);
   const panel = access.panel;
   const isOwner = access.isOwner;
   const [memberCount, orderCount, openTickets, pendingDeposits, premiumPending] = await Promise.all([

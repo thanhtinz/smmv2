@@ -1,24 +1,47 @@
-import { requireAdminPage } from "@/lib/auth";
+import Link from "next/link";
+import { requireAdminPage, currentIp } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { PageHead, Flash, Empty } from "@/components/ui";
+import { PageHead, Flash, Empty, Badge } from "@/components/ui";
 import { saveIpBanAction, deleteIpBanAction, saveSecurityPolicyAction } from "@/app/actions/admin-features";
 import { dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminSecurity({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function AdminSecurity({ searchParams }: { searchParams: { msg?: string; err?: string; fail?: string } }) {
   await requireAdminPage();
-  const [bans, s, activity] = await Promise.all([
+  const onlyFail = searchParams.fail === "1";
+  const [bans, s, activity, logins] = await Promise.all([
     prisma.ipBan.findMany({ orderBy: { id: "desc" }, take: 200 }),
     getSettings(),
     prisma.apiLog.findMany({ where: { kind: { in: ["bulk_price", "email_marketing", "cleanup", "price_change"] } }, orderBy: { id: "desc" }, take: 15 }),
+    prisma.loginEvent.findMany({ where: onlyFail ? { success: false } : {}, orderBy: { id: "desc" }, take: 50 }),
   ]);
+  const myIp = currentIp();
   const KIND_LABEL: Record<string, string> = { bulk_price: "Chỉnh giá hàng loạt", email_marketing: "Gửi email marketing", cleanup: "Dọn dẹp hệ thống", price_change: "Nguồn đổi giá vốn" };
   return (
     <div>
       <PageHead title="Bảo mật nâng cao" desc="Chặn IP lạm dụng và chính sách mật khẩu. IP bị chặn sẽ không đăng nhập / đăng ký được." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
+      <form action={saveSecurityPolicyAction} className="card mb-6 space-y-4 p-5">
+        <div className="font-bold text-slate-900">Bảo mật khu quản trị (2FA + IP được phép)</div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div>
+            <label className="lbl">Bắt buộc tài khoản quản trị bật xác thực hai lớp (2FA)</label>
+            <select className="inp" name="admin_2fa_required" defaultValue={s.admin_2fa_required === "0" ? "0" : "1"}>
+              <option value="1">Bật — Admin/Staff chưa bật 2FA chưa vào được khu quản trị</option>
+              <option value="0">Tắt — không bắt buộc</option>
+            </select>
+            <p className="mt-1.5 text-xs text-slate-400">Áp cho Admin/Staff web mẹ và chủ/Admin của panel con. Người chưa bật 2FA được dẫn tới Hồ sơ → Bảo mật để thiết lập, không bị khoá tài khoản.</p>
+          </div>
+          <div>
+            <label className="lbl">IP được phép vào khu quản trị (mỗi dòng 1 IP, để trống = không giới hạn)</label>
+            <textarea className="inp font-mono" name="admin_ip_whitelist" rows={3} defaultValue={s.admin_ip_whitelist} placeholder={"VD:\n203.0.113.10"} />
+            <p className="mt-1.5 text-xs text-slate-400">IP hiện tại của bạn: <b className="font-mono text-slate-700">{myIp}</b> — hãy thêm IP này trước khi lưu danh sách, tránh tự khoá mình khỏi khu quản trị.</p>
+          </div>
+        </div>
+        <button className="btn-primary">Lưu bảo mật khu quản trị</button>
+      </form>
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
         <div className="space-y-6">
           <form action={saveIpBanAction} className="card space-y-4 p-5">
@@ -80,6 +103,32 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
           <div><label className="lbl">Danh sách tên miền email bị cấm (mỗi dòng 1 tên miền)</label><textarea className="inp font-mono" name="reg_banned_domains" rows={5} defaultValue={s.reg_banned_domains} /></div>
           <button className="btn-primary">Lưu bảo mật đăng ký</button>
         </form>
+      </div>
+      <div className="card mt-6 overflow-x-auto">
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-5 py-4">
+          <span className="font-bold text-slate-900">Lịch sử đăng nhập gần đây</span>
+          <span className="ml-auto flex gap-2 text-sm font-semibold">
+            <Link href="/admin/bao-mat" className={!onlyFail ? "text-brand-700" : "text-slate-400 hover:text-slate-700"}>Tất cả</Link>
+            <span className="text-slate-300">|</span>
+            <Link href="/admin/bao-mat?fail=1" className={onlyFail ? "text-rose-600" : "text-slate-400 hover:text-slate-700"}>Chỉ lần thất bại</Link>
+          </span>
+        </div>
+        {logins.length === 0 ? <Empty text="Chưa có lần đăng nhập nào được ghi nhận" /> : (
+          <table className="w-full min-w-[720px]">
+            <thead><tr><th className="th">Tài khoản</th><th className="th">Kết quả</th><th className="th">IP</th><th className="th">Chi tiết</th><th className="th">Thời gian</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {logins.map((ev) => (
+                <tr key={ev.id}>
+                  <td className="td font-medium">@{ev.username}{ev.panelId ? <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-700">Panel #{ev.panelId}</span> : null}</td>
+                  <td className="td">{ev.success ? <Badge cls="bg-emerald-100 text-emerald-700">Thành công</Badge> : <Badge cls="bg-rose-100 text-rose-700">Thất bại</Badge>}{ev.isNewDevice ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">Thiết bị mới</span> : null}</td>
+                  <td className="td font-mono text-[13px]">{ev.ip}</td>
+                  <td className="td max-w-[260px] truncate text-slate-500" title={ev.userAgent || ""}>{ev.reason || "—"}</td>
+                  <td className="td whitespace-nowrap text-slate-500">{dt(ev.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
       <div className="card mt-6 overflow-x-auto">
         <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Nhật ký hoạt động hệ thống</div>

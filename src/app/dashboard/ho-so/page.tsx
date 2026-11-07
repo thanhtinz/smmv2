@@ -5,22 +5,26 @@ import { Flash, Stat, I, Badge } from "@/components/ui";
 import { updateProfileAction, changePasswordAction, regenApiKeyAction } from "@/app/actions/user";
 import { logoutAction } from "@/app/actions/auth";
 import { CopyBtn } from "@/components/client";
+import { TwoFactorCard } from "@/components/two-factor";
+import { backupCodesLeft } from "@/lib/twofa";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
-import { LEVEL_NAME, vnd, num } from "@/lib/format";
+import { LEVEL_NAME, vnd, num, dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 /** Tài khoản — bố cục theo panel mẫu: đầu trang avatar + huy hiệu, 4 thẻ nhỏ,
  *  3 tab Hồ sơ cá nhân | Kết nối API | Bảo mật & Phiên đăng nhập. */
-export default async function ProfilePage({ searchParams }: { searchParams: { msg?: string; err?: string; tab?: string } }) {
+export default async function ProfilePage({ searchParams }: { searchParams: { msg?: string; err?: string; tab?: string; bat2fa?: string } }) {
   const user = (await getCurrentUser())!;
   const tab = searchParams.tab === "api" ? "api" : searchParams.tab === "security" ? "security" : "profile";
   const s = await getSettings();
-  const [preCount, commissionAgg, refCount] = await Promise.all([
+  const [preCount, commissionAgg, refCount, loginHistory] = await Promise.all([
     prisma.premiumOrder.count({ where: { userId: user.id } }),
     prisma.transaction.aggregate({ where: { userId: user.id, type: { in: ["REFERRAL_COMMISSION", "PANEL_COMMISSION"] }, amount: { gt: 0 } }, _sum: { amount: true } }),
     prisma.user.count({ where: { referredById: user.id } }),
+    prisma.loginEvent.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 20 }),
   ]);
+  const adminMust2fa = searchParams.bat2fa === "1" || ((user.role === "ADMIN" || user.role === "STAFF") && s.admin_2fa_required !== "0");
   const initials = (user.fullName || user.username).trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const endpoint = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/v2`;
   const tabs = [
@@ -124,19 +128,45 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
       )}
 
       {tab === "security" && (
-        <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
-          {passwordForm}
-          <div className="card space-y-4 p-6">
-            <div className="font-bold text-slate-900">Phiên đăng nhập</div>
-            <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-800">Trình duyệt hiện tại</div>
-                <div className="text-xs text-slate-400">Phiên đăng nhập của bạn trên thiết bị này</div>
+        <div className="mt-6 space-y-6">
+          <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+            {passwordForm}
+            <div className="space-y-6">
+              <TwoFactorCard enabled={user.totpEnabled} backupLeft={backupCodesLeft(user.backupCodes)} required={adminMust2fa && !user.totpEnabled} />
+              <div className="card space-y-4 p-6">
+                <div className="font-bold text-slate-900">Phiên đăng nhập</div>
+                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                  <div>
+                    <div className="text-sm font-semibold text-slate-800">Trình duyệt hiện tại</div>
+                    <div className="text-xs text-slate-400">Phiên đăng nhập của bạn trên thiết bị này</div>
+                  </div>
+                  <Badge cls="bg-emerald-100 text-emerald-700">Đang online</Badge>
+                </div>
+                <p className="text-sm text-slate-500">Khi đăng nhập ở trình duyệt hoặc thiết bị khác, hãy giữ mật khẩu và API key bí mật. Đăng xuất sẽ kết thúc phiên hiện tại.</p>
+                <form action={logoutAction}><button className="btn-ghost">Đăng xuất khỏi thiết bị này</button></form>
               </div>
-              <Badge cls="bg-emerald-100 text-emerald-700">Đang online</Badge>
             </div>
-            <p className="text-sm text-slate-500">Khi đăng nhập ở trình duyệt hoặc thiết bị khác, hãy giữ mật khẩu và API key bí mật. Đăng xuất sẽ kết thúc phiên hiện tại.</p>
-            <form action={logoutAction}><button className="btn-ghost">Đăng xuất khỏi thiết bị này</button></form>
+          </div>
+          <div className="card overflow-x-auto">
+            <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Lịch sử đăng nhập của bạn</div>
+            {loginHistory.length === 0 ? (
+              <p className="px-5 py-4 text-sm text-slate-400">Chưa có lần đăng nhập nào được ghi nhận.</p>
+            ) : (
+              <table className="w-full min-w-[640px]">
+                <thead><tr><th className="th">Kết quả</th><th className="th">IP</th><th className="th">Thiết bị / trình duyệt</th><th className="th">Chi tiết</th><th className="th">Thời gian</th></tr></thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loginHistory.map((ev) => (
+                    <tr key={ev.id}>
+                      <td className="td">{ev.success ? <Badge cls="bg-emerald-100 text-emerald-700">Thành công</Badge> : <Badge cls="bg-rose-100 text-rose-700">Thất bại</Badge>}</td>
+                      <td className="td font-mono text-[13px]">{ev.ip}{ev.isNewDevice ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">Thiết bị mới</span> : null}</td>
+                      <td className="td max-w-[280px] truncate text-slate-500">{ev.userAgent || "—"}</td>
+                      <td className="td text-slate-500">{ev.reason || "—"}</td>
+                      <td className="td whitespace-nowrap text-slate-500">{dt(ev.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}

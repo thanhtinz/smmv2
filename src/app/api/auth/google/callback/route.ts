@@ -3,7 +3,8 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { createSession } from "@/lib/auth";
+import { createSession, createPending2fa } from "@/lib/auth";
+import { recordLoginEvent } from "@/lib/login-events";
 import { randomKey } from "@/lib/format";
 
 /** Callback đăng nhập Google: đổi code lấy thông tin email,
@@ -61,15 +62,28 @@ export async function GET(req: NextRequest) {
         },
       });
     }
-    if (user.status === "BANNED") return fail("Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
-    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-    // IP bị cấm thì không cho vào bằng Google (luồng mật khẩu đã chặn ở assertNotBanned)
     const { clientIp } = await import("@/lib/rate-limit");
     const ip = clientIp(req.headers);
+    const ua = req.headers.get("user-agent") || "";
+    if (user.status === "BANNED") {
+      await recordLoginEvent({ userId: user.id, username: user.username, success: false, reason: "Tài khoản đã bị khoá (Google)", ip, userAgent: ua, panelId: user.panelId ?? null });
+      return fail("Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
+    }
+    // IP bị cấm thì không cho vào bằng Google (luồng mật khẩu đã chặn ở assertNotBanned)
     if (ip && ip !== "?") {
       const ban = await prisma.ipBan.findFirst({ where: { ip, OR: [{ panelId: null }, ...(user.panelId ? [{ panelId: user.panelId }] : [])] } }).catch(() => null);
-      if (ban) return fail("Địa chỉ IP của bạn đã bị chặn" + (ban.reason ? `: ${ban.reason}` : ""));
+      if (ban) {
+        await recordLoginEvent({ userId: user.id, username: user.username, success: false, reason: "IP bị chặn (Google)", ip, userAgent: ua, panelId: user.panelId ?? null });
+        return fail("Địa chỉ IP của bạn đã bị chặn" + (ban.reason ? `: ${ban.reason}` : ""));
+      }
     }
+    // Tài khoản bật 2FA: qua Google vẫn phải nhập mã bước 2 mới tạo phiên
+    if (user.totpEnabled) {
+      await createPending2fa({ id: user.id, username: user.username });
+      return NextResponse.redirect(new URL("/login/2fa", req.url));
+    }
+    await recordLoginEvent({ userId: user.id, username: user.username, success: true, reason: "Đăng nhập bằng Google", ip, userAgent: ua, panelId: user.panelId ?? null });
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     await createSession({ id: user.id, role: user.role, username: user.username });
     return NextResponse.redirect(new URL("/dashboard", req.url));
   } catch {

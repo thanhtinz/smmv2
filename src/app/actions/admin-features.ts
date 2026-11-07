@@ -163,6 +163,7 @@ export async function saveSecurityPolicyAction(formData: FormData) {
     "password_min_length", "pw_require_upper", "pw_require_number", "pw_require_special",
     "reg_honeypot", "reg_block_disposable", "reg_max_per_ip_hour", "reg_banned_domains",
     "bf_enabled", "bf_max_attempts", "bf_lock_seconds",
+    "admin_2fa_required", "admin_ip_whitelist",
   ];
   for (const k of keys) {
     const v = formData.get(k);
