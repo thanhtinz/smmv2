@@ -37,10 +37,10 @@ export function Stars({ value, className = "h-4 w-4" }: { value: number; classNa
 /** Thẻ sản phẩm Premium theo bố cục shopkey: ảnh 16:9, tên đậm, giá đỏ (một giá
  *  hoặc khoảng giá min ~ max, không có giá thì "Liên hệ"), dòng Đã bán + nhãn
  *  Giao ngay/Order ở đáy thẻ. Dùng cho lưới danh sách và sản phẩm liên quan. */
-export function PremiumCard({ item, base }: { item: PremiumCardData; base: string }) {
+export function PremiumCard({ item, base, className = "" }: { item: PremiumCardData; base: string; className?: string }) {
   const contact = item.minPrice <= 0;
   return (
-    <Link href={`${base}/${item.slug}`} className="card group flex flex-col overflow-hidden transition hover:shadow-lg">
+    <Link href={`${base}/${item.slug}`} className={`card group flex flex-col overflow-hidden transition hover:shadow-lg ${className}`}>
       <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
         {item.image ? (
           // eslint-disable-next-line @next/next/no-img-element

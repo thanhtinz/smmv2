@@ -81,9 +81,9 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
         {related.length > 0 && (
           <div className="mt-14">
             <h2 className="text-xl font-extrabold text-slate-900 mb-5">Sản phẩm liên quan</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="flex snap-x snap-mandatory gap-5 overflow-x-auto py-1 -my-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-3">
               {related.map((p) => (
-                <Link key={p.id} href={`${base}/${p.slug}`} className="card p-5 hover:shadow-lg transition group">
+                <Link key={p.id} href={`${base}/${p.slug}`} className="card p-5 hover:shadow-lg transition group w-[75%] shrink-0 snap-start sm:w-auto">
                   <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-black text-lg" style={{ background: p.color }}>{p.name.charAt(0)}</div>
                   <div className="font-bold text-slate-900 mt-3.5 group-hover:text-brand-700">{p.name}</div>
                   <p className="text-sm text-slate-500 mt-1 line-clamp-2">{p.tagline}</p>

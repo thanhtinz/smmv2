@@ -426,8 +426,8 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
       {related.length > 0 && (
         <div className="mt-12">
           <h2 className="mb-5 text-xl font-extrabold text-slate-900">Sản phẩm liên quan</h2>
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
-            {related.map((item) => <PremiumCard key={item.slug} item={item} base={base} />)}
+          <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto py-1 -my-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5 lg:grid lg:grid-cols-3 lg:overflow-visible xl:grid-cols-4">
+            {related.map((item) => <PremiumCard key={item.slug} item={item} base={base} className="w-[72%] shrink-0 snap-start sm:w-[54%] md:w-[44%] lg:w-auto" />)}
           </div>
         </div>
       )}
