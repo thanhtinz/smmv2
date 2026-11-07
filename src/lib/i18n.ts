@@ -1221,6 +1221,7 @@ export const DICT: Record<string, Tr> = {
   "Chưa có đánh giá nào cho sản phẩm này.": e("No reviews for this product yet.", "该产品暂无评价。", "สินค้านี้ยังไม่มีรีวิว", "この商品のレビューはまだありません。", "아직 이 상품의 리뷰가 없습니다."),
   "Cảm ơn bạn đã đánh giá sản phẩm": e("Thank you for reviewing this product", "感谢您的评价", "ขอบคุณสำหรับรีวิว", "レビューありがとうございます", "리뷰를 남겨주셔서 감사합니다"),
   "Chia sẻ trải nghiệm của bạn về sản phẩm...": e("Share your experience with this product...", "分享您对该产品的使用体验...", "แบ่งปันประสบการณ์ของคุณเกี่ยวกับสินค้า...", "この商品の感想を共有...", "이 상품에 대한 경험을 공유해 주세요..."),
+  "Hữu ích": e("Helpful", "有帮助", "มีประโยชน์", "役に立った", "도움이 됐어요"),
 };
 
 /* Dịch theo MẢNH cho các dòng ghép (vd "Đơn giá 45.000đ/1000", "Số lượng 500 · Bắt đầu —") */

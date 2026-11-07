@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 /** Form đánh giá sản phẩm Premium — chọn sao tương tác + nhận xét.
  *  Chỉ render cho khách đã mua (trang chi tiết kiểm tra phía server). */
@@ -30,5 +31,37 @@ export function PremiumReviewForm({ slug, returnTo, action, mine }: {
       <textarea className="inp mt-3" name="content" rows={3} maxLength={1000} required minLength={3} defaultValue={mine?.content || ""} placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..." />
       <button className="btn-primary mt-3">{mine ? "Cập nhật đánh giá" : "Gửi đánh giá"}</button>
     </form>
+  );
+}
+
+/** Nút "Hữu ích" dưới mỗi đánh giá — bấm để đánh dấu/bỏ, cập nhật số ngay. */
+export function HelpfulButton({ reviewId, count, marked, action }: {
+  reviewId: number;
+  count: number;
+  marked: boolean;
+  action: (reviewId: number) => Promise<void>;
+}) {
+  const [n, setN] = useState(count);
+  const [on, setOn] = useState(marked);
+  const [, startTransition] = useTransition();
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setOn(!on);
+        setN((x) => x + (on ? -1 : 1));
+        startTransition(async () => {
+          await action(reviewId);
+          router.refresh();
+        });
+      }}
+      className={`mt-2.5 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${on ? "border-brand-300 bg-brand-50 text-brand-700" : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700"}`}
+    >
+      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill={on ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinejoin="round" d="M7 22V11L12.5 2.5c1.6 0 2.7 1.2 2.5 2.8L14.3 9H20a2 2 0 0 1 2 2.4l-1.2 8A2 2 0 0 1 18.8 21H7zm0 0H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3" />
+      </svg>
+      Hữu ích{n > 0 ? ` (${n})` : ""}
+    </button>
   );
 }

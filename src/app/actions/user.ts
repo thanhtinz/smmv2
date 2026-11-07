@@ -741,3 +741,14 @@ export async function submitPremiumReviewAction(formData: FormData) {
   revalidatePath(returnTo);
   back(returnTo, "msg", "Cảm ơn bạn đã đánh giá sản phẩm");
 }
+
+/** Đánh dấu "Hữu ích" cho một đánh giá Premium — mỗi tài khoản 1 lần, bấm lại là bỏ. */
+export async function toggleReviewHelpfulAction(reviewId: number) {
+  const user = await requireUser();
+  const existing = await prisma.premiumReviewHelpful.findUnique({
+    where: { reviewId_userId: { reviewId, userId: user.id } },
+    select: { id: true },
+  });
+  if (existing) await prisma.premiumReviewHelpful.delete({ where: { id: existing.id } });
+  else await prisma.premiumReviewHelpful.create({ data: { reviewId, userId: user.id } });
+}

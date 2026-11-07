@@ -5,12 +5,12 @@ import { getSettings } from "@/lib/settings";
 import { getSession } from "@/lib/auth";
 import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
-import { buyPremiumAction, submitPremiumReviewAction } from "@/app/actions/user";
+import { buyPremiumAction, submitPremiumReviewAction, toggleReviewHelpfulAction } from "@/app/actions/user";
 import { vnd, parsePremiumFields, productImages } from "@/lib/format";
 import { ProductGallery } from "@/components/rich-editor";
 import { RichText } from "@/components/rich-text";
 import { PremiumCard, Stars, type PremiumCardData } from "@/components/premium-card";
-import { PremiumReviewForm } from "@/components/premium-review-form";
+import { PremiumReviewForm, HelpfulButton } from "@/components/premium-review-form";
 import { PremiumGrid } from "@/components/premium-grid";
 
 /** Dựng dữ liệu thẻ cho một nhóm sản phẩm: khoảng giá gói, tổng đã bán, còn kho. */
@@ -205,6 +205,13 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
     : [];
   const variantByUser = new Map<number, string>();
   for (const o of reviewerOrders) if (!variantByUser.has(o.userId)) variantByUser.set(o.userId, o.variant.name);
+  const helpfulRows = reviewList.length
+    ? await prisma.premiumReviewHelpful.groupBy({ by: ["reviewId"], where: { reviewId: { in: reviewList.map((r) => r.id) } }, _count: true })
+    : [];
+  const helpfulMap = new Map(helpfulRows.map((r) => [r.reviewId, typeof r._count === "number" ? r._count : 0]));
+  const myHelpful = session && reviewList.length
+    ? new Set((await prisma.premiumReviewHelpful.findMany({ where: { userId: session.id, reviewId: { in: reviewList.map((r) => r.id) } }, select: { reviewId: true } })).map((x) => x.reviewId))
+    : new Set<number>();
   const relatedRaw = await prisma.premiumProduct.findMany({
     where: { active: true, categoryId: product.categoryId, id: { not: product.id }, OR: [{ panelId: null }, ...(viewer?.panelId ? [{ panelId: viewer.panelId }] : [])] },
     orderBy: { sort: "asc" }, take: 4,
@@ -292,6 +299,14 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
                   </span>
                 )}
                 <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-600">{r.content}</p>
+                {session ? (
+                  <HelpfulButton reviewId={r.id} count={helpfulMap.get(r.id) || 0} marked={myHelpful.has(r.id)} action={toggleReviewHelpfulAction} />
+                ) : (
+                  <Link href="/login" className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700">
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinejoin="round" d="M7 22V11L12.5 2.5c1.6 0 2.7 1.2 2.5 2.8L14.3 9H20a2 2 0 0 1 2 2.4l-1.2 8A2 2 0 0 1 18.8 21H7zm0 0H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3" /></svg>
+                    Hữu ích{(helpfulMap.get(r.id) || 0) > 0 ? ` (${helpfulMap.get(r.id)})` : ""}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

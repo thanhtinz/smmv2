@@ -57,6 +57,7 @@ model User {
   smmOrders     SmmOrder[]
   premiumOrders PremiumOrder[]
   premiumReviews PremiumReview[]
+  reviewHelpful PremiumReviewHelpful[]
   campaigns     Campaign[]
   subscriptions Subscription[]
   deposits      Deposit[]
@@ -314,8 +315,22 @@ model PremiumReview {
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
 
+  helpfulMarks PremiumReviewHelpful[]
+
   @@unique([productId, userId])
   @@index([productId])
+}
+
+model PremiumReviewHelpful {
+  id        Int           @id @default(autoincrement())
+  reviewId  Int
+  review    PremiumReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
 }
 
 model PremiumStock {
