@@ -91,6 +91,7 @@ const SKIP = new Set(["SCRIPT", "STYLE", "CODE", "PRE", "TEXTAREA", "NOSCRIPT"])
 const FRAGMENTS: [string, Record<string, string>][] = [
   ["Đơn giá ", { en: "Rate ", zh: "单价 ", th: "ราคา ", ja: "単価 ", ko: "단가 " }],
   ["đã hoàn ", { en: "refunded ", zh: "已退 ", th: "คืนแล้ว ", ja: "返金済み ", ko: "환불됨 " }],
+  ["Số lượng: ", { en: "Quantity: ", zh: "数量:", th: "จำนวน: ", ja: "数量：", ko: "수량: " }],
   ["Số lượng ", { en: "Quantity ", zh: "数量 ", th: "จำนวน ", ja: "数量 ", ko: "수량 " }],
   ["Bắt đầu ", { en: "Start ", zh: "开始 ", th: "เริ่ม ", ja: "開始 ", ko: "시작 " }],
   ["Còn lại ", { en: "Remains ", zh: "剩余 ", th: "คงเหลือ ", ja: "残り ", ko: "남음 " }],
@@ -111,6 +112,7 @@ const FRAGMENTS: [string, Record<string, string>][] = [
   ["Lãi ", { en: "Profit ", zh: "利润 ", th: "กำไร ", ja: "利益 ", ko: "이익 " }],
   ["Đặt lại số dư nhà cung cấp đang lưu đệm (", { en: "Reset cached provider balances (", zh: "重置缓存的供应商余额(", th: "รีเซ็ตยอดผู้ให้บริการที่แคชไว้ (", ja: "キャッシュされたプロバイダー残高をリセット（", ko: "캐시된 공급자 잔액을 초기화합니다 (" }],
   [" nguồn) — lần kiểm tra kế tiếp sẽ lấy số dư thật từ nguồn", { en: " sources) — the next check will fetch the real balance from the source", zh: " 个来源)— 下次检查将从来源获取真实余额", th: " แหล่ง) — การตรวจสอบครั้งถัดไปจะดึงยอดจริงจากแหล่ง", ja: " 件）— 次回チェックでソースから実際の残高を取得します", ko: " 개 소스) — 다음 확인 시 소스에서 실제 잔액을 가져옵니다" }],
+  [" phát sinh", { en: " transactions", zh: " 笔交易", th: " รายการ", ja: " 件", ko: " 건" }],
   [" tài khoản", { en: " accounts", zh: " 个账户", th: " บัญชี", ja: " アカウント", ko: " 계정" }],
   [" — đã trừ ", { en: " — charged ", zh: " — 已扣除 ", th: " — หักเงิน ", ja: " — 差し引かれました ", ko: " — 차감됨 " }],
   ["Đã đặt ", { en: "Placed ", zh: "已下 ", th: "สั่งแล้ว ", ja: "注文済み ", ko: "주문 완료 " }],

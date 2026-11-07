@@ -1116,6 +1116,22 @@ export const DICT: Record<string, Tr> = {
   "Gói định kỳ đã đạt mục tiêu": e("Subscription reached its target", "订阅已达目标", "การสมัครสมาชิกถึงเป้าหมายแล้ว", "サブスクリプションが目標に到達しました", "구독이 목표에 도달했습니다"),
   "Gói định kỳ bị tạm dừng": e("Subscription paused", "订阅已暂停", "การสมัครสมาชิกถูกหยุดชั่วคราว", "サブスクリプションが一時停止されました", "구독이 일시 중지되었습니다"),
   "Bạn được thêm làm Nhân viên panel": e("You were added as panel staff", "您已被添加为面板员工", "คุณถูกเพิ่มเป็นพนักงานพาเนล", "パネルのスタッフとして追加されました", "패널 직원으로 추가되었습니다"),
+ "Chào mừng,": e("Welcome,", "欢迎,", "ยินดีต้อนรับ,", "ようこそ,", "환영합니다,"),
+ "Số dư khả dụng": e("Available balance", "可用余额", "ยอดเงินคงเหลือที่ใช้ได้", "利用可能残高", "사용 가능 잔액"),
+ "Tổng nạp": e("Total deposited", "总充值", "ยอดเติมทั้งหมด", "総入金額", "총 충전액"),
+ "Giao dịch thành công": e("Successful transactions", "成功交易", "ธุรกรรมสำเร็จ", "成功した取引", "성공한 거래"),
+ "phát sinh": e("transactions", "笔", "รายการ", "件", "건"),
+ "Nhấn để nạp thêm →": e("Tap to top up →", "点击充值 →", "แตะเพื่อเติมเงิน →", "タップしてチャージ →", "눌러서 충전 →"),
+ "Hủy / Hoàn tiền": e("Canceled / Refunded", "取消 / 退款", "ยกเลิก / คืนเงิน", "キャンセル / 返金", "취소 / 환불"),
+ "Thống kê đơn hàng": e("Order statistics", "订单统计", "สถิติคำสั่งซื้อ", "注文統計", "주문 통계"),
+ "Xem tất cả đơn hàng →": e("View all orders →", "查看全部订单 →", "ดูคำสั่งซื้อทั้งหมด →", "すべての注文を見る →", "모든 주문 보기 →"),
+ "Giao dịch ví": e("Wallet transactions", "钱包交易", "ธุรกรรมกระเป๋าเงิน", "ウォレット取引", "지갑 거래"),
+ "Xem thêm →": e("See more →", "查看更多 →", "ดูเพิ่มเติม →", "もっと見る →", "더 보기 →"),
+ "Tài liệu API V2 →": e("API V2 Docs →", "API V2 文档 →", "เอกสาร API V2 →", "API V2 ドキュメント →", "API V2 문서 →"),
+ "Đặt Đơn Mới": e("Place New Order", "下新订单", "สั่งซื้อใหม่", "新規注文", "새 주문하기"),
+ "Hệ thống cung cấp dịch vụ mạng xã hội chuyên nghiệp, tự động 100%.": e("Professional social media service system, 100% automated.", "专业的社交媒体服务系统,100% 自动。", "ระบบบริการโซเชียลมีเดียระดับมืออาชีพ อัตโนมัติ 100%", "プロフェッショナルなソーシャルメディアサービスシステム、100%自動。", "전문 소셜 미디어 서비스 시스템, 100% 자동."),
+ "Xem tất cả dịch vụ →": e("View all services →", "查看全部服务 →", "ดูบริการทั้งหมด →", "すべてのサービスを見る →", "모든 서비스 보기 →"),
+ "Số lượng:": e("Quantity:", "数量:", "จำนวน:", "数量：", "수량:"),
 };
 
 export const CURRENCIES: { key: string; name: string; rate: number }[] = [
