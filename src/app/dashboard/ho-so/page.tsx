@@ -10,6 +10,8 @@ import { ProfileTabs } from "@/components/profile-tabs";
 import { backupCodesLeft } from "@/lib/twofa";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { LEVEL_NAME, vnd, num, dt } from "@/lib/format";
+import { getLang } from "@/lib/lang-server";
+import { trd } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,7 @@ export const dynamic = "force-dynamic";
  *  3 tab Hồ sơ cá nhân | Kết nối API | Bảo mật & Phiên đăng nhập. */
 export default async function ProfilePage({ searchParams }: { searchParams: { msg?: string; err?: string; tab?: string; bat2fa?: string } }) {
   const user = (await getCurrentUser())!;
+  const lang = getLang();
   const tab = searchParams.tab === "api" ? "api" : searchParams.tab === "security" ? "security" : "profile";
   const s = await getSettings();
   const [preCount, commissionAgg, refCount, loginHistory] = await Promise.all([
@@ -101,12 +104,12 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
             <div className="card p-6">
               <div className="font-bold text-slate-900">Điểm tích luỹ</div>
               <div className="mt-3 space-y-1.5 text-sm text-slate-500">
-                <div className="flex justify-between"><span>Điểm hiện có</span><b className="text-slate-800">{num(user.points)} điểm</b></div>
+                <div className="flex justify-between"><span>Điểm hiện có</span><b className="text-slate-800">{`${num(user.points)} ${trd(lang, "điểm")}`}</b></div>
                 <div className="flex justify-between"><span>Giá trị quy đổi</span><b className="text-slate-800">{vnd(user.points * (parseInt(s.points_value_vnd || "100") || 100))}</b></div>
                 <div className="flex justify-between"><span>Nhận điểm</span><b className="text-slate-800">{s.points_per_100k} điểm / 100.000đ đơn hoàn thành</b></div>
               </div>
               <form action={redeemPointsAction} className="mt-4 flex gap-2">
-                <input className="inp" name="points" type="number" min={parseInt(s.points_min_redeem || "10") || 10} placeholder={`Từ ${s.points_min_redeem} điểm`} />
+                <input className="inp" name="points" type="number" min={parseInt(s.points_min_redeem || "10") || 10} placeholder={`${trd(lang, "Từ")} ${s.points_min_redeem} ${trd(lang, "điểm")}`} />
                 <button className="btn-primary whitespace-nowrap">Đổi ra số dư</button>
               </form>
               <p className="mt-2 text-xs text-slate-400">Điểm cộng tự động khi đơn SMM/Premium hoàn thành. Đổi điểm sẽ cộng thẳng vào số dư ví và ghi vào lịch sử giao dịch.</p>
@@ -137,8 +140,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
             <p className="mt-2 text-xs text-slate-400">Trạng thái: Đang hoạt động. Giữ key bí mật như mật khẩu — tạo key mới sẽ làm key cũ hết hiệu lực ngay.</p>
           </div>
           <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-            <b className="text-slate-800">Hướng dẫn sử dụng API:</b> xem tài liệu đầy đủ kèm ví dụ cURL/PHP/Python tại{" "}
-            <Link href="/dashboard/api-docs" className="font-semibold text-brand-600">Tài liệu API</Link>. Dùng key này để đặt đơn, tra trạng thái và số dư tự động qua endpoint phía trên.
+            <b className="text-slate-800">{trd(lang, "Hướng dẫn sử dụng API:")}</b> {trd(lang, "xem tài liệu đầy đủ kèm ví dụ cURL/PHP/Python tại")}{" "}
+            <Link href="/dashboard/api-docs" className="font-semibold text-brand-600">Tài liệu API</Link>. {trd(lang, "Dùng key này để đặt đơn, tra trạng thái và số dư tự động qua endpoint phía trên.")}
           </div>
         </div>
         )}
