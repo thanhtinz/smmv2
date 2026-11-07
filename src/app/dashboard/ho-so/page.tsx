@@ -61,7 +61,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
       <div className="border-t border-slate-100 pt-4">
         <div className="text-sm font-bold text-slate-800">Yêu cầu mật khẩu mới</div>
         <ul className="mt-2 space-y-1.5 text-sm text-slate-500">
-          <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>Ít nhất {s.password_min_length || 8} ký tự</li>
+          <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{trd(lang, `Ít nhất ${s.password_min_length || 8} ký tự`)}</li>
           {s.pw_require_upper === "1" && <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>Có ít nhất 1 chữ hoa (A–Z)</li>}
           {s.pw_require_number === "1" && <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>Có ít nhất 1 chữ số (0–9)</li>}
           {s.pw_require_special === "1" && <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>Có ít nhất 1 ký tự đặc biệt (vd: !@#$%)</li>}
@@ -225,11 +225,11 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
               </div>
               <div>
                 <div className="text-xs font-semibold text-slate-400">Passkey</div>
-                <div className="mt-1.5 text-sm font-semibold text-slate-800">{myPasskeys.length > 0 ? `${myPasskeys.length} thiết bị` : "Chưa có"}</div>
+                <div className="mt-1.5 text-sm font-semibold text-slate-800">{myPasskeys.length > 0 ? trd(lang, `${myPasskeys.length} thiết bị`) : "Chưa có"}</div>
               </div>
               <div>
                 <div className="text-xs font-semibold text-slate-400">Phiên đang hoạt động</div>
-                <div className="mt-1.5 text-sm font-semibold text-slate-800">{mySessions.filter((x) => !x.revokedAt).length} phiên</div>
+                <div className="mt-1.5 text-sm font-semibold text-slate-800">{trd(lang, `${mySessions.filter((x) => !x.revokedAt).length} phiên`)}</div>
               </div>
               <div>
                 <div className="text-xs font-semibold text-slate-400">Email</div>
@@ -237,7 +237,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
               </div>
               <div>
                 <div className="text-xs font-semibold text-slate-400">Đăng nhập gần nhất</div>
-                <div className="mt-1.5 text-sm font-semibold text-slate-800">{loginHistory[0] ? <>{relTime(loginHistory[0].createdAt)} · IP {loginHistory[0].ip}</> : "Chưa ghi nhận"}</div>
+                <div className="mt-1.5 text-sm font-semibold text-slate-800">{loginHistory[0] ? <>{trd(lang, relTime(loginHistory[0].createdAt))} · IP {loginHistory[0].ip}</> : "Chưa ghi nhận"}</div>
               </div>
             </div>
           </div>
@@ -254,7 +254,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
                       <DeviceTile ua={sess.userAgent} />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-semibold text-slate-800" title={sess.userAgent || undefined}>{parseUaLabel(sess.userAgent) || sess.userAgent || "Thiết bị không rõ"}</div>
-                        <div className="text-xs text-slate-400">IP {sess.ip} · Đăng nhập {dt(sess.createdAt)} · Hoạt động gần nhất {relTime(sess.lastSeenAt)}</div>
+                        <div className="text-xs text-slate-400">{`IP ${sess.ip} · ${trd(lang, "Đăng nhập")} ${dt(sess.createdAt)} · ${trd(lang, "Hoạt động gần nhất")} ${trd(lang, relTime(sess.lastSeenAt))}`}</div>
                       </div>
                       {sess.revokedAt ? <Badge cls="bg-slate-200 text-slate-500">Đã đăng xuất</Badge> : isCurrent ? <Badge cls="bg-emerald-100 text-emerald-700">Thiết bị này</Badge> : (
                         <form action={revokeSessionAction}><input type="hidden" name="id" value={sess.id} /><button className="btn-ghost btn-sm !text-rose-600">Đăng xuất</button></form>
@@ -281,7 +281,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
                       <td className="td">{ev.success ? <Badge cls="bg-emerald-100 text-emerald-700">Thành công</Badge> : <Badge cls="bg-rose-100 text-rose-700">Thất bại</Badge>}</td>
                       <td className="td font-mono text-[13px]">{ev.ip}{ev.isNewDevice ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">Thiết bị mới</span> : null}</td>
                       <td className="td max-w-[280px] truncate text-slate-500" title={ev.userAgent || undefined}><span className="mr-1.5 inline-flex align-middle text-slate-400 [&_svg]:h-4 [&_svg]:w-4">{deviceKind(ev.userAgent) === "phone" ? I.phone : I.monitor}</span>{ev.userAgent || "—"}</td>
-                      <td className="td text-slate-500">{ev.reason || "—"}</td>
+                      <td className="td text-slate-500">{ev.reason ? trd(lang, ev.reason) : "—"}</td>
                       <td className="td whitespace-nowrap text-slate-500">{dt(ev.createdAt)}</td>
                     </tr>
                   ))}

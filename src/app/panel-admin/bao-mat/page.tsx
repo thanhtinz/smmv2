@@ -6,7 +6,9 @@ import { PageHead, Flash, Badge, Empty, I, CardHead, RiskBar } from "@/component
 import { getSettings } from "@/lib/settings";
 import { dt } from "@/lib/format";
 import { panelBanIpAction, panelUnbanIpAction, panelRiskReviewAction } from "@/app/actions/panel";
-import { isRiskRestricted, type RiskFactor } from "@/lib/risk";
+import { isRiskRestricted, RISK_LEVEL_LABEL, riskFactorText, type RiskFactor } from "@/lib/risk";
+import { ACTION_LABEL } from "@/lib/audit";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,7 @@ export const dynamic = "force-dynamic";
  *  (chặn đăng ký + đăng nhập của khách panel từ IP đó) + nhật ký hoạt động gần đây. */
 export default async function PanelSecurity({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { panel } = await requirePanelOwnerPage();
+  const { Ld } = await getServerI18n((panel as { langConfig?: string | null }).langConfig ?? null);
   const [bans, globalCount, codes, logins, s] = await Promise.all([
     prisma.ipBan.findMany({ where: { panelId: panel.id }, orderBy: { id: "desc" }, take: 200 }),
     prisma.ipBan.count({ where: { panelId: null } }),
@@ -61,7 +64,7 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
                 </tbody>
               </table>
             )}
-            <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">Ngoài ra hệ thống đang áp {globalCount} IP cấm toàn hệ thống do web mẹ đặt — các IP đó cũng bị chặn ở website của bạn.</p>
+            <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">{Ld(`Ngoài ra hệ thống đang áp ${globalCount} IP cấm toàn hệ thống do web mẹ đặt — các IP đó cũng bị chặn ở website của bạn.`)}</p>
           </div>
 
           <div className="card overflow-hidden">
@@ -74,7 +77,7 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
                     <span className="font-medium">@{ev.username}</span>
                     <span className="font-mono text-xs text-slate-400">{ev.ip}</span>
                     {ev.isNewDevice ? <Badge cls="bg-amber-100 text-amber-700">Thiết bị mới</Badge> : null}
-                    <span className="min-w-0 flex-1 truncate text-slate-500">{ev.reason || "—"}</span>
+                    <span className="min-w-0 flex-1 truncate text-slate-500">{ev.reason ? Ld(ev.reason) : "—"}</span>
                     <span className="whitespace-nowrap text-xs text-slate-400">{dt(ev.createdAt)}</span>
                   </div>
                 ))}
@@ -121,17 +124,17 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
       </div>
 
       <div className="card mt-6 overflow-x-auto">
-        <CardHead icon={I.shield} tone="amber" title="Điểm rủi ro của khách website này" />
+        <CardHead icon={I.shield} tone="amber" title={Ld("Điểm rủi ro của khách website này")} />
         <p className="border-b border-slate-100 px-5 py-3 text-sm text-slate-500">Hệ thống tự chấm điểm rủi ro 0–100 cho mỗi khách; khách điểm cao bị hạn chế tạo đơn/nạp sẽ được gỡ hạn chế khi bạn đánh dấu đã duyệt.</p>
         {riskMembers.length === 0 ? <Empty text="Chưa có khách nào có điểm rủi ro" /> : (
           <table className="w-full min-w-[640px]">
-            <thead><tr><th className="th">Khách</th><th className="th">Điểm</th><th className="th">Yếu tố chính</th><th className="th">Trạng thái</th><th className="th"></th></tr></thead>
+            <thead><tr><th className="th">Khách</th><th className="th">{Ld("Điểm")}</th><th className="th">Yếu tố chính</th><th className="th">Trạng thái</th><th className="th"></th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {riskMembers.map((u, i) => (
                 <tr key={u.id} className={i % 2 ? "bg-slate-50/60" : undefined}>
                   <td className="td font-medium">{u.username}</td>
-                  <td className="td"><div className="flex items-center gap-2"><b>{u.riskScore}</b><RiskBar score={u.riskScore} watch={riskTh.watch} restrict={riskTh.restrict} critical={riskTh.critical} className="w-20" /><Badge cls={u.riskLevel === "CRITICAL" ? "bg-rose-100 text-rose-700" : u.riskLevel === "HIGH" ? "bg-orange-100 text-orange-700" : u.riskLevel === "MEDIUM" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}>{u.riskLevel}</Badge></div></td>
-                  <td className="td max-w-[280px] text-xs text-slate-500">{(((u.riskFactors as RiskFactor[] | null) || []).slice(0, 3).map((f) => `${f.label} (+${f.points})`).join("; ")) || "—"}</td>
+                  <td className="td"><div className="flex items-center gap-2"><b>{u.riskScore}</b><RiskBar score={u.riskScore} watch={riskTh.watch} restrict={riskTh.restrict} critical={riskTh.critical} className="w-20" /><Badge cls={u.riskLevel === "CRITICAL" ? "bg-rose-100 text-rose-700" : u.riskLevel === "HIGH" ? "bg-orange-100 text-orange-700" : u.riskLevel === "MEDIUM" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}>{Ld(RISK_LEVEL_LABEL[u.riskLevel] || u.riskLevel)}</Badge></div></td>
+                  <td className="td max-w-[280px] text-xs text-slate-500">{(((u.riskFactors as RiskFactor[] | null) || []).slice(0, 3).map((f) => `${riskFactorText(f, Ld)} (+${f.points})`).join("; ")) || "—"}</td>
                   <td className="td">{u.restrictedNow ? <Badge cls="bg-rose-100 text-rose-700">Đang bị hạn chế</Badge> : u.riskReviewedAt ? <Badge cls="bg-emerald-100 text-emerald-700">Đã duyệt</Badge> : <Badge cls="bg-slate-100 text-slate-500">Bình thường</Badge>}</td>
                   <td className="td text-right"><form action={panelRiskReviewAction}><input type="hidden" name="userId" value={u.id} /><button className="btn-ghost btn-sm">Đánh dấu đã duyệt</button></form></td>
                 </tr>
@@ -142,7 +145,7 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
       </div>
 
       <div className="card mt-6 overflow-x-auto">
-        <CardHead icon={I.file} tone="violet" title="Nhật ký thao tác nhạy cảm của panel (chỉ ghi, không sửa/xoá được)" />
+        <CardHead icon={I.file} tone="violet" title={Ld("Nhật ký thao tác nhạy cảm của panel (chỉ ghi, không sửa/xoá được)")} />
         {panelAudits.length === 0 ? <Empty text="Chưa có thao tác nhạy cảm nào" /> : (
           <table className="w-full min-w-[640px]">
             <thead><tr><th className="th">Thời gian</th><th className="th">Người thực hiện</th><th className="th">Thao tác</th><th className="th">Chi tiết</th><th className="th">IP</th></tr></thead>
@@ -151,7 +154,7 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
                 <tr key={a.id}>
                   <td className="td whitespace-nowrap">{dt(a.createdAt)}</td>
                   <td className="td font-medium">{a.actorName}</td>
-                  <td className="td">{a.action}</td>
+                  <td className="td">{ACTION_LABEL[a.action] || a.action}</td>
                   <td className="td max-w-[280px] truncate text-xs" title={a.detail || ""}>{a.detail || "—"}</td>
                   <td className="td font-mono text-xs">{a.ip || "—"}</td>
                 </tr>

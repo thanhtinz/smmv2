@@ -69,6 +69,43 @@ export async function writeAudit(input: AuditInput, tx?: unknown): Promise<void>
   }
 }
 
+/** Nhãn hiển thị cho mã thao tác trong AuditLog — dùng chung Trung tâm bảo mật
+ *  (web mẹ) và trang Bảo mật của panel con. Giá trị là chuỗi tiếng Việt gốc,
+ *  được dịch qua DICT lúc hiển thị. */
+export const ACTION_LABEL: Record<string, string> = {
+  "balance.adjust": "Cộng/trừ tiền tay",
+  "user.update": "Sửa/khoá tài khoản",
+  "user.force_logout": "Buộc đăng xuất mọi thiết bị",
+  "provider.save": "Lưu nhà cung cấp",
+  "provider.delete": "Xoá nhà cung cấp",
+  "deposit.approve": "Duyệt nạp tiền",
+  "deposit.reject": "Từ chối nạp tiền",
+  "deposit.manual": "Nạp tiền tay",
+  "settings.update": "Đổi cấu hình hệ thống",
+  "settings.methods": "Đổi cấu hình nạp tiền",
+  "security.policy": "Đổi chính sách bảo mật",
+  "price.bulk": "Đổi giá hàng loạt",
+  "apikey.regen": "Tạo lại API key",
+  "lockdown.on": "Bật khoá khẩn cấp",
+  "lockdown.off": "Tắt khoá khẩn cấp",
+  "panel.secrets.encrypt_all": "Mã hoá toàn bộ secret panel",
+  "panel.config.smtp": "Panel: lưu SMTP",
+  "panel.config.telegram": "Panel: lưu Telegram",
+  "panel.config.google": "Panel: lưu Google",
+  "panel.config.paypal": "Panel: lưu PayPal",
+  "panel.config.sepay": "Panel: lưu SePay",
+  "panel.config.stripe": "Panel: lưu Stripe",
+  "panel.config.toolapi": "Panel: lưu Tool API key",
+  "panel.config.alerts": "Panel: lưu báo tin",
+  "risk.review": "Duyệt điểm rủi ro",
+  "risk.settings": "Đổi cấu hình điểm rủi ro",
+  "secret.rotate_session": "Xoay vòng khoá phiên",
+  "secret.rotate_cron": "Xoay vòng khoá cron",
+  "apikey.ip_whitelist": "Đổi whitelist IP của API key",
+  "passkey.add": "Thêm passkey",
+  "passkey.remove": "Xoá passkey",
+};
+
 /** Kiểm chứng toàn chuỗi: trả về dòng đầu tiên bị đứt (nếu có) */
 export async function verifyAuditChain(): Promise<{ ok: boolean; count: number; brokenAt?: number }> {
   const rows = await prisma.auditLog.findMany({ orderBy: { id: "asc" } });

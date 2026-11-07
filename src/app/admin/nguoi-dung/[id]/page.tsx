@@ -6,14 +6,16 @@ import { BackLink, Flash, Badge, Stat, I, CardHead, RiskBar } from "@/components
 import { getSettings } from "@/lib/settings";
 import { adminAdjustBalance, adminUpdateUser, adminForceLogoutAction } from "@/app/actions/admin";
 import { riskRecalcAction, riskReviewAction } from "@/app/actions/security-center";
-import { isRiskRestricted, type RiskFactor } from "@/lib/risk";
+import { isRiskRestricted, RISK_LEVEL_LABEL, riskFactorText, riskDetailText, type RiskFactor } from "@/lib/risk";
 import { vnd, num, LEVEL_NAME, dt, SMM_STATUS, PRE_STATUS } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 const TX_LABEL: Record<string, string> = { DEPOSIT: "Nạp tiền", SMM_ORDER: "Đặt đơn SMM", PREMIUM_ORDER: "Mua Premium", REFUND: "Hoàn tiền", ADJUST: "Admin điều chỉnh", BONUS: "Thưởng", PANEL_COMMISSION: "Hoa hồng panel con", REFERRAL_COMMISSION: "Hoa hồng giới thiệu" };
 
 export default async function AdminUserDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
   await requireAdminPage();
+  const { Ld } = await getServerI18n(null);
   const me = (await getCurrentUser())!;
   const u = await prisma.user.findUnique({
     where: { id: parseInt(params.id) },
@@ -95,7 +97,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
               {tickets.map((t) => (
                 <tr key={"t" + t.id}>
                   <td className="td"><Link href={`/admin/ticket/${t.id}`} className="font-medium text-brand-700">Ticket: {t.subject}</Link><div className="text-xs text-slate-400">{dt(t.createdAt)}</div></td>
-                  <td className="td text-right"><Badge cls={t.status === "OPEN" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-500"}>{t.status}</Badge></td>
+                  <td className="td text-right"><Badge cls={t.status === "OPEN" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-500"}>{t.status === "OPEN" ? Ld("Đang mở") : Ld("Đã đóng")}</Badge></td>
                 </tr>
               ))}
               {deposits.map((d) => (
@@ -108,8 +110,8 @@ export default async function AdminUserDetail({ params, searchParams }: { params
             </tbody></table>
           </div>
         <div className="card overflow-hidden">
-            <CardHead icon={I.shield} tone={u.riskLevel === "CRITICAL" ? "rose" : u.riskLevel === "HIGH" ? "orange" : u.riskLevel === "MEDIUM" ? "amber" : "slate"} title="Điểm rủi ro gian lận">
-              <Badge cls={u.riskLevel === "CRITICAL" ? "bg-rose-100 text-rose-700" : u.riskLevel === "HIGH" ? "bg-orange-100 text-orange-700" : u.riskLevel === "MEDIUM" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}>{u.riskLevel}</Badge>
+            <CardHead icon={I.shield} tone={u.riskLevel === "CRITICAL" ? "rose" : u.riskLevel === "HIGH" ? "orange" : u.riskLevel === "MEDIUM" ? "amber" : "slate"} title={Ld("Điểm rủi ro gian lận")}>
+              <Badge cls={u.riskLevel === "CRITICAL" ? "bg-rose-100 text-rose-700" : u.riskLevel === "HIGH" ? "bg-orange-100 text-orange-700" : u.riskLevel === "MEDIUM" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}>{Ld(RISK_LEVEL_LABEL[u.riskLevel] || u.riskLevel)}</Badge>
             </CardHead>
             <div className="space-y-3 p-6 pt-4">
             <div className="flex items-center gap-3">
@@ -120,14 +122,14 @@ export default async function AdminUserDetail({ params, searchParams }: { params
             {riskFactors.length === 0 ? <p className="text-sm text-slate-400">Chưa ghi nhận yếu tố rủi ro nào.</p> : (
               <ul className="space-y-1.5">
                 {riskFactors.map((f) => (
-                  <li key={f.key} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm"><span className="text-slate-600">{f.label}</span><Badge cls={f.points >= 20 ? "bg-rose-100 text-rose-700 font-mono" : f.points >= 10 ? "bg-amber-100 text-amber-700 font-mono" : "bg-slate-100 text-slate-600 font-mono"}>+{f.points} điểm</Badge></li>
+                  <li key={f.key} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm"><span className="text-slate-600">{riskFactorText(f, Ld)}</span><Badge cls={f.points >= 20 ? "bg-rose-100 text-rose-700 font-mono" : f.points >= 10 ? "bg-amber-100 text-amber-700 font-mono" : "bg-slate-100 text-slate-600 font-mono"}>{`+${f.points} điểm`}</Badge></li>
                 ))}
               </ul>
             )}
             {riskEvents.length > 0 && (
               <div className="space-y-1 border-t border-slate-100 pt-3">
                 {riskEvents.map((ev) => (
-                  <div key={ev.id} className="text-xs text-slate-400">{dt(ev.createdAt)} · {ev.kind === "restricted" ? "Bị hạn chế" : ev.kind === "reviewed" ? "Đã duyệt" : "Tín hiệu"} — {ev.detail || ""} (điểm {ev.score})</div>
+                  <div key={ev.id} className="text-xs text-slate-400">{dt(ev.createdAt)} · {ev.kind === "restricted" ? Ld("Bị hạn chế") : ev.kind === "reviewed" ? Ld("Đã duyệt") : Ld("Tín hiệu")} — {ev.detail ? riskDetailText(ev.detail, Ld) : ""} ({Ld("điểm")} {ev.score})</div>
                 ))}
               </div>
             )}
@@ -139,7 +141,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
             </div>
           </div>
         <div className="card p-6 space-y-3">
-            <div className="font-bold text-slate-900">Phiên đăng nhập ({userSessions.filter((x) => !x.revokedAt).length} đang hoạt động)</div>
+            <div className="font-bold text-slate-900">{`${Ld("Phiên đăng nhập")} (${userSessions.filter((x) => !x.revokedAt).length} ${Ld("đang hoạt động")})`}</div>
             {userSessions.length === 0 ? <p className="text-sm text-slate-400">Chưa có phiên nào được ghi nhận.</p> : (
               <ul className="space-y-2">
                 {userSessions.map((ss) => (
@@ -149,7 +151,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
                       {ss.revokedAt ? <Badge cls="bg-slate-100 text-slate-500">Đã đăng xuất</Badge> : <Badge cls="bg-emerald-100 text-emerald-700">Đang hoạt động</Badge>}
                     </div>
                     <div className="mt-1 line-clamp-2 text-slate-400">{ss.userAgent || "—"}</div>
-                    <div className="mt-1 text-slate-400">Đăng nhập {dt(ss.createdAt)} · Hoạt động {dt(ss.lastSeenAt)}</div>
+                    <div className="mt-1 text-slate-400">{`${Ld("Đăng nhập")} ${dt(ss.createdAt)} · ${Ld("Hoạt động gần nhất")} ${dt(ss.lastSeenAt)}`}</div>
                   </li>
                 ))}
               </ul>
