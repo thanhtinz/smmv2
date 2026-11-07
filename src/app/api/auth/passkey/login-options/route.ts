@@ -16,5 +16,12 @@ export async function POST(req: NextRequest) {
     userVerification: "required",
   });
   await saveChallenge({ challenge: options.challenge, purpose: "pk-login" });
-  return NextResponse.json(options);
+  /* Đăng nhập chéo thiết bị (hybrid): generateAuthenticationOptions của
+     @simplewebauthn/server 14.1.0 chưa chuyển tiếp tham số hints nên route
+     tự gắn vào JSON trả ra — client @simplewebauthn/browser trải nguyên
+     optionsJSON vào navigator.credentials.get() nên hints tới được trình
+     duyệt: "hybrid" (quét mã bằng điện thoại) ưu tiên trước, "client-device"
+     (passkey ngay trên máy) ngay sau. Trình duyệt không hỗ trợ hints sẽ bỏ
+     qua trường này như mọi trường lạ của dictionary WebAuthn. */
+  return NextResponse.json({ ...options, hints: ["hybrid", "client-device"] });
 }

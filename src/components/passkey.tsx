@@ -101,6 +101,9 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
       <p className="text-sm text-slate-500">
         Đăng nhập bằng Face ID, vân tay hoặc Windows Hello mà không cần nhập mật khẩu.
       </p>
+      <p className="text-sm text-slate-500">
+        Passkey tự đồng bộ qua tài khoản Apple/Google, đăng ký một lần dùng cho cả điện thoại và máy tính.
+      </p>
       {err ? (
         <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{err}</div>
       ) : null}

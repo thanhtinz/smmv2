@@ -34,7 +34,12 @@ export async function POST(req: NextRequest) {
       id: p.credentialId as Base64URLString,
       transports: parseTransports(p.transports) as AuthenticatorTransport[] | undefined,
     })),
-    authenticatorSelection: { residentKey: "preferred", userVerification: "preferred" },
+    /* Dùng chung điện thoại + PC: residentKey "preferred" cho passkey đồng bộ
+       qua tài khoản Apple/Google (đăng ký ở máy này, máy khác cùng tài khoản
+       dùng luôn) và KHÔNG đặt authenticatorAttachment — ép "platform" sẽ kẹt
+       passkey vào một thiết bị, đồng thời mất đường đăng nhập chéo (hybrid).
+       userVerification "required" khớp quy tắc đăng nhập. */
+    authenticatorSelection: { residentKey: "preferred", userVerification: "required" },
   });
   await saveChallenge({ challenge: options.challenge, purpose: "pk-reg", uid: user.id });
   return NextResponse.json(options);

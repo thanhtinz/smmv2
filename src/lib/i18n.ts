@@ -1867,6 +1867,7 @@ export const DICT: Record<string, Tr> = {
   "Thêm passkey": e("Add passkey", "添加通行密钥", "เพิ่ม Passkey", "パスキーを追加", "패스키 추가"),
   "Chưa có passkey nào — bấm Thêm passkey để đăng ký thiết bị đầu tiên.": e("No passkey yet — tap Add passkey to register your first device.", "尚无通行密钥 — 点击添加通行密钥注册第一台设备。", "ยังไม่มี Passkey — แตะเพิ่ม Passkey เพื่อลงทะเบียนอุปกรณ์แรก", "パスキーはまだありません — 「パスキーを追加」を押して最初のデバイスを登録してください。", "아직 패스키가 없습니다 — 패스키 추가를 눌러 첫 기기를 등록하세요."),
   "Chưa dùng lần nào": e("Never used", "从未使用", "ยังไม่เคยใช้", "未使用", "사용한 적 없음"),
+  "Passkey tự đồng bộ qua tài khoản Apple/Google, đăng ký một lần dùng cho cả điện thoại và máy tính.": e("Passkeys sync automatically via your Apple/Google account — register once and use them on both your phone and computer.", "通行密钥通过 Apple/Google 账户自动同步，注册一次即可在手机和电脑上使用。", "Passkey จะซิงค์อัตโนมัติผ่านบัญชี Apple/Google ลงทะเบียนครั้งเดียวใช้ได้ทั้งมือถือและคอมพิวเตอร์", "パスキーはApple/Googleアカウント経由で自動同期され、一度登録すればスマートフォンとパソコンの両方で使えます。", "패스키는 Apple/Google 계정을 통해 자동 동기화되어, 한 번 등록하면 휴대폰과 컴퓨터에서 모두 사용할 수 있습니다."),
   "Đăng nhập bằng Passkey": e("Sign in with Passkey", "使用通行密钥登录", "เข้าสู่ระบบด้วย Passkey", "パスキーでログイン", "패스키로 로그인"),
   "Hoạt động gần nhất": e("Last active", "最近活动", "ใช้งานล่าสุด", "最終アクティビティ", "최근 활동"),
   "Sao chép mã băm": e("Copy hash", "复制哈希", "คัดลอกแฮช", "ハッシュをコピー", "해시 복사"),
