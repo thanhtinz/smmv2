@@ -3,7 +3,7 @@ import { applyBalance, creditReferralCommission, clawbackReferralCommission } fr
 import { smmCharge, genCode, parsePremiumFields, vnd } from "./format";
 import { checkPromo, consumePromo } from "./promo";
 import { levelDiscountFromSettings } from "./settings";
-import { getSettings } from "./settings";
+import { getSettings, DEFAULT_SETTINGS } from "./settings";
 import { orderEvent, orderTransition, notifyUser } from "./notify";
 import { alertMother, alertPanelOwner } from "./alerts";
 import {
@@ -336,21 +336,28 @@ export async function createSmmOrder(input: {
 export async function refundSmmOrder(orderId: number, amount: number, note: string, status: "REFUNDED" | "CANCELED" | "PARTIAL" = "REFUNDED") {
   const order = await prisma.smmOrder.findUnique({ where: { id: orderId } });
   if (!order) return;
-  const drip = parseDripfeed(order.params);
-  let cap = order.charge - order.refundedAmount;
-  if (drip && drip.placedQty > 0) {
-    const placedValue = Math.floor((order.charge * drip.placedQty) / Math.max(1, order.quantity));
-    cap = Math.min(cap, Math.max(0, order.charge - placedValue - order.refundedAmount));
-  }
-  const amt = Math.min(amount, cap);
+  // Trần hoàn tính LẠI trong transaction sau khi đã khoá dòng đơn (chạm update
+  // trước để transaction khác phải chờ) — tránh hai đường huỷ đồng thời cùng
+  // đọc refundedAmount cũ rồi hoàn vượt tổng tiền đơn.
+  let amt = 0;
   await prisma.$transaction(async (tx) => {
-    if (amt > 0) await applyBalance(tx, order.userId, amt, "REFUND", order.code, note);
+    await tx.smmOrder.update({ where: { id: orderId }, data: { updatedAt: new Date() } });
+    const fresh = await tx.smmOrder.findUnique({ where: { id: orderId } });
+    if (!fresh) return;
+    const drip = parseDripfeed(fresh.params);
+    let cap = fresh.charge - fresh.refundedAmount;
+    if (drip && drip.placedQty > 0) {
+      const placedValue = Math.floor((fresh.charge * drip.placedQty) / Math.max(1, fresh.quantity));
+      cap = Math.min(cap, Math.max(0, fresh.charge - placedValue - fresh.refundedAmount));
+    }
+    amt = Math.max(0, Math.min(amount, cap));
+    if (amt > 0) await applyBalance(tx, fresh.userId, amt, "REFUND", fresh.code, note);
     const data: any = { status, refundedAmount: { increment: amt } };
     if (drip && !drip.cancelled) {
       try {
-        const p = JSON.parse(order.params || "{}");
-        p.dripfeed = { ...drip, cancelled: true };
-        data.params = JSON.stringify(p);
+        const pp = JSON.parse(fresh.params || "{}");
+        pp.dripfeed = { ...drip, cancelled: true };
+        data.params = JSON.stringify(pp);
       } catch {}
     }
     await tx.smmOrder.update({ where: { id: orderId }, data });
@@ -503,7 +510,7 @@ export async function createPremiumOrder(input: {
   // Sản phẩm do panel con tự thêm: chỉ khách của đúng panel đó mua được
   const ownProduct = variant.product.panelId != null;
   if (ownProduct && variant.product.panelId !== input.user.panelId) throw new Error("Gói không tồn tại hoặc đã ngưng bán");
-  let maxQty = parseInt((await getSettings()).premium_max_qty) || 50;
+  let maxQty = parseInt((await getSettings()).premium_max_qty) || Number(DEFAULT_SETTINGS.premium_max_qty);
   if (input.user.panelId) {
     const p = await prisma.childPanel.findUnique({ where: { id: input.user.panelId }, select: { premiumMaxQty: true } });
     if (p?.premiumMaxQty && p.premiumMaxQty > 0) maxQty = p.premiumMaxQty;
@@ -593,15 +600,24 @@ export async function createPremiumOrder(input: {
         orderBy: { id: "asc" },
       });
       if (stocks.length >= input.quantity) {
-        await tx.premiumStock.updateMany({
-          where: { id: { in: stocks.map((s) => s.id) } },
+        // Claim kèm điều kiện status AVAILABLE + đếm số dòng thật sự lấy được:
+        // hai khách mua đồng thời cùng 1 tài khoản cuối cùng thì chỉ MỘT đơn
+        // claim đủ — đơn còn lại trả kho về AVAILABLE và chờ giao tay.
+        const claimed = await tx.premiumStock.updateMany({
+          where: { id: { in: stocks.map((s) => s.id) }, status: "AVAILABLE" },
           data: { status: "SOLD", orderId: o.id },
         });
-        const delivered = await tx.premiumOrder.update({
-          where: { id: o.id },
-          data: { status: "DELIVERED", deliveryData: stocks.map((s) => s.payload).join("\n---\n") },
+        if (claimed.count === stocks.length) {
+          const delivered = await tx.premiumOrder.update({
+            where: { id: o.id },
+            data: { status: "DELIVERED", deliveryData: stocks.map((s) => s.payload).join("\n---\n") },
+          });
+          return { ...delivered, code };
+        }
+        await tx.premiumStock.updateMany({
+          where: { orderId: o.id, status: "SOLD" },
+          data: { status: "AVAILABLE", orderId: null },
         });
-        return { ...delivered, code };
       }
       // Thiếu kho -> để PENDING, admin giao tay (tiền vẫn giữ trong đơn, huỷ sẽ hoàn)
       await tx.premiumOrder.update({
@@ -719,14 +735,22 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
     });
   } else if (canceled === codes.length && codes.length > 0 && order.status !== "REFUNDED") {
     const panelOwner = order.panelId ? await prisma.childPanel.findUnique({ where: { id: order.panelId }, select: { ownerId: true } }) : null;
+    // Claim REFUNDED trong transaction trước khi cộng tiền — đồng bộ chạy trùng
+    // với admin bấm huỷ tay thì chỉ một đường hoàn được tiền.
+    let claimed = false;
     await prisma.$transaction(async (tx) => {
+      const claim = await tx.premiumOrder.updateMany({
+        where: { id: order.id, status: { in: ["PENDING", "DELIVERED", "COMPLETED", "WARRANTY"] } },
+        data: { status: "REFUNDED" },
+      });
+      if (claim.count === 0) return;
+      claimed = true;
       await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Nhà cung cấp huỷ đơn premium — hoàn tiền");
       if (panelOwner && order.commission > 0) {
         await applyBalance(tx, panelOwner.ownerId, -order.commission, "PANEL_COMMISSION", order.code, "Thu hồi hoa hồng — đơn premium bị hoàn");
       }
-      await tx.premiumOrder.update({ where: { id: order.id }, data: { status: "REFUNDED" } });
     });
-    await clawbackReferralCommission(order.userId, order.total, order.code);
+    if (claimed) await clawbackReferralCommission(order.userId, order.total, order.code);
   }
   return prisma.premiumOrder.findUnique({ where: { id: order.id } });
 }
@@ -737,8 +761,11 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
  * khách bấm. Provider tự kiểm chứng tụt số thật khi xử lý refill. Cron gọi định kỳ.
  */
 export async function processAutoRefills(limit = 20) {
-  const since = new Date(Date.now() - 7 * 86400000);
-  const settleBefore = new Date(Date.now() - 30 * 60000);
+  const refillSettings = await getSettings();
+  const windowDays = Math.max(1, parseInt(refillSettings.auto_refill_window_days || "") || 7);
+  const settleMinutes = Math.max(0, parseInt(refillSettings.auto_refill_settle_minutes || "") || 30);
+  const since = new Date(Date.now() - windowDays * 86400000);
+  const settleBefore = new Date(Date.now() - settleMinutes * 60000);
   const orders = await prisma.smmOrder.findMany({
     where: {
       fulfillment: "API", status: "COMPLETED", providerOrderId: { not: null }, providerId: { not: null },

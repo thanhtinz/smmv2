@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { getSettings } from "@/lib/settings";
+import { getSettings, DEFAULT_SETTINGS } from "@/lib/settings";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -9,13 +9,14 @@ import { getCurrentUser } from "@/lib/auth";
  *  (trang Tiền tệ trong Panel Admin); chưa đặt thì dùng tỉ giá của web mẹ. */
 export async function GET() {
   const s = await getSettings().catch(() => null);
+  // Dự phòng lấy từ DEFAULT_SETTINGS — nguồn mặc định duy nhất của toàn hệ thống
   const rates: Record<string, number> = {
-    USD: parseInt(s?.usd_rate || "25000") || 25000,
-    EUR: parseInt(s?.rate_eur || "27000") || 27000,
-    CNY: parseInt(s?.rate_cny || "3450") || 3450,
-    THB: parseInt(s?.rate_thb || "720") || 720,
-    JPY: parseInt(s?.rate_jpy || "160") || 160,
-    KRW: parseFloat(s?.rate_krw || "17.5") || 17.5,
+    USD: parseInt(s?.usd_rate || DEFAULT_SETTINGS.usd_rate) || Number(DEFAULT_SETTINGS.usd_rate),
+    EUR: parseInt(s?.rate_eur || DEFAULT_SETTINGS.rate_eur) || Number(DEFAULT_SETTINGS.rate_eur),
+    CNY: parseInt(s?.rate_cny || DEFAULT_SETTINGS.rate_cny) || Number(DEFAULT_SETTINGS.rate_cny),
+    THB: parseInt(s?.rate_thb || DEFAULT_SETTINGS.rate_thb) || Number(DEFAULT_SETTINGS.rate_thb),
+    JPY: parseInt(s?.rate_jpy || DEFAULT_SETTINGS.rate_jpy) || Number(DEFAULT_SETTINGS.rate_jpy),
+    KRW: parseFloat(s?.rate_krw || DEFAULT_SETTINGS.rate_krw) || Number(DEFAULT_SETTINGS.rate_krw),
   };
   let overridden = false;
   try {

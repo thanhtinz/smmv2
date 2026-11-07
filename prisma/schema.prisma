@@ -36,6 +36,7 @@ model User {
   phone          String?    @db.VarChar(20)
   fullName       String?    @db.VarChar(100)
   passwordHash   String     @db.VarChar(191)
+  sessionVersion Int        @default(0) // tăng khi đổi mật khẩu -> mọi phiên JWT cũ bị huỷ
   role           Role       @default(USER)
   status         UserStatus @default(ACTIVE)
   level          UserLevel  @default(MEMBER)
@@ -302,6 +303,12 @@ model PanelPremiumPrice {
   price     Int // giá cuối mỗi đơn vị do chủ panel đặt
 
   @@unique([panelId, variantId])
+}
+
+model WebhookReceipt {
+  id        Int      @id @default(autoincrement())
+  ref       String   @unique @db.VarChar(120) // id giao dịch phía cổng (SePay...) — chống cộng tiền trùng nguyên tử
+  createdAt DateTime @default(now())
 }
 
 model PremiumReview {

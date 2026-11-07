@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { rateLimitExceeded } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ const USERNAME_RE = /^[a-z0-9-]{6,32}$/;
 export async function GET(req: Request) {
   const user = await getCurrentUser().catch(() => null);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (rateLimitExceeded(`wizcheck|${user.id}`, 60, 60000)) {
+    return NextResponse.json({ error: "too many requests" }, { status: 429 });
+  }
   const q = new URL(req.url).searchParams;
   const out: Record<string, { ok: boolean; msg: string }> = {};
 

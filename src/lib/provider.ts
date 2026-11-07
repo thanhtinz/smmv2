@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { decryptSecret } from "./secret-box";
 import type { Provider } from "@prisma/client";
 
 /**
@@ -21,7 +22,7 @@ export type ProviderService = {
 };
 
 async function call<T = any>(provider: Provider, params: Record<string, string>): Promise<T> {
-  const body = new URLSearchParams({ key: provider.apiKey, ...params });
+  const body = new URLSearchParams({ key: decryptSecret(provider.apiKey), ...params });
   const res = await fetch(provider.apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -269,7 +270,7 @@ export function productEndpoint(provider: Provider): string {
 }
 
 async function callProduct<T = any>(provider: Provider, params: Record<string, string>): Promise<T> {
-  const body = new URLSearchParams({ key: provider.apiKey, ...params });
+  const body = new URLSearchParams({ key: decryptSecret(provider.apiKey), ...params });
   const res = await fetch(productEndpoint(provider), {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },

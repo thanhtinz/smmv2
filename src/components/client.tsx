@@ -817,7 +817,7 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
           </div>
           <div>
             <label className="lbl">API key tài khoản mẹ *</label>
-            <input className="inp font-mono !text-[13px]" name="apiKey" value={d.apiKey} onChange={(e) => set("apiKey", e.target.value)} placeholder="Dán API key của tài khoản mẹ" autoComplete="off" />
+            <input className="inp font-mono !text-[13px]" name="apiKey" value={d.apiKey} onChange={(e) => set("apiKey", e.target.value)} placeholder={mode === "edit" ? "Để trống = giữ key đang liên kết" : "Dán API key của tài khoản mẹ"} autoComplete="off" />
             <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">Panel con liên kết với web mẹ bằng API key này — mặc định là key của chính tài khoản bạn (lấy tại mục <b>API đại lý</b> trong khu khách hàng). Nếu muốn panel chạy trên một tài khoản mẹ khác (ví dụ tài khoản cấp cao hơn), dán key của tài khoản đó. Hệ thống kiểm tra key ngay khi lưu.</p>
           </div>
       </div>
@@ -840,7 +840,7 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
             <div className="font-bold text-emerald-800">Sẵn sàng mở bán</div>
             <ul className="mt-2.5 text-sm text-emerald-700 space-y-1.5">
               <li>— Website: <b>/cua-hang/{d.slug || "..."}</b>{d.domain ? <> và tên miền <b>{d.domain}</b></> : ""}</li>
-              <li>— Liên kết web mẹ bằng API key <b className="font-mono">{d.apiKey ? `${d.apiKey.slice(0, 6)}••••••` : "(chưa nhập)"}</b></li>
+              <li>— Liên kết web mẹ bằng API key <b className="font-mono">{d.apiKey ? `${d.apiKey.slice(0, 6)}••••••` : mode === "edit" ? "(giữ key hiện tại)" : "(chưa nhập)"}</b></li>
               <li>— Giá bán: giá gốc + {Number(d.markup) || 0}%, giảm thêm theo bậc: Đại lý −{d.discountReseller}%, Tổng đại lý −{d.discountAgency}%, VIP −{d.discountVip}%</li>
               <li>— Khách đăng ký tại website là khách của bạn; hoa hồng vào ví ngay khi có đơn.</li>
             </ul>
@@ -851,7 +851,7 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
       <div className="flex items-center justify-between mt-9 pt-5 border-t border-dashed">
         <button type="button" onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1} className="btn-ghost !px-5 !py-2.5 disabled:opacity-40">Quay lại</button>
         {step < 5 ? (
-          <button type="button" onClick={() => setStep(step + 1)} disabled={(step === 1 && !step1Ok) || (step === 3 && !d.apiKey.trim())} className="btn-primary !px-6 !py-2.5 disabled:opacity-50">Tiếp tục</button>
+          <button type="button" onClick={() => setStep(step + 1)} disabled={(step === 1 && !step1Ok) || (step === 3 && mode === "create" && !d.apiKey.trim())} className="btn-primary !px-6 !py-2.5 disabled:opacity-50">Tiếp tục</button>
         ) : (
           <button type="submit" className="btn-primary !px-6 !py-2.5">{mode === "create" ? "Tạo panel & mở bán" : "Lưu cấu hình"}</button>
         )}

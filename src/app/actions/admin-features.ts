@@ -1,7 +1,7 @@
 "use server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { setSetting } from "@/lib/settings";
+import { setSetting, getSettings } from "@/lib/settings";
 import { sendMail, smtpConfigured } from "@/lib/mailer";
 import { redirect } from "next/navigation";
 
@@ -185,7 +185,8 @@ export async function saveLevelsAction(formData: FormData) {
 export async function cleanupSystemAction(formData: FormData) {
   await requireAdmin();
   const kind = str(formData, "kind");
-  const d30 = new Date(Date.now() - 30 * 86400000);
+  const keepDays = Math.max(1, parseInt((await getSettings()).cleanup_retention_days || "") || 30);
+  const d30 = new Date(Date.now() - keepDays * 86400000);
   let n = 0;
   if (kind === "apilog") n = (await prisma.apiLog.deleteMany({ where: { createdAt: { lt: d30 } } })).count;
   else if (kind === "notifications") n = (await prisma.notification.deleteMany({ where: { read: true, createdAt: { lt: d30 } } })).count;
@@ -267,7 +268,8 @@ export async function clearCacheAction(formData: FormData) {
 export async function cleanupAllAction(formData: FormData) {
   await requireAdmin();
   const from = str(formData, "from") || "/admin/don-dep";
-  const d30 = new Date(Date.now() - 30 * 86400000);
+  const keepDays = Math.max(1, parseInt((await getSettings()).cleanup_retention_days || "") || 30);
+  const d30 = new Date(Date.now() - keepDays * 86400000);
   const a = (await prisma.apiLog.deleteMany({ where: { createdAt: { lt: d30 } } })).count;
   const b = (await prisma.notification.deleteMany({ where: { read: true, createdAt: { lt: d30 } } })).count;
   const c = (await prisma.orderEvent.deleteMany({ where: { createdAt: { lt: d30 } } })).count;

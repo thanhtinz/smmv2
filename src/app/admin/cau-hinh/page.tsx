@@ -186,8 +186,15 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Chính sách nạp tiền</div>
         <div><label className="lbl">Nạp tối thiểu (VND)</label><input className="inp" name="deposit_min" type="number" defaultValue={s.deposit_min} /></div>
-        <div><label className="lbl">Phí website con theo tháng (VNĐ / 30 ngày) — áp dụng cho khách của web mẹ, tự gia hạn trừ số dư</label><input className="inp" name="panel_fee" type="number" min="0" defaultValue={s.panel_fee} placeholder="0 = miễn phí" /></div>
+        <div><label className="lbl">Phí website con theo kỳ (VNĐ / {s.panel_period_days} ngày) — áp dụng cho khách của web mẹ, tự gia hạn trừ số dư</label><input className="inp" name="panel_fee" type="number" min="0" defaultValue={s.panel_fee} placeholder="0 = miễn phí" /></div>
         <div><label className="lbl">Markup mặc định cho website con mới (%)</label><input className="inp" name="panel_default_markup" type="number" min="0" max="200" defaultValue={s.panel_default_markup} /></div>
+        <div><label className="lbl">Độ dài 1 kỳ phí website con (ngày)</label><input className="inp" name="panel_period_days" type="number" min="1" defaultValue={s.panel_period_days} /></div>
+        <div><label className="lbl">Gia hạn website con: trừ phí trước hạn (giờ)</label><input className="inp" name="panel_renew_horizon_hours" type="number" min="1" defaultValue={s.panel_renew_horizon_hours} /></div>
+        <div><label className="lbl">Ngưỡng cảnh báo số dư nhà cung cấp mặc định (VNĐ) — khi nhà cung cấp chưa đặt riêng</label><input className="inp" name="provider_low_balance_default" type="number" min="0" defaultValue={s.provider_low_balance_default} /></div>
+        <div><label className="lbl">Tối đa gói định kỳ đang chạy / khách</label><input className="inp" name="subscription_max_active" type="number" min="1" defaultValue={s.subscription_max_active} /></div>
+        <div><label className="lbl">Auto-refill: cửa sổ xử lý sau khi đơn hoàn thành (ngày)</label><input className="inp" name="auto_refill_window_days" type="number" min="1" defaultValue={s.auto_refill_window_days} /></div>
+        <div><label className="lbl">Auto-refill: chờ sau hoàn thành (phút)</label><input className="inp" name="auto_refill_settle_minutes" type="number" min="0" defaultValue={s.auto_refill_settle_minutes} /></div>
+        <div><label className="lbl">Dọn dẹp hệ thống: xoá dữ liệu cũ hơn (ngày)</label><input className="inp" name="cleanup_retention_days" type="number" min="1" defaultValue={s.cleanup_retention_days} /></div>
         <p className="text-xs text-slate-400">Khách đăng ký website con sẽ bị trừ đúng số này vào số dư khi đăng ký thành công (0 = miễn phí như mặc định). Chủ panel con tự đặt phí riêng cho khách của họ trong Panel Admin — khách panel tạo website con thì phí đó thuộc về chủ panel. Mốc thưởng nạp chỉnh ở tab <b>Khuyến mãi</b>, hoa hồng giới thiệu ở tab <b>Giới thiệu</b>, nạp USDT ở tab <b>USDT</b>.</p>
         <div>
           <label className="lbl">Bảo vệ lợi nhuận (chặn đặt đơn khi giá bán sau chiết khấu thấp hơn giá vốn)</label>
@@ -632,6 +639,7 @@ Content-Type: application/json
           <select className="inp" name="usdt_network" defaultValue={s.usdt_network || "TRC20"}><option value="TRC20">TRC20 (Tron)</option><option value="BEP20">BEP20 (BSC)</option><option value="ERC20">ERC20 (Ethereum)</option></select></div>
         <div><label className="lbl">Địa chỉ ví nhận USDT</label><input className="inp" name="usdt_address" defaultValue={s.usdt_address} placeholder="Địa chỉ ví của bạn" /></div>
         <div><label className="lbl">Tỉ giá riêng 1 USDT = (VND) — để trống dùng tỉ giá USD</label><input className="inp" name="usdt_rate" type="number" defaultValue={s.usdt_rate} placeholder="VD: 25500" /></div>
+        <div><label className="lbl">Số USDT tối thiểu mỗi lần nạp</label><input className="inp" name="usdt_min" type="number" min="0" step="0.1" defaultValue={s.usdt_min} /></div>
       </div>
       <p className="text-xs text-slate-400">Trang Nạp tiền của khách sẽ hiện địa chỉ ví + mạng + tỉ giá này khi bạn bật. Panel con tự cấu hình ví USDT riêng trong Panel Admin.</p>
     </section>

@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { encryptSecret, decryptSecret, isSecretSettingKey } from "./secret-box";
 
 export const DEFAULT_SETTINGS: Record<string, string> = {
   site_name: "SMMv2",
@@ -45,7 +46,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // Hoa hồng giới thiệu (% trên tiền nạp của người được giới thiệu) — trang Kiếm tiền
   affiliate_percent: "6",
   // Thưởng nạp dạng JSON: [{"from":500000,"percent":2},{"from":2000000,"percent":5}]
-  deposit_bonus_tiers: "[]",
+  deposit_bonus_tiers: JSON.stringify([{ from: 1000000, percent: 2 }, { from: 5000000, percent: 5 }]), // mốc thưởng mặc định — nguồn duy nhất (seed không ghi nữa)
   maintenance: "0",
   announcement_bar: "",
   sys_announce_enabled: "1",
@@ -91,7 +92,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // Bảo mật đăng ký (Bảo mật nâng cao)
   reg_honeypot: "1",
   reg_block_disposable: "0",
-  reg_max_per_ip_hour: "0",
+  reg_max_per_ip_hour: "5",
   reg_banned_domains: "mailinator.com\nyopmail.com\ntemp-mail.com\nthrowawaymail.com\nguerrillamail.com",
   smtp_enabled: "1",
   smtp_from_name: "",
@@ -165,17 +166,27 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   rate_thb: "730",
   rate_jpy: "165",
   rate_krw: "18",
+  usdt_rate: "", // tỉ giá riêng 1 USDT (VNĐ) — để trống = dùng usd_rate
+  usdt_min: "5", // số USDT tối thiểu mỗi lần khai nạp
+  panel_period_days: "30", // độ dài 1 kỳ phí website con (ngày)
+  panel_renew_horizon_hours: "36", // gia hạn website con: bắt đầu trừ phí trước hạn bao nhiêu giờ
+  provider_low_balance_default: "200000", // ngưỡng cảnh báo số dư nhà cung cấp khi nhà cung cấp chưa đặt riêng
+  subscription_max_active: "10", // tối đa gói định kỳ đang chạy của mỗi khách
+  auto_refill_window_days: "7", // auto-refill: chỉ xử lý đơn hoàn thành trong số ngày này
+  auto_refill_settle_minutes: "30", // auto-refill: chờ sau khi đơn hoàn thành bao nhiêu phút
+  cleanup_retention_days: "30", // dọn dẹp hệ thống: xoá nhật ký/thông báo cũ hơn số ngày này
 };
 
 export async function getSettings(): Promise<Record<string, string>> {
   const rows = await prisma.setting.findMany();
   const out = { ...DEFAULT_SETTINGS };
-  for (const r of rows) out[r.key] = r.value;
+  for (const r of rows) out[r.key] = isSecretSettingKey(r.key) ? decryptSecret(r.value) : r.value;
   return out;
 }
 
 export async function setSetting(key: string, value: string) {
-  await prisma.setting.upsert({ where: { key }, create: { key, value }, update: { value } });
+  const stored = isSecretSettingKey(key) ? encryptSecret(value) : value;
+  await prisma.setting.upsert({ where: { key }, create: { key, value: stored }, update: { value: stored } });
 }
 
 /** Nội dung chuyển khoản chuẩn của 1 user: "SMM <depositCode>" */
@@ -241,5 +252,12 @@ export function vietQrUrl(bankName: string, account: string, amount: number, con
 export function levelDiscountFromSettings(s: Record<string, string>, level: string): number {
   const v = parseInt(s["level_discount_" + level] || "");
   if (Number.isFinite(v) && v >= 0 && v <= 90) return v;
-  return { MEMBER: 0, RESELLER: 5, AGENCY: 10, VIP: 15 }[level] || 0;
+  // Dự phòng lấy từ chính DEFAULT_SETTINGS — không giữ bảng số thứ hai trong code
+  return parseInt(DEFAULT_SETTINGS["level_discount_" + level] || "0") || 0;
+}
+
+/** Tỉ giá 1 USDT (VNĐ) hiệu lực: ưu tiên usdt_rate riêng, trống thì dùng usd_rate.
+ *  Mọi nơi quy đổi USDT phải đi qua hàm này — trước đây mỗi nơi một chuỗi dự phòng khác nhau. */
+export function usdtRateOf(s: Record<string, string>): number {
+  return parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "") || parseInt(DEFAULT_SETTINGS.usd_rate);
 }

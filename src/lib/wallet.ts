@@ -1,10 +1,11 @@
 import { prisma } from "./db";
 import type { TxType } from "@prisma/client";
 import { randomKey } from "./format";
+import { DEFAULT_SETTINGS } from "./settings";
 
 /**
  * Mọi biến động số dư PHẢI đi qua hàm này (trong transaction) để:
- * - khoá dòng user, tránh trừ trùng / âm số dư
+ * - trừ/cộng nguyên tử ở tầng DB, tránh trừ trùng / âm số dư khi chạy song song
  * - ghi sổ Transaction đối soát được
  */
 export async function applyBalance(
@@ -15,18 +16,35 @@ export async function applyBalance(
   ref?: string,
   note?: string
 ) {
-  const user = await tx.user.findUnique({ where: { id: userId } });
-  if (!user) throw new Error("Không tìm thấy người dùng");
-  const after = user.balance + amount;
-  if (after < 0) throw new Error("Số dư không đủ");
-  await tx.user.update({
-    where: { id: userId },
-    data: {
-      balance: after,
-      ...(amount > 0 && type === "DEPOSIT" ? { totalDeposited: { increment: amount } } : {}),
-      ...(amount < 0 ? { totalSpent: { increment: -amount } } : {}),
-    },
-  });
+  // Cập nhật NGUYÊN TỬ ở tầng DB (increment + điều kiện balance >= số trừ ngay
+  // trong mệnh đề WHERE): hai transaction đồng thời không còn cùng đọc một số
+  // dư cũ rồi ghi đè nhau — trừ tiền khi số dư thật không đủ sẽ không khớp dòng
+  // nào và bị từ chối. (Bản cũ đọc-sửa-ghi cho phép mua vượt số dư khi chạy song song.)
+  if (amount < 0) {
+    const res = await tx.user.updateMany({
+      where: { id: userId, balance: { gte: -amount } },
+      data: { balance: { increment: amount }, totalSpent: { increment: -amount } },
+    });
+    if (res.count === 0) {
+      const exists = await tx.user.findUnique({ where: { id: userId }, select: { id: true } });
+      if (!exists) throw new Error("Không tìm thấy người dùng");
+      throw new Error("Số dư không đủ");
+    }
+  } else if (amount > 0) {
+    const res = await tx.user.updateMany({
+      where: { id: userId },
+      data: {
+        balance: { increment: amount },
+        ...(type === "DEPOSIT" ? { totalDeposited: { increment: amount } } : {}),
+      },
+    });
+    if (res.count === 0) throw new Error("Không tìm thấy người dùng");
+  } else {
+    const exists = await tx.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!exists) throw new Error("Không tìm thấy người dùng");
+  }
+  const fresh = await tx.user.findUnique({ where: { id: userId }, select: { balance: true } });
+  const after = fresh!.balance;
   await tx.transaction.create({
     data: { userId, type, amount, balanceAfter: after, ref, note },
   });
@@ -55,7 +73,7 @@ export async function creditReferralCommission(
     if (p?.affiliatePercent != null) panelAffPct = p.affiliatePercent;
   }
   const row = await tx.setting.findUnique({ where: { key: "affiliate_percent" } });
-  const pct = panelAffPct != null ? panelAffPct : parseFloat(row?.value || "6") || 0;
+  const pct = panelAffPct != null ? panelAffPct : parseFloat(row?.value || DEFAULT_SETTINGS.affiliate_percent) || 0;
   if (pct <= 0) return 0;
   const commission = Math.floor((amount * pct) / 100);
   if (commission <= 0) return 0;
@@ -69,7 +87,7 @@ export async function clawbackReferralCommission(buyerId: number, refundAmount: 
   const buyer = await prisma.user.findUnique({ where: { id: buyerId }, select: { referredById: true, panelId: true } });
   if (!buyer?.referredById) return;
   const row = await prisma.setting.findUnique({ where: { key: "affiliate_percent" } });
-  let pct = parseFloat(row?.value || "6") || 0;
+  let pct = parseFloat(row?.value || DEFAULT_SETTINGS.affiliate_percent) || 0;
   if (buyer.panelId) {
     const p = await prisma.childPanel.findUnique({ where: { id: buyer.panelId }, select: { affiliatePercent: true } });
     if (p?.affiliatePercent != null) pct = p.affiliatePercent;

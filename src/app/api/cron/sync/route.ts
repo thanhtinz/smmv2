@@ -17,10 +17,16 @@ export const maxDuration = 300;
 export async function GET(req: NextRequest) {
   const secret = (await getSettings()).cron_secret || process.env.CRON_SECRET || "";
   const given =
-    req.nextUrl.searchParams.get("secret") ||
     req.headers.get("x-cron-secret") ||
     (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  if (secret && given !== secret) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Fail-closed: chưa cấu hình secret ở cả DB lẫn env thì TỪ CHỐI mọi cuộc gọi
+  // (trước đây trống secret = ai cũng gọi được vòng đồng bộ nặng). Chỉ nhận qua
+  // header, không nhận ?secret= (tránh lọt vào access log).
+  if (!secret) return NextResponse.json({ error: "Cron secret not configured" }, { status: 503 });
+  const { timingSafeEqual } = await import("crypto");
+  const a = Buffer.from(given || "");
+  const b = Buffer.from(secret);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const result: any = { ordersSynced: 0, ordersFailed: 0, premiumSynced: 0, premiumFailed: 0, providers: [] };
 
@@ -68,7 +74,7 @@ export async function GET(req: NextRequest) {
     const todayKey = new Date().toISOString().slice(0, 10);
     const lowProviders = await prisma.provider.findMany({ where: { active: true } });
     for (const p of lowProviders) {
-      const threshold = p.minBalanceAlert || 200000;
+      const threshold = p.minBalanceAlert > 0 ? p.minBalanceAlert : (parseInt(st.provider_low_balance_default || "") || 200000);
       if (p.balanceCache > 0 && p.balanceCache < threshold && st[`lb_alert_${p.id}`] !== todayKey) {
         await alertMother("low_balance", "Số dư nhà cung cấp sắp hết", `${p.name} còn ${p.balanceCache.toLocaleString("vi-VN")}đ (ngưỡng cảnh báo ${threshold.toLocaleString("vi-VN")}đ)`);
         await setSetting(`lb_alert_${p.id}`, todayKey);

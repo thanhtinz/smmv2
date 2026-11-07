@@ -9,7 +9,7 @@ import { vnd } from "@/lib/format";
 type BankInfo = { name: string; account: string; holder: string; qr: string; content: string; min: number };
 type MomoInfo = { phone: string; name: string; content: string };
 type IntlInfo = { rate: number; paypal: boolean; stripe: boolean; minUsd?: number };
-type UsdtInfo = { address: string; network: string; rate: number };
+type UsdtInfo = { address: string; network: string; rate: number; min?: number };
 type MethodKey = "sepay" | "paypal" | "stripe" | "usdt";
 
 export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: BankInfo | null; banks?: BankInfo[]; momo: MomoInfo | null; tiers: { from: number; percent: number }[]; intl: IntlInfo | null; usdt?: UsdtInfo | null }) {
@@ -24,7 +24,7 @@ export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: Ba
   ];
   const [method, setMethod] = useState<MethodKey>(methods[0]?.key || "sepay");
   const [usd, setUsd] = useState("10");
-  const rate = intl?.rate || 25000;
+  const rate = intl?.rate || usdt?.rate || 25000;
   const vndVal = Math.round((parseFloat(usd) || 0) * rate);
   const isIntl = method === "paypal" || method === "stripe";
   const isUsdt = method === "usdt";
@@ -108,7 +108,7 @@ export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: Ba
 
       {isUsdt && usdt && (
         <form action={createUsdtDepositAction}>
-          <p className="text-sm text-slate-500 mb-4">Chuyển USDT tới địa chỉ ví bên dưới (mạng <b className="text-slate-700">{usdt.network}</b>), sau đó khai số USDT và mã giao dịch — admin đối chiếu và cộng tiền. Tỉ giá: <b className="text-slate-700">1 USDT = {usdt.rate.toLocaleString("vi-VN")}đ</b> · Tối thiểu 5 USDT.</p>
+          <p className="text-sm text-slate-500 mb-4">Chuyển USDT tới địa chỉ ví bên dưới (mạng <b className="text-slate-700">{usdt.network}</b>), sau đó khai số USDT và mã giao dịch — admin đối chiếu và cộng tiền. Tỉ giá: <b className="text-slate-700">1 USDT = {usdt.rate.toLocaleString("vi-VN")}đ</b> · Tối thiểu {usdt.min ?? 5} USDT.</p>
           <div className="mb-4 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
             <div className="min-w-0"><div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Địa chỉ ví {usdt.network}</div><div className="truncate font-mono text-sm font-semibold">{usdt.address}</div></div>
             <CopyBtn text={usdt.address} label="Sao chép địa chỉ ví" />

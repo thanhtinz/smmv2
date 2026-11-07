@@ -22,7 +22,7 @@ export default async function PanelSetupPage({ searchParams }: { searchParams: {
         name: panel.name, slug: panel.slug, tagline: panel.tagline || "", accent: panel.accent,
         markup: panel.markup, discountMember: panel.discountMember, discountReseller: panel.discountReseller,
         discountAgency: panel.discountAgency, discountVip: panel.discountVip,
-        apiKey: panel.apiKey || user.apiKey, domain: panel.domain || "", support: panel.support || "",
+        apiKey: "", domain: panel.domain || "", support: panel.support || "", // không đưa key liên kết xuống trình duyệt — để trống = giữ key hiện tại
       }
     : { name: "", slug: "", tagline: "", accent: "blue", markup: 20, discountMember: 0, discountReseller: 5, discountAgency: 10, discountVip: 15, apiKey: user.apiKey, domain: "", support: "" };
   return (

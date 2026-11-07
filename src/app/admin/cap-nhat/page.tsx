@@ -21,16 +21,14 @@ export default async function AdminUpdate() {
   let dbVersion = "—";
   let dbOk = false;
   try {
-    const r = await prisma.$queryRawUnsafe<{ v: string }[]>("SELECT VERSION() AS v");
+    const r = await prisma.$queryRaw<{ v: string }[]>`SELECT VERSION() AS v`;
     const v = r[0]?.v || "—";
     dbVersion = v.includes("PostgreSQL") ? v.split(" ").slice(0, 2).join(" ") : `MariaDB ${v.split("-")[0]}`;
     dbOk = true;
   } catch { /* bỏ qua */ }
   let migrations: MigRow[] = [];
   try {
-    migrations = await prisma.$queryRawUnsafe<MigRow[]>(
-      "SELECT migration_name, finished_at, applied_steps_count FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY finished_at DESC LIMIT 30",
-    );
+    migrations = await prisma.$queryRaw<MigRow[]>`SELECT migration_name, finished_at, applied_steps_count FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY finished_at DESC LIMIT 30`;
   } catch { migrations = []; }
   const lastMig = migrations[0]?.finished_at || null;
   return (

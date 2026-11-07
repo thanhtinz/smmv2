@@ -25,14 +25,18 @@ export async function monthlyFeeForPanel(panel: { parentPanelId: number | null }
  *  /api/panels/resolve chỉ trả panel ACTIVE) + báo cho chủ panel. */
 export async function processPanelRenewals(limit = 50) {
   const now = new Date();
-  const horizon = new Date(now.getTime() + 36 * 3600000);
+  const settings = await getSettings();
+  const horizonHours = Math.max(1, parseInt(settings.panel_renew_horizon_hours || "") || 36);
+  const periodDays = Math.max(1, parseInt(settings.panel_period_days || "") || 30);
+  const horizon = new Date(now.getTime() + horizonHours * 3600000);
   const due = await prisma.childPanel.findMany({
     where: { expiresAt: { not: null, lte: horizon }, status: { in: ["ACTIVE", "EXPIRED"] }, autoRenew: true },
     orderBy: { expiresAt: "asc" },
     take: limit,
   });
-  const result = { checked: due.length, renewed: 0, expired: 0, waiting: 0 };
+  const result = { checked: due.length, renewed: 0, expired: 0, waiting: 0, errors: 0 };
   for (const panel of due) {
+   try {
     const label = panel.domain || panel.name;
     const { fee, parent } = await monthlyFeeForPanel(panel);
     if (fee <= 0) {
@@ -44,9 +48,9 @@ export async function processPanelRenewals(limit = 50) {
     const owner = await prisma.user.findUnique({ where: { id: panel.ownerId }, select: { balance: true } });
     if (owner && owner.balance >= fee) {
       const base = panel.expiresAt && panel.expiresAt > now ? panel.expiresAt : now;
-      const expiresAt = new Date(base.getTime() + 30 * 86400000);
+      const expiresAt = new Date(base.getTime() + periodDays * 86400000);
       await prisma.$transaction(async (tx) => {
-        await applyBalance(tx, panel.ownerId, -fee, "PANEL_FEE", `PANEL-${panel.id}`, `Gia hạn website con ${label} (30 ngày)`);
+        await applyBalance(tx, panel.ownerId, -fee, "PANEL_FEE", `PANEL-${panel.id}`, `Gia hạn website con ${label} (${periodDays} ngày)`);
         if (parent) {
           await applyBalance(tx, parent.ownerId, fee, "PANEL_FEE", `PANEL-${panel.id}`, `Thu phí gia hạn website con ${label}`);
         }
@@ -66,6 +70,12 @@ export async function processPanelRenewals(limit = 50) {
     } else {
       result.waiting++;
     }
+   } catch (e: any) {
+    // Một panel lỗi (số dư âm do race cũ, dữ liệu hỏng...) không được làm đứt
+    // cả vòng — ghi log rồi xử lý tiếp các panel còn lại.
+    result.errors++;
+    await prisma.apiLog.create({ data: { kind: "panel_renewal", ref: `PANEL-${panel.id}`, ok: false, detail: String(e?.message || e) } }).catch(() => {});
+   }
   }
   return result;
 }

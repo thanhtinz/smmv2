@@ -5,7 +5,7 @@ services:
       MARIADB_DATABASE: smmv2
       MARIADB_ROOT_PASSWORD: smmv2-root-pass
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - smmv2-db:/var/lib/mysql
   app:
@@ -16,7 +16,7 @@ services:
       CRON_SECRET: "doi-chuoi-nay-nua"
       NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - db
     command: sh -c "npx prisma db push && npm run db:seed && npm start"

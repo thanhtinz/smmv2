@@ -1,5 +1,6 @@
 "use server";
 import { prisma } from "@/lib/db";
+import { panelOrderCodes } from "@/lib/panel-orders";
 import { requireUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { notifyUser } from "@/lib/notify";
@@ -8,6 +9,7 @@ import { panelAiConfig, testAiConnection } from "@/lib/ai";
 import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
 import { genCode, normalizePremiumFieldsJson } from "@/lib/format";
 import { refundSmmOrder } from "@/lib/orders";
+import { getSettings } from "@/lib/settings";
 import { orderTransition } from "@/lib/notify";
 
 /** Actions riêng của chủ panel con — mọi thao tác đều khoá theo panel của chính
@@ -362,15 +364,20 @@ export async function panelDepositAction(formData: FormData) {
   const dep = await prisma.deposit.findFirst({ where: { id, user: { panelId: panel.id } } });
   if (!dep || dep.status !== "PENDING") back("/panel-admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
   if (kind === "reject") {
-    await prisma.deposit.update({ where: { id }, data: { status: "REJECTED", adminNote: str(formData, "adminNote") || null } });
+    const claim = await prisma.deposit.updateMany({ where: { id, status: "PENDING" }, data: { status: "REJECTED", adminNote: str(formData, "adminNote") || null } });
+    if (claim.count === 0) back("/panel-admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
     await notifyUser(dep.userId, "Yêu cầu nạp tiền bị từ chối", `Yêu cầu ${dep.code} (${dep.amount.toLocaleString("vi-VN")}đ) đã bị chủ website từ chối.`, "/dashboard/nap-tien");
     done("/panel-admin/nap-tien", "Đã từ chối yêu cầu nạp");
   }
+  let claimed = false;
   await prisma.$transaction(async (tx) => {
-    await tx.deposit.update({ where: { id }, data: { status: "APPROVED" } });
+    const claim = await tx.deposit.updateMany({ where: { id, status: "PENDING" }, data: { status: "APPROVED" } });
+    if (claim.count === 0) return;
+    claimed = true;
     await applyBalance(tx, dep.userId, dep.amount, "DEPOSIT", dep.code, "Chủ website duyệt nạp tiền");
     if (dep.bonus > 0) await applyBalance(tx, dep.userId, dep.bonus, "BONUS", dep.code, "Thưởng nạp tiền");
   });
+  if (!claimed) back("/panel-admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
   await notifyUser(dep.userId, "Nạp tiền thành công", `Yêu cầu ${dep.code} đã được duyệt: +${dep.amount.toLocaleString("vi-VN")}đ vào số dư.`, "/dashboard/nap-tien");
   done("/panel-admin/nap-tien", `Đã cộng ${dep.amount.toLocaleString("vi-VN")}đ cho khách`);
 }
@@ -506,11 +513,18 @@ export async function panelSaveConfigAction(formData: FormData) {
     done(backTo, "Đã lưu PayPal của panel — khách của bạn nạp PayPal sẽ trả vào tài khoản này");
   }
   if (section === "sepay") {
+    const newSecret = keep(str(formData, "sepaySecret"), panel.sepaySecret);
+    // Secret SePay là khoá NHẬN DIỆN panel khi webhook về — trùng với panel khác
+    // là webhook bị gán nhầm panel (findFirst mơ hồ).
+    if (newSecret && newSecret !== panel.sepaySecret) {
+      const dup = await prisma.childPanel.findFirst({ where: { sepaySecret: newSecret, id: { not: panel.id } }, select: { id: true } });
+      if (dup) back(backTo, "err", "Secret SePay này đã được panel khác sử dụng — hãy tạo secret riêng cho panel của bạn");
+    }
     await prisma.childPanel.update({
       where: { id: panel.id },
       data: {
         sepayEnabled: formData.get("sepayEnabled") === "on",
-        sepaySecret: keep(str(formData, "sepaySecret"), panel.sepaySecret),
+        sepaySecret: newSecret,
       },
     });
     done(backTo, "Đã lưu SePay của panel — từ giờ khách nạp ngân hàng vào tài khoản của bạn sẽ được cộng TỰ ĐỘNG, không cần duyệt tay");
@@ -615,7 +629,12 @@ export async function panelSaveConfigAction(formData: FormData) {
     done(backTo, "Đã lưu chương trình giới thiệu của panel");
   }
   if (section === "toolapi") {
-    await prisma.childPanel.update({ where: { id: panel.id }, data: { toolApiKey: str(formData, "tool_api_key") || null } });
+    const newToolKey = str(formData, "tool_api_key") || null;
+    if (newToolKey) {
+      const dup = await prisma.childPanel.findFirst({ where: { toolApiKey: newToolKey, id: { not: panel.id } }, select: { id: true } });
+      if (dup) back(backTo, "err", "Tool API Key này đã được panel khác sử dụng — hãy dùng key riêng của bạn");
+    }
+    await prisma.childPanel.update({ where: { id: panel.id }, data: { toolApiKey: newToolKey } });
     done(backTo, "Đã lưu Tool API Key của panel");
   }
   if (section === "aicheck") {
@@ -847,30 +866,22 @@ export async function panelToggleCategoryAction(formData: FormData) {
 export async function panelCleanupAction(formData: FormData) {
   const { panel } = await ownPanelOwner("/panel-admin/he-thong");
   const kind = str(formData, "kind");
-  const cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+  const keepDays = Math.max(1, parseInt((await getSettings()).cleanup_retention_days || "") || 30);
+  const cutoff = new Date(Date.now() - keepDays * 24 * 3600 * 1000);
   if (kind === "notifications") {
     const r = await prisma.notification.deleteMany({ where: { user: { panelId: panel.id }, read: true, createdAt: { lt: cutoff } } });
-    done("/panel-admin/he-thong", `Đã xoá ${r.count} thông báo đã đọc (cũ hơn 30 ngày) của khách panel`);
+    done("/panel-admin/he-thong", `Đã xoá ${r.count} thông báo đã đọc (cũ hơn ${keepDays} ngày) của khách panel`);
   }
   if (kind === "events") {
     const r = await prisma.orderEvent.deleteMany({ where: { createdAt: { lt: cutoff }, order: { panelId: panel.id } } });
-    done("/panel-admin/he-thong", `Đã xoá ${r.count} dòng thời gian đơn cũ (hơn 30 ngày) của panel`);
+    done("/panel-admin/he-thong", `Đã xoá ${r.count} dòng thời gian đơn cũ (hơn ${keepDays} ngày) của panel`);
   }
   if (kind === "apilogs") {
     const codes = await panelOrderCodes(panel.id);
     const r = await prisma.apiLog.deleteMany({ where: { ref: { in: codes }, createdAt: { lt: cutoff } } });
-    done("/panel-admin/he-thong", `Đã xoá ${r.count} nhật ký API cũ (hơn 30 ngày) liên quan đơn của panel`);
+    done("/panel-admin/he-thong", `Đã xoá ${r.count} nhật ký API cũ (hơn ${keepDays} ngày) liên quan đơn của panel`);
   }
   back("/panel-admin/he-thong", "err", "Loại dọn dẹp không hợp lệ");
-}
-
-/** Mã đơn (SMM + Premium) của panel — dùng để lọc nhật ký API theo phạm vi panel. */
-export async function panelOrderCodes(panelId: number): Promise<string[]> {
-  const [a, b] = await Promise.all([
-    prisma.smmOrder.findMany({ where: { panelId }, select: { code: true }, orderBy: { id: "desc" }, take: 2000 }),
-    prisma.premiumOrder.findMany({ where: { panelId }, select: { code: true }, orderBy: { id: "desc" }, take: 2000 }),
-  ]);
-  return [...a.map((x) => x.code), ...b.map((x) => x.code)];
 }
 
 export async function panelSendReportNowAction() {
@@ -1001,19 +1012,28 @@ export async function panelPremiumOrderAction(formData: FormData) {
   });
   if (!order || order.variant.product.panelId !== panel.id) back("/panel-admin/don-premium", "err", "Đơn này không thuộc sản phẩm của panel bạn");
   if (kind === "cancel") {
-    if (order.status === "REFUNDED") back(path, "err", "Đơn đã hoàn tiền trước đó");
+    if (order.status === "REFUNDED" || order.status === "CANCELED") back(path, "err", "Đơn đã kết thúc — không hoàn tiền thêm được");
+    let claimed = false;
     await prisma.$transaction(async (tx) => {
+      const claim = await tx.premiumOrder.updateMany({
+        where: { id, status: { in: ["PENDING", "DELIVERED", "COMPLETED", "WARRANTY"] } },
+        data: { status: "REFUNDED" },
+      });
+      if (claim.count === 0) return;
+      claimed = true;
       await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Chủ panel huỷ đơn premium — hoàn tiền");
       if (order.commission > 0) {
         await applyBalance(tx, panel.ownerId, -order.commission, "PANEL_COMMISSION", order.code, "Thu hồi hoa hồng — đơn premium bị huỷ");
       }
-      await tx.premiumOrder.update({ where: { id }, data: { status: "REFUNDED" } });
     });
+    if (!claimed) back(path, "err", "Đơn đã kết thúc — không hoàn tiền thêm được");
     await clawbackReferralCommission(order.userId, order.total, order.code);
     done(path, "Đã huỷ đơn và hoàn tiền cho khách");
   }
+  if (order.status === "REFUNDED" || order.status === "CANCELED") back(path, "err", "Đơn đã kết thúc — không sửa được nữa");
   const deliveryData = str(formData, "deliveryData") || order.deliveryData;
   const status = (str(formData, "status") || order.status) as any;
+  if (!["PENDING", "DELIVERED", "COMPLETED", "WARRANTY"].includes(status)) back(path, "err", "Trạng thái không hợp lệ — muốn hoàn tiền hãy dùng nút Huỷ đơn");
   const adminNote = str(formData, "adminNote") || order.adminNote;
   await prisma.premiumOrder.update({ where: { id }, data: { status, deliveryData, adminNote } });
   if ((status === "DELIVERED" || status === "COMPLETED") && deliveryData) {
@@ -1026,10 +1046,10 @@ export async function panelPremiumOrderAction(formData: FormData) {
 export async function panelDeleteDepositsAction(formData: FormData) {
   const { panel } = await ownPanelOwner("/panel-admin/nap-tien");
   if (formData.get("all") === "1") {
-    await prisma.deposit.deleteMany({ where: { user: { panelId: panel.id } } });
+    await prisma.deposit.deleteMany({ where: { user: { panelId: panel.id }, status: { not: "APPROVED" } } });
   } else {
     const ids = formData.getAll("ids").map((x) => parseInt(String(x))).filter((n) => n > 0);
-    if (ids.length) await prisma.deposit.deleteMany({ where: { id: { in: ids }, user: { panelId: panel.id } } });
+    if (ids.length) await prisma.deposit.deleteMany({ where: { id: { in: ids }, user: { panelId: panel.id }, status: { not: "APPROVED" } } });
   }
   redirect("/panel-admin/nap-tien?msg=" + encodeURIComponent("Đã xoá giao dịch nạp"));
 }

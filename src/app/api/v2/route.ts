@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { userByApiKey } from "@/lib/auth";
-import { createSmmOrder, createPremiumOrder, refundSmmOrder } from "@/lib/orders";
+import { createSmmOrder, createPremiumOrder, refundSmmOrder, panelTierDiscount } from "@/lib/orders";
 import { smmCharge, vnd } from "@/lib/format";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { moduleOn } from "@/lib/modules";
 import { providerCancel, providerRefill } from "@/lib/provider";
+import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
 
 /**
  * API cho đại lý (reseller) — chuẩn SMM API v2 tương thích Perfect Panel & hầu hết panel VN.
@@ -30,6 +31,13 @@ async function handle(req: NextRequest) {
   const get = (k: string) => params.get(k) || q.get(k) || "";
   const key = get("key");
   const action = get("action");
+  // Giới hạn tần suất: theo IP và theo API key (chống spam/khuếch đại tải)
+  if (rateLimitExceeded(`v2ip|${clientIp(req.headers)}`, 600, 60000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+  if (key && rateLimitExceeded(`v2key|${key}`, 300, 60000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
   const user = await userByApiKey(key);
   if (!user) return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
   if (!(await moduleOn("api", user.panelId))) {
@@ -42,19 +50,42 @@ async function handle(req: NextRequest) {
     }
 
     if (action === "services") {
+      // Chỉ dịch vụ CHUNG + dịch vụ riêng của đúng panel người gọi (trước đây trả
+      // cả dịch vụ riêng của panel khác — lộ catalog + giá của đối thủ cùng hệ).
       const services = await prisma.smmService.findMany({
-        where: { active: true },
+        where: { active: true, OR: [{ panelId: null }, ...(user.panelId ? [{ panelId: user.panelId }] : [])] },
         include: { category: true },
         orderBy: [{ categoryId: "asc" }, { sort: "asc" }, { id: "asc" }],
       });
-      const discount = levelDiscountFromSettings(await getSettings(), user.level);
+      // Giá hiển thị phải KHỚP giá thực thu trong createSmmOrder: khách panel trả
+      // giá đã cộng markup rồi giảm theo bậc của panel (hoặc giá riêng chủ panel
+      // đặt); khách web mẹ giảm theo bậc trong Cấu hình.
+      const settings = await getSettings();
+      const discount = levelDiscountFromSettings(settings, user.level);
+      const myPanel = user.panelId
+        ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }).catch(() => null)
+        : null;
+      const panelActive = myPanel && myPanel.status === "ACTIVE" ? myPanel : null;
+      const overrides = panelActive
+        ? await prisma.panelServicePrice.findMany({ where: { panelId: panelActive.id, level: user.level as any } })
+        : [];
+      const ovMap = new Map(overrides.map((o) => [o.serviceId, o.price]));
+      const rateFor = (svc: (typeof services)[number]) => {
+        if (panelActive) {
+          const ov = ovMap.get(svc.id);
+          if (ov) return ov;
+          const marked = Math.round(svc.rate * (1 + panelActive.markup / 100));
+          return Math.round(marked * (1 - panelTierDiscount(panelActive, user.level) / 100));
+        }
+        return Math.round(svc.rate * (1 - discount / 100));
+      };
       return NextResponse.json(
         services.map((s) => ({
           service: s.id,
           name: s.name,
           type: "Default",
           category: s.category.name,
-          rate: String(Math.round(s.rate * (1 - discount / 100))),
+          rate: String(rateFor(s)),
           min: s.min,
           max: s.max,
           refill: s.refill,
@@ -122,7 +153,8 @@ async function handle(req: NextRequest) {
       const ids = get("orders")
         .split(",")
         .map((x) => parseInt(x.trim()))
-        .filter(Boolean);
+        .filter(Boolean)
+        .slice(0, 100); // cắt tối đa 100 id/lần như nhánh orders — chống khuếch đại tải
       const out: any[] = [];
       for (const id of ids) {
         const o = await prisma.smmOrder.findFirst({
@@ -149,6 +181,10 @@ async function handle(req: NextRequest) {
       const o = await prisma.smmOrder.findFirst({ where: { id, userId: user.id }, include: { service: true, provider: true } });
       if (!o) return NextResponse.json({ error: "Order not found" });
       if (!o.service.refill) return NextResponse.json({ error: "Service does not support refill" });
+      // Chỉ đơn đã hoàn thành/một phần mới được refill — refill đơn đã huỷ/đã
+      // hoàn tiền là bắt nhà cung cấp giao lại phần giá trị đã trả lại khách.
+      if (!["COMPLETED", "PARTIAL"].includes(o.status)) return NextResponse.json({ error: "Only completed or partial orders can be refilled" });
+      if (rateLimitExceeded(`v2refill|${user.id}`, 60, 60000)) return NextResponse.json({ error: "Too many refill requests" }, { status: 429 });
       // Đơn API: đẩy refill thật sang provider
       if (o.fulfillment === "API" && o.provider && o.providerOrderId) {
         try {
@@ -169,7 +205,13 @@ async function handle(req: NextRequest) {
       const cats = await prisma.premiumCategory.findMany({
         where: { active: true },
         orderBy: { sort: "asc" },
-        include: { products: { where: { active: true }, include: { variants: { where: { active: true }, orderBy: { price: "asc" } } } } },
+        include: {
+          products: {
+            // Chỉ sản phẩm chung + sản phẩm riêng của đúng panel người gọi
+            where: { active: true, OR: [{ panelId: null }, ...(user.panelId ? [{ panelId: user.panelId }] : [])] },
+            include: { variants: { where: { active: true }, orderBy: { price: "asc" } } },
+          },
+        },
       });
       return NextResponse.json(
         cats.map((c) => ({
@@ -236,7 +278,8 @@ async function handle(req: NextRequest) {
     void smmCharge;
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (e: any) {
-    return NextResponse.json({ error: String(e?.message || "Server error") }, { status: 400 });
+    console.error("[/api/v2]", e);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 

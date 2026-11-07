@@ -63,6 +63,13 @@ export async function GET(req: NextRequest) {
     }
     if (user.status === "BANNED") return fail("Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    // IP bị cấm thì không cho vào bằng Google (luồng mật khẩu đã chặn ở assertNotBanned)
+    const { clientIp } = await import("@/lib/rate-limit");
+    const ip = clientIp(req.headers);
+    if (ip && ip !== "?") {
+      const ban = await prisma.ipBan.findFirst({ where: { ip, OR: [{ panelId: null }, ...(user.panelId ? [{ panelId: user.panelId }] : [])] } }).catch(() => null);
+      if (ban) return fail("Địa chỉ IP của bạn đã bị chặn" + (ban.reason ? `: ${ban.reason}` : ""));
+    }
     await createSession({ id: user.id, role: user.role, username: user.username });
     return NextResponse.redirect(new URL("/dashboard", req.url));
   } catch {

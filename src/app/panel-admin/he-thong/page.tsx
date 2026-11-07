@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
-import { panelOrderCodes } from "@/app/actions/panel";
+import { panelOrderCodes } from "@/lib/panel-orders";
 import { PageHead, Flash, Stat, I } from "@/components/ui";
 import { num, dt } from "@/lib/format";
 import { panelCleanupAction } from "@/app/actions/panel";

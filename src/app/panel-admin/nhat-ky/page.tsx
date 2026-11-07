@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
-import { panelOrderCodes } from "@/app/actions/panel";
+import { panelOrderCodes } from "@/lib/panel-orders";
 import { PageHead, Badge, Empty } from "@/components/ui";
 import { dt } from "@/lib/format";
 

@@ -4,8 +4,8 @@ import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
 
 async function clientIp() {
-  const h = headers();
-  return (h.get("x-forwarded-for") || h.get("x-real-ip") || "").split(",")[0].trim();
+  const { clientIp: ipOf } = await import("@/lib/rate-limit");
+  return ipOf(headers());
 }
 async function assertNotBanned(panelId?: number) {
   const ip = await clientIp();
@@ -66,7 +66,7 @@ export async function registerAction(formData: FormData) {
       refCode: randomKey(8).toUpperCase(),
       referredById: referrer?.id ?? null,
     },
-  });
+  }).catch((e: any) => { if (e?.code === "P2002") back("/register", "err", "Tên đăng nhập hoặc email đã được sử dụng"); throw e; });
   await recordRegAttempt(regIp);
   void (async () => { const { alertMother } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản`); })();
   await createSession({ id: user.id, role: user.role, username: user.username });
@@ -106,7 +106,7 @@ export async function panelRegisterAction(formData: FormData) {
       referredById: referrer?.id ?? null,
       panelId: panel.id,
     },
-  });
+  }).catch((e: any) => { if (e?.code === "P2002") back(page, "err", "Tên đăng nhập hoặc email đã được sử dụng"); throw e; });
   await recordRegAttempt(regIp);
   void (async () => { const { alertMother, alertPanelOwner } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản qua panel ${panel.name}`); await alertPanelOwner(panel.id, "new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản tại website của bạn`); })();
   await createSession({ id: user.id, role: user.role, username: user.username });
@@ -124,7 +124,13 @@ export async function loginAction(formData: FormData) {
   if (!(await verifyRecaptcha(String(formData.get("g-recaptcha-response") || "") || null, gs.recaptcha_login === "1")))
     back("/login", "err", "Vui lòng hoàn thành xác minh reCAPTCHA");
   const user = await prisma.user.findFirst({ where: { OR: [{ username: login }, { email: login }] } });
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  if (!user) {
+    // Chạy bcrypt với hash giả để thời gian phản hồi giống hệt trường hợp sai mật khẩu
+    await bcrypt.compare(password, "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy");
+    await recordLoginFail(ip, login);
+    back("/login", "err", "Sai tài khoản hoặc mật khẩu");
+  }
+  if (!(await bcrypt.compare(password, user.passwordHash))) {
     await recordLoginFail(ip, login);
     back("/login", "err", "Sai tài khoản hoặc mật khẩu");
   }

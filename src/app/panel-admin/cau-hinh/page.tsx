@@ -143,7 +143,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
           </div>
           <div>
             <label className="lbl">API key liên kết web mẹ</label>
-            <input className="inp font-mono !text-[13px]" name="apiKey" defaultValue={panel.apiKey || ""} placeholder="Để trống = giữ key hiện tại" autoComplete="off" />
+            <input className="inp font-mono !text-[13px]" name="apiKey" defaultValue="" placeholder={panel.apiKey ? `Đang dùng key ••••${panel.apiKey.slice(-4)} — để trống = giữ nguyên` : "Dán API key của tài khoản mẹ"} autoComplete="off" />
             <p className="mt-1.5 text-xs text-slate-400">Đang liên kết bằng key của tài khoản <b>{linkedUser ? `${linkedUser.username} (#${panel.apiUserId})` : "—"}</b>. Hệ thống kiểm tra key ngay khi lưu.</p>
           </div>
           <div>

@@ -5,13 +5,19 @@ import { requireUser } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder } from "@/lib/orders";
 import { notifyUser } from "@/lib/notify";
 import { applyBalance } from "@/lib/wallet";
-import { getSettings, calcBonus, bonusTiersFor } from "@/lib/settings";
+import { getSettings, calcBonus, bonusTiersFor, usdtRateOf } from "@/lib/settings";
 import { moduleOn } from "@/lib/modules";
 import { getPanelAccess } from "@/lib/panel-access";
+import { rateLimitExceeded } from "@/lib/rate-limit";
 import { passwordError } from "@/lib/security";
 import { randomKey, genCode, parsePremiumFields } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+
+async function panelPeriodMs(): Promise<number> {
+  const days = Math.max(1, parseInt((await getSettings()).panel_period_days || "") || 30);
+  return days * 86400000;
+}
 
 function back(path: string, key: "msg" | "err", text: string): never {
   redirect(`${path}?${key}=${encodeURIComponent(text)}`);
@@ -19,8 +25,17 @@ function back(path: string, key: "msg" | "err", text: string): never {
 
 export async function placeSmmOrderAction(formData: FormData) {
   const user = await requireUser();
+  if (rateLimitExceeded(`ordsmm|${user.id}`, 60, 60000)) back("/dashboard/dat-hang", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   if ((await getSettings()).module_smm === "0") back("/dashboard/dat-hang", "err", "Đặt đơn SMM đang tạm ngưng");
   const serviceId = parseInt(String(formData.get("serviceId") || "0"));
+  // campaignId lấy từ form phải là chiến dịch của CHÍNH người đặt — không kiểm
+  // là gắn được đơn của mình vào thống kê/ngân sách chiến dịch của người khác.
+  const rawCampaignId = parseInt(String(formData.get("campaignId") || "0")) || 0;
+  let campaignId: number | undefined;
+  if (rawCampaignId) {
+    const own = await prisma.campaign.findFirst({ where: { id: rawCampaignId, userId: user.id }, select: { id: true } });
+    if (own) campaignId = own.id;
+  }
   // Toggle "Nhiều link": mỗi dòng của ô links là 1 đơn riêng (trùng dòng thì gộp 1)
   const multiLinks = Array.from(new Set(String(formData.get("links") || "").split("\n").map((l) => l.trim()).filter(Boolean)));
   const link = String(formData.get("link") || "") || multiLinks[0] || "";
@@ -46,6 +61,7 @@ export async function placeSmmOrderAction(formData: FormData) {
     if (schedOn && (!atRaw || isNaN(runAt.getTime()) || runAt.getTime() < Date.now() - 60000)) back("/dashboard/dat-hang", "err", "Giờ hẹn phải ở tương lai");
     const svc = await prisma.smmService.findUnique({ where: { id: serviceId } });
     if (!svc || !svc.active) back("/dashboard/dat-hang", "err", "Dịch vụ không còn bán");
+    if (quantity < svc.min || quantity > svc.max) back("/dashboard/dat-hang", "err", `Số lượng mỗi lượt phải từ ${svc.min} đến ${svc.max}`);
     const schedLinks = multiLinks.length > 0 ? multiLinks : [link];
     if (!schedLinks[0]) back("/dashboard/dat-hang", "err", "Chưa nhập link");
     const times = loopOn ? Math.max(2, Math.min(50, parseInt(String(formData.get("loopTimes") || "2")) || 2)) : 1;
@@ -66,7 +82,7 @@ export async function placeSmmOrderAction(formData: FormData) {
     for (let i = 0; i < multiLinks.length; i++) {
       try {
         const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-        const order = await createSmmOrder({ user: fresh, serviceId, link: multiLinks[i], quantity, note, extra, dripfeed, silentNotify: true, promoCode: i === 0 ? String(formData.get("promoCode") || "") || undefined : undefined, campaignId: parseInt(String(formData.get("campaignId") || "0")) || undefined });
+        const order = await createSmmOrder({ user: fresh, serviceId, link: multiLinks[i], quantity, note, extra, dripfeed, silentNotify: true, promoCode: i === 0 ? String(formData.get("promoCode") || "") || undefined : undefined, campaignId });
         codes.push(order.code);
       } catch (e: any) {
         errors.push(`link ${i + 1}: ${String(e?.message || "lỗi")}`);
@@ -78,7 +94,7 @@ export async function placeSmmOrderAction(formData: FormData) {
   }
   try {
     const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-    const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, note, extra, dripfeed, promoCode: String(formData.get("promoCode") || "") || undefined, campaignId: parseInt(String(formData.get("campaignId") || "0")) || undefined });
+    const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, note, extra, dripfeed, promoCode: String(formData.get("promoCode") || "") || undefined, campaignId });
     back("/dashboard/don-hang", "msg", `Đặt đơn ${order.code} thành công — trạng thái: ${order.status === "REFUNDED" ? "provider từ chối, đã hoàn tiền" : "đang xử lý"}`);
   } catch (e: any) {
     if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
@@ -92,6 +108,7 @@ export async function placeSmmOrderAction(formData: FormData) {
  */
 export async function bulkPlaceOrdersAction(formData: FormData) {
   const user = await requireUser();
+  if (rateLimitExceeded(`ordbulk|${user.id}`, 10, 60000)) back("/dashboard/dat-hang", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   if (!(await moduleOn("bulk", user.panelId))) back("/dashboard/dat-hang-loat", "err", "Tính năng đặt hàng loạt đang tắt");
   const raw = String(formData.get("bulk") || "");
   const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
@@ -136,11 +153,14 @@ function panelSlug(raw: string) {
 
 /** API key nhập ở trang setup lần đầu: key của tài khoản mẹ mà panel liên kết.
  *  Để trống = dùng key của chính chủ panel. Trả null nếu key không tồn tại. */
-async function panelApiLink(formData: FormData, fallback: { apiKey: string | null; apiUserId: number | null }) {
+async function panelApiLink(formData: FormData, fallback: { apiKey: string | null; apiUserId: number | null }, allowedOwnerIds: number[] = []) {
   const key = String(formData.get("apiKey") || "").trim();
   if (!key) return fallback;
   const owner = await prisma.user.findUnique({ where: { apiKey: key } });
   if (!owner) return null;
+  // Chỉ liên kết được key của CHÍNH mình (hoặc tài khoản đã liên kết sẵn / tài
+  // khoản quản trị của chính panel) — dán key của người khác là tiêu tiền của họ.
+  if (!allowedOwnerIds.includes(owner.id)) return null;
   return { apiKey: key, apiUserId: owner.id };
 }
 
@@ -155,7 +175,7 @@ function panelDiscounts(formData: FormData) {  const clamp = (v: FormDataEntryVa
 
 /** Phí tạo website con áp cho một tài khoản: khách của panel nào thì theo phí panel
  *  đó tự đặt (tiền thuộc về chủ panel); khách web mẹ thì theo phí trong Cấu hình của mẹ. */
-export async function panelCreationFeeFor(userId: number) {
+async function panelCreationFeeFor(userId: number) {
   const u = await prisma.user.findUnique({ where: { id: userId }, select: { panelId: true, balance: true } });
   if (u?.panelId) {
     const parent = await prisma.childPanel.findUnique({ where: { id: u.panelId }, select: { id: true, panelFee: true, ownerId: true, name: true } });
@@ -167,7 +187,7 @@ export async function panelCreationFeeFor(userId: number) {
 
 /** Trừ phí tạo website con trong cùng giao dịch tạo panel; khách panel tạo thì chủ
  *  panel được cộng đúng số phí đó (loại giao dịch PANEL_FEE). */
-export async function chargePanelCreation(tx: any, user: { id: number; username: string }, feeInfo: { fee: number; parent: { id: number; ownerId: number } | null }, panelId: number, label: string) {
+async function chargePanelCreation(tx: any, user: { id: number; username: string }, feeInfo: { fee: number; parent: { id: number; ownerId: number } | null }, panelId: number, label: string) {
   if (feeInfo.fee <= 0) return;
   await applyBalance(tx, user.id, -feeInfo.fee, "PANEL_FEE", `PANEL-${panelId}`, `Phí tạo website con ${label}`);
   if (feeInfo.parent) {
@@ -191,14 +211,14 @@ export async function createPanelAction(formData: FormData) {
   const dup = await prisma.childPanel.findFirst({ where: { OR: [{ slug }, ...(domainRaw ? [{ domain: domainRaw }] : [])] } });
   if (dup) back("/dashboard/panel-cua-toi/thiet-lap", "err", "Đường dẫn hoặc tên miền đã có panel khác dùng");
   const me = await prisma.user.findUnique({ where: { id: user.id }, select: { apiKey: true } });
-  const link = await panelApiLink(formData, { apiKey: me?.apiKey || null, apiUserId: user.id });
+  const link = await panelApiLink(formData, { apiKey: me?.apiKey || null, apiUserId: user.id }, [user.id]);
   if (!link) back("/dashboard/panel-cua-toi/thiet-lap", "err", "API key không hợp lệ — hãy dán key của tài khoản mẹ (lấy tại mục API đại lý)");
   const feeInfo = await panelCreationFeeFor(user.id);
   if (feeInfo.fee > feeInfo.balance) back("/dashboard/panel-cua-toi/thiet-lap", "err", `Số dư không đủ để tạo website con — phí tạo là ${feeInfo.fee.toLocaleString("vi-VN")}₫, số dư hiện tại ${feeInfo.balance.toLocaleString("vi-VN")}₫`);
   await prisma.$transaction(async (tx) => {
     const created = await tx.childPanel.create({
     data: {
-      ownerId: user.id, name, slug, markup, accent, tagline, support, domain: domainRaw, parentPanelId: feeInfo.parent?.id ?? null, expiresAt: feeInfo.fee > 0 ? new Date(Date.now() + 30 * 86400000) : null, 
+      ownerId: user.id, name, slug, markup, accent, tagline, support, domain: domainRaw, parentPanelId: feeInfo.parent?.id ?? null, expiresAt: feeInfo.fee > 0 ? new Date(Date.now() + (await panelPeriodMs())) : null, 
       apiKey: link.apiKey, apiUserId: link.apiUserId,
       ...panelDiscounts(formData),
       setupDone: formData.get("setupDone") === "1",
@@ -226,7 +246,7 @@ export async function registerChildSiteAction(formData: FormData) {
   if (slug.length < 3) slug = `site-${user.id}`;
   if (RESERVED_SLUGS.includes(slug) || (await prisma.childPanel.findUnique({ where: { slug } }))) slug = `${slug}-${user.id}`;
   const me = await prisma.user.findUnique({ where: { id: user.id }, select: { apiKey: true } });
-  const link = await panelApiLink(formData, { apiKey: me?.apiKey || null, apiUserId: user.id });
+  const link = await panelApiLink(formData, { apiKey: me?.apiKey || null, apiUserId: user.id }, [user.id]);
   if (!link) back("/dashboard/panel-cua-toi", "err", "Không liên kết được API — vui lòng thử lại sau");
   const linkedKey = link ? link.apiKey : null;
   const linkedUser = link ? link.apiUserId : null;
@@ -237,7 +257,7 @@ export async function registerChildSiteAction(formData: FormData) {
   await prisma.$transaction(async (tx) => {
     const created = await tx.childPanel.create({
     data: {
-      ownerId: user.id, name: domain, slug, markup: (parentCfg?.panelDefaultMarkup ?? parseInt(st.panel_default_markup)) || 20, accent: "blue", domain, parentPanelId: feeInfo.parent?.id ?? null, expiresAt: feeInfo.fee > 0 ? new Date(Date.now() + 30 * 86400000) : null, 
+      ownerId: user.id, name: domain, slug, markup: (parentCfg?.panelDefaultMarkup ?? parseInt(st.panel_default_markup)), accent: "blue", domain, parentPanelId: feeInfo.parent?.id ?? null, expiresAt: feeInfo.fee > 0 ? new Date(Date.now() + (await panelPeriodMs())) : null, 
       apiKey: linkedKey, apiUserId: linkedUser,
       discountMember: parentCfg ? parentCfg.discountMember : parseInt(st.level_discount_MEMBER) || 0, discountReseller: parentCfg ? parentCfg.discountReseller : parseInt(st.level_discount_RESELLER) || 0, discountAgency: parentCfg ? parentCfg.discountAgency : parseInt(st.level_discount_AGENCY) || 0, discountVip: parentCfg ? parentCfg.discountVip : parseInt(st.level_discount_VIP) || 0,
       setupDone: false,
@@ -290,7 +310,7 @@ export async function createPanelWizardAction(formData: FormData) {
   if (slug.length < 3) slug = `site-${user.id}`;
   if (RESERVED_SLUGS.includes(slug) || (await prisma.childPanel.findUnique({ where: { slug } }))) slug = `${slug}-${user.id}`;
   const me = await prisma.user.findUnique({ where: { id: user.id }, select: { apiKey: true } });
-  const link = await panelApiLink(formData, { apiKey: me?.apiKey || null, apiUserId: user.id });
+  const link = await panelApiLink(formData, { apiKey: me?.apiKey || null, apiUserId: user.id }, [user.id]);
   if (!link) back("/dashboard/panel-cua-toi", "err", "Không liên kết được API — vui lòng thử lại sau");
   const feeInfo = await panelCreationFeeFor(user.id);
   const st = await getSettings();
@@ -301,7 +321,7 @@ export async function createPanelWizardAction(formData: FormData) {
   await prisma.$transaction(async (tx) => {
     const created = await tx.childPanel.create({
       data: {
-        ownerId: user.id, name: domain, slug, markup: (parentCfg?.panelDefaultMarkup ?? parseInt(st.panel_default_markup)) || 20, accent: "blue", domain, parentPanelId: feeInfo.parent?.id ?? null, expiresAt: feeInfo.fee > 0 ? new Date(Date.now() + 30 * 86400000) : null, 
+        ownerId: user.id, name: domain, slug, markup: (parentCfg?.panelDefaultMarkup ?? parseInt(st.panel_default_markup)), accent: "blue", domain, parentPanelId: feeInfo.parent?.id ?? null, expiresAt: feeInfo.fee > 0 ? new Date(Date.now() + (await panelPeriodMs())) : null, 
         apiKey: link.apiKey, apiUserId: link.apiUserId,
         discountMember: parentCfg ? parentCfg.discountMember : parseInt(st.level_discount_MEMBER) || 0, discountReseller: parentCfg ? parentCfg.discountReseller : parseInt(st.level_discount_RESELLER) || 0, discountAgency: parentCfg ? parentCfg.discountAgency : parseInt(st.level_discount_AGENCY) || 0, discountVip: parentCfg ? parentCfg.discountVip : parseInt(st.level_discount_VIP) || 0,
         setupDone: false,
@@ -333,7 +353,7 @@ export async function renewPanelAction(formData: FormData) {
   if (feeInfo.fee > feeInfo.balance) back("/dashboard/panel-cua-toi", "err", `Số dư không đủ để gia hạn — phí tháng là ${feeInfo.fee.toLocaleString("vi-VN")}₫, số dư hiện tại ${feeInfo.balance.toLocaleString("vi-VN")}₫`);
   const now = new Date();
   const base = panel!.expiresAt && panel!.expiresAt > now ? panel!.expiresAt : now;
-  const expiresAt = new Date(base.getTime() + 30 * 86400000);
+  const expiresAt = new Date(base.getTime() + (await panelPeriodMs()));
   await prisma.$transaction(async (tx) => {
     await chargePanelCreation(tx, user, feeInfo, panel!.id, panel!.domain || panel!.name);
     await tx.childPanel.update({ where: { id: panel!.id }, data: { expiresAt, autoRenew: true, ...(panel!.status === "EXPIRED" ? { status: "ACTIVE" } : {}) } });
@@ -343,8 +363,12 @@ export async function renewPanelAction(formData: FormData) {
 
 export async function updatePanelAction(formData: FormData) {
   const user = await requireUser();
-  const panel = (await getPanelAccess(user.id))?.panel ?? null;
+  const access = await getPanelAccess(user.id);
+  const panel = access?.panel ?? null;
   if (!panel) back("/dashboard/panel-cua-toi/thiet-lap", "err", "Bạn chưa có panel");
+  // Tiền/giá/cấu hình là quyền CHỦ panel (staff vai ADMIN được isOwner=true theo thiết kế);
+  // nhân viên thường chỉ xử lý đơn + ticket + xem danh sách.
+  if (!access!.isOwner) back("/panel-admin/cau-hinh", "err", "Chỉ chủ panel mới thay đổi được cấu hình panel");
   // Cập nhật TỪNG PHẦN: form nào gửi trường nào thì cập nhật trường đó (Panel Admin có
   // nhiều form riêng: giá chung ở trang Dịch vụ & Giá, thông tin ở trang Cài đặt...)
   const backToRaw = String(formData.get("back") || "");
@@ -380,7 +404,8 @@ export async function updatePanelAction(formData: FormData) {
   if (has("discountAgency")) data.discountAgency = pct(formData.get("discountAgency"));
   if (has("discountVip")) data.discountVip = pct(formData.get("discountVip"));
   if (has("apiKey")) {
-    const link = await panelApiLink(formData, { apiKey: panel.apiKey, apiUserId: panel.apiUserId });
+    const staffRows = await prisma.panelStaff.findMany({ where: { panelId: panel.id }, select: { userId: true } });
+    const link = await panelApiLink(formData, { apiKey: panel.apiKey, apiUserId: panel.apiUserId }, [user.id, panel.apiUserId || -1, ...staffRows.map((r) => r.userId)]);
     if (!link) back(backTo, "err", "API key không hợp lệ — hãy dán key của tài khoản mẹ (lấy tại mục API đại lý)");
     data.apiKey = link.apiKey;
     data.apiUserId = link.apiUserId;
@@ -393,8 +418,10 @@ export async function updatePanelAction(formData: FormData) {
  *  để trống một bậc = bậc đó dùng giá panel chuẩn (markup + % giảm của bậc) */
 export async function setPanelServicePricesAction(formData: FormData) {
   const user = await requireUser();
-  const panel = (await getPanelAccess(user.id))?.panel ?? null;
+  const access = await getPanelAccess(user.id);
+  const panel = access?.panel ?? null;
   if (!panel) back("/dashboard/panel-cua-toi/thiet-lap", "err", "Bạn chưa có panel");
+  if (!access!.isOwner) back("/panel-admin/dich-vu", "err", "Chỉ chủ panel mới đặt được giá riêng");
   const serviceId = parseInt(String(formData.get("serviceId") || "0"));
   const svc = await prisma.smmService.findUnique({ where: { id: serviceId } });
   if (!svc) back("/panel-admin/dich-vu", "err", "Dịch vụ không tồn tại");
@@ -417,8 +444,10 @@ export async function setPanelServicePricesAction(formData: FormData) {
 
 export async function deletePanelServicePriceAction(formData: FormData) {
   const user = await requireUser();
-  const panel = (await getPanelAccess(user.id))?.panel ?? null;
+  const access = await getPanelAccess(user.id);
+  const panel = access?.panel ?? null;
   if (!panel) back("/dashboard/panel-cua-toi/thiet-lap", "err", "Bạn chưa có panel");
+  if (!access!.isOwner) back("/panel-admin/dich-vu", "err", "Chỉ chủ panel mới đặt được giá riêng");
   const id = parseInt(String(formData.get("id") || "0"));
   await prisma.panelServicePrice.deleteMany({ where: { id, panelId: panel.id } });
   back("/panel-admin/dich-vu", "msg", "Đã xoá giá riêng");
@@ -427,8 +456,10 @@ export async function deletePanelServicePriceAction(formData: FormData) {
 /** Chủ panel gán cấp bậc cho khách CỦA PANEL MÌNH (không đụng được khách ngoài panel) */
 export async function setPanelMemberLevelAction(formData: FormData) {
   const user = await requireUser();
-  const panel = (await getPanelAccess(user.id))?.panel ?? null;
+  const access = await getPanelAccess(user.id);
+  const panel = access?.panel ?? null;
   if (!panel) back("/dashboard/panel-cua-toi/thiet-lap", "err", "Bạn chưa có panel");
+  if (!access!.isOwner) back("/panel-admin/khach-hang", "err", "Chỉ chủ panel mới đổi được cấp bậc khách");
   const memberId = parseInt(String(formData.get("memberId")));
   const level = String(formData.get("level") || "MEMBER");
   if (!["MEMBER", "RESELLER", "AGENCY", "VIP"].includes(level)) back("/panel-admin/khach-hang", "err", "Cấp bậc không hợp lệ");
@@ -440,6 +471,7 @@ export async function setPanelMemberLevelAction(formData: FormData) {
 
 export async function buyPremiumAction(formData: FormData) {
   const user = await requireUser();
+  if (rateLimitExceeded(`ordpre|${user.id}`, 60, 60000)) back("/dashboard/premium", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   if ((await getSettings()).module_premium === "0") back("/premium", "err", "Mảng Premium đang tạm ngưng");
   const variantId = parseInt(String(formData.get("variantId") || "0"));
   const quantity = parseInt(String(formData.get("quantity") || "1"));
@@ -473,12 +505,16 @@ export async function buyPremiumAction(formData: FormData) {
 
 export async function createDepositAction(formData: FormData) {
   const user = await requireUser();
+  if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   const amount = parseInt(String(formData.get("amount") || "0"));
   const method = String(formData.get("method") || "BANK") as any;
+  // Chỉ BANK/MOMO là nạp tay chờ duyệt — cổng tự động (Stripe/PayPal/USDT) có
+  // action riêng; nhận method lạ từ form là tạo yêu cầu nạp giả gây nhiễu hàng duyệt.
+  if (!["BANK", "MOMO"].includes(method)) back("/dashboard/nap-tien", "err", "Phương thức nạp không hợp lệ");
   const settings = await getSettings();
   // Khách panel: dùng nạp tối thiểu + mốc thưởng RIÊNG của panel nếu chủ panel đã đặt
   const myPanelCfg = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { depositMin: true, depositBonusTiers: true } }) : null;
-  const min = myPanelCfg?.depositMin || parseInt(settings.deposit_min || "10000");
+  const min = myPanelCfg?.depositMin || parseInt(settings.deposit_min);
   if (!amount || amount < min) back("/dashboard/nap-tien", "err", `Số tiền nạp tối thiểu là ${min.toLocaleString("vi-VN")}đ`);
   const bonus = calcBonus(amount, bonusTiersFor(myPanelCfg?.depositBonusTiers, !!user.panelId, settings.deposit_bonus_tiers));
   const dep = await prisma.deposit.create({
@@ -502,6 +538,7 @@ export async function createDepositAction(formData: FormData) {
 
 export async function createTicketAction(formData: FormData) {
   const user = await requireUser();
+  if (rateLimitExceeded(`ticket|${user.id}`, 30, 3600000)) back("/dashboard/ticket", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   if (!(await moduleOn("tickets", user.panelId))) back("/dashboard/ticket", "err", "Tính năng hỗ trợ / ticket đang tắt");
   const subject = String(formData.get("subject") || "").trim();
   const category = String(formData.get("category") || "other");
@@ -532,6 +569,7 @@ export async function replyTicketAction(formData: FormData) {
 
 export async function regenApiKeyAction() {
   const user = await requireUser();
+  if (rateLimitExceeded(`regenkey|${user.id}`, 5, 3600000)) back("/dashboard/ho-so", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   await prisma.user.update({ where: { id: user.id }, data: { apiKey: randomKey(32) } });
   back("/dashboard/api", "msg", "Đã tạo API key mới. Key cũ đã bị vô hiệu ngay lập tức.");
 }
@@ -569,6 +607,7 @@ export async function acceptTermsAction() {
 
 export async function changePasswordAction(formData: FormData) {
   const user = await requireUser();
+  if (rateLimitExceeded(`pwchange|${user.id}`, 5, 3600000)) back("/dashboard/ho-so", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   const old = String(formData.get("oldPassword") || "");
   const next = String(formData.get("newPassword") || "");
   const confirmPw = String(formData.get("newPassword2") || "");
@@ -577,7 +616,7 @@ export async function changePasswordAction(formData: FormData) {
   if (pwErr) back("/dashboard/ho-so", "err", pwErr);
   const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
   if (!(await bcrypt.compare(old, fresh.passwordHash))) back("/dashboard/ho-so", "err", "Mật khẩu hiện tại không đúng");
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(next, 10) } });
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(next, 10), sessionVersion: { increment: 1 } } });
   back("/dashboard/ho-so", "msg", "Đã đổi mật khẩu");
 }
 
@@ -587,9 +626,12 @@ export async function warrantyAction(formData: FormData) {
   const note = String(formData.get("note") || "").trim();
   const o = await prisma.premiumOrder.findFirst({ where: { id: orderId, userId: user.id } });
   if (!o) redirect("/dashboard/don-premium");
+  // Chỉ đơn đã giao/hoàn thành mới vào bảo hành được — đơn đã hoàn tiền hoặc đã
+  // huỷ mà "hồi sinh" qua bảo hành sẽ được giao lại hàng trong khi tiền đã về ví.
+  if (o.status !== "DELIVERED" && o.status !== "COMPLETED") back("/dashboard/don-premium", "err", "Chỉ đơn đã giao mới yêu cầu bảo hành được");
   await prisma.premiumOrder.update({
     where: { id: orderId },
-    data: { status: "WARRANTY", adminNote: `[Bảo hành] ${note || "Khách yêu cầu bảo hành"} (${new Date().toLocaleString("vi-VN")})` },
+    data: { status: "WARRANTY", adminNote: `${o.adminNote ? o.adminNote + "\n" : ""}[Bảo hành] ${note || "Khách yêu cầu bảo hành"} (${new Date().toLocaleString("vi-VN")})` },
   });
   back("/dashboard/don-premium", "msg", `Đã gửi yêu cầu bảo hành cho đơn ${o.code}`);
 }
@@ -597,6 +639,7 @@ export async function warrantyAction(formData: FormData) {
 /* ---------- Nạp tiền qua cổng quốc tế (PayPal / Stripe) ---------- */
 export async function startStripeCheckoutAction(formData: FormData) {
   const user = await requireUser();
+  if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, stripeCreateCheckout, siteOrigin, resolveIntlConfig } = await import("@/lib/payments");
   const cfg = await resolveIntlConfig(user.id);
   if (!cfg.stripe) back("/dashboard/nap-tien", "err", "Stripe chưa được cấu hình");
@@ -626,6 +669,7 @@ export async function startStripeCheckoutAction(formData: FormData) {
 
 export async function startPaypalCheckoutAction(formData: FormData) {
   const user = await requireUser();
+  if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, paypalAccessToken, paypalCreateOrder, siteOrigin, resolveIntlConfig } = await import("@/lib/payments");
   const cfg = await resolveIntlConfig(user.id);
   if (!cfg.paypal) back("/dashboard/nap-tien", "err", "PayPal chưa được cấu hình");
@@ -657,6 +701,7 @@ export async function startPaypalCheckoutAction(formData: FormData) {
 /** Nạp USDT: khách khai số USDT + mã giao dịch (tx hash) — admin đối chiếu ví rồi duyệt ở /admin/nap-tien. */
 export async function createPanelBankDepositAction(formData: FormData) {
   const user = await requireUser();
+  if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   if (!user.panelId) back("/dashboard/nap-tien", "err", "Tài khoản không thuộc website nào");
   const panel = await prisma.childPanel.findUnique({ where: { id: user.panelId } });
   if (!panel || panel.status !== "ACTIVE" || !panel.bankAccount) back("/dashboard/nap-tien", "err", "Website chưa cài tài khoản ngân hàng riêng");
@@ -676,6 +721,7 @@ export async function createPanelBankDepositAction(formData: FormData) {
 
 export async function createUsdtDepositAction(formData: FormData) {
   const user = await requireUser();
+  if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   const settings = await getSettings();
   // Khách panel: nếu chủ panel đã cài ví USDT riêng thì nạp về ví của panel (chủ panel duyệt)
   const userPanel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;
@@ -683,9 +729,10 @@ export async function createUsdtDepositAction(formData: FormData) {
   if (!panelUsdt && (settings.usdt_enabled !== "1" || !settings.usdt_address)) back("/dashboard/nap-tien", "err", "Nạp USDT đang tạm đóng");
   const usdt = parseFloat(String(formData.get("usdt") || "0"));
   const txHash = String(formData.get("txHash") || "").trim();
-  if (!usdt || usdt < 5) back("/dashboard/nap-tien", "err", "Số USDT tối thiểu là 5");
+  const minUsdt = parseFloat(settings.usdt_min || "") || 5;
+  if (!usdt || usdt < minUsdt) back("/dashboard/nap-tien", "err", `Số USDT tối thiểu là ${minUsdt}`);
   if (txHash.length < 20) back("/dashboard/nap-tien", "err", "Mã giao dịch (tx hash) chưa hợp lệ");
-  const rate = panelUsdt ? (panelUsdt.usdtRate || parseInt(settings.usdt_rate || "") || parseInt(settings.usd_rate || "25400")) : parseInt(settings.usdt_rate || "") || parseInt(settings.usd_rate || "25400");
+  const rate = panelUsdt ? (panelUsdt.usdtRate || usdtRateOf(settings)) : usdtRateOf(settings);
   const amount = Math.round(usdt * rate);
   const bonus = calcBonus(amount, bonusTiersFor(userPanel?.depositBonusTiers, !!user.panelId, settings.deposit_bonus_tiers));
   try {
@@ -720,6 +767,7 @@ async function orderMaxLinksFor(userId: number): Promise<number> {
  *  được gửi; mỗi khách 1 đánh giá cho mỗi sản phẩm, gửi lại là sửa. */
 export async function submitPremiumReviewAction(formData: FormData) {
   const user = await requireUser();
+  if (rateLimitExceeded(`review|${user.id}`, 30, 3600000)) back("/dashboard/premium", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   const slug = String(formData.get("slug") || "");
   const returnToRaw = String(formData.get("returnTo") || "");
   const returnTo = returnToRaw.startsWith("/dashboard/premium/") || returnToRaw.startsWith("/premium/") ? returnToRaw : `/dashboard/premium/${slug}`;
@@ -745,6 +793,7 @@ export async function submitPremiumReviewAction(formData: FormData) {
 /** Đánh dấu "Hữu ích" cho một đánh giá Premium — mỗi tài khoản 1 lần, bấm lại là bỏ. */
 export async function toggleReviewHelpfulAction(reviewId: number) {
   const user = await requireUser();
+  if (rateLimitExceeded(`helpful|${user.id}`, 120, 3600000)) return;
   const existing = await prisma.premiumReviewHelpful.findUnique({
     where: { reviewId_userId: { reviewId, userId: user.id } },
     select: { id: true },

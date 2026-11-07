@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { headers } from "next/headers";
 import { prisma } from "./db";
 import { applyBalance } from "./wallet";
-import { getSettings, calcBonus, bonusTiersFor } from "./settings";
+import { getSettings, calcBonus, bonusTiersFor, DEFAULT_SETTINGS } from "./settings";
 import { genCode } from "./format";
 
 /** Nạp tiền qua cổng quốc tế (PayPal / Stripe): khách trả USD, hệ thống cộng VND theo tỉ giá usd_rate.
@@ -25,7 +25,7 @@ export type IntlConfig = {
 
 export async function resolveIntlConfig(userId: number): Promise<IntlConfig> {
   const s = await getSettings();
-  let rate = parseInt(s.usd_rate || "25000", 10) || 25000;
+  let rate = parseInt(s.usd_rate || DEFAULT_SETTINGS.usd_rate, 10) || Number(DEFAULT_SETTINGS.usd_rate);
   let paypal: IntlConfig["paypal"] =
     s.paypal_enabled === "1" && s.paypal_client_id && s.paypal_client_secret
       ? { clientId: s.paypal_client_id, secret: s.paypal_client_secret, mode: s.paypal_mode || "sandbox" }
@@ -63,11 +63,22 @@ export async function resolveIntlConfigByExternalId(externalId: string): Promise
   return resolveIntlConfig(dep.userId);
 }
 
+/** Origin để dựng URL quay về sau thanh toán: CHỈ tin Host thuộc hệ thống
+ *  (domain chính hoặc domain website con đang ACTIVE) — không lấy thẳng header
+ *  Host lạ (kẻ tấn công chèn Host để link quay về trỏ sang trang giả mạo). */
 export async function siteOrigin(): Promise<string> {
   const h = headers();
-  const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
-  const proto = h.get("x-forwarded-proto") || (host.includes("localhost") || host.startsWith("127.") ? "http" : "https");
-  return `${proto}://${host}`;
+  const rawHost = (h.get("x-forwarded-host") || h.get("host") || "").split(",")[0].trim();
+  const host = rawHost.split(":")[0].toLowerCase();
+  if (host === "localhost" || host.startsWith("127.")) return `http://${rawHost}`;
+  const mainHost = (process.env.MAIN_HOST || "").toLowerCase();
+  if (host && mainHost && host === mainHost) return `https://${host}`;
+  if (host) {
+    const p = await prisma.childPanel.findFirst({ where: { domain: host, status: "ACTIVE" }, select: { id: true } }).catch(() => null);
+    if (p) return `https://${host}`;
+  }
+  const envUrl = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+  return envUrl || "http://localhost:3000";
 }
 
 export async function createPendingDeposit(userId: number, method: "PAYPAL" | "STRIPE", amountVnd: number, usdCents: number) {

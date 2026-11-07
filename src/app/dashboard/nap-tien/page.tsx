@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getSettings, depositContent, vietQrUrl } from "@/lib/settings";
+import { getSettings, depositContent, vietQrUrl, usdtRateOf } from "@/lib/settings";
 import { vietqrUrl } from "@/lib/vietqr";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { DepositCard } from "@/components/deposit-card";
@@ -36,7 +36,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
     return tiers;
   })();
   const panelUsdt = myPanel && myPanel.status === "ACTIVE" && myPanel.usdtAddress
-    ? { address: myPanel.usdtAddress, network: myPanel.usdtNetwork || "TRC20", rate: myPanel.usdtRate || parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") }
+    ? { address: myPanel.usdtAddress, network: myPanel.usdtNetwork || "TRC20", rate: myPanel.usdtRate || usdtRateOf(s), min: parseFloat(s.usdt_min || "") || 5 }
     : null;
   // Method quốc tế theo cấu hình HIỆU LỰC: panel của khách có key riêng thì dùng key panel, không thì của web mẹ
   const { resolveIntlConfig } = await import("@/lib/payments");
@@ -54,7 +54,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
           momo={panelSepayOn ? null : s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}
           tiers={effTiers}
           intl={paypalOn || stripeOn ? { rate: intlCfg.rate, paypal: paypalOn, stripe: stripeOn, minUsd: intlCfg.minUsd || 5 } : null}
-          usdt={panelUsdt || (s.usdt_enabled === "1" && s.usdt_address ? { address: s.usdt_address, network: s.usdt_network || "TRC20", rate: parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "25400") } : null)}
+          usdt={panelUsdt || (s.usdt_enabled === "1" && s.usdt_address ? { address: s.usdt_address, network: s.usdt_network || "TRC20", rate: usdtRateOf(s), min: parseFloat(s.usdt_min || "") || 5 } : null)}
         />
         {myPanel && myPanel.status === "ACTIVE" && !panelSepayOn && (myPanel.bankAccount || myPanelBanks.length > 0) && (
           <form action={createPanelBankDepositAction} className="card p-5">

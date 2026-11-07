@@ -15,9 +15,11 @@ export async function GET(req: NextRequest) {
   if (!panelGoogle && (s.google_enabled !== "1" || !s.google_client_id)) {
     return NextResponse.redirect(new URL("/login?err=" + encodeURIComponent("Đăng nhập Google đang tắt"), req.url));
   }
-  const state = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  cookies().set("g_oauth_state", state, { httpOnly: true, maxAge: 600, path: "/" });
-  if (panelGoogle) cookies().set("g_oauth_panel", String(panelGoogle.id), { httpOnly: true, maxAge: 600, path: "/" });
+  const { randomBytes } = await import("crypto");
+  const state = randomBytes(24).toString("hex");
+  const cookieOpts = { httpOnly: true, maxAge: 600, path: "/", sameSite: "lax" as const, secure: process.env.NODE_ENV === "production" };
+  cookies().set("g_oauth_state", state, cookieOpts);
+  if (panelGoogle) cookies().set("g_oauth_panel", String(panelGoogle.id), cookieOpts);
   else cookies().delete("g_oauth_panel");
   const redirectUri = new URL("/api/auth/google/callback", req.url).toString();
   const u = new URL("https://accounts.google.com/o/oauth2/v2/auth");

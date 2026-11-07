@@ -23,10 +23,19 @@ export async function checkPromo(rawCode: string, scope: "SMM" | "PREMIUM", amou
   return { row, discount };
 }
 
-/** Ghi nhận 1 lượt dùng mã bên trong transaction của đơn (đọc lại + kiểm tra lượt ngay trong tx). */
+/** Ghi nhận 1 lượt dùng mã bên trong transaction của đơn: tăng lượt bằng
+ *  update có điều kiện (usedCount < usageLimit) — hai đơn đồng thời ở lượt
+ *  cuối cùng thì chỉ một đơn tăng được, đơn còn lại bị từ chối ngay. */
 export async function consumePromo(tx: any, id: number) {
   const row = await tx.discountCode.findUnique({ where: { id } });
   if (!row) throw new Error("Mã giảm giá không còn tồn tại");
-  if (row.usageLimit > 0 && row.usedCount >= row.usageLimit) throw new Error("Mã giảm giá vừa hết lượt sử dụng — vui lòng thử lại");
-  await tx.discountCode.update({ where: { id }, data: { usedCount: { increment: 1 } } });
+  if (row.usageLimit > 0) {
+    const res = await tx.discountCode.updateMany({
+      where: { id, usedCount: { lt: row.usageLimit } },
+      data: { usedCount: { increment: 1 } },
+    });
+    if (res.count === 0) throw new Error("Mã giảm giá vừa hết lượt sử dụng — vui lòng thử lại");
+  } else {
+    await tx.discountCode.update({ where: { id }, data: { usedCount: { increment: 1 } } });
+  }
 }

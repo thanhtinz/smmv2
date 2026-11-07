@@ -30,7 +30,9 @@ export async function POST(req: Request) {
   if (body?.external_order_id != null) data.providerOrderId = String(body.external_order_id).slice(0, 50);
 
   const effRemains = body?.remains != null ? Math.max(0, Number(body.remains) || 0) : (order.remains ?? order.quantity);
-  const refundAmt = Math.floor((order.charge * effRemains) / Math.max(1, order.quantity));
+  // Trừ phần đã hoàn ở các lần cập nhật trước — không trừ là mỗi lần gọi PARTIAL
+  // lại hoàn lặp đúng phần remains đó (trần trong refundSmmOrder chỉ là lớp cuối).
+  const refundAmt = Math.max(0, Math.floor((order.charge * effRemains) / Math.max(1, order.quantity)) - (order.refundedAmount || 0));
 
   if (newStatus === "CANCELED" || newStatus === "REFUNDED" || (newStatus === "PARTIAL" && refundAmt > 0)) {
     if (Object.keys(data).length) await prisma.smmOrder.update({ where: { id: order.id }, data });

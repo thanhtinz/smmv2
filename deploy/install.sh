@@ -109,6 +109,7 @@ step "Tạo .env"
 if [ ! -f "$APP_DIR/.env" ]; then
   cat > "$APP_DIR/.env" <<EOF
 DATABASE_URL="postgresql://smmv2:${DB_PASS}@localhost:5432/smmv2"
+APP_ENC_KEY="$(openssl rand -base64 32)"
 AUTH_SECRET="$(openssl rand -hex 48)"
 CRON_SECRET="$(openssl rand -hex 32)"
 NEXT_PUBLIC_SITE_URL="https://${DOMAIN}"
@@ -126,7 +127,13 @@ CRON_SECRET="$(grep -E '^CRON_SECRET=' "$APP_DIR/.env" | cut -d'"' -f2)"
 step "npm install (tải thư viện — vài phút)"
 sudo -u "$APP_USER" -H bash -c "cd $APP_DIR && npm install --no-audit --no-fund"
 step "Đồng bộ database + nạp dữ liệu khởi tạo"
-sudo -u "$APP_USER" -H bash -c "cd $APP_DIR && npx prisma db push && npm run db:seed"
+ADMIN_PW_FILE=/root/smmv2-admin-password.txt
+if [ ! -f "$ADMIN_PW_FILE" ]; then
+  openssl rand -base64 12 | tr -d '/+=' | head -c 14 > "$ADMIN_PW_FILE"
+  chmod 600 "$ADMIN_PW_FILE"
+fi
+ADMIN_PASSWORD="$(cat "$ADMIN_PW_FILE")"
+sudo -u "$APP_USER" -H bash -c "cd $APP_DIR && npx prisma db push && ADMIN_PASSWORD='$ADMIN_PASSWORD' SEED_DEMO=0 npm run db:seed"
 step "Build ứng dụng"
 sudo -u "$APP_USER" -H bash -c "cd $APP_DIR && npm run build"
 
@@ -165,10 +172,12 @@ echo
 echo "============================================================"
 systemctl is-active smmv2 >/dev/null && echo "  Ứng dụng: ĐANG CHẠY" || echo "  Ứng dụng: CHƯA CHẠY — xem log: journalctl -u smmv2 -n 50"
 echo "  Website:  https://$DOMAIN"
-echo "  Admin:    https://$DOMAIN/login  (tài khoản: admin / Admin@123)"
+echo "  Admin:    https://$DOMAIN/login"
+echo "            Tài khoản: admin — Mật khẩu: $ADMIN_PASSWORD"
+echo "            (mật khẩu ngẫu nhiên, cũng lưu ở /root/smmv2-admin-password.txt)"
 echo
 echo "  VIỆC CẦN LÀM NGAY:"
-echo "   1) Đăng nhập admin và ĐỔI MẬT KHẨU mặc định."
+echo "   1) Đăng nhập admin và ĐỔI MẬT KHẨU trên ngay."
 echo "   2) Vào Admin → Cấu hình: nhập NS con (child_ns1/child_ns2), khoá"
 echo "      thanh toán (SePay/Stripe/PayPal...), tỉ giá — như bản demo."
 echo "   3) Khách tạo website con chỉ cần trỏ bản ghi A của domain về IP"

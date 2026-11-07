@@ -21,9 +21,13 @@ function throttleKey(ip: string, username: string) {
 export async function loginLockSeconds(ip: string, username: string): Promise<number> {
   const s = await getSettings();
   if (s.bf_enabled !== "1") return 0;
-  const row = await prisma.loginThrottle.findUnique({ where: { key: throttleKey(ip, username) } });
-  if (row?.lockedUntil && row.lockedUntil.getTime() > Date.now()) return Math.ceil((row.lockedUntil.getTime() - Date.now()) / 1000);
-  return 0;
+  const now = Date.now();
+  const rows = await prisma.loginThrottle.findMany({ where: { key: { in: [throttleKey(ip, username), `user|${username.toLowerCase()}`] } } });
+  let remain = 0;
+  for (const row of rows) {
+    if (row.lockedUntil && row.lockedUntil.getTime() > now) remain = Math.max(remain, Math.ceil((row.lockedUntil.getTime() - now) / 1000));
+  }
+  return remain;
 }
 
 export async function recordLoginFail(ip: string, username: string) {
@@ -40,10 +44,20 @@ export async function recordLoginFail(ip: string, username: string) {
   if (row.fails >= max) {
     await prisma.loginThrottle.update({ where: { key }, data: { fails: 0, lockedUntil: new Date(Date.now() + lockSec * 1000) } });
   }
+  // Lớp 2: đếm riêng theo username (ngưỡng x3) — chặn dò mật khẩu một tài khoản từ nhiều IP
+  const uKey = `user|${username.toLowerCase()}`;
+  const uRow = await prisma.loginThrottle.upsert({
+    where: { key: uKey },
+    create: { key: uKey, fails: 1 },
+    update: { fails: { increment: 1 } },
+  });
+  if (uRow.fails >= max * 3) {
+    await prisma.loginThrottle.update({ where: { key: uKey }, data: { fails: 0, lockedUntil: new Date(Date.now() + lockSec * 1000) } });
+  }
 }
 
 export async function clearLoginFails(ip: string, username: string) {
-  await prisma.loginThrottle.deleteMany({ where: { key: throttleKey(ip, username) } });
+  await prisma.loginThrottle.deleteMany({ where: { key: { in: [throttleKey(ip, username), `user|${username.toLowerCase()}`] } } });
 }
 
 /* ---------- Bảo mật đăng ký ---------- */

@@ -6,6 +6,7 @@ import { refundSmmOrder, syncSmmOrderStatus, syncPremiumOrderStatus } from "@/li
 import { orderTransition } from "@/lib/notify";
 import { providerBalance, syncProviderServices, syncProviderPremium } from "@/lib/provider";
 import { setSetting } from "@/lib/settings";
+import { encryptSecret } from "@/lib/secret-box";
 import { genCode, normalizePremiumFieldsJson } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -155,6 +156,7 @@ export async function adminSaveProvider(formData: FormData) {
   };
   if (!data.name || !data.apiUrl) back("/admin/nha-cung-cap", "err", "Thiếu tên hoặc API URL");
   if (id && (!rawKey || rawKey.includes("•"))) { const oldP = await prisma.provider.findUnique({ where: { id } }); if (oldP) data["api" + "Key"] = (oldP as any)["api" + "Key"]; }
+  if (data.apiKey) data.apiKey = encryptSecret(data.apiKey); // mã hoá khoá nhà cung cấp khi lưu (APP_ENC_KEY)
   if (!data.apiKey) back("/admin/nha-cung-cap", "err", "Thiếu API key");
   if (id) await prisma.provider.update({ where: { id }, data });
   else await prisma.provider.create({ data });
@@ -284,7 +286,9 @@ export async function adminSmmOrderAction(formData: FormData) {
     done(path, "Đã huỷ đơn và hoàn tiền");
   }
   // kind = update: cập nhật tay
+  if (order.status === "REFUNDED" || order.status === "CANCELED") back(path, "err", "Đơn đã kết thúc — không sửa được nữa");
   const status = String(formData.get("status") || order.status) as any;
+  if (status === "REFUNDED") back(path, "err", "Muốn hoàn tiền hãy dùng nút Huỷ đơn để tiền về đúng sổ");
   const startCount = formData.get("startCount") ? parseInt(String(formData.get("startCount"))) : order.startCount;
   const remains = formData.get("remains") !== null && formData.get("remains") !== "" ? parseInt(String(formData.get("remains"))) : order.remains;
   const adminNote = String(formData.get("adminNote") || "") || null;
@@ -419,10 +423,17 @@ export async function adminImportStock(formData: FormData) {
   await requireAdmin();
   const variantId = parseInt(String(formData.get("variantId")));
   const bulk = String(formData.get("bulk") || "");
-  const items = bulk.split(/\n+/).map((x) => x.trim()).filter(Boolean);
-  if (!variantId || !items.length) back("/admin/kho-premium", "err", "Chọn gói và nhập ít nhất 1 dòng kho");
-  await prisma.premiumStock.createMany({ data: items.map((payload) => ({ variantId, payload })) });
-  done("/admin/kho-premium", `Đã nhập ${items.length} mục vào kho`);
+  const rawItems = bulk.split(/\n+/).map((x) => x.trim()).filter(Boolean);
+  if (!variantId || !rawItems.length) back("/admin/kho-premium", "err", "Chọn gói và nhập ít nhất 1 dòng kho");
+  // Khử trùng: trùng trong chính lô nhập + trùng với tài khoản ĐANG CÓ trong kho
+  // của gói này — một tài khoản bị nhập 2 dòng AVAILABLE sẽ bị bán cho 2 khách.
+  const items = Array.from(new Set(rawItems));
+  const existing = await prisma.premiumStock.findMany({ where: { variantId, status: "AVAILABLE", payload: { in: items } }, select: { payload: true } });
+  const dupSet = new Set(existing.map((x) => x.payload));
+  const fresh = items.filter((x) => !dupSet.has(x));
+  const skipped = rawItems.length - fresh.length;
+  if (fresh.length) await prisma.premiumStock.createMany({ data: fresh.map((payload) => ({ variantId, payload })) });
+  done("/admin/kho-premium", `Đã nhập ${fresh.length} mục vào kho${skipped > 0 ? ` — bỏ qua ${skipped} dòng trùng` : ""}`);
 }
 
 export async function adminDeleteStock(formData: FormData) {
@@ -452,20 +463,34 @@ export async function adminPremiumOrderAction(formData: FormData) {
     }
   }
   if (kind === "cancel") {
-    if (order.status === "REFUNDED") back(path, "err", "Đơn đã hoàn tiền trước đó");
+    if (order.status === "REFUNDED" || order.status === "CANCELED") back(path, "err", "Đơn đã kết thúc — không hoàn tiền thêm được");
     const panelOwner = order.panelId ? await prisma.childPanel.findUnique({ where: { id: order.panelId }, select: { ownerId: true } }) : null;
+    // Claim chuyển trạng thái sang REFUNDED TRƯỚC trong transaction: huỷ lần hai
+    // (hoặc hai người cùng huỷ) sẽ claim trượt và không cộng tiền lần nữa.
+    let claimed = false;
     await prisma.$transaction(async (tx) => {
+      const claim = await tx.premiumOrder.updateMany({
+        where: { id, status: { in: ["PENDING", "DELIVERED", "COMPLETED", "WARRANTY"] } },
+        data: { status: "REFUNDED" },
+      });
+      if (claim.count === 0) return;
+      claimed = true;
       await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Admin huỷ đơn premium — hoàn tiền");
       if (panelOwner && order.commission > 0) {
         await applyBalance(tx, panelOwner.ownerId, -order.commission, "PANEL_COMMISSION", order.code, "Thu hồi hoa hồng — đơn premium bị huỷ");
       }
-      await tx.premiumOrder.update({ where: { id }, data: { status: "REFUNDED" } });
     });
+    if (!claimed) back(path, "err", "Đơn đã kết thúc — không hoàn tiền thêm được");
     await clawbackReferralCommission(order.userId, order.total, order.code);
     done(path, "Đã huỷ đơn và hoàn tiền");
   }
+  // Cập nhật thường: đơn đã REFUNDED/CANCELED là kết thúc — không cho "hồi sinh"
+  // về trạng thái sống (hồi sinh rồi huỷ lại = hoàn tiền lần hai). Hoàn tiền chỉ
+  // đi qua nút Huỷ ở trên, không đặt status REFUNDED trực tiếp ở form này.
+  if (order.status === "REFUNDED" || order.status === "CANCELED") back(path, "err", "Đơn đã kết thúc — không sửa được nữa");
   const deliveryData = String(formData.get("deliveryData") || "") || order.deliveryData;
   const status = String(formData.get("status") || order.status) as any;
+  if (!["PENDING", "DELIVERED", "COMPLETED", "WARRANTY"].includes(status)) back(path, "err", "Trạng thái không hợp lệ — muốn hoàn tiền hãy dùng nút Huỷ đơn");
   const adminNote = String(formData.get("adminNote") || "") || order.adminNote;
   await prisma.premiumOrder.update({ where: { id }, data: { status, deliveryData, adminNote } });
   done(path, "Đã cập nhật đơn premium");
@@ -480,14 +505,22 @@ export async function adminDepositAction(formData: FormData) {
   if (!dep || dep.status !== "PENDING") back("/admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
   if (dep.user.panelId) back("/admin/nap-tien", "err", "Yêu cầu nạp này của khách site con — do chủ panel tự duyệt");
   if (kind === "reject") {
-    await prisma.deposit.update({ where: { id }, data: { status: "REJECTED", adminNote: String(formData.get("adminNote") || "") || null } });
+    // Claim PENDING -> REJECTED nguyên tử: đã có người duyệt trước thì không ghi đè
+    const claim = await prisma.deposit.updateMany({ where: { id, status: "PENDING" }, data: { status: "REJECTED", adminNote: String(formData.get("adminNote") || "") || null } });
+    if (claim.count === 0) back("/admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
     done("/admin/nap-tien", "Đã từ chối yêu cầu nạp");
   }
+  // Claim PENDING -> APPROVED TRONG transaction: hai lần duyệt đồng thời (2 tab,
+  // double-click) chỉ một lần claim được và cộng tiền — lần sau count = 0, bỏ qua.
+  let claimed = false;
   await prisma.$transaction(async (tx) => {
-    await tx.deposit.update({ where: { id }, data: { status: "APPROVED" } });
+    const claim = await tx.deposit.updateMany({ where: { id, status: "PENDING" }, data: { status: "APPROVED" } });
+    if (claim.count === 0) return;
+    claimed = true;
     await applyBalance(tx, dep.userId, dep.amount, "DEPOSIT", dep.code, "Admin duyệt nạp tiền");
     if (dep.bonus > 0) await applyBalance(tx, dep.userId, dep.bonus, "BONUS", dep.code, "Thưởng nạp tiền");
   });
+  if (!claimed) back("/admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
   done("/admin/nap-tien", `Đã cộng ${dep.amount.toLocaleString("vi-VN")}đ cho khách`);
 }
 
@@ -563,6 +596,8 @@ export async function adminSaveSettings(formData: FormData) {
     "bf_enabled", "bf_max_attempts", "bf_lock_seconds",
     "reg_honeypot", "reg_block_disposable", "reg_max_per_ip_hour", "reg_banned_domains",
     "smtp_enabled", "smtp_from_name", "module_affiliate", "panel_default_markup", "session_days", "premium_max_qty", "order_max_links",
+    "panel_period_days", "panel_renew_horizon_hours", "provider_low_balance_default", "subscription_max_active",
+    "auto_refill_window_days", "auto_refill_settle_minutes", "cleanup_retention_days", "usdt_min",
   ];
   for (const k of keys) {
     const v = formData.get(k);
@@ -575,11 +610,13 @@ export async function adminSaveSettings(formData: FormData) {
 /** Xoá giao dịch nạp: theo danh sách id đã chọn, hoặc toàn bộ (chỉ tài khoản web mẹ). */
 export async function adminDeleteDepositsAction(formData: FormData) {
   await requireAdmin();
+  // Không xoá yêu cầu nạp ĐÃ DUYỆT: tiền đã cộng vào số dư khách, xoá là mất
+  // dấu vết kiểm toán giữa sổ giao dịch và yêu cầu nạp gốc.
   if (formData.get("all") === "1") {
-    await prisma.deposit.deleteMany({ where: { user: { panelId: null } } });
+    await prisma.deposit.deleteMany({ where: { user: { panelId: null }, status: { not: "APPROVED" } } });
   } else {
     const ids = formData.getAll("ids").map((x) => parseInt(String(x))).filter((n) => n > 0);
-    if (ids.length) await prisma.deposit.deleteMany({ where: { id: { in: ids }, user: { panelId: null } } });
+    if (ids.length) await prisma.deposit.deleteMany({ where: { id: { in: ids }, user: { panelId: null }, status: { not: "APPROVED" } } });
   }
   redirect("/admin/nap-tien?msg=" + encodeURIComponent("Đã xoá giao dịch nạp"));
 }

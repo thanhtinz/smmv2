@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const dest = new URL(hit ? "/panel-admin" : "/dashboard/panel-cua-toi", req.url);
   const res = NextResponse.redirect(dest);
   if (hit) {
-    res.cookies.set(PANEL_COOKIE, String(id), { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+    res.cookies.set(PANEL_COOKIE, String(id), { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax", httpOnly: true, secure: process.env.NODE_ENV === "production" });
   }
   return res;
 }

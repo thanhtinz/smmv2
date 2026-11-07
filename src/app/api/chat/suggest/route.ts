@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
 import { getCurrentUser } from "@/lib/auth";
 import { findServices } from "@/lib/finder";
 
@@ -8,6 +9,9 @@ export const dynamic = "force-dynamic";
  *  Đăng nhập rồi thì giá theo cấp bậc/panel của họ và nút đặt đơn vào thẳng form;
  *  khách vãng lai thấy giá gốc và được mời đăng nhập khi bấm đặt. */
 export async function POST(req: Request) {
+  if (rateLimitExceeded(`suggest|${clientIp(req.headers)}`, 20, 60000)) {
+    return NextResponse.json({ error: "Quá nhiều yêu cầu, thử lại sau ít phút" }, { status: 429 });
+  }
   const body = await req.json().catch(() => ({}));
   const q = String(body?.q || "").trim().slice(0, 300);
   if (q.length < 2) return NextResponse.json({ error: "Hãy mô tả nhu cầu dài hơn một chút" }, { status: 400 });

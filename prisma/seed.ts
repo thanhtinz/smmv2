@@ -10,10 +10,6 @@ async function main() {
     site_name: "SMMv2",
     site_tagline: "SMM Panel & Tài khoản Premium — tự động 24/7",
     deposit_min: "10000",
-    deposit_bonus_tiers: JSON.stringify([
-      { from: 1000000, percent: 2 },
-      { from: 5000000, percent: 5 },
-    ]),
   };
   for (const [k, v] of Object.entries(settings)) {
     await prisma.setting.upsert({ where: { key: k }, create: { key: k, value: v }, update: {} });
@@ -26,7 +22,7 @@ async function main() {
       username: "admin",
       email: "admin@smmv2.local",
       fullName: "Quản trị viên",
-      passwordHash: await bcrypt.hash("Admin@123", 10),
+      passwordHash: await bcrypt.hash(process.env.ADMIN_PASSWORD || "Admin@123", 10),
       role: "ADMIN",
       level: "VIP",
       apiKey: key("adminkey"),
@@ -34,7 +30,7 @@ async function main() {
     },
     update: {},
   });
-  await prisma.user.upsert({
+  if (process.env.SEED_DEMO !== "0") await prisma.user.upsert({
     where: { username: "demo" },
     create: {
       username: "demo",

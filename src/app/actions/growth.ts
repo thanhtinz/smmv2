@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { moduleOn } from "@/lib/modules";
+import { getSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
 
 function back(path: string, key: "msg" | "err", text: string): never {
@@ -25,7 +26,8 @@ export async function createSubscriptionAction(formData: FormData) {
   if (!link) back("/dashboard/dinh-ky", "err", "Thiếu link cần tăng");
   if (quantity < service!.min || quantity > service!.max) back("/dashboard/dinh-ky", "err", `Số lượng mỗi lượt phải từ ${service!.min} đến ${service!.max}`);
   const count = await prisma.subscription.count({ where: { userId: user.id, active: true } });
-  if (count >= 10) back("/dashboard/dinh-ky", "err", "Tối đa 10 gói định kỳ đang chạy cùng lúc");
+  const maxActive = Math.max(1, parseInt((await getSettings()).subscription_max_active || "") || 10);
+  if (count >= maxActive) back("/dashboard/dinh-ky", "err", `Tối đa ${maxActive} gói định kỳ đang chạy cùng lúc`);
   await prisma.subscription.create({
     data: { userId: user.id, serviceId, link, quantity, intervalDays, dailyBudget, targetTotal, nextRunAt: new Date() },
   });
