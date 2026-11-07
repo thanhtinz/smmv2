@@ -100,6 +100,18 @@ const FRAGMENTS: [string, Record<string, string>][] = [
   ["Tổng: ", { en: "Total: ", zh: "总计: ", th: "ทั้งหมด: ", ja: "合計：", ko: "총: " }],
   [" dịch vụ", { en: " services", zh: " 项服务", th: " บริการ", ja: " サービス", ko: " 서비스" }],
   ["Giao ngay · còn ", { en: "Instant delivery · only ", zh: "现货速发 · 仅剩 ", th: "ส่งทันที · เหลือเพียง ", ja: "即時配送 · 残り ", ko: "즉시 배송 · 남은 수량 " }],
+  [" giao dịch trên toàn hệ thống — mọi thay đổi số dư đều có sổ ở đây.", { en: " transactions system-wide — every balance change is recorded here.", zh: " 笔全系统交易 — 每笔余额变动都有记录。", th: " ธุรกรรมทั่วทั้งระบบ — การเปลี่ยนแปลงยอดคงเหลือทั้งหมดถูกบันทึกไว้ที่นี่", ja: " 件のシステム全体の取引 — すべての残高変動がここに記録されます。", ko: " 건의 전체 시스템 거래 — 모든 잔액 변동이 여기에 기록됩니다." }],
+  [" tài khoản hiển thị · Tổng số dư khách đang giữ: ", { en: " accounts shown · Total customer balances held: ", zh: " 个账户显示 · 客户持有的总余额:", th: " บัญชีที่แสดง · ยอดคงเหลือรวมของลูกค้าที่ถืออยู่: ", ja: " 件のアカウント表示 · 顧客が保持する総残高：", ko: "개 계정 표시 · 고객이 보유한 총 잔액: " }],
+  [" (nợ phải trả của hệ thống)", { en: " (system liability)", zh: "(系统负债)", th: " (หนี้สินของระบบ)", ja: "（システムの負債）", ko: " (시스템 부채)" }],
+  [" đơn thủ công đang chờ xử lý", { en: " manual orders awaiting processing", zh: " 个手动订单等待处理", th: " ออเดอร์แมนนวลรอการดำเนินการ", ja: " 件の手動注文が処理待ち", ko: " 건의 수동 주문이 처리 대기 중" }],
+  [" đơn · Nạp ", { en: " orders · Deposits ", zh: " 单 · 充值 ", th: " ออเดอร์ · เติมเงิน ", ja: " 件 · 入金 ", ko: " 건 · 충전 " }],
+  [" · Nạp ", { en: " · Deposits ", zh: " · 充值 ", th: " · เติมเงิน ", ja: " · 入金 ", ko: " · 충전 " }],
+  [" đơn · ", { en: " orders · ", zh: " 单 · ", th: " ออเดอร์ · ", ja: " 件 · ", ko: " 건 · " }],
+  [" · 0 đơn", { en: " · 0 orders", zh: " · 0 单", th: " · 0 ออเดอร์", ja: " · 0 件", ko: " · 0 건" }],
+  ["Lãi ", { en: "Profit ", zh: "利润 ", th: "กำไร ", ja: "利益 ", ko: "이익 " }],
+  ["Đặt lại số dư nhà cung cấp đang lưu đệm (", { en: "Reset cached provider balances (", zh: "重置缓存的供应商余额(", th: "รีเซ็ตยอดผู้ให้บริการที่แคชไว้ (", ja: "キャッシュされたプロバイダー残高をリセット（", ko: "캐시된 공급자 잔액을 초기화합니다 (" }],
+  [" nguồn) — lần kiểm tra kế tiếp sẽ lấy số dư thật từ nguồn", { en: " sources) — the next check will fetch the real balance from the source", zh: " 个来源)— 下次检查将从来源获取真实余额", th: " แหล่ง) — การตรวจสอบครั้งถัดไปจะดึงยอดจริงจากแหล่ง", ja: " 件）— 次回チェックでソースから実際の残高を取得します", ko: " 개 소스) — 다음 확인 시 소스에서 실제 잔액을 가져옵니다" }],
+  [" tài khoản", { en: " accounts", zh: " 个账户", th: " บัญชี", ja: " アカウント", ko: " 계정" }],
 ];
 const MONEY = /(\d{1,3}(?:\.\d{3})+|\d+)đ/g;
 const LOCALES: Record<string, string> = { vi: "vi-VN", en: "en-US", zh: "zh-CN", th: "th-TH", ja: "ja-JP", ko: "ko-KR" };

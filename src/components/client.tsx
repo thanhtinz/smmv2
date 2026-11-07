@@ -1178,10 +1178,10 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
         ))}
       </div>
       <div className="card p-5 min-w-0">
-        <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Parameters</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Tham số</div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[480px]">
-            <thead className="border-b border-slate-200"><tr><th className="th !py-2">Parameter</th><th className="th !py-2">Type</th><th className="th !py-2">Description</th></tr></thead>
+            <thead className="border-b border-slate-200"><tr><th className="th !py-2">Tham số</th><th className="th !py-2">Kiểu</th><th className="th !py-2">Mô tả</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {cur.params.map((p) => (
                 <tr key={p[0]}><td className="td font-mono text-xs font-bold text-brand-700">{p[0]}</td><td className="td text-slate-500 text-xs">{p[1]}</td><td className="td text-slate-600">{p[2]}</td></tr>
@@ -1190,8 +1190,8 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
           </table>
         </div>
         <div className="flex items-center justify-between mt-6 mb-2">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Example Response</div>
-          <CopyBtn text={cur.response} label="Copy" />
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Phản hồi mẫu</div>
+          <CopyBtn text={cur.response} label="Sao chép" />
         </div>
         <div className="text-xs font-mono text-slate-400 mb-1">response.json</div>
         <pre className="bg-slate-950 text-slate-100 rounded-2xl p-4 text-xs sm:text-[13px] overflow-x-auto">{cur.response}</pre>

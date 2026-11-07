@@ -6,7 +6,7 @@ const KEY: [string, string, string] = ["key", "string", "API key cá nhân của
 
 const SMM_ACTIONS: ApiActionDoc[] = [
   { id: "services", label: "Danh sách dịch vụ", params: [KEY, ["action", "string", "services"]], response: `[\n  {\n    "service": 12,\n    "name": "TikTok Followers | Max 100K | Nhanh",\n    "type": "Default",\n    "category": "TikTok Followers",\n    "rate": "25000",\n    "min": 10,\n    "max": 100000,\n    "refill": true,\n    "cancel": false,\n    "dripfeed": false\n  }\n]` },
-  { id: "add", label: "Tạo đơn mới", params: [KEY, ["action", "string", "add"], ["service", "int", "ID dịch vụ (lấy từ Services List)"], ["link", "string", "Link cần tăng tương tác"], ["quantity", "int", "Số lượng đặt"], ["comments", "string", "Dịch vụ comment: nội dung, mỗi dòng 1 comment (tuỳ chọn)"], ["dripfeed", "int", "1 = bật drip-feed, chia đơn thành nhiều lượt (tuỳ chọn)"], ["runs", "int", "Số lượt thả khi drip-feed (tuỳ chọn)"], ["interval", "int", "Số phút giữa các lượt drip-feed (tuỳ chọn)"]], response: `{\n  "order": 48213\n}` },
+  { id: "add", label: "Tạo đơn mới", params: [KEY, ["action", "string", "add"], ["service", "int", "ID dịch vụ (lấy từ danh sách dịch vụ)"], ["link", "string", "Link cần tăng tương tác"], ["quantity", "int", "Số lượng đặt"], ["comments", "string", "Dịch vụ comment: nội dung, mỗi dòng 1 comment (tuỳ chọn)"], ["dripfeed", "int", "1 = bật drip-feed, chia đơn thành nhiều lượt (tuỳ chọn)"], ["runs", "int", "Số lượt thả khi drip-feed (tuỳ chọn)"], ["interval", "int", "Số phút giữa các lượt drip-feed (tuỳ chọn)"]], response: `{\n  "order": 48213\n}` },
   { id: "status", label: "Trạng thái đơn hàng", params: [KEY, ["action", "string", "status"], ["order", "int", "ID đơn hàng"]], response: `{\n  "charge": "25000",\n  "start_count": 1200,\n  "status": "In progress",\n  "remains": 300,\n  "currency": "VND"\n}` },
   { id: "orders", label: "Trạng thái nhiều đơn", params: [KEY, ["action", "string", "orders"], ["orders", "string", "Danh sách ID đơn, cách nhau bằng dấu phẩy (tối đa 100)"]], response: `{\n  "48213": {\n    "charge": "25000",\n    "start_count": 1200,\n    "status": "Completed",\n    "remains": 0,\n    "currency": "VND"\n  }\n}` },
   { id: "balance", label: "Số dư tài khoản", params: [KEY, ["action", "string", "balance"]], response: `{\n  "balance": "1500000",\n  "currency": "VND"\n}` },
@@ -16,7 +16,7 @@ const SMM_ACTIONS: ApiActionDoc[] = [
 
 const PRODUCT_ACTIONS: ApiActionDoc[] = [
   { id: "category", label: "Danh mục sản phẩm", params: [KEY, ["action", "string", "category"]], response: `[\n  {\n    "id": 1,\n    "name": "Xem phim & Video",\n    "products": [\n      {\n        "id": 5,\n        "name": "Netflix Premium 4K",\n        "cycles": [\n          { "variant": 21, "cycle": 1, "name": "1 Tháng", "price": 70000 }\n        ]\n      }\n    ]\n  }\n]` },
-  { id: "buy", label: "Mua sản phẩm", params: [KEY, ["action", "string", "buy"], ["product", "int", "ID gói (variant) — hoặc ID sản phẩm kèm tham số cycle"], ["cycle", "int", "Số tháng của chu kỳ khi mua theo sản phẩm (kiểu ThaTim, tuỳ chọn)"], ["note", "string", "Thông tin bàn giao: email/tài khoản cần nâng cấp hoặc ghi chú cho đơn"], ["quantity", "int", "Số lượng (mặc định 1)"]], response: `{\n  "order_code": "PRE100042",\n  "status": "DELIVERED",\n  "delivery": "Email: ... | Mật khẩu: ..."\n}` },
+  { id: "buy", label: "Mua sản phẩm", params: [KEY, ["action", "string", "buy"], ["product", "int", "ID gói (variant) — hoặc ID sản phẩm kèm tham số cycle"], ["cycle", "int", "Số tháng của chu kỳ khi mua theo sản phẩm (tuỳ chọn)"], ["note", "string", "Thông tin bàn giao: email/tài khoản cần nâng cấp hoặc ghi chú cho đơn"], ["quantity", "int", "Số lượng (mặc định 1)"]], response: `{\n  "order_code": "PRE100042",\n  "status": "DELIVERED",\n  "delivery": "Email: ... | Mật khẩu: ..."\n}` },
   { id: "history", label: "Lịch sử mua hàng", params: [KEY, ["action", "string", "history"], ["ids", "string", "Lọc theo mã đơn, cách nhau dấu phẩy (tuỳ chọn — bỏ trống lấy các đơn gần nhất)"]], response: `[\n  {\n    "order_code": "PRE100042",\n    "product": "Netflix Premium 4K",\n    "variant": "1 Tháng",\n    "price": 70000,\n    "status": "DELIVERED",\n    "delivery": "Email: ... | Mật khẩu: ...",\n    "created_at": "2026-01-01 10:00:00"\n  }\n]` },
 ];
 
@@ -24,12 +24,12 @@ function InfoCards({ endpoint, method, methodDesc, apiKey }: { endpoint: string;
   return (
     <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       <div className="card p-5">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">API Endpoint URL</div>
+        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Địa chỉ API (Endpoint)</div>
         <div className="font-mono text-[13px] font-semibold text-slate-800 mt-2 break-all">{endpoint}</div>
         <div className="mt-3"><CopyBtn text={endpoint} label="Sao chép URL" /></div>
       </div>
       <div className="card p-5">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">API Token Key</div>
+        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Khoá API (Token)</div>
         {apiKey ? (
           <>
             <div className="font-mono text-[13px] font-semibold text-slate-800 mt-2">{apiKey.slice(0, 6)}••••••••••••••••</div>
@@ -43,14 +43,14 @@ function InfoCards({ endpoint, method, methodDesc, apiKey }: { endpoint: string;
         )}
       </div>
       <div className="card p-5">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">HTTP Request Method</div>
+        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Phương thức HTTP</div>
         <div className="font-bold text-slate-800 mt-2">{method}</div>
         <div className="text-xs text-slate-400 mt-1">{methodDesc}</div>
       </div>
       <div className="card p-5">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Response Format</div>
+        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Định dạng phản hồi</div>
         <div className="font-bold text-slate-800 mt-2">JSON</div>
-        <div className="text-xs text-slate-400 mt-1">UTF-8 Character Encoding</div>
+        <div className="text-xs text-slate-400 mt-1">Mã hoá ký tự UTF-8</div>
       </div>
     </div>
   );
