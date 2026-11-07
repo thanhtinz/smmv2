@@ -35,5 +35,7 @@ export async function POST(req: NextRequest) {
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   clearPending2fa();
   await createSession({ id: user.id, role: user.role, username: user.username });
+  // GĐ3: tính lại điểm rủi ro nền sau đăng nhập
+  void (async () => { const { evaluateUserRisk } = await import("@/lib/risk"); await evaluateUserRisk(user.id); })();
   return NextResponse.json({ ok: true, redirect: user.role === "ADMIN" || user.role === "STAFF" ? "/admin" : "/dashboard" });
 }

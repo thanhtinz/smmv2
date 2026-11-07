@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getCurrentUser, getSession } from "@/lib/auth";
+import { getCurrentUser, getSession, currentIp } from "@/lib/auth";
 import { revokeSessionAction, revokeOtherSessionsAction } from "@/app/actions/sessions";
 import { Flash, Stat, I, Badge } from "@/components/ui";
-import { updateProfileAction, changePasswordAction, regenApiKeyAction, resendEmailVerificationAction, redeemPointsAction } from "@/app/actions/user";
+import { updateProfileAction, changePasswordAction, regenApiKeyAction, saveApiKeyIpsAction, resendEmailVerificationAction, redeemPointsAction } from "@/app/actions/user";
 import { logoutAction } from "@/app/actions/auth";
 import { CopyBtn } from "@/components/client";
 import { TwoFactorCard } from "@/components/two-factor";
+import { PasskeySection } from "@/components/passkey";
 import { ProfileTabs } from "@/components/profile-tabs";
 import { backupCodesLeft } from "@/lib/twofa";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
@@ -26,14 +27,16 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
   const { lang } = await getServerI18n(panelLangRaw);
   const tab = searchParams.tab === "api" ? "api" : searchParams.tab === "security" ? "security" : "profile";
   const s = await getSettings();
-  const [preCount, commissionAgg, refCount, loginHistory, mySessions, curSession] = await Promise.all([
+  const [preCount, commissionAgg, refCount, loginHistory, mySessions, curSession, myPasskeys] = await Promise.all([
     prisma.premiumOrder.count({ where: { userId: user.id } }),
     prisma.transaction.aggregate({ where: { userId: user.id, type: { in: ["REFERRAL_COMMISSION", "PANEL_COMMISSION"] }, amount: { gt: 0 } }, _sum: { amount: true } }),
     prisma.user.count({ where: { referredById: user.id } }),
     prisma.loginEvent.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 20 }),
     prisma.userSession.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 20 }),
     getSession(),
+    prisma.userPasskey.findMany({ where: { userId: user.id }, orderBy: { id: "desc" } }),
   ]);
+  const myIp = currentIp();
   const adminMust2fa = searchParams.bat2fa === "1" || ((user.role === "ADMIN" || user.role === "STAFF") && s.admin_2fa_required !== "0");
   const initials = (user.fullName || user.username).trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const endpoint = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/v2`;
@@ -165,6 +168,16 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
             </div>
             <p className="mt-2 text-xs text-slate-400">Trạng thái: Đang hoạt động. Giữ key bí mật như mật khẩu — tạo key mới sẽ làm key cũ hết hiệu lực ngay.</p>
           </div>
+          <form action={saveApiKeyIpsAction} className="border-t border-slate-100 pt-5">
+            <div className="font-bold text-slate-900">Whitelist IP cho API key</div>
+            <p className="mt-1.5 text-sm text-slate-500">Chỉ các địa chỉ IP trong danh sách này mới gọi được API bằng key của bạn.</p>
+            <div className="mt-3">
+              <label className="lbl">Mỗi IP hoặc dải CIDR một dòng (để trống = không giới hạn)</label>
+              <textarea className="inp font-mono" name="apiKeyIps" rows={4} defaultValue={user.apiKeyIps || ""} placeholder={"203.0.113.25\n203.0.113.0/24"} />
+            </div>
+            <p className="mt-1.5 text-xs text-slate-400">IP hiện tại của bạn: <b className="font-mono text-slate-600">{myIp}</b> — thêm IP này vào danh sách nếu bạn gọi API từ chính kết nối hiện tại.</p>
+            <button className="btn-primary mt-3">Lưu whitelist IP</button>
+          </form>
           <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
             <b className="text-slate-800">{trd(lang, "Hướng dẫn sử dụng API:")}</b> {trd(lang, "xem tài liệu đầy đủ kèm ví dụ cURL/PHP/Python tại")}{" "}
             <Link href="/dashboard/api-docs" className="font-semibold text-brand-600">Tài liệu API</Link>. {trd(lang, "Dùng key này để đặt đơn, tra trạng thái và số dư tự động qua endpoint phía trên.")}
@@ -178,6 +191,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
             {passwordForm}
             <div className="space-y-6">
               <TwoFactorCard enabled={user.totpEnabled} backupLeft={backupCodesLeft(user.backupCodes)} required={adminMust2fa && !user.totpEnabled} />
+              {s.passkeys_enabled !== "0" && (
+                <PasskeySection passkeys={myPasskeys.map((p) => ({ id: p.id, deviceName: p.deviceName, createdAt: dt(p.createdAt), lastUsedAt: p.lastUsedAt ? dt(p.lastUsedAt) : null }))} />
+              )}
               <div className="card space-y-4 p-6">
                 <div className="font-bold text-slate-900">Phiên đăng nhập</div>
                 <p className="text-sm text-slate-500">Các thiết bị đang đăng nhập tài khoản của bạn. Thấy thiết bị lạ? Đăng xuất thiết bị đó ngay và đổi mật khẩu.</p>

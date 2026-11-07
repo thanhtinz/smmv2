@@ -1,0 +1,195 @@
+"use client";
+import { useEffect, useState } from "react";
+import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
+
+/* Passkey / WebAuthn (bảo mật Enterprise GĐ3):
+   - PasskeySection: thẻ quản lý passkey trong Hồ sơ → Bảo mật.
+   - PasskeyLoginButton: nút đăng nhập bằng passkey ở trang đăng nhập.
+   Mọi chuỗi hiển thị viết tiếng Việt — hệ thống dịch của site tự dịch sang
+   ngôn ngữ khác theo chuỗi Việt gốc. */
+
+type PasskeyItem = {
+  id: number;
+  deviceName: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+};
+
+function isCancelError(e: unknown): boolean {
+  if (!e || typeof e !== "object") return false;
+  const err = e as { name?: string; cause?: { name?: string } };
+  return err.name === "NotAllowedError" || err.cause?.name === "NotAllowedError";
+}
+
+function errorText(e: unknown, fallback: string): string {
+  if (isCancelError(e)) return "Bạn đã huỷ thao tác passkey.";
+  if (e instanceof Error && e.message) return e.message;
+  return fallback;
+}
+
+export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
+  const [deviceName, setDeviceName] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  async function addPasskey() {
+    setBusy(true);
+    setErr("");
+    try {
+      const optRes = await fetch("/api/auth/passkey/register-options", { method: "POST" });
+      const optionsJSON = await optRes.json().catch(() => null);
+      if (!optRes.ok || !optionsJSON) {
+        setErr((optionsJSON && optionsJSON.error) || "Không tạo được yêu cầu passkey, thử lại sau");
+        return;
+      }
+      const registrationResponse = await startRegistration({ optionsJSON });
+      const verifyRes = await fetch("/api/auth/passkey/register-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...registrationResponse, deviceName: deviceName.trim() }),
+      });
+      const data = await verifyRes.json().catch(() => ({}));
+      if (!verifyRes.ok || !data.ok) {
+        setErr(data.error || "Không lưu được passkey, thử lại sau");
+        return;
+      }
+      location.reload();
+    } catch (e) {
+      setErr(errorText(e, "Không thêm được passkey, thử lại sau"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removePasskey(id: number) {
+    setDeletingId(id);
+    setErr("");
+    try {
+      const res = await fetch("/api/auth/passkey/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        setErr(data.error || "Không xoá được passkey, thử lại sau");
+        return;
+      }
+      location.reload();
+    } catch {
+      setErr("Không kết nối được máy chủ, thử lại");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  return (
+    <div className="card space-y-4 p-6">
+      <div className="flex items-center justify-between gap-3">
+        <div className="font-bold text-slate-900">Đăng nhập nhanh (Passkey)</div>
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${passkeys.length ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
+        >
+          {passkeys.length ? `${passkeys.length} thiết bị` : "Chưa có"}
+        </span>
+      </div>
+      <p className="text-sm text-slate-500">
+        Đăng nhập bằng Face ID, vân tay hoặc Windows Hello mà không cần nhập mật khẩu.
+      </p>
+      {err ? (
+        <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{err}</div>
+      ) : null}
+
+      {passkeys.length ? (
+        <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-100">
+          {passkeys.map((p) => (
+            <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-slate-800">{p.deviceName}</div>
+                <div className="mt-0.5 text-xs text-slate-400">
+                  Tạo ngày {p.createdAt}
+                  {p.lastUsedAt ? ` · Dùng gần nhất ${p.lastUsedAt}` : " · Chưa dùng lần nào"}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-ghost shrink-0 !px-3 !py-1.5 text-xs font-semibold text-rose-600"
+                onClick={() => removePasskey(p.id)}
+                disabled={deletingId === p.id}
+              >
+                {deletingId === p.id ? "Đang xoá..." : "Xoá"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="space-y-3 border-t border-slate-100 pt-4">
+        <div>
+          <label className="lbl">Tên thiết bị</label>
+          <input
+            className="inp"
+            value={deviceName}
+            onChange={(e) => setDeviceName(e.target.value)}
+            placeholder="Ví dụ: iPhone của tôi"
+            maxLength={100}
+          />
+        </div>
+        <button type="button" className="btn-primary" onClick={addPasskey} disabled={busy}>
+          {busy ? "Đang chờ thiết bị..." : "Thêm passkey"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function PasskeyLoginButton() {
+  const [supported, setSupported] = useState(false);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setSupported(typeof window !== "undefined" && !!window.PublicKeyCredential);
+  }, []);
+
+  if (!supported) return null;
+
+  async function login() {
+    setBusy(true);
+    setErr("");
+    try {
+      const optRes = await fetch("/api/auth/passkey/login-options", { method: "POST" });
+      const optionsJSON = await optRes.json().catch(() => null);
+      if (!optRes.ok || !optionsJSON) {
+        setErr((optionsJSON && optionsJSON.error) || "Không dùng được passkey lúc này, hãy đăng nhập bằng mật khẩu");
+        return;
+      }
+      const authenticationResponse = await startAuthentication({ optionsJSON });
+      const verifyRes = await fetch("/api/auth/passkey/login-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(authenticationResponse),
+      });
+      const data = await verifyRes.json().catch(() => ({}));
+      if (!verifyRes.ok || !data.ok) {
+        setErr(data.error || "Đăng nhập bằng passkey thất bại, hãy đăng nhập bằng mật khẩu");
+        return;
+      }
+      location.href = data.redirect || "/dashboard";
+    } catch (e) {
+      setErr(errorText(e, "Đăng nhập bằng passkey thất bại, hãy đăng nhập bằng mật khẩu"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <button type="button" className="btn-ghost w-full" onClick={login} disabled={busy}>
+        {busy ? "Đang chờ thiết bị..." : "Đăng nhập bằng Passkey"}
+      </button>
+      {err ? <p className="mt-2 text-center text-xs font-medium text-rose-600">{err}</p> : null}
+    </div>
+  );
+}

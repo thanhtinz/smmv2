@@ -4,7 +4,8 @@ import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { panelOrderCodes } from "@/lib/panel-orders";
 import { PageHead, Flash, Badge, Empty, I } from "@/components/ui";
 import { dt } from "@/lib/format";
-import { panelBanIpAction, panelUnbanIpAction } from "@/app/actions/panel";
+import { panelBanIpAction, panelUnbanIpAction, panelRiskReviewAction } from "@/app/actions/panel";
+import { isRiskRestricted, type RiskFactor } from "@/lib/risk";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,9 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
     prisma.loginEvent.findMany({ where: { panelId: panel.id }, orderBy: { id: "desc" }, take: 30 }),
   ]);
   const panelAudits = await prisma.auditLog.findMany({ where: { scope: "panel", panelId: panel.id }, orderBy: { id: "desc" }, take: 15 });
+  // GĐ3: khách của panel có điểm rủi ro cao nhất (chỉ xem + duyệt trong phạm vi panel)
+  const riskRaw = await prisma.user.findMany({ where: { panelId: panel.id, riskScore: { gt: 0 } }, orderBy: { riskScore: "desc" }, take: 10, select: { id: true, username: true, riskScore: true, riskLevel: true, riskFactors: true, riskReviewedAt: true } });
+  const riskMembers = await Promise.all(riskRaw.map(async (u) => ({ ...u, restrictedNow: await isRiskRestricted(u.id) })));
   const activity = await prisma.apiLog.findMany({
     where: { OR: [{ ref: { in: codes } }, { ref: panel.slug }] },
     orderBy: { id: "desc" },
@@ -110,6 +114,27 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
           <p className="text-xs leading-relaxed text-slate-400">IP bị cấm sẽ không đăng ký được tài khoản mới tại website và khách của panel dùng IP đó sẽ không đăng nhập được. Cấm này chỉ áp trong panel của bạn — cấm toàn hệ thống là quyền của web mẹ.</p>
           <button className="btn-primary w-full !py-2.5">Cấm IP này</button>
         </form>
+      </div>
+
+      <div className="card mt-6 overflow-x-auto">
+        <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Điểm rủi ro của khách website này</div>
+        <p className="border-b border-slate-100 px-5 py-3 text-sm text-slate-500">Hệ thống tự chấm điểm rủi ro 0–100 cho mỗi khách; khách điểm cao bị hạn chế tạo đơn/nạp sẽ được gỡ hạn chế khi bạn đánh dấu đã duyệt.</p>
+        {riskMembers.length === 0 ? <Empty text="Chưa có khách nào có điểm rủi ro" /> : (
+          <table className="w-full min-w-[640px]">
+            <thead><tr><th className="th">Khách</th><th className="th">Điểm</th><th className="th">Yếu tố chính</th><th className="th">Trạng thái</th><th className="th"></th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {riskMembers.map((u) => (
+                <tr key={u.id}>
+                  <td className="td font-medium">{u.username}</td>
+                  <td className="td"><b>{u.riskScore}</b> <Badge cls={u.riskLevel === "CRITICAL" ? "bg-rose-100 text-rose-700" : u.riskLevel === "HIGH" ? "bg-orange-100 text-orange-700" : u.riskLevel === "MEDIUM" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}>{u.riskLevel}</Badge></td>
+                  <td className="td max-w-[280px] text-xs text-slate-500">{(((u.riskFactors as RiskFactor[] | null) || []).slice(0, 3).map((f) => `${f.label} (+${f.points})`).join("; ")) || "—"}</td>
+                  <td className="td">{u.restrictedNow ? <Badge cls="bg-rose-100 text-rose-700">Đang bị hạn chế</Badge> : u.riskReviewedAt ? <Badge cls="bg-emerald-100 text-emerald-700">Đã duyệt</Badge> : <Badge cls="bg-slate-100 text-slate-500">Bình thường</Badge>}</td>
+                  <td className="td text-right"><form action={panelRiskReviewAction}><input type="hidden" name="userId" value={u.id} /><button className="btn-ghost btn-sm">Đánh dấu đã duyệt</button></form></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <div className="card mt-6 overflow-x-auto">

@@ -188,6 +188,8 @@ export async function loginAction(formData: FormData) {
   await ev({ userId: user.id, success: true, reason: "Đăng nhập bằng mật khẩu", panelId: user.panelId ?? hostPanel?.id ?? null });
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await createSession({ id: user.id, role: user.role, username: user.username });
+  // GĐ3: tính lại điểm rủi ro nền sau đăng nhập (dùng chung IP/thiết bị là 1 tín hiệu)
+  void (async () => { const { evaluateUserRisk } = await import("@/lib/risk"); await evaluateUserRisk(user.id); })();
   redirect(user.role === "ADMIN" || user.role === "STAFF" ? "/admin" : "/dashboard");
 }
 

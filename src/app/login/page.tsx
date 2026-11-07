@@ -5,6 +5,7 @@ import { loginAction } from "@/app/actions/auth";
 import { getSettings } from "@/lib/settings";
 import { panelByHost } from "@/lib/panel-host";
 import { RecaptchaWidget } from "@/components/recaptcha";
+import { PasskeyLoginButton } from "@/components/passkey";
 import { authCardClass } from "@/lib/auth-style";
 
 export default async function LoginPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
@@ -40,6 +41,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { msg?
             {settings?.recaptcha_enabled === "1" && settings?.recaptcha_login === "1" && settings?.recaptcha_site_key ? <RecaptchaWidget siteKey={settings.recaptcha_site_key} /> : null}
             <button className="btn-primary w-full !py-3">Đăng nhập</button>
           </form>
+          {settings?.passkeys_enabled !== "0" && <PasskeyLoginButton />}
           <p className="text-sm text-slate-500 mt-6 text-center">Chưa có tài khoản? <Link href="/register" className="text-brand-600 font-semibold">Đăng ký miễn phí</Link></p>
         </div>
     </AuthShell>

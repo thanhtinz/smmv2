@@ -525,6 +525,7 @@ export async function adminDepositAction(formData: FormData) {
     const claim = await prisma.deposit.updateMany({ where: { id, status: "PENDING" }, data: { status: "REJECTED", adminNote: String(formData.get("adminNote") || "") || null } });
     if (claim.count === 0) back("/admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
     await auditAdmin(actor, "deposit.reject", "deposit", id, `${dep.code} — ${dep.amount}đ của user ${dep.userId}`);
+    void (async () => { const { evaluateUserRisk } = await import("@/lib/risk"); await evaluateUserRisk(dep.userId); })();
     done("/admin/nap-tien", "Đã từ chối yêu cầu nạp");
   }
   // GĐ2: duyệt nạp từ ngưỡng cấu hình trở lên (mặc định 1.000.000đ; 0 = mọi lần) phải xác thực lại
@@ -544,6 +545,7 @@ export async function adminDepositAction(formData: FormData) {
   });
   if (!claimed) back("/admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
   await auditAdmin(actor, "deposit.approve", "deposit", id, `${dep.code} — cộng ${dep.amount}đ${dep.bonus > 0 ? ` + thưởng ${dep.bonus}đ` : ""} cho user ${dep.userId}`);
+  void (async () => { const { evaluateUserRisk } = await import("@/lib/risk"); await evaluateUserRisk(dep.userId); })();
   done("/admin/nap-tien", `Đã cộng ${dep.amount.toLocaleString("vi-VN")}đ cho khách`);
 }
 

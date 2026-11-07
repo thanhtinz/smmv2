@@ -380,6 +380,7 @@ export async function panelDepositAction(formData: FormData) {
     if (claim.count === 0) back("/panel-admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
     await notifyUser(dep.userId, "Yêu cầu nạp tiền bị từ chối", `Yêu cầu ${dep.code} (${dep.amount.toLocaleString("vi-VN")}đ) đã bị chủ website từ chối.`, "/dashboard/nap-tien");
     await auditPanel(user, panel.id, "deposit.reject", "deposit", id, `${dep.code} — ${dep.amount}đ của user ${dep.userId}`);
+    void (async () => { const { evaluateUserRisk } = await import("@/lib/risk"); await evaluateUserRisk(dep.userId); })();
     done("/panel-admin/nap-tien", "Đã từ chối yêu cầu nạp");
   }
   let claimed = false;
@@ -393,7 +394,21 @@ export async function panelDepositAction(formData: FormData) {
   if (!claimed) back("/panel-admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
   await notifyUser(dep.userId, "Nạp tiền thành công", `Yêu cầu ${dep.code} đã được duyệt: +${dep.amount.toLocaleString("vi-VN")}đ vào số dư.`, "/dashboard/nap-tien");
   await auditPanel(user, panel.id, "deposit.approve", "deposit", id, `${dep.code} — cộng ${dep.amount}đ cho user ${dep.userId}`);
+  void (async () => { const { evaluateUserRisk } = await import("@/lib/risk"); await evaluateUserRisk(dep.userId); })();
   done("/panel-admin/nap-tien", `Đã cộng ${dep.amount.toLocaleString("vi-VN")}đ cho khách`);
+}
+
+/** GĐ3: chủ panel duyệt điểm rủi ro cho khách CỦA PANEL MÌNH (gỡ hạn chế tới khi
+ *  có tín hiệu mới) — ngoài phạm vi panel thì từ chối. */
+export async function panelRiskReviewAction(formData: FormData) {
+  const { user, panel } = await ownPanelOwner("/panel-admin/bao-mat");
+  const id = int(formData, "userId");
+  const member = await prisma.user.findFirst({ where: { id, panelId: panel.id }, select: { id: true, username: true, riskScore: true } });
+  if (!member) back("/panel-admin/bao-mat", "err", "Khách này không thuộc website của bạn");
+  const { markRiskReviewed } = await import("@/lib/risk");
+  await markRiskReviewed(member.id, `chủ website ${user.username}`);
+  await auditPanel(user, panel.id, "risk.review", "user", member.id, `Duyệt điểm rủi ro cho ${member.username} (${member.riskScore} điểm) — gỡ hạn chế tới khi có tín hiệu mới`);
+  done("/panel-admin/bao-mat", `Đã duyệt ${member.username} — khách giao dịch lại bình thường cho tới khi có tín hiệu rủi ro mới`);
 }
 
 export async function panelManualDepositAction(formData: FormData) {

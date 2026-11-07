@@ -18,7 +18,33 @@ const authSecretRaw = (() => {
 const secret = new TextEncoder().encode(authSecretRaw);
 export const SESSION_COOKIE = "smmv2_session";
 
-export type SessionUser = { id: number; role: string; username: string; sv?: number; sid?: string };
+/* ---------- GĐ3: xoay vòng khoá phiên (secret rotation) ----------
+   Khoá ký JWT PHIÊN lấy từ DB (settings session_secret, đã giải mã qua secret-box)
+   nếu admin đã xoay vòng; chưa xoay thì dùng AUTH_SECRET ở env như trước.
+   Khoá cũ (session_secret_prev) vẫn được chấp nhận khi verify trong 7 ngày kể từ
+   lúc xoay — người đang đăng nhập không bị văng, phiên mới ký bằng khoá mới.
+   Step-up + cookie chờ 2FA vẫn ký bằng khoá env (ngắn hạn 5-10 phút, không cần xoay). */
+let secCache: { cur: string; prev: string | null; exp: number } | null = null;
+export function invalidateSessionSecretsCache() { secCache = null; }
+
+export async function getSessionSecrets(): Promise<{ current: Uint8Array; prev: Uint8Array | null }> {
+  if (!secCache || Date.now() > secCache.exp) {
+    let cur = authSecretRaw;
+    let prev: string | null = null;
+    try {
+      const s = await getSettings();
+      if ((s.session_secret || "").trim()) cur = s.session_secret.trim();
+      const p = (s.session_secret_prev || "").trim();
+      const rotatedAt = parseInt(s.session_secret_rotated_at || "") || 0;
+      if (p && rotatedAt && Date.now() - rotatedAt < 7 * 24 * 3600 * 1000) prev = p;
+    } catch { /* DB lỗi thì dùng khoá env — không khoá người dùng ngoài hệ thống */ }
+    secCache = { cur, prev, exp: Date.now() + 5000 };
+  }
+  const enc = new TextEncoder();
+  return { current: enc.encode(secCache.cur), prev: secCache.prev ? enc.encode(secCache.prev) : null };
+}
+
+export type SessionUser = { id: number; role: string; username: string; sv?: number; sid?: string; authMethod?: string; amr?: string };
 
 export async function createSession(user: SessionUser) {
   let days = Math.min(90, Math.max(1, parseInt((await getSettings()).session_days) || 7));
@@ -52,11 +78,11 @@ export async function createSession(user: SessionUser) {
     console.error("[auth] không tạo được UserSession:", e);
     sid = undefined;
   }
-  const token = await new SignJWT({ uid: user.id, role: user.role, username: user.username, sv: dbUser?.sessionVersion ?? 0, ...(sid ? { sid } : {}) })
+  const token = await new SignJWT({ uid: user.id, role: user.role, username: user.username, sv: dbUser?.sessionVersion ?? 0, ...(sid ? { sid } : {}), ...(user.authMethod === "passkey" ? { amr: "passkey" } : {}) })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${days}d`)
-    .sign(secret);
+    .sign((await getSessionSecrets()).current);
   cookies().set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -169,9 +195,13 @@ export async function adminIpBlocked(): Promise<{ blocked: boolean; ip: string; 
   return { blocked: !list.includes(ip), ip, list };
 }
 
-/** Tài khoản quản trị (ADMIN/STAFF web mẹ) có bị bắt buộc bật 2FA mà chưa bật không */
-export async function adminNeeds2fa(user: { role: string; totpEnabled: boolean }): Promise<boolean> {
+/** Tài khoản quản trị (ADMIN/STAFF web mẹ) có bị bắt buộc bật 2FA mà chưa bật không.
+ *  GĐ3: đăng nhập bằng PASSKEY có xác minh người dùng (UV) được coi là xác thực mạnh
+ *  (kết hợp sở hữu thiết bị + sinh trắc/PIN, chống phishing) — phiên passkey thoả
+ *  luôn điều kiện này, không bị dẫn đi thiết lập TOTP nữa. */
+export async function adminNeeds2fa(user: { role: string; totpEnabled: boolean; passkeyAuth?: boolean }): Promise<boolean> {
   if (user.totpEnabled) return false;
+  if (user.passkeyAuth) return false;
   if (user.role !== "ADMIN" && user.role !== "STAFF") return false;
   const s = await getSettings().catch(() => null);
   return s?.admin_2fa_required !== "0";
@@ -181,7 +211,7 @@ export async function adminNeeds2fa(user: { role: string; totpEnabled: boolean }
  *  - IP ngoài whitelist -> trang /admin-blocked
  *  - Quản trị chưa bật 2FA (khi đang bắt buộc) -> trang Hồ sơ > Bảo mật để thiết lập
  *  Trang thiết lập 2FA nằm NGOÀI /admin nên không khoá vòng lặp. */
-export async function enforceAdminSecurity(user: { role: string; totpEnabled: boolean }) {
+export async function enforceAdminSecurity(user: { role: string; totpEnabled: boolean; passkeyAuth?: boolean }) {
   const wl = await adminIpBlocked();
   if (wl.blocked) redirect("/admin-blocked");
   if (await adminNeeds2fa(user)) redirect("/dashboard/ho-so?tab=security&bat2fa=1");
@@ -190,12 +220,16 @@ export async function enforceAdminSecurity(user: { role: string; totpEnabled: bo
 export async function getSession(): Promise<SessionUser | null> {
   const token = cookies().get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, secret);
-    return { id: Number(payload.uid), role: String(payload.role), username: String(payload.username), sv: Number(payload.sv ?? 0), sid: payload.sid ? String(payload.sid) : undefined };
-  } catch {
-    return null;
+  // GĐ3: verify bằng khoá hiện hành trước, không khớp thì thử khoá cũ (còn hạn 7 ngày sau xoay vòng)
+  const { current, prev } = await getSessionSecrets();
+  for (const key of [current, prev]) {
+    if (!key) continue;
+    try {
+      const { payload } = await jwtVerify(token, key);
+      return { id: Number(payload.uid), role: String(payload.role), username: String(payload.username), sv: Number(payload.sv ?? 0), sid: payload.sid ? String(payload.sid) : undefined, amr: payload.amr ? String(payload.amr) : undefined };
+    } catch { /* thử khoá tiếp theo */ }
   }
+  return null;
 }
 
 export async function getCurrentUser() {
@@ -204,6 +238,9 @@ export async function getCurrentUser() {
   const user = await prisma.user.findUnique({ where: { id: s.id } });
   if (!user || user.status === "BANNED") return null;
   if ((s.sv ?? 0) !== user.sessionVersion) return null; // phiên cấp trước lần đổi mật khẩu gần nhất -> đã huỷ
+  // GĐ3: phiên đăng nhập bằng passkey (đã bắt buộc xác minh người dùng UV trên thiết
+  // bị) mang theo cờ này để thoả điều kiện 2FA của khu quản trị — xem adminNeeds2fa.
+  if (s.amr === "passkey") (user as any).passkeyAuth = true;
   // GĐ2: token có sid thì phiên tương ứng phải còn hiệu lực (chưa bị thu hồi từ xa).
   // Token cũ cấp trước GĐ2 không có sid -> vẫn hợp lệ tới khi hết hạn (giới hạn đã ghi nhận).
   if (s.sid) {

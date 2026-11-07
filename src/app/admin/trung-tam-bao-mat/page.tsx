@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash, Empty, Badge, Stat, I } from "@/components/ui";
-import { toggleLockdownAction, encryptAllPanelSecretsAction } from "@/app/actions/security-center";
+import { toggleLockdownAction, encryptAllPanelSecretsAction, riskRecalcAction, riskReviewAction, riskSaveSettingsAction, rotateSessionSecretAction, rotateCronSecretAction, clearCronSecretOnceAction } from "@/app/actions/security-center";
 import { verifyAuditChain } from "@/lib/audit";
+import { isRiskRestricted, type RiskFactor } from "@/lib/risk";
 import { PANEL_SECRET_FIELDS, panelHasPlaintextSecrets } from "@/lib/panel-secrets";
 import { dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
@@ -37,6 +39,20 @@ const ACTION_LABEL: Record<string, string> = {
   "panel.config.stripe": "Panel: lưu Stripe",
   "panel.config.toolapi": "Panel: lưu Tool API key",
   "panel.config.alerts": "Panel: lưu báo tin",
+  "risk.review": "Duyệt điểm rủi ro",
+  "risk.settings": "Đổi cấu hình điểm rủi ro",
+  "secret.rotate_session": "Xoay vòng khoá phiên",
+  "secret.rotate_cron": "Xoay vòng khoá cron",
+  "apikey.ip_whitelist": "Đổi whitelist IP của API key",
+  "passkey.add": "Thêm passkey",
+  "passkey.remove": "Xoá passkey",
+};
+
+const LEVEL_BADGE: Record<string, string> = {
+  LOW: "bg-slate-100 text-slate-600",
+  MEDIUM: "bg-amber-100 text-amber-700",
+  HIGH: "bg-orange-100 text-orange-700",
+  CRITICAL: "bg-rose-100 text-rose-700",
 };
 
 export default async function SecurityCenter({ searchParams }: { searchParams: { msg?: string; err?: string; action?: string; actor?: string; page?: string } }) {
@@ -68,6 +84,16 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
     prisma.childPanel.findMany({ select: { id: true, name: true, ...Object.fromEntries(PANEL_SECRET_FIELDS.map((f) => [f, true])) } as any }),
   ]);
   const panelsPlain = (panelsRaw as any[]).filter((p) => panelHasPlaintextSecrets(p));
+  // GĐ3: rủi ro & gian lận + xoay vòng khoá
+  const riskTh = { watch: parseInt(s.risk_watch) || 40, restrict: parseInt(s.risk_restrict) || 70, critical: parseInt(s.risk_critical) || 90 };
+  const [topRiskRaw, riskWatchCount, riskRestrictedCount] = await Promise.all([
+    prisma.user.findMany({ where: { riskScore: { gt: 0 } }, orderBy: { riskScore: "desc" }, take: 15, select: { id: true, username: true, role: true, panelId: true, riskScore: true, riskLevel: true, riskFactors: true, riskUpdatedAt: true, riskReviewedAt: true } }),
+    prisma.user.count({ where: { riskScore: { gte: riskTh.watch } } }),
+    prisma.user.count({ where: { riskScore: { gte: riskTh.restrict } } }),
+  ]);
+  const topRisk = await Promise.all(topRiskRaw.map(async (u) => ({ ...u, restrictedNow: await isRiskRestricted(u.id) })));
+  const cronOnce = cookies().get("smmv2_cron_once")?.value || "";
+  const sessionRotatedAt = parseInt(s.session_secret_rotated_at || "") || 0;
   const pct2fa = totalUsers > 0 ? Math.round((users2fa / totalUsers) * 100) : 0;
   const lockdownOn = s.emergency_lockdown === "1";
   const totalPages = Math.max(1, Math.ceil(auditTotal / PAGE_SIZE));
@@ -137,6 +163,108 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
             <button className="btn-primary w-full" disabled={panelsPlain.length === 0}>Mã hoá toàn bộ secret panel</button>
             <p className="mt-2 text-xs text-slate-400">Chỉ ADMIN web mẹ, yêu cầu xác thực lại (step-up). Cần đặt khoá APP_ENC_KEY trên máy chủ để mã hoá có hiệu lực.</p>
           </form>
+        </div>
+      </div>
+
+      <div className="card mt-6 overflow-x-auto">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+          <div className="font-bold text-slate-900">{Ld("Rủi ro & gian lận")}</div>
+          <div className="flex gap-2">
+            <Badge cls="bg-amber-100 text-amber-700">{riskWatchCount} tài khoản cần theo dõi</Badge>
+            <Badge cls="bg-rose-100 text-rose-700">{riskRestrictedCount} tài khoản điểm cao</Badge>
+          </div>
+        </div>
+        <p className="border-b border-slate-100 px-5 py-3 text-sm text-slate-500">Điểm rủi ro 0–100 tự tính từ hành vi đăng nhập, nạp tiền, đơn hàng và API. Từ {riskTh.restrict} điểm hệ thống tự chặn tạo đơn/nạp mới cho tới khi được duyệt; từ {riskTh.critical} điểm là cấp nghiêm trọng chờ duyệt — hệ thống không tự khoá tiền hay khoá tài khoản.</p>
+        {topRisk.length === 0 ? <Empty text="Chưa có tài khoản nào có điểm rủi ro" /> : (
+          <table className="w-full min-w-[820px]">
+            <thead><tr><th className="th">Tài khoản</th><th className="th">Điểm rủi ro</th><th className="th">Yếu tố chính</th><th className="th">Trạng thái</th><th className="th"></th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {topRisk.map((u) => {
+                const fs = ((u.riskFactors as RiskFactor[] | null) || []).slice(0, 3);
+                return (
+                  <tr key={u.id}>
+                    <td className="td"><Link className="font-semibold text-sky-600" href={`/admin/nguoi-dung/${u.id}`}>{u.username}</Link><span className="block text-xs text-slate-400">{u.panelId ? `Khách website con #${u.panelId}` : "Khách web mẹ"}{u.riskUpdatedAt ? ` · tính lúc ${dt(u.riskUpdatedAt)}` : ""}</span></td>
+                    <td className="td">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-100"><div className={`h-full ${u.riskScore >= riskTh.critical ? "bg-rose-500" : u.riskScore >= riskTh.restrict ? "bg-orange-500" : u.riskScore >= riskTh.watch ? "bg-amber-500" : "bg-slate-400"}`} style={{ width: `${u.riskScore}%` }} /></div>
+                        <b>{u.riskScore}</b>
+                        <Badge cls={LEVEL_BADGE[u.riskLevel] || LEVEL_BADGE.LOW}>{u.riskLevel}</Badge>
+                      </div>
+                    </td>
+                    <td className="td max-w-[300px] text-xs text-slate-500">{fs.length ? fs.map((f) => `${f.label} (+${f.points})`).join("; ") : "—"}</td>
+                    <td className="td">{u.restrictedNow ? <Badge cls="bg-rose-100 text-rose-700">Đang bị hạn chế</Badge> : u.riskReviewedAt ? <Badge cls="bg-emerald-100 text-emerald-700">Đã duyệt</Badge> : <Badge cls="bg-slate-100 text-slate-500">Bình thường</Badge>}</td>
+                    <td className="td whitespace-nowrap text-right">
+                      <span className="inline-flex gap-2">
+                        <form action={riskRecalcAction}><input type="hidden" name="userId" value={u.id} /><button className="btn-ghost btn-sm">Tính lại</button></form>
+                        <form action={riskReviewAction}><input type="hidden" name="userId" value={u.id} /><button className="btn-ghost btn-sm">Đánh dấu đã duyệt</button></form>
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        <form action={riskSaveSettingsAction} className="grid grid-cols-2 gap-3 border-t border-slate-100 px-5 py-4 md:grid-cols-4">
+          <div><label className="lbl">Ngưỡng theo dõi</label><input className="inp" name="risk_watch" type="number" min={0} max={100} defaultValue={s.risk_watch} /></div>
+          <div><label className="lbl">Ngưỡng hạn chế</label><input className="inp" name="risk_restrict" type="number" min={0} max={100} defaultValue={s.risk_restrict} /></div>
+          <div><label className="lbl">Ngưỡng nghiêm trọng</label><input className="inp" name="risk_critical" type="number" min={0} max={100} defaultValue={s.risk_critical} /></div>
+          <div><label className="lbl">Điểm / tài khoản dùng chung IP</label><input className="inp" name="risk_w_shared" type="number" min={0} max={100} defaultValue={s.risk_w_shared} /></div>
+          <div><label className="lbl">Điểm / lần đăng nhập sai (7 ngày)</label><input className="inp" name="risk_w_faillogin" type="number" min={0} max={100} defaultValue={s.risk_w_faillogin} /></div>
+          <div><label className="lbl">Điểm khi IP bị cấm</label><input className="inp" name="risk_w_ipban" type="number" min={0} max={100} defaultValue={s.risk_w_ipban} /></div>
+          <div><label className="lbl">Điểm tỉ lệ nạp bị từ chối</label><input className="inp" name="risk_w_deposit_reject" type="number" min={0} max={100} defaultValue={s.risk_w_deposit_reject} /></div>
+          <div><label className="lbl">Điểm spam lệnh nạp 24 giờ</label><input className="inp" name="risk_w_deposit_velocity" type="number" min={0} max={100} defaultValue={s.risk_w_deposit_velocity} /></div>
+          <div><label className="lbl">Ngưỡng lệnh nạp / 24 giờ</label><input className="inp" name="risk_deposit_velocity_count" type="number" min={1} defaultValue={s.risk_deposit_velocity_count} /></div>
+          <div><label className="lbl">Điểm spam đơn 1 giờ</label><input className="inp" name="risk_w_order_burst" type="number" min={0} max={100} defaultValue={s.risk_w_order_burst} /></div>
+          <div><label className="lbl">Ngưỡng đơn / 1 giờ</label><input className="inp" name="risk_order_burst_count" type="number" min={1} defaultValue={s.risk_order_burst_count} /></div>
+          <div><label className="lbl">Điểm tỉ lệ đơn huỷ/hoàn</label><input className="inp" name="risk_w_cancel_ratio" type="number" min={0} max={100} defaultValue={s.risk_w_cancel_ratio} /></div>
+          <div><label className="lbl">Điểm lạm dụng hoàn tiền</label><input className="inp" name="risk_w_refunds" type="number" min={0} max={100} defaultValue={s.risk_w_refunds} /></div>
+          <div><label className="lbl">Điểm lạm dụng API</label><input className="inp" name="risk_w_api_errors" type="number" min={0} max={100} defaultValue={s.risk_w_api_errors} /></div>
+          <div><label className="lbl">Ngưỡng lỗi API / 24 giờ</label><input className="inp" name="risk_api_error_count" type="number" min={1} defaultValue={s.risk_api_error_count} /></div>
+          <div className="flex items-end"><button className="btn-primary w-full">Lưu cấu hình rủi ro</button></div>
+          <input type="hidden" name="risk_w_login_locked" value={s.risk_w_login_locked} />
+          <input type="hidden" name="risk_w_young_big" value={s.risk_w_young_big} />
+          <input type="hidden" name="risk_young_days" value={s.risk_young_days} />
+          <input type="hidden" name="risk_big_deposit_vnd" value={s.risk_big_deposit_vnd} />
+        </form>
+      </div>
+
+      <div className="card mt-6 p-5">
+        <div className="font-bold text-slate-900">{Ld("Xoay vòng khoá bí mật")}</div>
+        <p className="mt-2 text-sm text-slate-500">Xoay vòng định kỳ khoá ký phiên và khoá cron để giảm thiểu rủi ro khi khoá cũ bị lộ.</p>
+        {cronOnce && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <div className="text-sm font-bold text-amber-800">Khoá cron mới của bạn (chỉ hiện một lần — sao chép ngay)</div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <code className="min-w-0 flex-1 break-all rounded-lg bg-white px-3 py-2 font-mono text-xs text-slate-800">{cronOnce}</code>
+              <form action={clearCronSecretOnceAction}><button className="btn-ghost btn-sm">Đã sao chép — ẩn đi</button></form>
+            </div>
+            <p className="mt-2 text-xs text-amber-700">Cập nhật khoá mới này vào nơi gọi cron của bạn; hệ thống vẫn nhận cả khoá cũ trong biến môi trường nên cron hiện tại không bị gián đoạn.</p>
+          </div>
+        )}
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <div className="text-sm font-bold text-slate-800">Khoá ký phiên đăng nhập</div>
+            <div className="mt-1.5 space-y-1 text-sm text-slate-500">
+              <div>Đang dùng: <b className="text-slate-800">{s.session_secret ? "Khoá trong cơ sở dữ liệu" : "Khoá từ biến môi trường AUTH_SECRET"}</b></div>
+              <div>Lần xoay gần nhất: <b className="text-slate-800">{sessionRotatedAt ? dt(new Date(sessionRotatedAt)) : "Chưa từng xoay"}</b></div>
+            </div>
+            <form action={rotateSessionSecretAction} className="mt-3">
+              <button className="btn-primary w-full">Xoay vòng khoá phiên</button>
+              <p className="mt-2 text-xs text-slate-400">Yêu cầu xác thực lại (step-up). Khoá cũ còn hiệu lực 7 ngày nên không ai đang đăng nhập bị văng.</p>
+            </form>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <div className="text-sm font-bold text-slate-800">Khoá gọi cron đồng bộ</div>
+            <div className="mt-1.5 space-y-1 text-sm text-slate-500">
+              <div>Khoá biến môi trường: <b className="text-slate-800">{process.env.CRON_SECRET ? "Đã đặt" : "Chưa đặt"}</b></div>
+              <div>Khoá cơ sở dữ liệu: <b className="text-slate-800">{s.cron_secret ? `••••••••${String(s.cron_secret).slice(-4)}` : "Chưa đặt"}</b></div>
+            </div>
+            <form action={rotateCronSecretAction} className="mt-3">
+              <button className="btn-primary w-full">Xoay vòng khoá cron</button>
+              <p className="mt-2 text-xs text-slate-400">Yêu cầu xác thực lại (step-up). Hệ thống nhận cả khoá môi trường lẫn khoá cơ sở dữ liệu.</p>
+            </form>
+          </div>
         </div>
       </div>
 

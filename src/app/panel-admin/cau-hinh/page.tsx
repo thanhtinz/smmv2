@@ -145,6 +145,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
             <label className="lbl">API key liên kết web mẹ</label>
             <input className="inp font-mono !text-[13px]" name="apiKey" defaultValue="" placeholder={panel.apiKey ? `Đang dùng key ••••${panel.apiKey.slice(-4)} — để trống = giữ nguyên` : "Dán API key của tài khoản mẹ"} autoComplete="off" />
             <p className="mt-1.5 text-xs text-slate-400">Đang liên kết bằng key của tài khoản <b>{linkedUser ? `${linkedUser.username} (#${panel.apiUserId})` : "—"}</b>. Hệ thống kiểm tra key ngay khi lưu.</p>
+            <p className="mt-1.5 text-xs text-slate-400">Nếu tài khoản liên kết đã đặt whitelist IP cho API key ở web mẹ, danh sách IP đó cũng áp dụng cho khoá liên kết của website này.</p>
           </div>
           <div>
             <label className="lbl">Trạng thái bán</label>

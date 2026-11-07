@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser, requireAdminPage } from "@/lib/auth";
 import { BackLink, Flash, Badge, Stat, I } from "@/components/ui";
 import { adminAdjustBalance, adminUpdateUser, adminForceLogoutAction } from "@/app/actions/admin";
+import { riskRecalcAction, riskReviewAction } from "@/app/actions/security-center";
+import { isRiskRestricted, type RiskFactor } from "@/lib/risk";
 import { vnd, num, LEVEL_NAME, dt, SMM_STATUS, PRE_STATUS } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +31,10 @@ export default async function AdminUserDetail({ params, searchParams }: { params
     prisma.deposit.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5 }),
   ]);
   const userSessions = await prisma.userSession.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 10 });
+  // GĐ3: điểm rủi ro + sự kiện rủi ro gần nhất của tài khoản này
+  const riskEvents = await prisma.riskEvent.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5 });
+  const riskRestrictedNow = await isRiskRestricted(u.id);
+  const riskFactors = ((u.riskFactors as RiskFactor[] | null) || []);
   return (
     <div>
       <BackLink href="/admin/nguoi-dung">Danh sách người dùng</BackLink>
@@ -97,6 +103,36 @@ export default async function AdminUserDetail({ params, searchParams }: { params
               ))}
               {tickets.length === 0 && deposits.length === 0 && <tr><td className="td text-slate-400">Chưa có ticket / lượt nạp nào</td></tr>}
             </tbody></table>
+          </div>
+        <div className="card p-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="font-bold text-slate-900">Điểm rủi ro gian lận</div>
+              <Badge cls={u.riskLevel === "CRITICAL" ? "bg-rose-100 text-rose-700" : u.riskLevel === "HIGH" ? "bg-orange-100 text-orange-700" : u.riskLevel === "MEDIUM" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}>{u.riskLevel}</Badge>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100"><div className={`h-full ${u.riskScore >= 90 ? "bg-rose-500" : u.riskScore >= 70 ? "bg-orange-500" : u.riskScore >= 40 ? "bg-amber-500" : "bg-slate-400"}`} style={{ width: `${u.riskScore}%` }} /></div>
+              <span className="text-xl font-black text-slate-900">{u.riskScore}<span className="text-sm font-semibold text-slate-400">/100</span></span>
+            </div>
+            {riskRestrictedNow ? <p className="text-sm font-semibold text-rose-600">Tài khoản đang bị hạn chế tạo đơn/nạp mới.</p> : u.riskReviewedAt ? <p className="text-sm text-emerald-600">Đã được duyệt lúc {dt(u.riskReviewedAt)} — chỉ hạn chế lại khi có tín hiệu mới.</p> : null}
+            {riskFactors.length === 0 ? <p className="text-sm text-slate-400">Chưa ghi nhận yếu tố rủi ro nào.</p> : (
+              <ul className="space-y-1.5">
+                {riskFactors.map((f) => (
+                  <li key={f.key} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm"><span className="text-slate-600">{f.label}</span><b className="text-slate-800">+{f.points}</b></li>
+                ))}
+              </ul>
+            )}
+            {riskEvents.length > 0 && (
+              <div className="space-y-1 border-t border-slate-100 pt-3">
+                {riskEvents.map((ev) => (
+                  <div key={ev.id} className="text-xs text-slate-400">{dt(ev.createdAt)} · {ev.kind === "restricted" ? "Bị hạn chế" : ev.kind === "reviewed" ? "Đã duyệt" : "Tín hiệu"} — {ev.detail || ""} (điểm {ev.score})</div>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-slate-400">Cập nhật: {u.riskUpdatedAt ? dt(u.riskUpdatedAt) : "chưa tính"} · Điểm tự tính lại khi đăng nhập, duyệt nạp, tạo đơn và mỗi vòng cron.</p>
+            <div className="flex gap-2">
+              <form action={riskRecalcAction} className="flex-1"><input type="hidden" name="userId" value={u.id} /><input type="hidden" name="next" value={`/admin/nguoi-dung/${u.id}`} /><button className="btn-ghost w-full">Tính lại điểm</button></form>
+              <form action={riskReviewAction} className="flex-1"><input type="hidden" name="userId" value={u.id} /><input type="hidden" name="next" value={`/admin/nguoi-dung/${u.id}`} /><button className="btn-primary w-full">Đánh dấu đã duyệt</button></form>
+            </div>
           </div>
         <div className="card p-6 space-y-3">
             <div className="font-bold text-slate-900">Phiên đăng nhập ({userSessions.filter((x) => !x.revokedAt).length} đang hoạt động)</div>

@@ -14,18 +14,23 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
-  const secret = (await getSettings()).cron_secret || process.env.CRON_SECRET || "";
+  // GĐ3: chấp nhận khoá cron ở MỘT TRONG HAI nơi — env CRON_SECRET hoặc setting
+  // cron_secret trong DB (admin xoay vòng ở Trung tâm bảo mật mà không cần sửa env).
+  const candidates = Array.from(new Set([process.env.CRON_SECRET || "", (await getSettings()).cron_secret || ""].filter(Boolean)));
   const given =
     req.headers.get("x-cron-secret") ||
     (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
   // Fail-closed: chưa cấu hình secret ở cả DB lẫn env thì TỪ CHỐI mọi cuộc gọi
   // (trước đây trống secret = ai cũng gọi được vòng đồng bộ nặng). Chỉ nhận qua
   // header, không nhận ?secret= (tránh lọt vào access log).
-  if (!secret) return NextResponse.json({ error: "Cron secret not configured" }, { status: 503 });
+  if (!candidates.length) return NextResponse.json({ error: "Cron secret not configured" }, { status: 503 });
   const { timingSafeEqual } = await import("crypto");
   const a = Buffer.from(given || "");
-  const b = Buffer.from(secret);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const matched = candidates.some((c) => {
+    const b = Buffer.from(c);
+    return a.length === b.length && timingSafeEqual(a, b);
+  });
+  if (!matched) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const result: any = { ordersSynced: 0, ordersFailed: 0, premiumSynced: 0, premiumFailed: 0, providers: [] };
 
@@ -141,6 +146,14 @@ export async function GET(req: NextRequest) {
       }
     }
   }
+  // GĐ3: tính lại điểm rủi ro hàng loạt cho tài khoản hoạt động 30 ngày gần nhất
+  try {
+    const { recalcActiveUsersRisk } = await import("@/lib/risk");
+    result.riskRecalculated = await recalcActiveUsersRisk(200);
+  } catch (e: any) {
+    result.riskError = String(e?.message || e);
+  }
+
   // Ghi nhận lần chạy cron cho trang Sức khoẻ hệ thống (Admin → Hệ thống)
   await prisma.apiLog.create({ data: { kind: "cron_sync", ok: true, detail: JSON.stringify({ ordersSynced: result.ordersSynced, ordersFailed: result.ordersFailed, premiumSynced: result.premiumSynced, premiumFailed: result.premiumFailed }).slice(0, 900) } }).catch(() => {});
   return NextResponse.json(result);

@@ -91,6 +91,34 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   emergency_lockdown: "0", // "1" = khoá khẩn cấp: khách không đăng nhập mới / đặt đơn / nạp / mua premium được (GĐ2)
   lockdown_reason: "", // lý do khoá khẩn cấp, hiện cho khách khi bị chặn
   stepup_amount_threshold: "1000000", // duyệt nạp từ số tiền này (VNĐ) phải xác thực lại (step-up); 0 = mọi lần duyệt
+  // Bảo mật Enterprise GĐ3: Fraud Detection + Risk Score 0-100 (lib/risk.ts) — ngưỡng hành động
+  risk_watch: "40", // >= ngưỡng này: gắn cờ theo dõi, hiện ở Trung tâm bảo mật
+  risk_restrict: "70", // >= ngưỡng này: chặn tạo đơn + tạo lệnh nạp mới cho tới khi admin duyệt
+  risk_critical: "90", // >= ngưỡng này: cấp CRITICAL chờ admin duyệt (không tự khoá tiền/khoá tài khoản)
+  // GĐ3: trọng số từng tín hiệu rủi ro (điểm tối đa mỗi tín hiệu bị chặn bởi trần trong code)
+  risk_w_shared: "10", // điểm cho MỖI tài khoản khác dùng chung IP/thiết bị đăng nhập gần nhất
+  risk_w_faillogin: "3", // điểm cho mỗi lần đăng nhập thất bại trong 7 ngày
+  risk_w_login_locked: "15", // điểm cộng thêm khi tài khoản đang bị khoá tạm vì đăng nhập sai nhiều lần
+  risk_w_ipban: "25", // điểm nếu IP đăng nhập gần đây của tài khoản nằm trong danh sách cấm IP
+  risk_w_deposit_reject: "30", // điểm tối đa theo tỉ lệ lệnh nạp bị từ chối (cần tối thiểu 3 lệnh nạp)
+  risk_w_deposit_velocity: "20", // điểm khi số lệnh nạp trong 24 giờ vượt ngưỡng dưới
+  risk_deposit_velocity_count: "8", // ngưỡng số lệnh nạp trong 24 giờ bị coi là bất thường
+  risk_w_young_big: "15", // điểm khi tài khoản mới nạp 1 lần lớn bất thường
+  risk_young_days: "7", // tuổi tài khoản (ngày) bị coi là "mới"
+  risk_big_deposit_vnd: "5000000", // số tiền 1 lần nạp (VNĐ) bị coi là "lớn" với tài khoản mới
+  risk_w_order_burst: "20", // điểm khi số đơn tạo trong 1 giờ vượt ngưỡng dưới
+  risk_order_burst_count: "20", // ngưỡng số đơn trong 1 giờ bị coi là spam
+  risk_w_cancel_ratio: "20", // điểm khi tỉ lệ đơn huỷ/hoàn cao (tối thiểu 10 đơn)
+  risk_w_api_errors: "20", // điểm khi số lỗi gọi API reseller trong 24 giờ vượt ngưỡng dưới
+  risk_api_error_count: "50", // ngưỡng lỗi API trong 24 giờ bị coi là lạm dụng
+  risk_w_refunds: "20", // điểm khi số lần hoàn tiền/bảo hành trong 30 ngày từ 3 lần trở lên
+  // GĐ3: Passkey (WebAuthn) — "1" = cho phép đăng ký + đăng nhập bằng Face ID/Touch ID/Windows Hello
+  passkeys_enabled: "1",
+  // GĐ3: xoay vòng khoá phiên — khoá ký JWT lưu trong DB (mã hoá bằng secret-box khi có
+  // APP_ENC_KEY); trống = dùng AUTH_SECRET ở env như trước. Khoá cũ (prev) còn hiệu lực 7 ngày.
+  session_secret: "",
+  session_secret_prev: "",
+  session_secret_rotated_at: "",
   // Chống brute-force đăng nhập (Cài đặt → Bảo mật)
   bf_enabled: "1",
   bf_max_attempts: "10",

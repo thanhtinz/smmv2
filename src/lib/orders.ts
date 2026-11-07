@@ -8,6 +8,7 @@ import { orderEvent, orderTransition, notifyUser } from "./notify";
 import { flashPercentFor, applyFlashAmount } from "./flash";
 import { awardPointsForPremiumOrder } from "./points";
 import { alertMother, alertPanelOwner } from "./alerts";
+import { assertNotRiskRestricted, evaluateUserRisk } from "./risk";
 import {
   providerAddOrder, providerOrderStatus, providerRefill, mapProviderStatus,
   providerBuyProduct, findPremiumOrderInHistory, extractDelivery,
@@ -133,6 +134,8 @@ export async function createSmmOrder(input: {
   silentNotify?: boolean;
 }) {
   if ((await getSettings()).module_smm === "0") throw new Error("Mảng dịch vụ SMM đang tạm tắt");
+  // GĐ3: tài khoản rủi ro cao (chưa được duyệt lại) bị chặn tạo đơn mới
+  await assertNotRiskRestricted(input.user.id);
   if (input.user.panelId) {
     const pf = await prisma.childPanel.findUnique({ where: { id: input.user.panelId }, select: { sellSmm: true } });
     if (pf && !pf.sellSmm) throw new Error("Website đang tắt bán dịch vụ SMM");
@@ -271,6 +274,8 @@ export async function createSmmOrder(input: {
     return { ...o, code, charge: finalCharge };
   });
   await orderEvent(order.id, "PENDING", flagNote ? `Đã tạo đơn · Cờ: ${flagNote}` : "Đã tạo đơn");
+  // GĐ3: tính lại điểm rủi ro nền sau khi tạo đơn (spam đơn là 1 tín hiệu) — lỗi tính điểm không ảnh hưởng đơn
+  void evaluateUserRisk(input.user.id);
   if (!input.silentNotify && !input.subscriptionId) {
     await notifyUser(input.user.id, "Đặt đơn thành công", `Đơn ${order.code}: ${order.quantity.toLocaleString("vi-VN")} × ${service.name} — đã trừ ${vnd(finalCharge)}`, `/dashboard/don-hang/${order.id}`);
   }
@@ -503,6 +508,8 @@ export async function createPremiumOrder(input: {
   promoCode?: string;
 }) {
   if ((await getSettings()).module_premium === "0") throw new Error("Mảng Premium đang tạm tắt");
+  // GĐ3: tài khoản rủi ro cao (chưa được duyệt lại) bị chặn mua Premium mới
+  await assertNotRiskRestricted(input.user.id);
   if (input.user.panelId) {
     const pf = await prisma.childPanel.findUnique({ where: { id: input.user.panelId }, select: { sellPremium: true } });
     if (pf && !pf.sellPremium) throw new Error("Website đang tắt bán Premium");
@@ -634,6 +641,8 @@ export async function createPremiumOrder(input: {
   });
   if (!ownProduct) void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
   await notifyUser(input.user.id, "Đặt hàng Premium thành công", `Đơn ${created.code}: ${variant.product.name} — ${variant.name} × ${input.quantity} — đã trừ ${vnd(created.total)}${created.status === "DELIVERED" ? " — đã giao tự động, xem nội dung trong đơn" : ""}`, "/dashboard/don-premium");
+  // GĐ3: tính lại điểm rủi ro nền sau khi mua Premium — lỗi tính điểm không ảnh hưởng đơn
+  void evaluateUserRisk(input.user.id);
   if (created.status === "DELIVERED" || created.status === "COMPLETED") await awardPointsForPremiumOrder(created);
   if (panel) void alertPanelOwner(panel.id, "premium_order", `Đơn Premium mới ${created.code}`, `Qua website ${panel.name}: ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
 

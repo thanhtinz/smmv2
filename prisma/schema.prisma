@@ -52,6 +52,13 @@ model User {
   totalDeposited Int        @default(0)
   totalSpent     Int        @default(0)
   apiKey         String     @unique @db.VarChar(64)
+  apiKeyIps      String?    @db.Text // whitelist IP cho API key — mỗi IP/CIDR 1 dòng; trống = không giới hạn (GĐ3)
+  // Điểm rủi ro gian lận 0-100 (bảo mật Enterprise GĐ3 — tính bởi lib/risk.ts)
+  riskScore      Int        @default(0)
+  riskLevel      String     @default("LOW") @db.VarChar(10) // LOW | MEDIUM | HIGH | CRITICAL
+  riskFactors    Json? // mảng {key,label,points} giải thích điểm hiện tại
+  riskUpdatedAt  DateTime?
+  riskReviewedAt DateTime? // admin/chủ panel đã duyệt: không tự hạn chế lại cho tới khi có tín hiệu mới
   depositCode    String     @unique @db.VarChar(12) // nội dung CK: SMM <code>
   refCode        String?    @unique @db.VarChar(12) // mã giới thiệu (trang Kiếm tiền)
   webhookUrl     String?    @db.VarChar(255) // URL nhận thông báo trạng thái đơn (Webhook ra hệ thống ngoài của khách)
@@ -76,6 +83,8 @@ model User {
   loginEvents   LoginEvent[]
   sessions      UserSession[]
   auditLogs     AuditLog[]
+  passkeys      UserPasskey[]
+  riskEvents    RiskEvent[]
 
   // Panel con (child panel): khách đăng ký qua panel của đại lý khác
   panelId    Int?
@@ -981,4 +990,39 @@ model AuditLog {
   @@index([createdAt])
   @@index([action, createdAt])
   @@index([panelId, createdAt])
+}
+
+// Sự kiện rủi ro (bảo mật Enterprise GĐ3): ghi khi điểm rủi ro thay đổi đáng kể,
+// khi tài khoản bị hạn chế giao dịch, hoặc khi API key bị chặn vì IP lạ — dùng để
+// giải thích "vì sao tài khoản này có điểm như vậy" ở Trung tâm bảo mật.
+model RiskEvent {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String   @db.VarChar(40) // signal | restricted | reviewed | api_ip_blocked
+  detail    String?  @db.Text
+  points    Int      @default(0) // thay đổi điểm tại sự kiện (delta)
+  score     Int      @default(0) // điểm tổng ngay sau sự kiện
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+// Passkey / WebAuthn (bảo mật Enterprise GĐ3): khoá công khai của thiết bị đăng nhập
+// nhanh (Face ID / Touch ID / Windows Hello). publicKey dạng base64url do thư viện
+// SimpleWebAuthn cấp; counter chống clone thiết bị.
+model UserPasskey {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String    @unique @db.VarChar(255) // base64url
+  publicKey    String    @db.Text // base64url
+  counter      Int       @default(0)
+  transports   String?   @db.VarChar(120) // JSON mảng transports (internal, hybrid...)
+  deviceName   String    @db.VarChar(100)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  @@index([userId])
 }

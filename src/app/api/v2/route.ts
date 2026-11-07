@@ -8,6 +8,7 @@ import { getActiveFlashSale, flashAppliesTo, applyFlashAmount } from "@/lib/flas
 import { moduleOn } from "@/lib/modules";
 import { providerCancel, providerRefill } from "@/lib/provider";
 import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
+import { ipAllowed } from "@/lib/ip-match";
 
 /**
  * API cho đại lý (reseller) — chuẩn SMM API v2 tương thích Perfect Panel & hầu hết panel VN.
@@ -40,7 +41,26 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
   const user = await userByApiKey(key);
-  if (!user) return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
+  if (!user) {
+    // GĐ3: ghi log gọi API lỗi (nguồn tín hiệu lạm dụng API cho điểm rủi ro)
+    if (key) await prisma.apiLog.create({ data: { kind: "reseller_in", ref: "unknown", ok: false, detail: `Invalid API key từ IP ${clientIp(req.headers)}` } }).catch(() => {});
+    return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
+  }
+  // GĐ3: whitelist IP cho từng API key — chủ key đặt ở Hồ sơ → Kết nối API;
+  // danh sách trống = không giới hạn. Khoá liên kết của panel con đi qua tài
+  // khoản CHỦ PANEL nên whitelist của chủ panel áp cho khoá đó.
+  {
+    const ip = clientIp(req.headers);
+    if (!ipAllowed(ip, user.apiKeyIps)) {
+      await prisma.apiLog.create({ data: { kind: "reseller_in", ref: `user:${user.id}`, ok: false, detail: `API key bị chặn: IP ${ip} không nằm trong whitelist` } }).catch(() => {});
+      // RiskEvent nhẹ, tối đa 1 dòng/giờ cho mỗi tài khoản để không spam nhật ký
+      const recent = await prisma.riskEvent.count({ where: { userId: user.id, kind: "api_ip_blocked", createdAt: { gte: new Date(Date.now() - 3600 * 1000) } } }).catch(() => 1);
+      if (!recent) {
+        await prisma.riskEvent.create({ data: { userId: user.id, kind: "api_ip_blocked", points: 0, score: user.riskScore, detail: `API key bị chặn vì IP ${ip} không nằm trong whitelist` } }).catch(() => {});
+      }
+      return NextResponse.json({ error: "IP not whitelisted" }, { status: 403 });
+    }
+  }
   if (!(await moduleOn("api", user.panelId))) {
     return NextResponse.json({ error: "API module is disabled" }, { status: 403 });
   }
