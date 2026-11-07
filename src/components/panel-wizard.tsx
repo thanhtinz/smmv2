@@ -132,8 +132,9 @@ export function PanelWizard({ fee, balance, action, defaults }: {
   ) : null;
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <form action={action} className="card flex h-full flex-col p-6 lg:col-span-2">
+    <div>
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+      <form action={action} className="card p-6 lg:col-span-2">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-extrabold text-slate-900">Tạo Child Panel</h2>
@@ -144,7 +145,7 @@ export function PanelWizard({ fee, balance, action, defaults }: {
         <div className="mt-6"><Stepper step={step} /></div>
 
         {/* ===== Bước 1: Tên miền ===== */}
-        <div className={step === 1 ? "mt-7 flex-1" : "hidden"}>
+        <div className={step === 1 ? "mt-7" : "hidden"}>
           <div className="flex items-start gap-3.5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-600/10 text-brand-700">{GlobeIcon}</span>
             <span>
@@ -176,7 +177,7 @@ export function PanelWizard({ fee, balance, action, defaults }: {
         </div>
 
         {/* ===== Bước 2: Tài khoản quản trị viên ===== */}
-        <div className={step === 2 ? "mt-7 flex-1" : "hidden"}>
+        <div className={step === 2 ? "mt-7" : "hidden"}>
           <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1.5 text-xs font-bold text-brand-700">{GlobeIcon} DOMAIN: <span className="text-slate-900">{cleanDomain || "—"}</span></span>
           <h3 className="mt-5 font-bold text-slate-900">Tài khoản quản trị viên</h3>
           <p className="mt-0.5 text-sm text-slate-500">Tài khoản này sẽ có quyền admin cao nhất trên Child Panel</p>
@@ -218,7 +219,7 @@ export function PanelWizard({ fee, balance, action, defaults }: {
         </div>
 
         {/* ===== Bước 3: Xem lại & thanh toán ===== */}
-        <div className={step === 3 ? "mt-7 flex-1" : "hidden"}>
+        <div className={step === 3 ? "mt-7" : "hidden"}>
           <div className="flex items-start gap-3.5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <span className="shrink-0 text-amber-500">{WarnIcon}</span>
             <span>
@@ -277,7 +278,7 @@ export function PanelWizard({ fee, balance, action, defaults }: {
       </form>
 
       {/* Cột phải: thông tin gói / tính năng / FAQ — cố định suốt các bước như bản mẫu */}
-      <div className="space-y-6">
+      <div className="flex flex-col gap-6 lg:self-stretch">
         <div className="card p-6">
           <div className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Thông tin gói</div>
           <div className="mt-4 space-y-3 text-sm">
@@ -287,9 +288,9 @@ export function PanelWizard({ fee, balance, action, defaults }: {
             <div className="flex justify-between gap-4"><span className="text-slate-500">Domain</span><span className="max-w-[55%] truncate font-bold text-slate-900">{cleanDomain || "—"}</span></div>
           </div>
         </div>
-        <div className="card p-6">
+        <div className="card flex flex-1 flex-col p-6">
           <div className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Tính năng</div>
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-4 flex flex-1 flex-col justify-between gap-3">
             {FEATURES.map((f) => (
               <li key={f.text} className="flex items-center gap-3 text-sm font-medium text-slate-700">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">{f.icon}</span>{f.text}
@@ -297,18 +298,19 @@ export function PanelWizard({ fee, balance, action, defaults }: {
             ))}
           </ul>
         </div>
-        <div className="card p-6">
-          <div className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Câu hỏi thường gặp</div>
-          <div className="mt-4 space-y-4">
-            {FAQS.map((f) => (
-              <div key={f.q}>
-                <div className="text-sm font-bold text-slate-800">{f.q}</div>
-                <p className="mt-1 text-[13px] leading-relaxed text-slate-500">{f.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
+    </div>
+    <div className="card mt-6 p-6">
+      <div className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Câu hỏi thường gặp</div>
+      <div className="mt-4 grid gap-5 md:grid-cols-3">
+        {FAQS.map((f) => (
+          <div key={f.q}>
+            <div className="text-sm font-bold text-slate-800">{f.q}</div>
+            <p className="mt-1 text-[13px] leading-relaxed text-slate-500">{f.a}</p>
+          </div>
+        ))}
+      </div>
+    </div>
     </div>
   );
 }

@@ -94,7 +94,7 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
 
   return (
     <>
-      <div className="rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-cyan-500 px-6 py-8 text-white sm:px-8">
+      <div className="rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-cyan-500 px-6 py-6 text-white sm:px-8">
         <div className="text-[13px] font-medium text-white/75">
           <Link href={homeHref} className="hover:text-white">Trang chủ</Link>
           <span className="mx-1.5">›</span>
@@ -181,7 +181,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
 
   return (
     <>
-      <div className="rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-cyan-500 px-6 py-8 text-white sm:px-8">
+      <div className="rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-cyan-500 px-6 py-6 text-white sm:px-8">
         <div className="text-[13px] font-medium text-white/75">
           <Link href={homeHref} className="hover:text-white">Trang chủ</Link>
           <span className="mx-1.5">›</span>
@@ -195,9 +195,9 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
               <ProductGallery images={images} name={product.name} />
             ) : images.length === 1 ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={images[0]} alt={product.name} className="aspect-video w-full object-cover" />
+              <img src={images[0]} alt={product.name} className="aspect-video max-h-[240px] w-full object-cover" />
             ) : (
-              <div className="flex aspect-video w-full items-center justify-center" style={{ background: `linear-gradient(135deg, ${product.color}, #0ea5e9)` }}>
+              <div className="flex aspect-video max-h-[240px] w-full items-center justify-center" style={{ background: `linear-gradient(135deg, ${product.color}, #0ea5e9)` }}>
                 <span className="text-7xl font-black text-white/90">{product.name.charAt(0)}</span>
               </div>
             )}
