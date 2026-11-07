@@ -4,6 +4,7 @@ import { prisma } from "./db";
 import { getCurrentUser, adminIpBlocked } from "./auth";
 import { getSettings } from "./settings";
 import type { ChildPanel, User } from "@prisma/client";
+import { decryptPanelSecrets } from "./panel-secrets";
 
 /** Bảo mật Enterprise GĐ1 cho Panel Admin (đồng bộ web mẹ):
  *  - Whitelist IP: kiến trúc settings hiện tại là TOÀN CỤC (chưa có setting riêng
@@ -38,9 +39,9 @@ export async function listAccessiblePanels(userId: number): Promise<PanelAccess[
     include: { panel: true },
     orderBy: { id: "asc" },
   });
-  const out: PanelAccess[] = owned.map((panel) => ({ panel, isOwner: true }));
+  const out: PanelAccess[] = owned.map((raw) => ({ panel: decryptPanelSecrets(raw)!, isOwner: true }));
   for (const r of staffRows) {
-    if (!out.some((x) => x.panel.id === r.panelId)) out.push({ panel: r.panel, isOwner: r.role === "ADMIN" });
+    if (!out.some((x) => x.panel.id === r.panelId)) out.push({ panel: decryptPanelSecrets(r.panel)!, isOwner: r.role === "ADMIN" });
   }
   return out;
 }

@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { headers } from "next/headers";
 import { prisma } from "./db";
+import { decryptPanelSecrets } from "./panel-secrets";
 import { applyBalance } from "./wallet";
 import { getSettings, calcBonus, bonusTiersFor, DEFAULT_SETTINGS } from "./settings";
 import { genCode } from "./format";
@@ -37,9 +38,10 @@ export async function resolveIntlConfig(userId: number): Promise<IntlConfig> {
   let minUsd = parseInt(s.intl_min_usd) || MIN_USD;
   let source: IntlConfig["source"] = "mother";
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { panelId: true } });
-  const panel = user?.panelId
+  const panelRaw = user?.panelId
     ? await prisma.childPanel.findUnique({ where: { id: user.panelId } })
     : await prisma.childPanel.findFirst({ where: { ownerId: userId } });
+  const panel = decryptPanelSecrets(panelRaw);
   if (panel) {
     if (panel.intlMinUsd && panel.intlMinUsd > 0) minUsd = panel.intlMinUsd;
     const pr = parseFloat(panel.rateUsd || "");

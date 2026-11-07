@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { generateTotpSecret, otpauthUri, verifyTotp } from "@/lib/totp";
 import { userTotpSecret, storeTotpSecret, verifyLoginCode, regenerateBackupCodes } from "@/lib/twofa";
 import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
+import { verifyPassword } from "@/lib/password";
+import QRCode from "qrcode";
 
 /** Quản lý 2FA của chính tài khoản đang đăng nhập (Hồ sơ → Bảo mật):
  *  - setup: sinh secret (lưu mã hoá, CHƯA bật) + trả secret & otpauth URI để nhập app Authenticator
@@ -27,7 +28,10 @@ export async function POST(req: NextRequest) {
     const secret = generateTotpSecret();
     await prisma.user.update({ where: { id: user.id }, data: { totpSecret: storeTotpSecret(secret) } });
     const s = await getSettings().catch(() => null);
-    return NextResponse.json({ ok: true, secret, uri: otpauthUri(secret, user.username, s?.site_name || "SMMv2") });
+    const uri = otpauthUri(secret, user.username, s?.site_name || "SMMv2");
+    // GĐ2: QR sinh ngay phía server từ otpauth URI — secret không rời khỏi hệ thống
+    const qr = await QRCode.toDataURL(uri, { margin: 1, width: 220 }).catch(() => null);
+    return NextResponse.json({ ok: true, secret, uri, qr });
   }
 
   if (action === "enable") {
@@ -43,7 +47,7 @@ export async function POST(req: NextRequest) {
   if (action === "disable") {
     if (!user.totpEnabled) return NextResponse.json({ ok: false, error: "2FA chưa bật" }, { status: 400 });
     const password = String(body.password || "");
-    if (!(await bcrypt.compare(password, user.passwordHash))) {
+    if (!(await verifyPassword(user.passwordHash, password))) {
       return NextResponse.json({ ok: false, error: "Mật khẩu hiện tại không đúng" }, { status: 400 });
     }
     if (!(await verifyLoginCode(user, code))) {

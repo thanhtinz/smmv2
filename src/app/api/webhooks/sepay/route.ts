@@ -30,8 +30,16 @@ export async function POST(req: NextRequest) {
     if (a.length === b.length && timingSafeEqual(a, b)) authorized = true;
   }
   if (!authorized && presented) {
-    const p = await prisma.childPanel.findFirst({ where: { sepayEnabled: true, sepaySecret: presented }, select: { id: true } }).catch(() => null);
-    if (p) { authorized = true; viaPanelId = p.id; }
+    // Secret panel có thể đã mã hoá (enc:) — không tra equality được, phải quét + giải mã + so khớp
+    const { decryptSecret } = await import("@/lib/secret-box");
+    const { timingSafeEqual } = await import("crypto");
+    const panels = await prisma.childPanel.findMany({ where: { sepayEnabled: true, sepaySecret: { not: null } }, select: { id: true, sepaySecret: true }, take: 500 }).catch(() => []);
+    for (const cand of panels) {
+      const dec = cand.sepaySecret ? decryptSecret(cand.sepaySecret) : "";
+      if (!dec) continue;
+      const a = Buffer.from(presented); const b = Buffer.from(dec);
+      if (a.length === b.length && timingSafeEqual(a, b)) { authorized = true; viaPanelId = cand.id; break; }
+    }
   }
   if (!authorized) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -88,6 +88,9 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // Bảo mật Enterprise GĐ1: bắt buộc tài khoản quản trị bật 2FA + whitelist IP vào khu quản trị
   admin_2fa_required: "1", // "1" = ADMIN/STAFF web mẹ + chủ/Admin panel con chưa bật 2FA thì bị dẫn đi thiết lập, chưa vào được khu quản trị
   admin_ip_whitelist: "", // mỗi IP 1 dòng; để trống = tắt (không chặn ai)
+  emergency_lockdown: "0", // "1" = khoá khẩn cấp: khách không đăng nhập mới / đặt đơn / nạp / mua premium được (GĐ2)
+  lockdown_reason: "", // lý do khoá khẩn cấp, hiện cho khách khi bị chặn
+  stepup_amount_threshold: "1000000", // duyệt nạp từ số tiền này (VNĐ) phải xác thực lại (step-up); 0 = mọi lần duyệt
   // Chống brute-force đăng nhập (Cài đặt → Bảo mật)
   bf_enabled: "1",
   bf_max_attempts: "10",

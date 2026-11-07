@@ -11,6 +11,9 @@ import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
 import { genCode, normalizePremiumFieldsJson } from "@/lib/format";
 import { refundSmmOrder } from "@/lib/orders";
 import { getSettings } from "@/lib/settings";
+import { encryptSecret } from "@/lib/secret-box";
+import { writeAudit } from "@/lib/audit";
+import { assertStepUp, currentIp } from "@/lib/auth";
 import { orderTransition } from "@/lib/notify";
 
 /** Actions riêng của chủ panel con — mọi thao tác đều khoá theo panel của chính
@@ -44,6 +47,14 @@ async function ownPanel(backPath: string) {
 
 /** Như ownPanel nhưng chỉ CHỦ panel mới qua được — nhân viên panel bị chặn
  *  ở mọi thao tác giá / tiền / cấu hình / nhân sự (phân quyền 2 tầng như web mẹ). */
+/** GĐ2: mã hoá secret panel khi ghi xuống DB (giá trị đã enc: được giữ nguyên) */
+const encSec = (v: string | null) => (v ? encryptSecret(v) : v);
+
+/** GĐ2: ghi audit bất biến phạm vi panel */
+async function auditPanel(user: { id: number; username: string; role: string }, panelId: number, action: string, targetType: string, targetId: string | number, detail?: string) {
+  await writeAudit({ actorId: user.id, actorName: user.username, role: user.role, scope: "panel", panelId, action, targetType, targetId, detail: detail ?? null, ip: currentIp() });
+}
+
 async function ownPanelOwner(backPath: string) {
   const r = await ownPanel(backPath);
   if (!r.isOwner) back("/panel-admin", "err", "Chỉ chủ panel mới làm được thao tác này — tài khoản của bạn là Nhân viên panel");
@@ -240,7 +251,7 @@ export async function panelSaveAiAction(formData: FormData) {
     aiModel: str(formData, "aiModel") || null,
   };
   // Để trống ô key = giữ key đã lưu; nhập mới thì thay
-  if (rawKey && !rawKey.includes("•")) data.aiApiKey = rawKey;
+  if (rawKey && !rawKey.includes("•")) data.aiApiKey = encryptSecret(rawKey);
   await prisma.childPanel.update({ where: { id: panel.id }, data });
   done("/panel-admin/ai", "Đã lưu cấu hình AI của panel");
 }
@@ -359,7 +370,7 @@ export async function panelOwnOrderAction(formData: FormData) {
 
 /* ---------- Nạp tiền của khách panel: duyệt / từ chối / cộng tay ---------- */
 export async function panelDepositAction(formData: FormData) {
-  const { panel } = await ownPanelOwner("/panel-admin/nap-tien");
+  const { user, panel } = await ownPanelOwner("/panel-admin/nap-tien");
   const id = int(formData, "id");
   const kind = str(formData, "kind");
   const dep = await prisma.deposit.findFirst({ where: { id, user: { panelId: panel.id } } });
@@ -368,6 +379,7 @@ export async function panelDepositAction(formData: FormData) {
     const claim = await prisma.deposit.updateMany({ where: { id, status: "PENDING" }, data: { status: "REJECTED", adminNote: str(formData, "adminNote") || null } });
     if (claim.count === 0) back("/panel-admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
     await notifyUser(dep.userId, "Yêu cầu nạp tiền bị từ chối", `Yêu cầu ${dep.code} (${dep.amount.toLocaleString("vi-VN")}đ) đã bị chủ website từ chối.`, "/dashboard/nap-tien");
+    await auditPanel(user, panel.id, "deposit.reject", "deposit", id, `${dep.code} — ${dep.amount}đ của user ${dep.userId}`);
     done("/panel-admin/nap-tien", "Đã từ chối yêu cầu nạp");
   }
   let claimed = false;
@@ -380,11 +392,13 @@ export async function panelDepositAction(formData: FormData) {
   });
   if (!claimed) back("/panel-admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
   await notifyUser(dep.userId, "Nạp tiền thành công", `Yêu cầu ${dep.code} đã được duyệt: +${dep.amount.toLocaleString("vi-VN")}đ vào số dư.`, "/dashboard/nap-tien");
+  await auditPanel(user, panel.id, "deposit.approve", "deposit", id, `${dep.code} — cộng ${dep.amount}đ cho user ${dep.userId}`);
   done("/panel-admin/nap-tien", `Đã cộng ${dep.amount.toLocaleString("vi-VN")}đ cho khách`);
 }
 
 export async function panelManualDepositAction(formData: FormData) {
-  const { panel } = await ownPanelOwner("/panel-admin/nap-tien");
+  const { user, panel } = await ownPanelOwner("/panel-admin/nap-tien");
+  await assertStepUp(user.id, "/panel-admin/nap-tien");
   const memberId = int(formData, "memberId");
   const amount = int(formData, "amount");
   if (!memberId || amount <= 0) back("/panel-admin/nap-tien", "err", "Chọn khách và số tiền hợp lệ");
@@ -397,6 +411,7 @@ export async function panelManualDepositAction(formData: FormData) {
     await applyBalance(tx, member.id, amount, "DEPOSIT", code, "Chủ website cộng tiền tay");
   });
   await notifyUser(member.id, "Số dư đã được cộng", `Chủ website vừa cộng ${amount.toLocaleString("vi-VN")}đ vào tài khoản của bạn.`, "/dashboard/nap-tien");
+  await auditPanel(user, panel.id, "deposit.manual", "user", member.id, `Cộng tiền tay ${amount}đ (mã ${code})`);
   done("/panel-admin/nap-tien", `Đã cộng ${amount.toLocaleString("vi-VN")}đ cho ${member.username}`);
 }
 
@@ -470,8 +485,12 @@ export async function panelSeedContactWidgetsAction() {
 
 /* ---------- Cấu hình riêng của panel ---------- */
 export async function panelSaveConfigAction(formData: FormData) {
-  const { panel } = await ownPanelOwner("/panel-admin/cau-hinh");
+  const { user, panel } = await ownPanelOwner("/panel-admin/cau-hinh");
   const section = str(formData, "section");
+  // GĐ2: các mục chứa khoá bí mật/thanh toán của panel phải xác thực lại trước khi lưu
+  if (["smtp", "telegram", "google", "paypal", "sepay", "stripe", "toolapi"].includes(section)) {
+    await assertStepUp(user.id, "/panel-admin/cau-hinh");
+  }
   const backTo = str(formData, "back") || "/panel-admin/cau-hinh";
   const keep = (v: string, old: string | null) => (v.includes("•") ? old : v || null);
   if (section === "bank") {
@@ -487,18 +506,21 @@ export async function panelSaveConfigAction(formData: FormData) {
       where: { id: panel.id },
       data: {
         smtpHost: str(formData, "smtpHost") || null, smtpPort: str(formData, "smtpPort") || null,
-        smtpUser: str(formData, "smtpUser") || null, smtpPass: keep(str(formData, "smtpPass"), panel.smtpPass),
+        smtpUser: str(formData, "smtpUser") || null, smtpPass: encSec(keep(str(formData, "smtpPass"), panel.smtpPass)),
         smtpFrom: str(formData, "smtpFrom") || null, smtpSecure: formData.get("smtpSecure") === "on",
       },
     });
+    await auditPanel(user, panel.id, "panel.config.smtp", "panel", panel.id, "Lưu cấu hình smtp của panel");
     done(backTo, "Đã lưu cấu hình thư (SMTP) của panel");
   }
   if (section === "telegram") {
-    await prisma.childPanel.update({ where: { id: panel.id }, data: { telegramBotToken: keep(str(formData, "telegramBotToken"), panel.telegramBotToken), telegramChatId: str(formData, "telegramChatId") || null } });
+    await prisma.childPanel.update({ where: { id: panel.id }, data: { telegramBotToken: encSec(keep(str(formData, "telegramBotToken"), panel.telegramBotToken)), telegramChatId: str(formData, "telegramChatId") || null } });
+    await auditPanel(user, panel.id, "panel.config.telegram", "panel", panel.id, "Lưu cấu hình telegram của panel");
     done(backTo, "Đã lưu Telegram báo đơn của panel");
   }
   if (section === "google") {
-    await prisma.childPanel.update({ where: { id: panel.id }, data: { googleClientId: str(formData, "googleClientId") || null, googleClientSecret: keep(str(formData, "googleClientSecret"), panel.googleClientSecret) } });
+    await prisma.childPanel.update({ where: { id: panel.id }, data: { googleClientId: str(formData, "googleClientId") || null, googleClientSecret: encSec(keep(str(formData, "googleClientSecret"), panel.googleClientSecret)) } });
+    await auditPanel(user, panel.id, "panel.config.google", "panel", panel.id, "Lưu cấu hình google của panel");
     done(backTo, "Đã lưu Google đăng nhập của panel");
   }
   if (section === "paypal") {
@@ -507,10 +529,11 @@ export async function panelSaveConfigAction(formData: FormData) {
       data: {
         paypalEnabled: formData.get("paypalEnabled") === "on",
         paypalClientId: str(formData, "paypalClientId") || null,
-        paypalSecret: keep(str(formData, "paypalSecret"), panel.paypalSecret),
+        paypalSecret: encSec(keep(str(formData, "paypalSecret"), panel.paypalSecret)),
         paypalMode: str(formData, "paypalMode") === "live" ? "live" : "sandbox",
       },
     });
+    await auditPanel(user, panel.id, "panel.config.paypal", "panel", panel.id, "Lưu cấu hình paypal của panel");
     done(backTo, "Đã lưu PayPal của panel — khách của bạn nạp PayPal sẽ trả vào tài khoản này");
   }
   if (section === "sepay") {
@@ -525,9 +548,10 @@ export async function panelSaveConfigAction(formData: FormData) {
       where: { id: panel.id },
       data: {
         sepayEnabled: formData.get("sepayEnabled") === "on",
-        sepaySecret: newSecret,
+        sepaySecret: encSec(newSecret),
       },
     });
+    await auditPanel(user, panel.id, "panel.config.sepay", "panel", panel.id, "Lưu cấu hình sepay của panel");
     done(backTo, "Đã lưu SePay của panel — từ giờ khách nạp ngân hàng vào tài khoản của bạn sẽ được cộng TỰ ĐỘNG, không cần duyệt tay");
   }
   if (section === "stripe") {
@@ -535,10 +559,11 @@ export async function panelSaveConfigAction(formData: FormData) {
       where: { id: panel.id },
       data: {
         stripeEnabled: formData.get("stripeEnabled") === "on",
-        stripeSecretKey: keep(str(formData, "stripeSecretKey"), panel.stripeSecretKey),
-        stripeWebhookSecret: keep(str(formData, "stripeWebhookSecret"), panel.stripeWebhookSecret),
+        stripeSecretKey: encSec(keep(str(formData, "stripeSecretKey"), panel.stripeSecretKey)),
+        stripeWebhookSecret: encSec(keep(str(formData, "stripeWebhookSecret"), panel.stripeWebhookSecret)),
       },
     });
+    await auditPanel(user, panel.id, "panel.config.stripe", "panel", panel.id, "Lưu cấu hình stripe của panel");
     done(backTo, "Đã lưu Stripe của panel — khách của bạn nạp Stripe sẽ trả vào tài khoản này");
   }
   if (section === "intl") {
@@ -635,7 +660,8 @@ export async function panelSaveConfigAction(formData: FormData) {
       const dup = await prisma.childPanel.findFirst({ where: { toolApiKey: newToolKey, id: { not: panel.id } }, select: { id: true } });
       if (dup) back(backTo, "err", "Tool API Key này đã được panel khác sử dụng — hãy dùng key riêng của bạn");
     }
-    await prisma.childPanel.update({ where: { id: panel.id }, data: { toolApiKey: newToolKey } });
+    await prisma.childPanel.update({ where: { id: panel.id }, data: { toolApiKey: encSec(newToolKey) } });
+    await auditPanel(user, panel.id, "panel.config.toolapi", "panel", panel.id, "Lưu cấu hình toolapi của panel");
     done(backTo, "Đã lưu Tool API Key của panel");
   }
   if (section === "aicheck") {
@@ -656,7 +682,7 @@ export async function panelSaveConfigAction(formData: FormData) {
 const REPORT_PAGE = "/panel-admin/bao-cao";
 
 export async function panelSaveAlertsAction(formData: FormData) {
-  const { panel } = await ownPanelOwner(REPORT_PAGE);
+  const { user, panel } = await ownPanelOwner(REPORT_PAGE);
   const events = formData.getAll("ev").map(String).filter(Boolean);
   const channels = formData.getAll("rch").map(String).filter(Boolean);
   const keep = (v: string, old: string | null) => (v.includes("•") ? old : v || null);
@@ -664,10 +690,10 @@ export async function panelSaveAlertsAction(formData: FormData) {
     where: { id: panel.id },
     data: {
       alertTelegram: formData.get("alertTelegram") === "on",
-      telegramBotToken: keep(str(formData, "telegramBotToken"), panel.telegramBotToken),
+      telegramBotToken: encSec(keep(str(formData, "telegramBotToken"), panel.telegramBotToken)),
       telegramChatId: str(formData, "telegramChatId") || null,
       alertDiscord: formData.get("alertDiscord") === "on",
-      discordWebhook: str(formData, "discordWebhook") || null,
+      discordWebhook: encSec(str(formData, "discordWebhook") || null),
       alertEmailOn: formData.get("alertEmailOn") === "on",
       alertEmail: str(formData, "alertEmail") || null,
       alertEvents: events.join(","),
@@ -676,6 +702,7 @@ export async function panelSaveAlertsAction(formData: FormData) {
       reportChannels: channels.join(",") || "telegram",
     },
   });
+  await auditPanel(user, panel.id, "panel.config.alerts", "panel", panel.id, "Lưu cấu hình báo tin & báo cáo");
   done(REPORT_PAGE, "Đã lưu cấu hình báo tin & báo cáo của panel");
 }
 

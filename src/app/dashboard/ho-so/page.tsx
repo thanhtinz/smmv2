@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getSession } from "@/lib/auth";
+import { revokeSessionAction, revokeOtherSessionsAction } from "@/app/actions/sessions";
 import { Flash, Stat, I, Badge } from "@/components/ui";
 import { updateProfileAction, changePasswordAction, regenApiKeyAction, resendEmailVerificationAction, redeemPointsAction } from "@/app/actions/user";
 import { logoutAction } from "@/app/actions/auth";
@@ -25,11 +26,13 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
   const { lang } = await getServerI18n(panelLangRaw);
   const tab = searchParams.tab === "api" ? "api" : searchParams.tab === "security" ? "security" : "profile";
   const s = await getSettings();
-  const [preCount, commissionAgg, refCount, loginHistory] = await Promise.all([
+  const [preCount, commissionAgg, refCount, loginHistory, mySessions, curSession] = await Promise.all([
     prisma.premiumOrder.count({ where: { userId: user.id } }),
     prisma.transaction.aggregate({ where: { userId: user.id, type: { in: ["REFERRAL_COMMISSION", "PANEL_COMMISSION"] }, amount: { gt: 0 } }, _sum: { amount: true } }),
     prisma.user.count({ where: { referredById: user.id } }),
     prisma.loginEvent.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 20 }),
+    prisma.userSession.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 20 }),
+    getSession(),
   ]);
   const adminMust2fa = searchParams.bat2fa === "1" || ((user.role === "ADMIN" || user.role === "STAFF") && s.admin_2fa_required !== "0");
   const initials = (user.fullName || user.username).trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -177,18 +180,29 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
               <TwoFactorCard enabled={user.totpEnabled} backupLeft={backupCodesLeft(user.backupCodes)} required={adminMust2fa && !user.totpEnabled} />
               <div className="card space-y-4 p-6">
                 <div className="font-bold text-slate-900">Phiên đăng nhập</div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <div>
-                    <div className="text-sm font-semibold text-slate-800">Trình duyệt hiện tại</div>
-                    <div className="text-xs text-slate-400">Phiên đăng nhập của bạn trên thiết bị này</div>
-                  </div>
-                  <Badge cls="bg-emerald-100 text-emerald-700">Đang online</Badge>
+                <p className="text-sm text-slate-500">Các thiết bị đang đăng nhập tài khoản của bạn. Thấy thiết bị lạ? Đăng xuất thiết bị đó ngay và đổi mật khẩu.</p>
+                <div className="space-y-2">
+                  {mySessions.length === 0 ? (
+                    <p className="text-sm text-slate-400">Chưa có phiên nào được ghi nhận (phiên tạo trước bản cập nhật bảo mật sẽ xuất hiện ở lần đăng nhập tới).</p>
+                  ) : mySessions.slice(0, 8).map((sess) => {
+                    const isCurrent = !!curSession?.sid && sess.sid === curSession.sid;
+                    return (
+                      <div key={sess.id} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-slate-800">{sess.userAgent || "Thiết bị không rõ"}</div>
+                          <div className="text-xs text-slate-400">IP {sess.ip} · Đăng nhập {dt(sess.createdAt)} · Hoạt động gần nhất {dt(sess.lastSeenAt)}</div>
+                        </div>
+                        {sess.revokedAt ? <Badge cls="bg-slate-200 text-slate-500">Đã đăng xuất</Badge> : isCurrent ? <Badge cls="bg-emerald-100 text-emerald-700">Thiết bị này</Badge> : (
+                          <form action={revokeSessionAction}><input type="hidden" name="id" value={sess.id} /><button className="btn-ghost btn-sm !text-rose-600">Đăng xuất</button></form>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <p className="text-sm text-slate-500">Khi đăng nhập ở trình duyệt hoặc thiết bị khác, hãy giữ mật khẩu và API key bí mật. Đăng xuất sẽ kết thúc phiên hiện tại.</p>
-                <div className="text-sm text-slate-500">
-                  <div className="flex justify-between gap-3"><span>Đăng nhập gần nhất</span><b className="text-slate-700">{loginHistory[0] ? dt(loginHistory[0].createdAt) : "—"}</b></div>
+                <div className="flex flex-wrap gap-2">
+                  <form action={logoutAction}><button className="btn-ghost">Đăng xuất khỏi thiết bị này</button></form>
+                  <form action={revokeOtherSessionsAction}><button className="btn-ghost !text-rose-600">Đăng xuất tất cả thiết bị khác</button></form>
                 </div>
-                <form action={logoutAction}><button className="btn-ghost">Đăng xuất khỏi thiết bị này</button></form>
               </div>
             </div>
           </div>

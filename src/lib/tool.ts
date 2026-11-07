@@ -1,5 +1,6 @@
 import { prisma } from "./db";
 import { getSettings } from "./settings";
+import { decryptSecret } from "./secret-box";
 import type { SmmOrderStatus } from "@prisma/client";
 
 /** SMM Tool API — cho tool ngoài (xử lý đơn thủ công) lấy đơn chờ + cập nhật trạng thái.
@@ -14,8 +15,11 @@ export async function toolContext(req: Request, bodyKey?: unknown): Promise<Tool
   if (!given) return null;
   const s = await getSettings();
   if ((s.tool_api_key || "").trim() && given === (s.tool_api_key || "").trim()) return { panelId: null };
-  const panel = await prisma.childPanel.findFirst({ where: { toolApiKey: given }, select: { id: true } });
-  if (panel) return { panelId: panel.id };
+  // Key panel có thể đã mã hoá (enc:) — quét + giải mã để so khớp
+  const panels = await prisma.childPanel.findMany({ where: { toolApiKey: { not: null } }, select: { id: true, toolApiKey: true }, take: 500 }).catch(() => []);
+  for (const cand of panels) {
+    if (cand.toolApiKey && decryptSecret(cand.toolApiKey) === given) return { panelId: cand.id };
+  }
   return null;
 }
 

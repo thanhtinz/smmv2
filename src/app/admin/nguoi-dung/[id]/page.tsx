@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, requireAdminPage } from "@/lib/auth";
 import { BackLink, Flash, Badge, Stat, I } from "@/components/ui";
-import { adminAdjustBalance, adminUpdateUser } from "@/app/actions/admin";
+import { adminAdjustBalance, adminUpdateUser, adminForceLogoutAction } from "@/app/actions/admin";
 import { vnd, num, LEVEL_NAME, dt, SMM_STATUS, PRE_STATUS } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +28,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
     prisma.ticket.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5 }),
     prisma.deposit.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5 }),
   ]);
+  const userSessions = await prisma.userSession.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 10 });
   return (
     <div>
       <BackLink href="/admin/nguoi-dung">Danh sách người dùng</BackLink>
@@ -97,7 +98,28 @@ export default async function AdminUserDetail({ params, searchParams }: { params
               {tickets.length === 0 && deposits.length === 0 && <tr><td className="td text-slate-400">Chưa có ticket / lượt nạp nào</td></tr>}
             </tbody></table>
           </div>
-        </div>
+        <div className="card p-6 space-y-3">
+            <div className="font-bold text-slate-900">Phiên đăng nhập ({userSessions.filter((x) => !x.revokedAt).length} đang hoạt động)</div>
+            {userSessions.length === 0 ? <p className="text-sm text-slate-400">Chưa có phiên nào được ghi nhận.</p> : (
+              <ul className="space-y-2">
+                {userSessions.map((ss) => (
+                  <li key={ss.id} className="rounded-xl border border-slate-100 px-3 py-2 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-slate-600">{ss.ip || "—"}</span>
+                      {ss.revokedAt ? <Badge cls="bg-slate-100 text-slate-500">Đã đăng xuất</Badge> : <Badge cls="bg-emerald-100 text-emerald-700">Đang hoạt động</Badge>}
+                    </div>
+                    <div className="mt-1 line-clamp-2 text-slate-400">{ss.userAgent || "—"}</div>
+                    <div className="mt-1 text-slate-400">Đăng nhập {dt(ss.createdAt)} · Hoạt động {dt(ss.lastSeenAt)}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form action={adminForceLogoutAction}>
+              <input type="hidden" name="userId" value={u.id} />
+              <button className="btn-danger w-full">Buộc đăng xuất mọi thiết bị</button>
+            </form>
+          </div>
+          </div>
         <div className="lg:col-span-3 space-y-6">
           <div className="card overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 font-bold text-slate-900">Đơn SMM gần nhất</div>

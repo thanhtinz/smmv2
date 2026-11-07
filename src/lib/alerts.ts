@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { decryptPanelSecrets } from "./panel-secrets";
 import { getSettings } from "./settings";
 import { sendMail } from "./mailer";
 
@@ -79,7 +80,7 @@ export async function alertMother(event: string, title: string, text: string) {
 /** Báo tin cho CHỦ PANEL qua kênh riêng của panel (Telegram sẵn có + Discord + Email mới). */
 export async function alertPanelOwner(panelId: number, event: string, title: string, text: string) {
   try {
-    const panel = await prisma.childPanel.findUnique({ where: { id: panelId } });
+    const panel = decryptPanelSecrets(await prisma.childPanel.findUnique({ where: { id: panelId } }));
     if (!panel) return;
     if (!eventEnabled(panel.alertEvents, event)) return;
     const jobs: Promise<any>[] = [];

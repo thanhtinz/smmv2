@@ -1,6 +1,7 @@
 "use server";
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, assertStepUp, currentIp } from "@/lib/auth";
+import { writeAudit } from "@/lib/audit";
 import { setSetting, getSettings } from "@/lib/settings";
 import { sendMail, smtpConfigured } from "@/lib/mailer";
 import { redirect } from "next/navigation";
@@ -157,7 +158,11 @@ export async function deleteIpBanAction(formData: FormData) {
 
 /* ---------- Chính sách mật khẩu + bảo mật đăng ký (trang Bảo mật nâng cao) ---------- */
 export async function saveSecurityPolicyAction(formData: FormData) {
-  await requireAdmin();
+  const actor = await requireAdmin();
+  // GĐ2: đổi Admin IP whitelist hoặc tắt bắt buộc 2FA là thao tác nhạy cảm — phải xác thực lại
+  if (formData.get("admin_ip_whitelist") !== null || formData.get("admin_2fa_required") !== null) {
+    await assertStepUp(actor.id, "/admin/bao-mat");
+  }
   const { setSetting } = await import("@/lib/settings");
   const keys = [
     "password_min_length", "pw_require_upper", "pw_require_number", "pw_require_special",
@@ -165,10 +170,12 @@ export async function saveSecurityPolicyAction(formData: FormData) {
     "bf_enabled", "bf_max_attempts", "bf_lock_seconds",
     "admin_2fa_required", "admin_ip_whitelist",
   ];
+  const saved: string[] = [];
   for (const k of keys) {
     const v = formData.get(k);
-    if (v !== null) await setSetting(k, String(v).trim());
+    if (v !== null) { await setSetting(k, String(v).trim()); saved.push(k); }
   }
+  await writeAudit({ actorId: actor.id, actorName: actor.username, role: actor.role, action: "security.policy", targetType: "setting", targetId: "saveSecurityPolicy", detail: `Lưu chính sách bảo mật: ${saved.join(", ")}`, ip: currentIp() });
   done("/admin/bao-mat", "Đã lưu cấu hình bảo mật");
 }
 
@@ -339,6 +346,10 @@ export async function bulkPriceAction(formData: FormData) {
     }
   }
   await prisma.apiLog.create({ data: { kind: "bulk_price", ok: true, ref: scope, detail: `mode=${mode} value=${value} updated=${updated}/${services.length}` } });
+  {
+    const actor = await requireAdmin();
+    await writeAudit({ actorId: actor.id, actorName: actor.username, role: actor.role, action: "price.bulk", targetType: "service", targetId: scope, detail: `Chỉnh giá hàng loạt mode=${mode} value=${value} — cập nhật ${updated}/${services.length} dịch vụ`, ip: currentIp() });
+  }
   done("/admin/gia-thong-minh", `Đã cập nhật giá cho ${updated}/${services.length} dịch vụ`);
 }
 

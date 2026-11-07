@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "../src/lib/password";
 
 const prisma = new PrismaClient();
 // API key seed phải NGẪU NHIÊN (lỗi cũ: padEnd từ "adminkey"/"demokey" làm key lộ tiền tố dễ đoán)
@@ -24,7 +24,7 @@ async function main() {
       username: "admin",
       email: "admin@smmv2.local",
       fullName: "Quản trị viên",
-      passwordHash: await bcrypt.hash(process.env.ADMIN_PASSWORD || "Admin@123", 10),
+      passwordHash: await hashPassword(process.env.ADMIN_PASSWORD || "Admin@123"),
       role: "ADMIN",
       level: "VIP",
       apiKey: key("adminkey"),
@@ -38,7 +38,7 @@ async function main() {
       username: "demo",
       email: "demo@smmv2.local",
       fullName: "Khách demo",
-      passwordHash: await bcrypt.hash("Demo@123", 10),
+      passwordHash: await hashPassword("Demo@123"),
       role: "USER",
       level: "RESELLER",
       balance: 500000,

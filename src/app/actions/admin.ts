@@ -1,7 +1,8 @@
 "use server";
 import { prisma } from "@/lib/db";
 import { cleanAttachments } from "@/lib/attachments";
-import { requireAdmin, requireStaff } from "@/lib/auth";
+import { requireAdmin, requireStaff, assertStepUp, currentIp } from "@/lib/auth";
+import { writeAudit } from "@/lib/audit";
 import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
 import { refundSmmOrder, syncSmmOrderStatus, syncPremiumOrderStatus } from "@/lib/orders";
 import { orderTransition } from "@/lib/notify";
@@ -19,6 +20,11 @@ function back(path: string, key: "msg" | "err", text: string): never {
 }
 const done = (path: string, text = "Đã lưu") => back(path, "msg", text);
 
+/* GĐ2: ghi audit bất biến cho thao tác nhạy cảm của admin web mẹ */
+async function auditAdmin(actor: { id: number; username: string; role: string }, action: string, targetType: string, targetId: string | number, detail?: string) {
+  await writeAudit({ actorId: actor.id, actorName: actor.username, role: actor.role, action, targetType, targetId, detail: detail ?? null, ip: currentIp() });
+}
+
 /* ---------- Người dùng ---------- */
 /** Chốt chặn: tài khoản thuộc site con (panelId != null) là RIÊNG của site con —
  *  web mẹ không xem, không sửa số dư, không đổi vai trò/cấp của họ. */
@@ -28,8 +34,9 @@ async function assertMotherAccount(userId: number, path: string) {
 }
 
 export async function adminAdjustBalance(formData: FormData) {
-  await requireAdmin();
+  const actor = await requireAdmin();
   const userId = parseInt(String(formData.get("userId")));
+  await assertStepUp(actor.id, `/admin/nguoi-dung/${userId || ""}`);
   const amount = parseInt(String(formData.get("amount") || "0"));
   const note = String(formData.get("note") || "Admin điều chỉnh số dư");
   if (!userId || !amount) back("/admin/nguoi-dung", "err", "Số tiền không hợp lệ");
@@ -37,12 +44,13 @@ export async function adminAdjustBalance(formData: FormData) {
   await prisma.$transaction(async (tx) => {
     await applyBalance(tx, userId, amount, "ADJUST", undefined, note);
   });
+  await auditAdmin(actor, "balance.adjust", "user", userId, `${amount > 0 ? "+" : ""}${amount}đ — ${note}`);
   revalidatePath("/admin/nguoi-dung");
   done(`/admin/nguoi-dung/${userId}`, amount > 0 ? `Đã cộng ${amount.toLocaleString("vi-VN")}đ` : `Đã trừ ${Math.abs(amount).toLocaleString("vi-VN")}đ`);
 }
 
 export async function adminUpdateUser(formData: FormData) {
-  await requireAdmin();
+  const actor = await requireAdmin();
   const userId = parseInt(String(formData.get("userId")));
   await assertMotherAccount(userId, "/admin/nguoi-dung");
   const data: any = {
@@ -52,6 +60,7 @@ export async function adminUpdateUser(formData: FormData) {
     role: String(formData.get("role") || "USER"),
   };
   await prisma.user.update({ where: { id: userId }, data });
+  await auditAdmin(actor, "user.update", "user", userId, `role=${data.role} status=${data.status} level=${data.level}`);
   done(`/admin/nguoi-dung/${userId}`, "Đã cập nhật người dùng");
 }
 
@@ -133,9 +142,11 @@ export async function adminDeleteService(formData: FormData) {
 
 /* ---------- Nhà cung cấp API ---------- */
 export async function adminSaveProvider(formData: FormData) {
-  await requireAdmin();
+  const actor = await requireAdmin();
   const id = parseInt(String(formData.get("id") || "0"));
   const rawKey = String(formData.get("apiKey") || "").trim();
+  // GĐ2: đặt API key nhà cung cấp mới = thao tác nhạy cảm, phải xác thực lại
+  if (rawKey && !rawKey.includes("•")) await assertStepUp(actor.id, "/admin/nha-cung-cap");
   const data: any = {
     kind: (String(formData.get("kind") || "BOTH") as "SMM" | "PREMIUM" | "BOTH"),
     name: String(formData.get("name") || "").trim(),
@@ -163,14 +174,16 @@ export async function adminSaveProvider(formData: FormData) {
   if (!data.apiKey) back("/admin/nha-cung-cap", "err", "Thiếu API key");
   if (id) await prisma.provider.update({ where: { id }, data });
   else await prisma.provider.create({ data });
+  await auditAdmin(actor, "provider.save", "provider", id || data.name, `${data.name} — ${data.apiUrl}${rawKey && !rawKey.includes("•") ? " (đặt API key mới)" : ""}`);
   done("/admin/nha-cung-cap", "Đã lưu nhà cung cấp");
 }
 
 export async function adminDeleteProvider(formData: FormData) {
-  await requireAdmin();
+  const actor = await requireAdmin();
   const id = parseInt(String(formData.get("id")));
   await prisma.smmService.updateMany({ where: { providerId: id }, data: { fulfillment: "MANUAL", providerId: null, providerServiceId: null } });
   await prisma.provider.delete({ where: { id } });
+  await auditAdmin(actor, "provider.delete", "provider", id, "Xoá nhà cung cấp, dịch vụ liên kết chuyển về thủ công");
   done("/admin/nha-cung-cap", "Đã xoá nhà cung cấp — các dịch vụ liên kết đã chuyển về xử lý thủ công");
 }
 
@@ -501,7 +514,7 @@ export async function adminPremiumOrderAction(formData: FormData) {
 
 /* ---------- Nạp tiền ---------- */
 export async function adminDepositAction(formData: FormData) {
-  await requireAdmin();
+  const actor = await requireAdmin();
   const id = parseInt(String(formData.get("id")));
   const kind = String(formData.get("kind"));
   const dep = await prisma.deposit.findUnique({ where: { id }, include: { user: { select: { panelId: true } } } });
@@ -511,7 +524,13 @@ export async function adminDepositAction(formData: FormData) {
     // Claim PENDING -> REJECTED nguyên tử: đã có người duyệt trước thì không ghi đè
     const claim = await prisma.deposit.updateMany({ where: { id, status: "PENDING" }, data: { status: "REJECTED", adminNote: String(formData.get("adminNote") || "") || null } });
     if (claim.count === 0) back("/admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
+    await auditAdmin(actor, "deposit.reject", "deposit", id, `${dep.code} — ${dep.amount}đ của user ${dep.userId}`);
     done("/admin/nap-tien", "Đã từ chối yêu cầu nạp");
+  }
+  // GĐ2: duyệt nạp từ ngưỡng cấu hình trở lên (mặc định 1.000.000đ; 0 = mọi lần) phải xác thực lại
+  {
+    const threshold = parseInt((await getSettings()).stepup_amount_threshold || "1000000") || 0;
+    if (threshold === 0 || dep.amount >= threshold) await assertStepUp(actor.id, "/admin/nap-tien");
   }
   // Claim PENDING -> APPROVED TRONG transaction: hai lần duyệt đồng thời (2 tab,
   // double-click) chỉ một lần claim được và cộng tiền — lần sau count = 0, bỏ qua.
@@ -524,11 +543,13 @@ export async function adminDepositAction(formData: FormData) {
     if (dep.bonus > 0) await applyBalance(tx, dep.userId, dep.bonus, "BONUS", dep.code, "Thưởng nạp tiền");
   });
   if (!claimed) back("/admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
+  await auditAdmin(actor, "deposit.approve", "deposit", id, `${dep.code} — cộng ${dep.amount}đ${dep.bonus > 0 ? ` + thưởng ${dep.bonus}đ` : ""} cho user ${dep.userId}`);
   done("/admin/nap-tien", `Đã cộng ${dep.amount.toLocaleString("vi-VN")}đ cho khách`);
 }
 
 export async function adminManualDeposit(formData: FormData) {
-  await requireAdmin();
+  const actor = await requireAdmin();
+  await assertStepUp(actor.id, "/admin/nap-tien");
   const userId = parseInt(String(formData.get("userId")));
   const amount = parseInt(String(formData.get("amount") || "0"));
   if (!userId || amount <= 0) back("/admin/nap-tien", "err", "Chọn khách và số tiền hợp lệ");
@@ -541,6 +562,7 @@ export async function adminManualDeposit(formData: FormData) {
     await tx.deposit.update({ where: { id: dep.id }, data: { code } });
     await applyBalance(tx, userId, amount, "DEPOSIT", code, "Admin cộng tiền tay");
   });
+  await auditAdmin(actor, "deposit.manual", "user", userId, `Cộng tiền tay ${amount}đ (mã ${code})`);
   done("/admin/nap-tien", `Đã cộng ${amount.toLocaleString("vi-VN")}đ`);
 }
 
@@ -572,7 +594,12 @@ export async function adminReplyTicket(formData: FormData) {
 
 /* ---------- Cấu hình + thông báo ---------- */
 export async function adminSaveSettings(formData: FormData) {
-  await requireAdmin();
+  const actor = await requireAdmin();
+  // GĐ2: form chứa khoá bí mật/cấu hình thanh toán thì phải xác thực lại trước khi lưu
+  const SENSITIVE_KEYS = ["sepay_secret", "stripe_secret_key", "stripe_webhook_secret", "paypal_client_secret", "usdt_address", "cron_secret", "tool_api_key", "smtp_pass", "google_client_secret", "telegram_bot_token", "ai_api_key", "recaptcha_secret"];
+  if (SENSITIVE_KEYS.some((k) => { const v = formData.get(k); return v !== null && String(v).trim() !== ""; })) {
+    await assertStepUp(actor.id, "/admin/cau-hinh");
+  }
   const keys = [
     "site_name", "site_tagline", "support_telegram", "support_facebook", "support_zalo", "support_hotline",
     "child_ns1", "child_ns2",
@@ -603,10 +630,12 @@ export async function adminSaveSettings(formData: FormData) {
     "auto_refill_window_days", "auto_refill_settle_minutes", "cleanup_retention_days", "usdt_min",
     "points_per_100k", "points_value_vnd", "points_min_redeem", "ga_id", "gsc_verification",
   ];
+  const savedKeys: string[] = [];
   for (const k of keys) {
     const v = formData.get(k);
-    if (v !== null) await setSetting(k, String(v).trim());
+    if (v !== null) { await setSetting(k, String(v).trim()); savedKeys.push(k); }
   }
+  await auditAdmin(actor, "settings.update", "setting", "adminSaveSettings", `Lưu ${savedKeys.length} mục cấu hình`);
   done("/admin/cau-hinh", "Đã lưu cấu hình");
 }
 
@@ -628,8 +657,11 @@ export async function adminDeleteDepositsAction(formData: FormData) {
 /** Lưu cấu hình phương thức nạp + khuyến mãi (trang Cấu hình nạp tiền / Khuyến mãi).
  *  Chỉ lưu key có mặt trong form; secret để trống = giữ nguyên giá trị cũ. */
 export async function adminSaveMethodsAction(formData: FormData) {
-  await requireAdmin();
+  const actor = await requireAdmin();
   const SECRET_KEYS = ["sepay_secret", "paypal_client_secret", "stripe_secret_key", "stripe_webhook_secret"];
+  if (SECRET_KEYS.some((k) => { const v = formData.get(k); return v !== null && String(v).trim() !== ""; })) {
+    await assertStepUp(actor.id, "/admin/cau-hinh-nap-tien");
+  }
   const keys = [
     "sepay_secret", "intl_min_usd", "usd_rate", "deposit_min", "deposit_bonus_tiers", "affiliate_percent",
     "usdt_enabled", "usdt_address", "usdt_network", "usdt_rate",
@@ -643,6 +675,7 @@ export async function adminSaveMethodsAction(formData: FormData) {
     if (!val && SECRET_KEYS.includes(k)) continue;
     await setSetting(k, val);
   }
+  await auditAdmin(actor, "settings.update", "setting", "adminSaveMethods", "Lưu cấu hình phương thức nạp/khuyến mãi");
   const backTo = String(formData.get("back") || "/admin/cau-hinh-nap-tien");
   redirect((backTo.startsWith("/admin/") ? backTo : "/admin/cau-hinh-nap-tien") + "?msg=" + encodeURIComponent("Đã lưu cấu hình"));
 }
@@ -704,4 +737,18 @@ export async function adminResetLangOverrideAction(formData: FormData) {
   }
   await setSetting("lang_overrides", JSON.stringify(all));
   redirect(langDest(lang) + "&msg=" + encodeURIComponent("Đã đưa chuỗi về bản dịch gốc"));
+}
+
+/* ---------- GĐ2: buộc đăng xuất mọi thiết bị của một tài khoản ---------- */
+export async function adminForceLogoutAction(formData: FormData) {
+  const actor = await requireAdmin();
+  const userId = parseInt(String(formData.get("userId") || "0"));
+  if (!userId) back("/admin/nguoi-dung", "err", "Thiếu tài khoản");
+  await assertMotherAccount(userId, "/admin/nguoi-dung");
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: userId }, data: { sessionVersion: { increment: 1 } } });
+    await tx.userSession.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
+  });
+  await auditAdmin(actor, "user.force_logout", "user", userId, "Buộc đăng xuất mọi thiết bị (tăng sessionVersion + thu hồi mọi phiên)");
+  done(`/admin/nguoi-dung/${userId}`, "Đã đăng xuất tài khoản này khỏi mọi thiết bị");
 }

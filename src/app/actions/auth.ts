@@ -1,6 +1,7 @@
 "use server";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { hashPassword, verifyPassword, isArgonHash, DUMMY_PASSWORD_HASH } from "@/lib/password";
+import { lockdownState, userCanBypassLockdown, lockdownMessage } from "@/lib/lockdown";
 import { headers } from "next/headers";
 
 async function clientIp() {
@@ -62,7 +63,7 @@ export async function registerAction(formData: FormData) {
       email,
       phone: phone || null,
       fullName: fullName || null,
-      passwordHash: await bcrypt.hash(password, 10),
+      passwordHash: await hashPassword(password),
       apiKey: randomKey(32),
       depositCode: randomKey(6).toUpperCase(),
       refCode: randomKey(8).toUpperCase(),
@@ -103,7 +104,7 @@ export async function panelRegisterAction(formData: FormData) {
   const user = await prisma.user.create({
     data: {
       username, email, fullName: fullName || null, phone: phone || null,
-      passwordHash: await bcrypt.hash(password, 10),
+      passwordHash: await hashPassword(password),
       apiKey: randomKey(32),
       depositCode: randomKey(6).toUpperCase(),
       refCode: randomKey(8).toUpperCase(),
@@ -143,21 +144,34 @@ export async function loginAction(formData: FormData) {
   }
   const user = await prisma.user.findFirst({ where: { OR: [{ username: login }, { email: login }] } });
   if (!user) {
-    // Chạy bcrypt với hash giả để thời gian phản hồi giống hệt trường hợp sai mật khẩu
-    await bcrypt.compare(password, "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy");
+    // Chạy verify với hash giả để thời gian phản hồi giống hệt trường hợp sai mật khẩu
+    await verifyPassword(DUMMY_PASSWORD_HASH, password);
     await recordLoginFail(ip, login);
     await ev({ success: false, reason: "Sai tài khoản hoặc mật khẩu" });
     back("/login", "err", "Sai tài khoản hoặc mật khẩu");
   }
-  if (!(await bcrypt.compare(password, user.passwordHash))) {
+  if (!(await verifyPassword(user.passwordHash, password))) {
     await recordLoginFail(ip, login);
     await ev({ userId: user.id, success: false, reason: "Sai tài khoản hoặc mật khẩu", panelId: user.panelId ?? hostPanel?.id ?? null });
     back("/login", "err", "Sai tài khoản hoặc mật khẩu");
   }
   await clearLoginFails(ip, login);
+  // GĐ2: mật khẩu đúng mà hash còn là bcrypt cũ -> tự nâng cấp sang Argon2id
+  if (!isArgonHash(user.passwordHash)) {
+    const upgraded = await hashPassword(password).catch(() => null);
+    if (upgraded) await prisma.user.update({ where: { id: user.id }, data: { passwordHash: upgraded } }).catch(() => null);
+  }
   if (user.status === "BANNED") {
     await ev({ userId: user.id, success: false, reason: "Tài khoản đã bị khoá", panelId: user.panelId ?? hostPanel?.id ?? null });
     back("/login", "err", "Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
+  }
+  // GĐ2: khoá khẩn cấp — khách thường không đăng nhập mới được (quản trị + chủ/nhân viên panel được miễn)
+  {
+    const ld = await lockdownState();
+    if (ld.on && !(await userCanBypassLockdown(user))) {
+      await ev({ userId: user.id, success: false, reason: "Bị chặn do khoá khẩn cấp (lockdown)", panelId: user.panelId ?? hostPanel?.id ?? null });
+      back("/login", "err", lockdownMessage(ld.reason));
+    }
   }
   if (user.panelId) {
     try { await assertNotBanned(user.panelId); } catch (e: any) {
@@ -178,6 +192,6 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function logoutAction() {
-  destroySession();
+  await destroySession();
   redirect("/");
 }

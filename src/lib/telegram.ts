@@ -1,4 +1,5 @@
 import { getSettings } from "./settings";
+import { decryptSecret } from "./secret-box";
 
 /** Báo tin cho admin qua Telegram khi có sự kiện quan trọng (nạp thành công, ticket mới...). Best-effort, không bao giờ chặn luồng chính. */
 export async function notifyTelegram(text: string) {
@@ -51,7 +52,8 @@ export async function notifyServiceBot(botId: string | null | undefined, text: s
 export async function notifyPanelTelegram(panelId: number, text: string) {
   try {
     const { prisma } = await import("./db");
-    const panel = await prisma.childPanel.findUnique({ where: { id: panelId }, select: { telegramBotToken: true, telegramChatId: true } });
+    const panelRaw = await prisma.childPanel.findUnique({ where: { id: panelId }, select: { telegramBotToken: true, telegramChatId: true } });
+    const panel = panelRaw ? { ...panelRaw, telegramBotToken: panelRaw.telegramBotToken ? decryptSecret(panelRaw.telegramBotToken) : null } : null;
     if (!panel?.telegramBotToken || !panel?.telegramChatId) return;
     await fetch(`https://api.telegram.org/bot${panel.telegramBotToken}/sendMessage`, {
       method: "POST",

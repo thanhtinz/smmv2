@@ -74,6 +74,8 @@ model User {
   tickets       Ticket[]
   notifications Notification[]
   loginEvents   LoginEvent[]
+  sessions      UserSession[]
+  auditLogs     AuditLog[]
 
   // Panel con (child panel): khách đăng ký qua panel của đại lý khác
   panelId    Int?
@@ -569,15 +571,15 @@ model ChildPanel {
   smtpHost        String? @db.VarChar(120)
   smtpPort        String? @db.VarChar(10)
   smtpUser        String? @db.VarChar(160)
-  smtpPass        String? @db.VarChar(200)
+  smtpPass        String? @db.Text
   smtpFrom        String? @db.VarChar(160)
   smtpSecure      Boolean @default(false)
-  telegramBotToken String? @db.VarChar(120)
+  telegramBotToken String? @db.Text
   telegramChatId   String? @db.VarChar(60)
   // Báo tin & báo cáo của panel (chủ panel tự cấu hình, bật/tắt từng kênh)
   alertTelegram  Boolean @default(true) // gửi báo tin qua Telegram của panel
   alertDiscord   Boolean @default(false)
-  discordWebhook String? @db.VarChar(300)
+  discordWebhook String? @db.Text
   alertEmailOn   Boolean @default(false)
   alertEmail     String? @db.VarChar(160) // email nhận báo tin của chủ panel
   alertEvents    String? @db.VarChar(200) // danh sách sự kiện bật, cách nhau dấu phẩy; trống = tất cả
@@ -605,15 +607,15 @@ model ChildPanel {
   // PayPal/Stripe CỦA CHỦ PANEL; panel chưa cấu hình thì dùng cổng của web mẹ.
   paypalEnabled Boolean @default(false)
   paypalClientId String? @db.VarChar(200)
-  paypalSecret   String? @db.VarChar(200)
+  paypalSecret   String? @db.Text
   paypalMode     String? @db.VarChar(10) // sandbox | live
   stripeEnabled Boolean @default(false)
-  stripeSecretKey String? @db.VarChar(200)
-  stripeWebhookSecret String? @db.VarChar(200)
+  stripeSecretKey String? @db.Text
+  stripeWebhookSecret String? @db.Text
   // Nạp ngân hàng TỰ ĐỘNG riêng của panel qua SePay của CHỦ PANEL (tiền về ngân hàng
   // của panel, webhook nhận diện bằng secret riêng). Chưa bật thì khách dùng cổng chung của web mẹ.
   sepayEnabled Boolean @default(false)
-  sepaySecret  String? @db.VarChar(200) // secret webhook SePay của panel
+  sepaySecret  String? @db.Text // secret webhook SePay của panel
   // Chính sách nạp riêng của panel (trống = dùng của web mẹ)
   depositBonusTiers String? @db.Text // JSON [{from, percent}] như web mẹ
   depositMin Int? // nạp tối thiểu riêng (VNĐ)
@@ -647,7 +649,7 @@ model ChildPanel {
   termsCheckboxText String? @db.VarChar(300)
   termsButtonText   String? @db.VarChar(120)
   aiCheckEnabled Boolean @default(false) // AI quét link đơn của khách panel (dùng cấu hình AI riêng của panel)
-  toolApiKey  String? @db.VarChar(120) // SMM Tool API riêng của panel — chỉ thấy đơn của panel
+  toolApiKey  String? @db.Text // SMM Tool API riêng của panel — chỉ thấy đơn của panel
   // Công tắc mô-đun riêng của panel (khách panel bị tắt theo panel mình; web mẹ tắt là tắt chung)
   moduleBulk          Boolean @default(true)
   moduleSubscriptions Boolean @default(true)
@@ -658,7 +660,7 @@ model ChildPanel {
   moduleBlog          Boolean @default(true)
   customHeadHtml String? @db.Text
   customBodyHtml String? @db.Text
-  googleClientSecret String? @db.VarChar(200)
+  googleClientSecret String? @db.Text
   ownServices SmmService[] @relation("PanelOwnServices")
   expiresAt DateTime? // hạn dùng theo tháng (phí panel_fee là phí/30 ngày); null = không hết hạn (miễn phí hoặc panel cũ)
   autoRenew Boolean  @default(true) // tự gia hạn trừ số dư khi tới hạn
@@ -937,5 +939,46 @@ model AiCheckLog {
   model     String?  @db.VarChar(120)
   createdAt DateTime @default(now())
 
+  @@index([panelId, createdAt])
+}
+
+// Phiên đăng nhập (bảo mật Enterprise GĐ2): mỗi lần đăng nhập thành công tạo 1 dòng,
+// JWT mang claim sid trỏ về đây — thu hồi dòng = đăng xuất thiết bị đó từ xa.
+model UserSession {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sid        String    @unique @db.VarChar(64)
+  deviceHash String?   @db.VarChar(64) // sha256(ip + userAgent)
+  ip         String    @db.VarChar(64)
+  userAgent  String?   @db.VarChar(400)
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([userId, revokedAt])
+}
+
+// Nhật ký kiểm toán BẤT BIẾN (bảo mật Enterprise GĐ2): chỉ ghi, không sửa/xoá.
+// Hash chain: hash = sha256(prevHash + nội dung dòng) — sửa/xoá dòng nào là đứt chuỗi.
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  actorId    Int?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorName  String   @db.VarChar(80)
+  role       String   @db.VarChar(20)
+  scope      String   @default("mother") @db.VarChar(20) // mother | panel
+  panelId    Int?
+  action     String   @db.VarChar(60)
+  targetType String?  @db.VarChar(40)
+  targetId   String?  @db.VarChar(60)
+  detail     String?  @db.Text
+  ip         String?  @db.VarChar(64)
+  prevHash   String   @db.VarChar(64)
+  hash       String   @db.VarChar(64)
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action, createdAt])
   @@index([panelId, createdAt])
 }

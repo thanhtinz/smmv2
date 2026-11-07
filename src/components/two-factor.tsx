@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
  *  tắt 2FA (mật khẩu + mã), tạo lại mã dự phòng (cần mã hiện tại). */
 export function TwoFactorCard({ enabled, backupLeft, required }: { enabled: boolean; backupLeft: number; required?: boolean }) {
   const router = useRouter();
-  const [setup, setSetup] = useState<{ secret: string; uri: string } | null>(null);
+  const [setup, setSetup] = useState<{ secret: string; uri: string; qr?: string | null } | null>(null);
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
@@ -37,7 +37,7 @@ export function TwoFactorCard({ enabled, backupLeft, required }: { enabled: bool
 
   async function startSetup() {
     const data = await call({ action: "setup" });
-    if (data) setSetup({ secret: data.secret, uri: data.uri });
+    if (data) setSetup({ secret: data.secret, uri: data.uri, qr: data.qr });
   }
   async function enable() {
     const data = await call({ action: "enable", code: code.trim() });
@@ -104,6 +104,13 @@ export function TwoFactorCard({ enabled, backupLeft, required }: { enabled: bool
 
       {!enabled && setup ? (
         <div className="space-y-3">
+          {setup.qr ? (
+            <div className="flex flex-col items-center gap-2 rounded-2xl bg-slate-50 px-4 py-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={setup.qr} alt="QR thiết lập 2FA" width={180} height={180} className="rounded-xl bg-white p-1" />
+              <p className="text-center text-xs text-slate-500">Quét mã QR bằng ứng dụng Authenticator (Google Authenticator, Microsoft Authenticator, Authy...)</p>
+            </div>
+          ) : null}
           <div>
             <label className="lbl">Mã bí mật (nhập vào ứng dụng Authenticator)</label>
             <input className="inp font-mono" readOnly value={setup.secret} onFocus={(e) => e.target.select()} />

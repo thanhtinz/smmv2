@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { decryptPanelSecrets } from "./panel-secrets";
 import { getSettings, setSetting } from "./settings";
 import { getStats, Scope, StatsBundle } from "./stats";
 import { sendDiscord, sendTelegramTo } from "./alerts";
@@ -109,7 +110,7 @@ export async function sendReport(scope: Scope, channels: ReportChannel[]): Promi
       }
     }
   } else {
-    const panel = await prisma.childPanel.findUnique({ where: { id: scope.panelId } });
+    const panel = decryptPanelSecrets(await prisma.childPanel.findUnique({ where: { id: scope.panelId } }));
     if (!panel) return [{ channel: "panel", ok: false, note: "Không tìm thấy panel" }];
     for (const ch of channels) {
       try {
@@ -154,7 +155,7 @@ export async function maybeSendDailyReports() {
     }
   } catch (e: any) { res.mother = String(e?.message || e); }
   try {
-    const panels = await prisma.childPanel.findMany({ where: { reportDaily: true } });
+    const panels = (await prisma.childPanel.findMany({ where: { reportDaily: true } })).map((p) => decryptPanelSecrets(p)!);
     for (const p of panels) {
       if (p.reportLastSent === date) continue;
       if (hm < (p.reportTime || "21:00")) continue;

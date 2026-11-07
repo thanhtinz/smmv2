@@ -90,6 +90,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/cau-hinh", label: L("Cài đặt"), icon: "gear", adminOnly: true } as any,
         { href: "/admin/ngon-ngu", label: L("Quản lý ngôn ngữ"), icon: "globe", adminOnly: true } as any,
         { href: "/admin/bao-cao", label: L("Báo cáo & Thông báo"), icon: "bell", adminOnly: true } as any,
+        { href: "/admin/trung-tam-bao-mat", label: L("Trung tâm bảo mật"), icon: "shield", adminOnly: true } as any,
         { href: "/admin/bao-mat", label: L("Bảo mật nâng cao"), icon: "shield", adminOnly: true } as any,
         { href: "/admin/rui-ro", label: L("Phát hiện rủi ro"), icon: "shield", adminOnly: true } as any,
         { href: "/admin/nhat-ky", label: L("Nhật ký API"), icon: "clock" } as any,

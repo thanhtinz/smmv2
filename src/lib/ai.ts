@@ -1,4 +1,5 @@
 import { getSettings } from "./settings";
+import { decryptSecret } from "./secret-box";
 
 /** Lớp gọi AI dùng chung: OpenAI (và mọi endpoint tương thích) hoặc Google Gemini.
  *  Mặc định dùng cấu hình toàn hệ thống do admin dán trong Cấu hình → tab AI.
@@ -7,7 +8,8 @@ export type AiConfig = { enabled: boolean; provider: string; baseUrl?: string | 
 
 export function panelAiConfig(panel: { aiEnabled: boolean; aiProvider: string; aiBaseUrl?: string | null; aiApiKey?: string | null; aiModel?: string | null } | null | undefined): AiConfig | null {
   if (!panel || !panel.aiEnabled || !(panel.aiApiKey || "").trim()) return null;
-  return { enabled: true, provider: panel.aiProvider || "openai", baseUrl: panel.aiBaseUrl, apiKey: panel.aiApiKey, model: panel.aiModel };
+  // aiApiKey của panel có thể đang mã hoá (enc:) — giải mã tại phễu dùng chung này (idempotent với bản rõ)
+  return { enabled: true, provider: panel.aiProvider || "openai", baseUrl: panel.aiBaseUrl, apiKey: panel.aiApiKey ? decryptSecret(panel.aiApiKey) : panel.aiApiKey, model: panel.aiModel };
 }
 
 async function resolveConfig(cfg?: AiConfig | null): Promise<AiConfig> {

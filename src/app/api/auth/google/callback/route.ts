@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { hashPassword } from "@/lib/password";
+import { decryptPanelSecrets } from "@/lib/panel-secrets";
 import { getSettings } from "@/lib/settings";
 import { createSession, createPending2fa } from "@/lib/auth";
 import { recordLoginEvent } from "@/lib/login-events";
@@ -13,7 +14,8 @@ export async function GET(req: NextRequest) {
   const fail = (text: string) => NextResponse.redirect(new URL(`/login?err=${encodeURIComponent(text)}`, req.url));
   const s = await getSettings();
   const panelIdCookie = parseInt(cookies().get("g_oauth_panel")?.value || "");
-  const panel = panelIdCookie ? await prisma.childPanel.findUnique({ where: { id: panelIdCookie } }).catch(() => null) : null;
+  const panelRaw = panelIdCookie ? await prisma.childPanel.findUnique({ where: { id: panelIdCookie } }).catch(() => null) : null;
+  const panel = decryptPanelSecrets(panelRaw);
   const panelGoogle = panel && panel.status === "ACTIVE" && panel.googleClientId && panel.googleClientSecret ? panel : null;
   const clientId = panelGoogle ? panelGoogle.googleClientId! : s.google_client_id;
   const clientSecret = panelGoogle ? panelGoogle.googleClientSecret! : s.google_client_secret;
@@ -54,7 +56,7 @@ export async function GET(req: NextRequest) {
           username,
           email,
           emailVerified: true, // email đã được Google xác thực
-          passwordHash: await bcrypt.hash(randomKey(24), 10),
+          passwordHash: await hashPassword(randomKey(24)),
           fullName: String(info.name || "").slice(0, 80) || null,
           depositCode: randomKey(6).toUpperCase(),
           ...(panelGoogle ? { panelId: panelGoogle.id } : {}),
@@ -76,6 +78,15 @@ export async function GET(req: NextRequest) {
       if (ban) {
         await recordLoginEvent({ userId: user.id, username: user.username, success: false, reason: "IP bị chặn (Google)", ip, userAgent: ua, panelId: user.panelId ?? null });
         return fail("Địa chỉ IP của bạn đã bị chặn" + (ban.reason ? `: ${ban.reason}` : ""));
+      }
+    }
+    // GĐ2: khoá khẩn cấp — khách thường không đăng nhập mới được
+    {
+      const { lockdownState, userCanBypassLockdown, lockdownMessage } = await import("@/lib/lockdown");
+      const ld = await lockdownState();
+      if (ld.on && !(await userCanBypassLockdown(user))) {
+        await recordLoginEvent({ userId: user.id, username: user.username, success: false, reason: "Bị chặn do khoá khẩn cấp (lockdown, Google)", ip, userAgent: ua, panelId: user.panelId ?? null });
+        return fail(lockdownMessage(ld.reason));
       }
     }
     // Tài khoản bật 2FA: qua Google vẫn phải nhập mã bước 2 mới tạo phiên

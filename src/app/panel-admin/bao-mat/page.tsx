@@ -18,6 +18,7 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
     panelOrderCodes(panel.id),
     prisma.loginEvent.findMany({ where: { panelId: panel.id }, orderBy: { id: "desc" }, take: 30 }),
   ]);
+  const panelAudits = await prisma.auditLog.findMany({ where: { scope: "panel", panelId: panel.id }, orderBy: { id: "desc" }, take: 15 });
   const activity = await prisma.apiLog.findMany({
     where: { OR: [{ ref: { in: codes } }, { ref: panel.slug }] },
     orderBy: { id: "desc" },
@@ -109,6 +110,26 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
           <p className="text-xs leading-relaxed text-slate-400">IP bị cấm sẽ không đăng ký được tài khoản mới tại website và khách của panel dùng IP đó sẽ không đăng nhập được. Cấm này chỉ áp trong panel của bạn — cấm toàn hệ thống là quyền của web mẹ.</p>
           <button className="btn-primary w-full !py-2.5">Cấm IP này</button>
         </form>
+      </div>
+
+      <div className="card mt-6 overflow-x-auto">
+        <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Nhật ký thao tác nhạy cảm của panel (chỉ ghi, không sửa/xoá được)</div>
+        {panelAudits.length === 0 ? <Empty text="Chưa có thao tác nhạy cảm nào" /> : (
+          <table className="w-full min-w-[640px]">
+            <thead><tr><th className="th">Thời gian</th><th className="th">Người thực hiện</th><th className="th">Thao tác</th><th className="th">Chi tiết</th><th className="th">IP</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {panelAudits.map((a) => (
+                <tr key={a.id}>
+                  <td className="td whitespace-nowrap">{dt(a.createdAt)}</td>
+                  <td className="td font-medium">{a.actorName}</td>
+                  <td className="td">{a.action}</td>
+                  <td className="td max-w-[280px] truncate text-xs" title={a.detail || ""}>{a.detail || "—"}</td>
+                  <td className="td font-mono text-xs">{a.ip || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

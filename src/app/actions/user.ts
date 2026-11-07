@@ -1,8 +1,10 @@
 "use server";
-import bcrypt from "bcryptjs";
+import { hashPassword, verifyPassword } from "@/lib/password";
+import { writeAudit } from "@/lib/audit";
+import { lockdownState, userCanBypassLockdown, lockdownMessage } from "@/lib/lockdown";
 import { prisma } from "@/lib/db";
 import { cleanAttachments } from "@/lib/attachments";
-import { requireUser } from "@/lib/auth";
+import { requireUser, currentIp } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder } from "@/lib/orders";
 import { notifyUser } from "@/lib/notify";
 import { applyBalance } from "@/lib/wallet";
@@ -24,10 +26,17 @@ function back(path: string, key: "msg" | "err", text: string): never {
   redirect(`${path}?${key}=${encodeURIComponent(text)}`);
 }
 
+/** GĐ2: khoá khẩn cấp — chặn khách thường đặt đơn/nạp/mua, quản trị + chủ/nhân viên panel được miễn */
+async function lockdownBlock(user: { id: number; role: string }, path: string) {
+  const ld = await lockdownState();
+  if (ld.on && !(await userCanBypassLockdown(user))) back(path, "err", lockdownMessage(ld.reason));
+}
+
 export async function placeSmmOrderAction(formData: FormData) {
   const user = await requireUser();
   if (rateLimitExceeded(`ordsmm|${user.id}`, 60, 60000)) back("/dashboard/dat-hang", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   if ((await getSettings()).module_smm === "0") back("/dashboard/dat-hang", "err", "Đặt đơn SMM đang tạm ngưng");
+  await lockdownBlock(user, "/dashboard/dat-hang");
   const serviceId = parseInt(String(formData.get("serviceId") || "0"));
   // campaignId lấy từ form phải là chiến dịch của CHÍNH người đặt — không kiểm
   // là gắn được đơn của mình vào thống kê/ngân sách chiến dịch của người khác.
@@ -93,6 +102,7 @@ export async function placeSmmOrderAction(formData: FormData) {
 export async function bulkPlaceOrdersAction(formData: FormData) {
   const user = await requireUser();
   if (rateLimitExceeded(`ordbulk|${user.id}`, 10, 60000)) back("/dashboard/dat-hang", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
+  await lockdownBlock(user, "/dashboard/dat-hang");
   if (!(await moduleOn("bulk", user.panelId))) back("/dashboard/dat-hang-loat", "err", "Tính năng đặt hàng loạt đang tắt");
   const raw = String(formData.get("bulk") || "");
   const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
@@ -300,7 +310,7 @@ export async function createPanelWizardAction(formData: FormData) {
   const st = await getSettings();
   const parentCfg = feeInfo.parent ? await prisma.childPanel.findUnique({ where: { id: feeInfo.parent.id }, select: { panelDefaultMarkup: true, discountMember: true, discountReseller: true, discountAgency: true, discountVip: true } }) : null;
   if (feeInfo.fee > feeInfo.balance) back("/dashboard/panel-cua-toi", "err", `Số dư không đủ để tạo website con — phí tạo là ${feeInfo.fee.toLocaleString("vi-VN")}₫, số dư hiện tại ${feeInfo.balance.toLocaleString("vi-VN")}₫`);
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await hashPassword(password);
   let createdId = 0;
   await prisma.$transaction(async (tx) => {
     const created = await tx.childPanel.create({
@@ -457,6 +467,7 @@ export async function buyPremiumAction(formData: FormData) {
   const user = await requireUser();
   if (rateLimitExceeded(`ordpre|${user.id}`, 60, 60000)) back("/dashboard/premium", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   if ((await getSettings()).module_premium === "0") back("/premium", "err", "Mảng Premium đang tạm ngưng");
+  await lockdownBlock(user, "/dashboard/premium");
   const variantId = parseInt(String(formData.get("variantId") || "0"));
   const quantity = parseInt(String(formData.get("quantity") || "1"));
   const buyerInfo = String(formData.get("buyerInfo") || "") || undefined;
@@ -490,6 +501,7 @@ export async function buyPremiumAction(formData: FormData) {
 export async function createDepositAction(formData: FormData) {
   const user = await requireUser();
   if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
+  await lockdownBlock(user, "/dashboard/nap-tien");
   const amount = parseInt(String(formData.get("amount") || "0"));
   const method = String(formData.get("method") || "BANK") as any;
   // Chỉ BANK/MOMO là nạp tay chờ duyệt — cổng tự động (Stripe/PayPal/USDT) có
@@ -556,6 +568,7 @@ export async function regenApiKeyAction() {
   const user = await requireUser();
   if (rateLimitExceeded(`regenkey|${user.id}`, 5, 3600000)) back("/dashboard/ho-so", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   await prisma.user.update({ where: { id: user.id }, data: { apiKey: randomKey(32) } });
+  await writeAudit({ actorId: user.id, actorName: user.username, role: user.role, action: "apikey.regen", targetType: "user", targetId: user.id, detail: "Tạo mới API key (key cũ vô hiệu)", ip: currentIp() });
   back("/dashboard/api", "msg", "Đã tạo API key mới. Key cũ đã bị vô hiệu ngay lập tức.");
 }
 
@@ -668,8 +681,12 @@ export async function changePasswordAction(formData: FormData) {
   const pwErr = passwordError(next, await getSettings());
   if (pwErr) back("/dashboard/ho-so", "err", pwErr);
   const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-  if (!(await bcrypt.compare(old, fresh.passwordHash))) back("/dashboard/ho-so", "err", "Mật khẩu hiện tại không đúng");
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(next, 10), sessionVersion: { increment: 1 } } });
+  if (!(await verifyPassword(fresh.passwordHash, old))) back("/dashboard/ho-so", "err", "Mật khẩu hiện tại không đúng");
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(next), sessionVersion: { increment: 1 } } });
+    // GĐ2: đổi mật khẩu -> thu hồi mọi dòng phiên đã ghi (JWT cũ cũng chết theo sessionVersion)
+    await tx.userSession.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
+  });
   back("/dashboard/ho-so", "msg", "Đã đổi mật khẩu");
 }
 
@@ -692,6 +709,7 @@ export async function warrantyAction(formData: FormData) {
 /* ---------- Nạp tiền qua cổng quốc tế (PayPal / Stripe) ---------- */
 export async function startStripeCheckoutAction(formData: FormData) {
   const user = await requireUser();
+  await lockdownBlock(user, "/dashboard/nap-tien");
   if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, stripeCreateCheckout, siteOrigin, resolveIntlConfig } = await import("@/lib/payments");
   const cfg = await resolveIntlConfig(user.id);
@@ -722,6 +740,7 @@ export async function startStripeCheckoutAction(formData: FormData) {
 
 export async function startPaypalCheckoutAction(formData: FormData) {
   const user = await requireUser();
+  await lockdownBlock(user, "/dashboard/nap-tien");
   if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, paypalAccessToken, paypalCreateOrder, siteOrigin, resolveIntlConfig } = await import("@/lib/payments");
   const cfg = await resolveIntlConfig(user.id);
@@ -755,6 +774,7 @@ export async function startPaypalCheckoutAction(formData: FormData) {
 export async function createPanelBankDepositAction(formData: FormData) {
   const user = await requireUser();
   if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
+  await lockdownBlock(user, "/dashboard/nap-tien");
   if (!user.panelId) back("/dashboard/nap-tien", "err", "Tài khoản không thuộc website nào");
   const panel = await prisma.childPanel.findUnique({ where: { id: user.panelId } });
   if (!panel || panel.status !== "ACTIVE" || !panel.bankAccount) back("/dashboard/nap-tien", "err", "Website chưa cài tài khoản ngân hàng riêng");
@@ -775,6 +795,7 @@ export async function createPanelBankDepositAction(formData: FormData) {
 export async function createUsdtDepositAction(formData: FormData) {
   const user = await requireUser();
   if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
+  await lockdownBlock(user, "/dashboard/nap-tien");
   const settings = await getSettings();
   // Khách panel: nếu chủ panel đã cài ví USDT riêng thì nạp về ví của panel (chủ panel duyệt)
   const userPanel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;

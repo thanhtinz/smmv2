@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSettings } from "@/lib/settings";
+import { decryptPanelSecrets } from "@/lib/panel-secrets";
 
 /** Bắt đầu đăng nhập Google: chuyển khách sang trang đồng ý của Google.
  *  Client ID/Secret do admin cấu hình ở Cấu hình → Chung. */
@@ -9,7 +10,8 @@ export async function GET(req: NextRequest) {
   // Trên tên miền riêng của panel: ưu tiên ứng dụng Google của chính panel (nếu chủ panel đã cấu hình)
   const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
   const { prisma } = await import("@/lib/db");
-  const panel = host ? await prisma.childPanel.findUnique({ where: { domain: host } }).catch(() => null) : null;
+  const panelRaw = host ? await prisma.childPanel.findUnique({ where: { domain: host } }).catch(() => null) : null;
+  const panel = decryptPanelSecrets(panelRaw);
   const panelGoogle = panel && panel.status === "ACTIVE" && panel.googleClientId && panel.googleClientSecret ? panel : null;
   const clientId = panelGoogle ? panelGoogle.googleClientId! : s.google_client_id;
   if (!panelGoogle && (s.google_enabled !== "1" || !s.google_client_id)) {
