@@ -11,7 +11,7 @@ import { avgTimesFromRecentOrders } from "@/lib/avg-time";
 
 export const dynamic = "force-dynamic";
 
-export default async function OrderPage({ searchParams }: { searchParams: { service?: string; msg?: string; err?: string; link?: string; qty?: string; campaign?: string } }) {
+export default async function OrderPage({ searchParams }: { searchParams: { service?: string; platform?: string; cat?: string; msg?: string; err?: string; link?: string; qty?: string; campaign?: string } }) {
   const user = (await getCurrentUser())!;
   const settings = await getSettings();
   // Khách của panel con: giá hiển thị đã cộng markup của chủ panel, không chiết khấu cấp bậc
@@ -41,6 +41,16 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
     avgTime: avgMap.get(s.id) ?? s.avgTime, refill: s.refill, dripfeed: s.dripfeed, categoryId: s.categoryId, categoryName: s.category.name, platform: s.category.platform,
   }));
   const cats = categories.filter((c) => !hiddenCatIds.has(c.id) && services.some((s) => s.categoryId === c.id)).map((c) => ({ id: c.id, name: c.name, platform: c.platform }));
+  // Deep-link từ menu nền tảng (mẫu trumapi): ?platform=..&cat=.. -> chọn sẵn phân loại đó qua
+  // dịch vụ đầu tiên của phân loại (OrderForm tự suy ra nền tảng + phân loại từ dịch vụ được chọn).
+  // ?service=.. vẫn ưu tiên cao nhất; tham số sai/không tồn tại -> mặc định như cũ.
+  let preselect = searchParams.service ? parseInt(searchParams.service) : undefined;
+  if (!preselect && (searchParams.cat || searchParams.platform)) {
+    const catParam = searchParams.cat ? parseInt(searchParams.cat) : NaN;
+    const targetCat = (Number.isFinite(catParam) ? cats.find((c) => c.id === catParam) : undefined)
+      || (searchParams.platform ? cats.find((c) => c.platform === searchParams.platform) : undefined);
+    if (targetCat) preselect = dto.find((sv) => sv.categoryId === targetCat.id)?.id;
+  }
   return (
     <div>
       <PageHead title="Đặt đơn SMM" />
@@ -49,7 +59,7 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
       {panelActive && (
         <div className="card px-5 py-3.5 mb-5 text-sm text-slate-600">Bạn đang mua qua panel <b className="text-slate-900">{panelActive.name}</b> — giá đã gồm phụ phí {panelActive.markup}% của panel{panelTierDiscount(panelActive, user.level) > 0 ? `, cấp bậc của bạn được giảm thêm ${panelTierDiscount(panelActive, user.level)}%` : ""}.</div>
       )}
-      <OrderForm services={dto} categories={cats} discount={panelActive ? panelTierDiscount(panelActive, user.level) : levelDiscountFromSettings(settings, user.level)} preselect={searchParams.service ? parseInt(searchParams.service) : undefined} campaignId={searchParams.campaign ? parseInt(searchParams.campaign) : undefined} action={placeSmmOrderAction}
+      <OrderForm services={dto} categories={cats} discount={panelActive ? panelTierDiscount(panelActive, user.level) : levelDiscountFromSettings(settings, user.level)} preselect={preselect} campaignId={searchParams.campaign ? parseInt(searchParams.campaign) : undefined} action={placeSmmOrderAction}
         balance={user.balance} initialLink={searchParams.link} initialQty={searchParams.qty ? parseInt(searchParams.qty) : undefined} />
     </div>
   );
