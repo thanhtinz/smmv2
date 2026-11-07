@@ -289,7 +289,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <label className="lbl">Hiện modal khi khách vào khu vực tài khoản</label>
           <select className="inp" name="home_modal_enabled" defaultValue={s.home_modal_enabled === "1" ? "1" : "0"}><option value="0">Tắt</option><option value="1">Bật</option></select>
         </div>
-        <div><label className="lbl">Nội dung modal thông báo</label><textarea className="inp" name="home_modal_content" rows={4} defaultValue={s.home_modal_content} placeholder="Nội dung hiện trong modal..." /></div>
+        <div><label className="lbl">Nội dung modal thông báo</label><RichTextEditor name="home_modal_content" defaultValue={s.home_modal_content} minHeight={140} /></div>
         <p className="text-xs text-slate-400">Khách bấm &quot;Đã hiểu&quot; thì modal ẩn 2 giờ rồi mới hiện lại. Modal này độc lập với thanh thông báo phía trên.</p>
       </section>
       <section className="card p-6 space-y-4">

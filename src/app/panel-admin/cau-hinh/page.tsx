@@ -259,7 +259,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Cửa sổ bật lên ở trang chủ (Modal)</div>
         <label className="flex items-center justify-between gap-4"><span className="text-sm text-slate-600">Bật cửa sổ thông báo cho khách của panel</span><input type="checkbox" name="homeModalEnabled" defaultChecked={panel.homeModalEnabled} className="h-5 w-5 accent-slate-900" /></label>
-        <div><label className="lbl">Nội dung</label><textarea name="homeModalContent" rows={4} defaultValue={panel.homeModalContent || ""} className="inp" placeholder="Nội dung hiện giữa màn hình khi khách vào bảng điều khiển…" /></div>
+        <div><label className="lbl">Nội dung</label><RichTextEditor name="homeModalContent" defaultValue={panel.homeModalContent || ""} minHeight={120} /></div>
       </section>
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Điều khoản bắt buộc xác nhận</div>

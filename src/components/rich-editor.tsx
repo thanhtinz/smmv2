@@ -20,6 +20,10 @@ export function RichTextEditor({ name, defaultValue, minHeight = 130 }: { name: 
     const url = window.prompt("Nhập link (https://...)", "https://");
     if (url) cmd("createLink", url);
   };
+  const addImage = () => {
+    const url = window.prompt("Nhập link ảnh (https://...)", "https://");
+    if (url) cmd("insertImage", url);
+  };
   const btn = "flex h-8 min-w-8 items-center justify-center rounded-lg px-1.5 text-sm text-slate-600 transition hover:bg-slate-200 hover:text-slate-900";
   return (
     <div className="overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-brand-500">
@@ -41,6 +45,9 @@ export function RichTextEditor({ name, defaultValue, minHeight = 130 }: { name: 
         <button type="button" className={btn} title="Chèn link" onMouseDown={(e) => { e.preventDefault(); addLink(); }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.7 1.7" /><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.7-1.7" /></svg>
         </button>
+        <button type="button" className={btn} title="Chèn ảnh" onMouseDown={(e) => { e.preventDefault(); addImage(); }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" /></svg>
+        </button>
         <button type="button" className={`${btn} text-xs`} title="Xoá định dạng" onMouseDown={(e) => { e.preventDefault(); cmd("removeFormat"); }}>Xoá kiểu</button>
       </div>
       <div
@@ -50,7 +57,7 @@ export function RichTextEditor({ name, defaultValue, minHeight = 130 }: { name: 
         onInput={sync}
         onBlur={sync}
         style={{ minHeight }}
-        className="px-3.5 py-3 text-sm leading-relaxed text-slate-800 outline-none [&_a]:text-brand-600 [&_a]:underline [&_h3]:mb-1 [&_h3]:mt-2 [&_h3]:text-base [&_h3]:font-bold [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
+        className="px-3.5 py-3 text-sm leading-relaxed text-slate-800 outline-none [&_a]:text-brand-600 [&_a]:underline [&_h3]:mb-1 [&_h3]:mt-2 [&_h3]:text-base [&_h3]:font-bold [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_img]:my-1 [&_img]:max-w-full [&_img]:rounded-lg"
       />
     </div>
   );

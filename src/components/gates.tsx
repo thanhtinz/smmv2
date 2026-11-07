@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { acceptTermsAction } from "@/app/actions/user";
+import { RichText } from "@/components/rich-text";
 
 /** Cổng điều khoản bắt buộc: hiện khi admin bật điều khoản và khách chưa xác nhận phiên bản hiện tại. */
 export function TermsGate({ title, content, checkboxText, buttonText, version }: { title: string; content: string; checkboxText: string; buttonText: string; version: number }) {
@@ -39,9 +40,9 @@ export function HomeModal({ content }: { content: string }) {
   };
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
         <div className="text-base font-black text-slate-900">Thông báo</div>
-        <div className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-600">{content}</div>
+        <div className="mt-3 max-h-[55vh] overflow-y-auto text-sm leading-relaxed text-slate-600"><RichText value={content} /></div>
         <button onClick={dismiss} className="btn-primary mt-5 w-full !py-3">Đã hiểu</button>
       </div>
     </div>
