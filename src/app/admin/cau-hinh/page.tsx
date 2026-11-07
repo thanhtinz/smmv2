@@ -186,7 +186,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Chính sách nạp tiền</div>
         <div><label className="lbl">Nạp tối thiểu (VND)</label><input className="inp" name="deposit_min" type="number" defaultValue={s.deposit_min} /></div>
-        <div><label className="lbl">Phí tạo website con (VNĐ) — áp dụng cho khách của web mẹ</label><input className="inp" name="panel_fee" type="number" min="0" defaultValue={s.panel_fee} placeholder="0 = miễn phí" /></div>
+        <div><label className="lbl">Phí website con theo tháng (VNĐ / 30 ngày) — áp dụng cho khách của web mẹ, tự gia hạn trừ số dư</label><input className="inp" name="panel_fee" type="number" min="0" defaultValue={s.panel_fee} placeholder="0 = miễn phí" /></div>
         <div><label className="lbl">Markup mặc định cho website con mới (%)</label><input className="inp" name="panel_default_markup" type="number" min="0" max="200" defaultValue={s.panel_default_markup} /></div>
         <p className="text-xs text-slate-400">Khách đăng ký website con sẽ bị trừ đúng số này vào số dư khi đăng ký thành công (0 = miễn phí như mặc định). Chủ panel con tự đặt phí riêng cho khách của họ trong Panel Admin — khách panel tạo website con thì phí đó thuộc về chủ panel. Mốc thưởng nạp chỉnh ở tab <b>Khuyến mãi</b>, hoa hồng giới thiệu ở tab <b>Giới thiệu</b>, nạp USDT ở tab <b>USDT</b>.</p>
         <div>

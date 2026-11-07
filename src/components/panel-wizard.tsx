@@ -231,7 +231,7 @@ export function PanelWizard({ fee, balance, action, defaults }: {
             <div className="mt-3.5 space-y-2.5 text-sm">
               <div className="flex justify-between gap-4"><span className="text-slate-500">Tên miền</span><span className="font-bold text-slate-900">{cleanDomain || "—"}</span></div>
               <div className="flex justify-between gap-4"><span className="text-slate-500">Admin</span><span className="font-bold text-slate-900">{username.trim().toLowerCase() || "—"}</span></div>
-              <div className="flex justify-between gap-4"><span className="text-slate-500">Thời hạn</span><span className="font-bold text-slate-900">Không giới hạn</span></div>
+              <div className="flex justify-between gap-4"><span className="text-slate-500">Thời hạn</span><span className="font-bold text-slate-900">{fee > 0 ? "30 ngày" : "Không giới hạn"}</span></div>
             </div>
           </div>
           <div className="mt-4 rounded-2xl border border-slate-200 p-5">
@@ -239,6 +239,7 @@ export function PanelWizard({ fee, balance, action, defaults }: {
             <div className="mt-3.5 space-y-2.5 text-sm">
               <div className="flex justify-between gap-4"><span className="text-slate-500">Chi phí tạo</span><span className="font-extrabold text-brand-700">{fee > 0 ? vnd(fee) : "Miễn phí"}</span></div>
               <div className="flex justify-between gap-4"><span className="text-slate-500">Phương thức</span><span className="font-bold text-slate-900">Số dư tài khoản</span></div>
+              <div className="flex justify-between gap-4"><span className="text-slate-500">Gia hạn</span><span className={`font-bold ${fee > 0 ? "text-emerald-600" : "text-slate-900"}`}>{fee > 0 ? "Tự động" : "—"}</span></div>
               <div className="flex justify-between gap-4"><span className="text-slate-500">Số dư sau khi tạo</span><span className={`font-bold ${balanceOk ? "text-slate-900" : "text-rose-500"}`}>{vnd(balance - fee)}</span></div>
             </div>
           </div>
@@ -281,8 +282,8 @@ export function PanelWizard({ fee, balance, action, defaults }: {
           <div className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Thông tin gói</div>
           <div className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between gap-4"><span className="text-slate-500">Chi phí</span><span className="font-extrabold text-brand-700">{fee > 0 ? vnd(fee) : "Miễn phí"}</span></div>
-            <div className="flex justify-between gap-4"><span className="text-slate-500">Thời hạn</span><span className="font-bold text-slate-900">Không giới hạn</span></div>
-            <div className="flex justify-between gap-4"><span className="text-slate-500">Phương thức</span><span className="font-bold text-slate-900">Số dư tài khoản</span></div>
+            <div className="flex justify-between gap-4"><span className="text-slate-500">Thời hạn</span><span className="font-bold text-slate-900">{fee > 0 ? "30 ngày / kỳ" : "Không giới hạn"}</span></div>
+            <div className="flex justify-between gap-4"><span className="text-slate-500">Gia hạn</span><span className={`font-bold ${fee > 0 ? "text-emerald-600" : "text-slate-900"}`}>{fee > 0 ? "Tự động" : "—"}</span></div>
             <div className="flex justify-between gap-4"><span className="text-slate-500">Domain</span><span className="max-w-[55%] truncate font-bold text-slate-900">{cleanDomain || "—"}</span></div>
           </div>
         </div>

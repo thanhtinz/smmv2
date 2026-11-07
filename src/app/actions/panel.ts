@@ -698,7 +698,7 @@ export async function panelAddStaffAction(formData: FormData) {
   if (!target) back(STAFF_PAGE, "err", "Không tìm thấy tài khoản này — nhân viên cần có tài khoản trên hệ thống trước");
   if (target.id === user.id) back(STAFF_PAGE, "err", "Bạn là chủ panel rồi, không cần thêm chính mình");
   if (target.role === "ADMIN" || target.role === "STAFF") back(STAFF_PAGE, "err", "Tài khoản quản trị hệ thống không làm nhân viên panel được");
-  const ownsOther = await prisma.childPanel.findUnique({ where: { ownerId: target.id }, select: { id: true } });
+  const ownsOther = await prisma.childPanel.findFirst({ where: { ownerId: target.id }, select: { id: true } });
   if (ownsOther) back(STAFF_PAGE, "err", "Tài khoản này đang là chủ một panel khác — họ sẽ vào panel của chính họ, không làm nhân viên được");
   const exists = await prisma.panelStaff.findUnique({ where: { panelId_userId: { panelId: panel.id, userId: target.id } } });
   if (exists) back(STAFF_PAGE, "err", "Tài khoản này đã là nhân viên của panel rồi");

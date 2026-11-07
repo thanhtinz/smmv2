@@ -1,3 +1,4 @@
+import { getPanelAccess } from "@/lib/panel-access";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
  *  dùng cho cả tạo mới và bổ sung cấu hình */
 export default async function PanelSetupPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
-  const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
+  const panel = (await getPanelAccess(user.id))?.panel ?? null;
   const samples = await prisma.smmService.findMany({ where: { active: true }, take: 3, orderBy: { id: "asc" }, select: { name: true, rate: true } });
   const host = headers().get("host") || "localhost";
   const proto = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https";

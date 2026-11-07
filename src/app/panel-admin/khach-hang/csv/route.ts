@@ -1,3 +1,4 @@
+import { getPanelAccess } from "@/lib/panel-access";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
-  const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
+  const panel = (await getPanelAccess(user.id))?.panel ?? null;
   if (!panel) return new Response("Forbidden", { status: 403 });
   const members = await prisma.user.findMany({
     where: { panelId: panel.id },

@@ -143,7 +143,7 @@ export async function createSmmOrder(input: {
   // Dịch vụ riêng của panel: chỉ khách của đúng panel đó (và chủ panel) mới đặt được
   const isOwn = !!service.panelId;
   if (isOwn && service.panelId !== input.user.panelId) {
-    const ownPanel = await prisma.childPanel.findUnique({ where: { ownerId: input.user.id }, select: { id: true } });
+    const ownPanel = await prisma.childPanel.findFirst({ where: { ownerId: input.user.id }, select: { id: true } });
     if (!ownPanel || ownPanel.id !== service.panelId) throw new Error("Dịch vụ không tồn tại hoặc đang tạm ngưng");
   }
   if (!input.link.trim()) throw new Error("Thiếu link");

@@ -73,9 +73,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/giao-dich", label: L("Lịch sử số dư") },
     ...(affiliateOn ? [{ href: "/dashboard/kiem-tien", label: L("Kiếm tiền") }] : []),
   ];
-  const apiChildren = apiOn ? [
-    { href: "/dashboard/api-docs", label: L("Tài liệu API") },
-  ] : [];
   const supportChildren = [
     ...(ticketsOn ? [{ href: "/dashboard/ticket", label: L("Hỗ trợ / Ticket"), badge: openTickets }] : []),
     { href: "/dashboard/thong-bao", label: L("Thông báo"), badge: unreadNoti },
@@ -86,7 +83,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ...(smmChildren.length ? [{ label: L("Đơn SMM"), icon: I.cart, children: smmChildren }] : []),
     ...(premiumChildren.length ? [{ label: L("Premium"), icon: I.gem, children: premiumChildren }] : []),
     ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),
-    ...(apiChildren.length ? [{ label: L("API"), icon: I.key, children: apiChildren }] : []),
+    ...(apiOn ? [{ href: "/dashboard/api-docs", label: L("Tài liệu API"), icon: I.key }] : []),
     ...(s.module_panels !== "0" ? [{ href: "/dashboard/panel-cua-toi", label: L("Đăng ký panel con"), icon: I.panels }] : []),
     ...(supportChildren.length ? [{ label: L("Hỗ trợ"), icon: I.ticket, children: supportChildren }] : []),
     { href: "/dashboard/ho-so", label: L("Hồ sơ"), icon: I.users },

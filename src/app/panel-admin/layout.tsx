@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/actions/auth";
 import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
 import AdminRealtime from "@/components/admin-realtime";
+import { PanelSwitcher } from "@/components/panel-switcher";
 import { DisplaySettings } from "@/components/display";
 import { prisma } from "@/lib/db";
 import { tr } from "@/lib/i18n";
@@ -19,8 +20,9 @@ export const dynamic = "force-dynamic";
 export default async function PanelAdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const { getPanelAccess } = await import("@/lib/panel-access");
+  const { getPanelAccess, listAccessiblePanels } = await import("@/lib/panel-access");
   const access = await getPanelAccess(user.id);
+  const accessiblePanels = await listAccessiblePanels(user.id);
   if (!access) redirect("/dashboard/panel-cua-toi/thiet-lap");
   const panel = access.panel;
   const isOwner = access.isOwner;
@@ -139,7 +141,8 @@ export default async function PanelAdminLayout({ children }: { children: React.R
               </div>
             </form>
             <div className="ml-auto flex items-center gap-2.5">
-              <AdminRealtime endpoint="/api/panel-admin/realtime" suffix={`panel-${panel.id}`} />
+{accessiblePanels.length > 1 && <PanelSwitcher panels={accessiblePanels.map((a) => ({ id: a.panel.id, label: a.panel.domain || a.panel.name }))} currentId={panel.id} />}
+                            <AdminRealtime endpoint="/api/panel-admin/realtime" suffix={`panel-${panel.id}`} />
               <DisplaySettings />
               <Link href={`/cua-hang/${panel.slug}`} className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Xem gian hàng</Link>
               <Link href="/dashboard" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Khu khách hàng</Link>

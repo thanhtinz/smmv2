@@ -66,7 +66,7 @@ model User {
   // Panel con (child panel): khách đăng ký qua panel của đại lý khác
   panelId    Int?
   panel      ChildPanel?  @relation("PanelMember", fields: [panelId], references: [id])
-  ownedPanel ChildPanel?  @relation("PanelOwner")
+  ownedPanels ChildPanel[] @relation("PanelOwner") // một tài khoản sở hữu được nhiều website con
   staffOf    PanelStaff[] @relation("PanelStaffUser")
 }
 
@@ -479,7 +479,7 @@ model ApiLog {
 // Chạy tại /cua-hang/[slug] hoặc tên miền riêng của chủ panel (CNAME -> middleware nhận diện).
 model ChildPanel {
   id        Int      @id @default(autoincrement())
-  ownerId   Int      @unique
+  ownerId   Int // một tài khoản được tạo NHIỀU website con (không còn giới hạn 1)
   owner     User     @relation("PanelOwner", fields: [ownerId], references: [id])
   name      String   @db.VarChar(120)
   slug      String   @unique @db.VarChar(60)
@@ -607,7 +607,10 @@ model ChildPanel {
   customBodyHtml String? @db.Text
   googleClientSecret String? @db.VarChar(200)
   ownServices SmmService[] @relation("PanelOwnServices")
+  expiresAt DateTime? // hạn dùng theo tháng (phí panel_fee là phí/30 ngày); null = không hết hạn (miễn phí hoặc panel cũ)
+  autoRenew Boolean  @default(true) // tự gia hạn trừ số dư khi tới hạn
   status    String   @default("ACTIVE") @db.VarChar(20) // ACTIVE | SUSPENDED
+  @@index([ownerId])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -438,9 +438,9 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
         <input type="hidden" name="section" value="panelfee" />
         <div className="font-bold text-slate-900">Phí tạo website con cho khách của panel</div>
         <p className="text-sm leading-relaxed text-slate-400">Giống web mẹ: khách của panel cũng tạo được website con của riêng họ ngay tại trang Đăng ký website con. Bạn đặt phí ở đây — khi khách đăng ký thành công, phí được trừ vào số dư của khách và <b className="text-slate-600">cộng thẳng vào số dư của bạn</b>. Đặt 0₫ là miễn phí.</p>
-        <div><label className="lbl">Phí tạo website con (VNĐ)</label><input name="panelFee" type="number" min={0} defaultValue={panel.panelFee || 0} className="inp" placeholder="0 = miễn phí" /></div>
+        <div><label className="lbl">Phí website con theo tháng (VNĐ / 30 ngày)</label><input name="panelFee" type="number" min={0} defaultValue={panel.panelFee || 0} className="inp" placeholder="0 = miễn phí" /></div>
         <div><label className="lbl">Markup mặc định cho website con mới (%)</label><input name="panelDefaultMarkup" type="number" min={0} max={200} defaultValue={panel.panelDefaultMarkup || ""} className="inp" placeholder="Để trống = theo web mẹ" /></div>
-        <p className="text-xs text-slate-400">Đang áp dụng: {panel.panelFee > 0 ? vnd(panel.panelFee) : "Miễn phí"} cho mỗi website con khách của bạn tạo.</p>
+        <p className="text-xs text-slate-400">Đang áp dụng: {panel.panelFee > 0 ? vnd(panel.panelFee) : "Miễn phí"} cho mỗi website con khách của bạn tạo, tính theo tháng và tự gia hạn trừ số dư của khách.</p>
         <button className="btn-primary !py-2.5">Lưu phí tạo website con</button>
       </form>
     </>

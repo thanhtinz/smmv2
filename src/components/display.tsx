@@ -167,7 +167,22 @@ export function TodayText() {
 }
 
 export function DisplayEngine() {
+  const router = useRouter();
   useEffect(() => {
+    // Đồng bộ cookie ngôn ngữ cho phần render phía server (menu 3 khu vực dịch
+    // bằng cookie smmv2-lang): lựa chọn của khách nằm ở localStorage, cookie
+    // thiếu/khác -> ghi lại rồi refresh ĐÚNG 1 lần để menu hiện đúng ngôn ngữ
+    // đã chọn (cờ sessionStorage chống vòng lặp khi trình duyệt chặn cookie).
+    try {
+      const p = readPrefs();
+      const m = document.cookie.match(/(?:^|; )smmv2-lang=([^;]*)/);
+      const cookieLang = m ? decodeURIComponent(m[1]) : null;
+      applyPrefs(p);
+      if (cookieLang !== p.lang && !sessionStorage.getItem("smmv2-lang-sync")) {
+        sessionStorage.setItem("smmv2-lang-sync", "1");
+        router.refresh();
+      }
+    } catch {}
     // Nạp tỉ giá hiển thị admin đã cấu hình (mặc định dùng bộ tỉ giá sẵn trong code)
     fetch("/api/display-config")
       .then((r) => r.json())

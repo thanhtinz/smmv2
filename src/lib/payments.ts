@@ -39,7 +39,7 @@ export async function resolveIntlConfig(userId: number): Promise<IntlConfig> {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { panelId: true } });
   const panel = user?.panelId
     ? await prisma.childPanel.findUnique({ where: { id: user.panelId } })
-    : await prisma.childPanel.findUnique({ where: { ownerId: userId } });
+    : await prisma.childPanel.findFirst({ where: { ownerId: userId } });
   if (panel) {
     if (panel.intlMinUsd && panel.intlMinUsd > 0) minUsd = panel.intlMinUsd;
     const pr = parseFloat(panel.rateUsd || "");

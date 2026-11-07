@@ -24,7 +24,7 @@ export async function GET() {
     const fields = { rateUsd: true, rateEur: true, rateCny: true, rateThb: true, rateJpy: true, rateKrw: true } as const;
     const user = await getCurrentUser().catch(() => null);
     if (user?.panelId) panel = await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: fields });
-    else if (user) panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id }, select: fields });
+    else if (user) panel = await prisma.childPanel.findFirst({ where: { ownerId: user.id }, select: fields });
     if (!panel) {
       const host = (headers().get("host") || "").split(":")[0];
       if (host) panel = await prisma.childPanel.findFirst({ where: { domain: host }, select: fields });

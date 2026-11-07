@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { syncSmmOrderStatus, syncPremiumOrderStatus, processDripfeedOrders, processAutoRefills } from "@/lib/orders";
 import { syncProviderServices, syncProviderPremium, providerBalance } from "@/lib/provider";
 import { processSubscriptions } from "@/lib/subscriptions";
+import { processPanelRenewals } from "@/lib/panel-billing";
 
 /**
  * Cron đồng bộ (gọi mỗi 5-10 phút bởi crontab / Vercel Cron):
@@ -35,6 +36,13 @@ export async function GET(req: NextRequest) {
     result.subscriptions = await processSubscriptions(20);
   } catch (e: any) {
     result.subscriptionsError = String(e?.message || e);
+  }
+
+  // Gia hạn website con theo tháng: trừ phí tự động, hết tiền thì tạm ngưng
+  try {
+    result.panelRenewals = await processPanelRenewals(50);
+  } catch (e: any) {
+    result.panelRenewalsError = String(e?.message || e);
   }
 
   // Service Health Monitor: kiểm tra số dư/kết nối mọi provider đang bật; lỗi thì ghi log cảnh báo
