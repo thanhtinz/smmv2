@@ -70,6 +70,8 @@ export async function registerAction(formData: FormData) {
     },
   }).catch((e: any) => { if (e?.code === "P2002") back("/register", "err", "Tên đăng nhập hoặc email đã được sử dụng"); throw e; });
   await recordRegAttempt(regIp);
+  void (async () => { const { issueEmailVerification } = await import("@/lib/email-verify"); await issueEmailVerification({ id: user.id, email: user.email, username: user.username }); })();
+  await recordRegAttempt(regIp);
   void (async () => { const { alertMother } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản`); })();
   await createSession({ id: user.id, role: user.role, username: user.username });
   redirect("/dashboard");
@@ -109,6 +111,8 @@ export async function panelRegisterAction(formData: FormData) {
       panelId: panel.id,
     },
   }).catch((e: any) => { if (e?.code === "P2002") back(page, "err", "Tên đăng nhập hoặc email đã được sử dụng"); throw e; });
+  await recordRegAttempt(regIp);
+  void (async () => { const { issueEmailVerification } = await import("@/lib/email-verify"); await issueEmailVerification({ id: user.id, email: user.email, username: user.username }); })();
   await recordRegAttempt(regIp);
   void (async () => { const { alertMother, alertPanelOwner } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản qua panel ${panel.name}`); await alertPanelOwner(panel.id, "new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản tại website của bạn`); })();
   await createSession({ id: user.id, role: user.role, username: user.username });

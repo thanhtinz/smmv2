@@ -178,6 +178,13 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   auto_refill_window_days: "7", // auto-refill: chỉ xử lý đơn hoàn thành trong số ngày này
   auto_refill_settle_minutes: "30", // auto-refill: chờ sau khi đơn hoàn thành bao nhiêu phút
   cleanup_retention_days: "30", // dọn dẹp hệ thống: xoá nhật ký/thông báo cũ hơn số ngày này
+  // Tích điểm (đợt bổ sung): điểm nhận mỗi 100.000đ chi tiêu đơn hoàn thành + giá trị 1 điểm khi đổi ra số dư + tối thiểu điểm mỗi lần đổi
+  points_per_100k: "1",
+  points_value_vnd: "100",
+  points_min_redeem: "10",
+  // SEO & đo lường: Google Analytics (GA4 measurement id) + mã xác minh Google Search Console
+  ga_id: "",
+  gsc_verification: "",
 };
 
 export async function getSettings(): Promise<Record<string, string>> {

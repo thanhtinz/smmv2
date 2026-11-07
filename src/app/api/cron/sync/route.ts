@@ -146,5 +146,7 @@ export async function GET(req: NextRequest) {
       }
     }
   }
+  // Ghi nhận lần chạy cron cho trang Sức khoẻ hệ thống (Admin → Hệ thống)
+  await prisma.apiLog.create({ data: { kind: "cron_sync", ok: true, detail: JSON.stringify({ ordersSynced: result.ordersSynced, ordersFailed: result.ordersFailed, premiumSynced: result.premiumSynced, premiumFailed: result.premiumFailed }).slice(0, 900) } }).catch(() => {});
   return NextResponse.json(result);
 }

@@ -2,10 +2,11 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { Flash, Stat, I, Badge } from "@/components/ui";
-import { updateProfileAction, changePasswordAction, regenApiKeyAction } from "@/app/actions/user";
+import { updateProfileAction, changePasswordAction, regenApiKeyAction, resendEmailVerificationAction, redeemPointsAction } from "@/app/actions/user";
 import { logoutAction } from "@/app/actions/auth";
 import { CopyBtn } from "@/components/client";
 import { TwoFactorCard } from "@/components/two-factor";
+import { ProfileTabs } from "@/components/profile-tabs";
 import { backupCodesLeft } from "@/lib/twofa";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { LEVEL_NAME, vnd, num, dt } from "@/lib/format";
@@ -27,11 +28,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
   const adminMust2fa = searchParams.bat2fa === "1" || ((user.role === "ADMIN" || user.role === "STAFF") && s.admin_2fa_required !== "0");
   const initials = (user.fullName || user.username).trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const endpoint = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/v2`;
-  const tabs = [
-    { id: "profile", label: "Hồ sơ cá nhân" },
-    { id: "api", label: "Kết nối API" },
-    { id: "security", label: "Bảo mật & Phiên đăng nhập" },
-  ] as const;
   const passwordForm = (
     <form action={changePasswordAction} className="card space-y-4 p-6">
       <div className="font-bold text-slate-900">Đổi mật khẩu</div>
@@ -63,13 +59,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
         <Stat label="Cấp bậc" value={LEVEL_NAME[user.level]} icon={I.users} />
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-2 border-b border-slate-200">
-        {tabs.map((t) => (
-          <Link key={t.id} href={`/dashboard/ho-so${t.id === "profile" ? "" : `?tab=${t.id}`}`} className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold ${tab === t.id ? "border-brand-600 text-brand-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}>{t.label}</Link>
-        ))}
-      </div>
-
-      {tab === "profile" && (
+      <ProfileTabs
+        initial={tab}
+        labels={{ profile: "Hồ sơ cá nhân", api: "Kết nối API", security: "Bảo mật & Phiên đăng nhập" }}
+        profile={(
         <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
           <form action={updateProfileAction} className="card space-y-4 p-6 xl:col-span-2">
             <div className="font-bold text-slate-900">Hồ sơ cá nhân</div>
@@ -77,7 +70,17 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
               <div><label className="lbl">Tên của bạn</label><input className="inp" name="fullName" defaultValue={user.fullName || ""} /></div>
               <div><label className="lbl">Số điện thoại</label><input className="inp" name="phone" defaultValue={user.phone || ""} /></div>
             </div>
-            <div><label className="lbl">Email</label><input className="inp" value={user.email} disabled /></div>
+            <div>
+              <label className="lbl">Email</label>
+              <input className="inp" name="email" type="email" defaultValue={user.email} />
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                {user.emailVerified
+                  ? <Badge cls="bg-emerald-100 text-emerald-700">Email đã xác thực</Badge>
+                  : <><Badge cls="bg-amber-100 text-amber-800">Email chưa xác thực</Badge>
+                      <form action={resendEmailVerificationAction}><button className="btn-ghost btn-sm">Gửi lại email xác thực</button></form></>}
+                <span className="text-xs text-slate-400">Đổi email sẽ cần xác thực lại email mới.</span>
+              </div>
+            </div>
             <div><label className="lbl">Mã nạp tiền của bạn</label><input className="inp font-mono" value={`SMM ${user.depositCode}`} disabled /></div>
             <div>
               <label className="lbl">Webhook URL — nhận thông báo khi đơn đổi trạng thái (không bắt buộc)</label>
@@ -96,15 +99,28 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
               </div>
             </div>
             <div className="card p-6">
+              <div className="font-bold text-slate-900">Điểm tích luỹ</div>
+              <div className="mt-3 space-y-1.5 text-sm text-slate-500">
+                <div className="flex justify-between"><span>Điểm hiện có</span><b className="text-slate-800">{num(user.points)} điểm</b></div>
+                <div className="flex justify-between"><span>Giá trị quy đổi</span><b className="text-slate-800">{vnd(user.points * (parseInt(s.points_value_vnd || "100") || 100))}</b></div>
+                <div className="flex justify-between"><span>Nhận điểm</span><b className="text-slate-800">{s.points_per_100k} điểm / 100.000đ đơn hoàn thành</b></div>
+              </div>
+              <form action={redeemPointsAction} className="mt-4 flex gap-2">
+                <input className="inp" name="points" type="number" min={parseInt(s.points_min_redeem || "10") || 10} placeholder={`Từ ${s.points_min_redeem} điểm`} />
+                <button className="btn-primary whitespace-nowrap">Đổi ra số dư</button>
+              </form>
+              <p className="mt-2 text-xs text-slate-400">Điểm cộng tự động khi đơn SMM/Premium hoàn thành. Đổi điểm sẽ cộng thẳng vào số dư ví và ghi vào lịch sử giao dịch.</p>
+            </div>
+            <div className="card p-6">
               <div className="font-bold text-slate-900">Giới thiệu bạn bè</div>
               <p className="mt-2 text-sm text-slate-500">Bạn đã giới thiệu <b className="text-slate-800">{num(refCount)}</b> người tham gia.</p>
               <Link href="/dashboard/kiem-tien" className="btn-ghost btn-sm mt-3">Lấy link giới thiệu</Link>
             </div>
           </div>
         </div>
-      )}
+        )}
 
-      {tab === "api" && (
+        api={(
         <div className="card mt-6 space-y-5 p-6">
           <div className="font-bold text-slate-900">API kết nối tài khoản</div>
           <div>
@@ -125,9 +141,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
             <Link href="/dashboard/api-docs" className="font-semibold text-brand-600">Tài liệu API</Link>. Dùng key này để đặt đơn, tra trạng thái và số dư tự động qua endpoint phía trên.
           </div>
         </div>
-      )}
+        )}
 
-      {tab === "security" && (
+        security={(
         <div className="mt-6 space-y-6">
           <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
             {passwordForm}
@@ -170,6 +186,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
           </div>
         </div>
       )}
+      />
     </div>
   );
 }

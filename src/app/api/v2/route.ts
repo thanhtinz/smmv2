@@ -4,6 +4,7 @@ import { userByApiKey } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder, refundSmmOrder, panelTierDiscount } from "@/lib/orders";
 import { smmCharge, vnd } from "@/lib/format";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
+import { getActiveFlashSale, flashAppliesTo, applyFlashAmount } from "@/lib/flash";
 import { moduleOn } from "@/lib/modules";
 import { providerCancel, providerRefill } from "@/lib/provider";
 import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
@@ -70,14 +71,16 @@ async function handle(req: NextRequest) {
         ? await prisma.panelServicePrice.findMany({ where: { panelId: panelActive.id, level: user.level as any } })
         : [];
       const ovMap = new Map(overrides.map((o) => [o.serviceId, o.price]));
+      const flashSale = await getActiveFlashSale(user.panelId ?? null);
+      const withFlash = (svc: (typeof services)[number], v: number) => applyFlashAmount(v, flashAppliesTo(flashSale, svc.id) ? flashSale!.percent : 0);
       const rateFor = (svc: (typeof services)[number]) => {
         if (panelActive) {
           const ov = ovMap.get(svc.id);
-          if (ov) return ov;
+          if (ov) return withFlash(svc, ov);
           const marked = Math.round(svc.rate * (1 + panelActive.markup / 100));
-          return Math.round(marked * (1 - panelTierDiscount(panelActive, user.level) / 100));
+          return withFlash(svc, Math.round(marked * (1 - panelTierDiscount(panelActive, user.level) / 100)));
         }
-        return Math.round(svc.rate * (1 - discount / 100));
+        return withFlash(svc, Math.round(svc.rate * (1 - discount / 100)));
       };
       return NextResponse.json(
         services.map((s) => ({

@@ -138,6 +138,8 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <div><label className="lbl">Mô tả SEO (Meta Description)</label><textarea className="inp" name="meta_description" rows={3} defaultValue={s.meta_description} placeholder="Mô tả ngắn hiển thị trên Google..." /><p className="mt-1 text-xs text-slate-400">Khuyến nghị tối đa ~160 ký tự.</p></div>
           <div><label className="lbl">Từ khoá SEO (Meta Keywords, cách nhau dấu phẩy)</label><input className="inp" name="meta_keywords" defaultValue={s.meta_keywords} /></div>
           <div><label className="lbl">Ảnh chia sẻ (OG Image — URL)</label><input className="inp" name="og_image_url" defaultValue={s.og_image_url} placeholder="https://.../og.jpg" /><p className="mt-1 text-xs text-slate-400">Ảnh hiển thị khi chia sẻ link website lên mạng xã hội (Zalo, Facebook...). Kích thước khuyến nghị: 1200x630.</p></div>
+          <div><label className="lbl">Google Analytics — GA4 Measurement ID</label><input className="inp" name="ga_id" defaultValue={s.ga_id} placeholder="G-XXXXXXXXXX" /><p className="mt-1 text-xs text-slate-400">Điền ID đo lường GA4, hệ thống tự chèn mã theo dõi vào mọi trang.</p></div>
+          <div><label className="lbl">Google Search Console — mã xác minh</label><input className="inp" name="gsc_verification" defaultValue={s.gsc_verification} placeholder="Mã trong thẻ meta google-site-verification" /><p className="mt-1 text-xs text-slate-400">Chỉ dán phần mã (content), hệ thống tự sinh thẻ meta xác minh.</p></div>
         </section>
         <section className="card p-6 space-y-3">
           <div className="font-bold text-slate-900">Xem trước SEO (Google)</div>

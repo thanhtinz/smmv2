@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requirePanelAccessPage } from "@/lib/panel-access";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { panelReplyTicket, panelToggleTicket } from "@/app/actions/panel";
+import { TicketAttachInput, TicketAttachments } from "@/components/ticket-attach";
 import { dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export default async function PanelTicketDetail({ params, searchParams }: { para
             <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${m.fromAdmin ? "rounded-br-md bg-slate-900 text-white" : "rounded-bl-md bg-slate-100 text-slate-700"}`}>
               <div className={`mb-1 text-[11px] font-semibold ${m.fromAdmin ? "text-slate-400" : "text-slate-400"}`}>{m.fromAdmin ? "Hỗ trợ (bạn)" : ticket.user.username} · {dt(m.createdAt)}</div>
               <p className="whitespace-pre-wrap">{m.body}</p>
+              <TicketAttachments raw={m.attachments} />
             </div>
           </div>
         ))}
@@ -47,6 +49,7 @@ export default async function PanelTicketDetail({ params, searchParams }: { para
           <input type="hidden" name="ticketId" value={ticket.id} />
           <div className="font-bold text-slate-900">Trả lời khách</div>
           <textarea name="body" rows={4} required className="inp" placeholder="Nội dung phản hồi..." />
+          <TicketAttachInput />
           <div className="flex flex-wrap items-center gap-4">
             <button className="btn-primary !py-2.5">Gửi phản hồi</button>
             <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="close" className="h-4 w-4 accent-slate-900" /> Đóng ticket sau khi trả lời</label>

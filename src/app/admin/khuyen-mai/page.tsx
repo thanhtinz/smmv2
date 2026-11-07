@@ -3,7 +3,8 @@ import { requireAdminPage } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash, Stat, I } from "@/components/ui";
 import { BonusTiersEditor } from "@/components/settings-editors";
-import { adminSaveMethodsAction } from "@/app/actions/admin";
+import { adminSaveMethodsAction, adminSaveSettings } from "@/app/actions/admin";
+import { FlashSaleAdmin } from "@/components/flash-admin";
 import { num } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +50,17 @@ export default async function AdminPromotions({ searchParams }: { searchParams: 
           </div>
         </div>
       </div>
+      <FlashSaleAdmin panelId={null} />
+      <form action={adminSaveSettings} className="card mt-6 space-y-4 p-6">
+        <div className="font-bold text-slate-900">Tích điểm khách hàng thân thiết</div>
+        <p className="text-sm text-slate-500">Khách được cộng điểm tự động khi đơn SMM/Premium hoàn thành, đổi điểm ra số dư ví ngay trong trang Hồ sơ.</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div><label className="lbl">Điểm nhận mỗi 100.000đ chi tiêu</label><input className="inp" name="points_per_100k" type="number" min={0} defaultValue={s.points_per_100k} /></div>
+          <div><label className="lbl">Giá trị 1 điểm khi đổi (VNĐ)</label><input className="inp" name="points_value_vnd" type="number" min={1} defaultValue={s.points_value_vnd} /></div>
+          <div><label className="lbl">Tối thiểu điểm mỗi lần đổi</label><input className="inp" name="points_min_redeem" type="number" min={1} defaultValue={s.points_min_redeem} /></div>
+        </div>
+        <button className="btn-primary !py-2.5">Lưu cấu hình điểm</button>
+      </form>
     </div>
   );
 }

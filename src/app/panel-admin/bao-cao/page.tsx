@@ -2,6 +2,7 @@ import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { getStats } from "@/lib/stats";
 import { ALERT_EVENTS } from "@/lib/alerts";
 import { PageHead, Flash } from "@/components/ui";
+import { ExportCsvCard } from "@/components/export-csv";
 import { ReportPreview } from "@/components/report-view";
 import { panelSaveAlertsAction, panelTestChannelAction, panelSendReportNowAction } from "@/app/actions/panel";
 
@@ -31,6 +32,7 @@ export default async function PanelReportPage({ searchParams }: { searchParams: 
           <button className="btn-primary">Gửi báo cáo ngay</button>
         </form>
       </PageHead>
+      <ExportCsvCard base="/api/panel-admin/export" />
       <Flash msg={searchParams.msg} err={searchParams.err} />
 
       <ReportPreview st={st} profitLabel="Hoa hồng" />

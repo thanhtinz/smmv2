@@ -1,6 +1,7 @@
 "use server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { cleanAttachments } from "@/lib/attachments";
 import { requireUser } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder } from "@/lib/orders";
 import { notifyUser } from "@/lib/notify";
@@ -544,8 +545,9 @@ export async function createTicketAction(formData: FormData) {
   const category = String(formData.get("category") || "other");
   const body = String(formData.get("body") || "").trim();
   if (!subject || !body) back("/dashboard/ticket", "err", "Nhập đủ tiêu đề và nội dung");
+  const attachments = cleanAttachments(formData.get("attachments"));
   const t = await prisma.ticket.create({
-    data: { userId: user.id, subject, category, messages: { create: { body } } },
+    data: { userId: user.id, subject, category, messages: { create: { body, attachments } } },
   });
   void (async () => {
     const { alertMother, alertPanelOwner } = await import("@/lib/alerts");
@@ -561,7 +563,7 @@ export async function replyTicketAction(formData: FormData) {
   const body = String(formData.get("body") || "").trim();
   const t = await prisma.ticket.findFirst({ where: { id: ticketId, userId: user.id } });
   if (!t || !body) redirect("/dashboard/ticket");
-  await prisma.ticketMessage.create({ data: { ticketId, body } });
+  await prisma.ticketMessage.create({ data: { ticketId, body, attachments: cleanAttachments(formData.get("attachments")) } });
   await prisma.ticket.update({ where: { id: ticketId }, data: { status: "OPEN" } });
   revalidatePath(`/dashboard/ticket/${ticketId}`);
   redirect(`/dashboard/ticket/${ticketId}`);
@@ -578,15 +580,83 @@ export async function updateProfileAction(formData: FormData) {
   const user = await requireUser();
   const webhookUrl = String(formData.get("webhookUrl") || "").trim();
   if (webhookUrl && !/^https?:\/\/.+/i.test(webhookUrl)) back("/dashboard/ho-so", "err", "Webhook URL phải bắt đầu bằng http:// hoặc https://");
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      fullName: String(formData.get("fullName") || "").trim() || null,
-      phone: String(formData.get("phone") || "").trim() || null,
-      webhookUrl: webhookUrl || null,
-    },
-  });
+  const newEmail = String(formData.get("email") || "").trim().toLowerCase();
+  const data: Record<string, unknown> = {
+    fullName: String(formData.get("fullName") || "").trim() || null,
+    phone: String(formData.get("phone") || "").trim() || null,
+    webhookUrl: webhookUrl || null,
+  };
+  let emailChanged = false;
+  if (newEmail && newEmail !== user.email) {
+    if (!/^\S+@\S+\.\S+$/.test(newEmail)) back("/dashboard/ho-so", "err", "Email không hợp lệ");
+    const dup = await prisma.user.findFirst({ where: { email: newEmail, id: { not: user.id } } });
+    if (dup) back("/dashboard/ho-so", "err", "Email này đã được tài khoản khác sử dụng");
+    data.email = newEmail;
+    data.emailVerified = false; // đổi email = phải xác thực lại
+    emailChanged = true;
+  }
+  await prisma.user.update({ where: { id: user.id }, data });
+  if (emailChanged) {
+    const { issueEmailVerification } = await import("@/lib/email-verify");
+    await issueEmailVerification({ id: user.id, email: newEmail, username: user.username });
+    back("/dashboard/ho-so", "msg", "Đã đổi email — hãy mở hộp thư để xác thực email mới");
+  }
   back("/dashboard/ho-so", "msg", "Đã cập nhật hồ sơ");
+}
+
+/** Gửi lại email xác thực cho chính khách. */
+export async function resendEmailVerificationAction() {
+  const user = await requireUser();
+  if (user.emailVerified) back("/dashboard/ho-so", "msg", "Email của bạn đã được xác thực");
+  if (rateLimitExceeded(`verify-mail|${user.id}`, 5, 3600000)) back("/dashboard/ho-so", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
+  const { issueEmailVerification } = await import("@/lib/email-verify");
+  await issueEmailVerification({ id: user.id, email: user.email, username: user.username });
+  back("/dashboard/ho-so", "msg", "Đã tạo liên kết xác thực — nếu đã cấu hình SMTP, email sẽ được gửi tới hộp thư của bạn");
+}
+
+/** Lưu tuỳ chỉnh loại thông báo (chuông trên web). */
+export async function saveNotifyPrefsAction(formData: FormData) {
+  const user = await requireUser();
+  const keys = ["order", "deposit", "refund", "promo", "system", "ticket"];
+  const prefs: Record<string, boolean> = {};
+  for (const k of keys) prefs[k] = formData.get(`np_${k}`) === "1";
+  await prisma.user.update({ where: { id: user.id }, data: { notifyPrefs: JSON.stringify(prefs) } });
+  back("/dashboard/thong-bao", "msg", "Đã lưu tuỳ chỉnh thông báo");
+}
+
+/** Đổi điểm tích luỹ ra số dư ví theo tỉ lệ setting points_value_vnd. */
+export async function redeemPointsAction(formData: FormData) {
+  const user = await requireUser();
+  const s = await getSettings();
+  const minRedeem = Math.max(1, parseInt(s.points_min_redeem || "10") || 10);
+  const value = Math.max(1, parseInt(s.points_value_vnd || "100") || 100);
+  const want = Math.floor(parseInt(String(formData.get("points") || "0")) || 0);
+  if (want < minRedeem) back("/dashboard/ho-so", "err", `Tối thiểu đổi ${minRedeem} điểm mỗi lần`);
+  const amount = want * value;
+  try {
+    await prisma.$transaction(async (tx) => {
+      const claim = await tx.user.updateMany({ where: { id: user.id, points: { gte: want } }, data: { points: { decrement: want } } });
+      if (claim.count === 0) throw new Error("Số điểm không đủ");
+      await applyBalance(tx, user.id, amount, "POINTS", undefined, `Đổi ${want} điểm ra số dư`);
+    });
+  } catch (e: any) {
+    back("/dashboard/ho-so", "err", String(e?.message || "Đổi điểm thất bại"));
+  }
+  back("/dashboard/ho-so", "msg", `Đã đổi ${want} điểm thành ${amount.toLocaleString("vi-VN")}đ vào số dư`);
+}
+
+/** Khách chấm sao hỗ trợ cho ticket ĐÃ ĐÓNG. */
+export async function rateTicketAction(formData: FormData) {
+  const user = await requireUser();
+  const ticketId = parseInt(String(formData.get("ticketId") || "0"));
+  const rating = Math.min(5, Math.max(1, parseInt(String(formData.get("rating") || "0")) || 0));
+  const note = String(formData.get("ratingNote") || "").trim().slice(0, 255);
+  const t = await prisma.ticket.findFirst({ where: { id: ticketId, userId: user.id } });
+  if (!t) redirect("/dashboard/ticket");
+  if (t.status !== "CLOSED") back(`/dashboard/ticket/${ticketId}`, "err", "Chỉ chấm điểm được khi ticket đã đóng");
+  if (!rating) back(`/dashboard/ticket/${ticketId}`, "err", "Hãy chọn số sao");
+  await prisma.ticket.update({ where: { id: ticketId }, data: { rating, ratingNote: note || null } });
+  back(`/dashboard/ticket/${ticketId}`, "msg", "Cảm ơn bạn đã đánh giá hỗ trợ");
 }
 
 /** Khách xác nhận điều khoản sử dụng (Cài đặt → Thông báo) — ghi phiên bản đã xác nhận. */

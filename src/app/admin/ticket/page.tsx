@@ -11,10 +11,12 @@ const T_STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 export default async function AdminTickets() {
+  const ratingAgg = await prisma.ticket.aggregate({ where: { user: { panelId: null }, rating: { not: null } }, _avg: { rating: true }, _count: { rating: true } });
   const tickets = await prisma.ticket.findMany({ where: { user: { panelId: null } }, orderBy: [{ status: "asc" }, { updatedAt: "desc" }], take: 60, include: { user: true, _count: { select: { messages: true } } } });
   return (
     <div>
       <PageHead title="Ticket hỗ trợ" desc="Ticket CHỜ PHẢN HỒI (khách vừa gửi/trả lời) được xếp lên đầu." />
+      {ratingAgg._count.rating > 0 && <p className="mb-4 text-sm text-slate-500">Đánh giá hỗ trợ trung bình: <b className="text-amber-500">{(ratingAgg._avg.rating || 0).toFixed(1)}★</b> từ {ratingAgg._count.rating} lượt chấm của khách</p>}
       {tickets.length === 0 ? <Empty text="Chưa có ticket nào" /> : (
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[720px]">

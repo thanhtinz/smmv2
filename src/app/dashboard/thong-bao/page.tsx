@@ -1,19 +1,35 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { PageHead } from "@/components/ui";
+import { PageHead, Flash } from "@/components/ui";
+import { NOTIFY_CATEGORIES, parseNotifyPrefs } from "@/lib/notify";
+import { saveNotifyPrefsAction } from "@/app/actions/user";
 import { dt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 /** Thông báo của khách: đơn hoàn thành / hoàn một phần / huỷ / hoàn tiền — mở trang là đánh dấu đã đọc */
-export default async function NotificationsPage() {
+export default async function NotificationsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
   await prisma.notification.updateMany({ where: { userId: user.id, read: false }, data: { read: true } });
   const items = await prisma.notification.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 50 });
+  const prefs = parseNotifyPrefs(user.notifyPrefs);
   return (
     <div>
       <PageHead title="Thông báo" desc="Cập nhật về đơn hàng của bạn: hoàn thành, hoàn một phần, huỷ và hoàn tiền." />
+      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <form action={saveNotifyPrefsAction} className="card mb-5 p-5">
+        <div className="font-bold text-slate-900">Tuỳ chỉnh loại thông báo</div>
+        <p className="mt-1 text-sm text-slate-500">Tắt loại thông báo bạn không muốn nhận. Thông báo bảo mật (đăng nhập thiết bị mới...) luôn được gửi.</p>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {NOTIFY_CATEGORIES.map((c) => (
+            <label key={c.key} className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700">
+              <input type="checkbox" name={`np_${c.key}`} value="1" defaultChecked={prefs[c.key] !== false} /> {c.label}
+            </label>
+          ))}
+        </div>
+        <button className="btn-primary mt-4">Lưu tuỳ chỉnh</button>
+      </form>
       <div className="card overflow-hidden">
         {items.length === 0 ? (
           <div className="p-10 text-center text-sm text-slate-400">Chưa có thông báo nào</div>

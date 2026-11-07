@@ -5,6 +5,8 @@ import { checkPromo, consumePromo } from "./promo";
 import { levelDiscountFromSettings } from "./settings";
 import { getSettings, DEFAULT_SETTINGS } from "./settings";
 import { orderEvent, orderTransition, notifyUser } from "./notify";
+import { flashPercentFor, applyFlashAmount } from "./flash";
+import { awardPointsForPremiumOrder } from "./points";
 import { alertMother, alertPanelOwner } from "./alerts";
 import {
   providerAddOrder, providerOrderStatus, providerRefill, mapProviderStatus,
@@ -193,7 +195,10 @@ export async function createSmmOrder(input: {
       discount = 0;
     }
   }
-  const charge = Math.max(1, Math.round(smmCharge(effectiveRate, input.quantity) * (1 - discount / 100)));
+  let charge = Math.max(1, Math.round(smmCharge(effectiveRate, input.quantity) * (1 - discount / 100)));
+  // Flash sale của site khách thuộc về (mẹ/panel riêng): giảm thêm % trong khung giờ — áp ở server để giá hiển thị và giá trừ tiền nhất quán
+  const flashPct = await flashPercentFor(service.id, input.user.panelId ?? null);
+  if (flashPct > 0) charge = applyFlashAmount(charge, flashPct);
   const commission = isOwn ? Math.max(0, charge - smmCharge(service.costRate, input.quantity)) : panel ? Math.max(0, charge - smmCharge(service.rate, input.quantity)) : 0;
   const cost = smmCharge(service.costRate, input.quantity);
 
@@ -629,6 +634,7 @@ export async function createPremiumOrder(input: {
   });
   if (!ownProduct) void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
   await notifyUser(input.user.id, "Đặt hàng Premium thành công", `Đơn ${created.code}: ${variant.product.name} — ${variant.name} × ${input.quantity} — đã trừ ${vnd(created.total)}${created.status === "DELIVERED" ? " — đã giao tự động, xem nội dung trong đơn" : ""}`, "/dashboard/don-premium");
+  if (created.status === "DELIVERED" || created.status === "COMPLETED") await awardPointsForPremiumOrder(created);
   if (panel) void alertPanelOwner(panel.id, "premium_order", `Đơn Premium mới ${created.code}`, `Qua website ${panel.name}: ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
 
   // Đấu API mua sản phẩm (kiểu ThaTim): gọi action=buy cho từng đơn vị
@@ -727,12 +733,14 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
       where: { id: order.id },
       data: { status: "DELIVERED", deliveryData: deliveries.join("\n---\n") },
     });
+    await awardPointsForPremiumOrder(order);
   } else if (completedNoData > 0 && seen === codes.length && canceled === 0) {
     // Provider báo hoàn thành nhưng chưa trả dữ liệu bàn giao -> đánh dấu hoàn thành, admin đối soát
     await prisma.premiumOrder.update({
       where: { id: order.id },
       data: { status: "COMPLETED", adminNote: [order.adminNote, "Provider báo completed nhưng chưa có dữ liệu bàn giao"].filter(Boolean).join(" · ") },
     });
+    await awardPointsForPremiumOrder(order);
   } else if (canceled === codes.length && codes.length > 0 && order.status !== "REFUNDED") {
     const panelOwner = order.panelId ? await prisma.childPanel.findUnique({ where: { id: order.panelId }, select: { ownerId: true } }) : null;
     // Claim REFUNDED trong transaction trước khi cộng tiền — đồng bộ chạy trùng

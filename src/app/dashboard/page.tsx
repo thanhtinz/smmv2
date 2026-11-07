@@ -6,6 +6,7 @@ import { vnd, num, SMM_STATUS, dt } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { RichText } from "@/components/rich-text";
 import { moduleOn } from "@/lib/modules";
+import { FlashBanner } from "@/components/flash-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,7 @@ export default async function DashboardHome() {
 
   return (
     <div>
+      <FlashBanner panelId={user.panelId ?? null} />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Chào mừng, {name}!</h1>

@@ -3,6 +3,7 @@ import { getSettings } from "@/lib/settings";
 import { getStats } from "@/lib/stats";
 import { ALERT_EVENTS } from "@/lib/alerts";
 import { PageHead, Flash } from "@/components/ui";
+import { ExportCsvCard } from "@/components/export-csv";
 import { ReportPreview } from "@/components/report-view";
 import { saveMotherAlertsAction, testMotherChannelAction, sendMotherReportNowAction } from "@/app/actions/report";
 
@@ -32,6 +33,7 @@ export default async function AdminReportPage({ searchParams }: { searchParams: 
           <button className="btn-primary">Gửi báo cáo ngay</button>
         </form>
       </PageHead>
+      <ExportCsvCard base="/api/admin/export" />
       <Flash msg={searchParams.msg} err={searchParams.err} />
 
       <ReportPreview st={st} />

@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
         data: {
           username,
           email,
+          emailVerified: true, // email đã được Google xác thực
           passwordHash: await bcrypt.hash(randomKey(24), 10),
           fullName: String(info.name || "").slice(0, 80) || null,
           depositCode: randomKey(6).toUpperCase(),

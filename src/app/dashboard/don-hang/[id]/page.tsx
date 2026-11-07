@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { Badge, BackLink } from "@/components/ui";
 import { vnd, num, SMM_STATUS, dt } from "@/lib/format";
 import { parseDripfeed } from "@/lib/orders";
+import { OrderSupportActions } from "@/components/order-support-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +81,7 @@ export default async function SmmOrderDetail({ params }: { params: { id: string 
             </div>
           </div>
         )}
-        <p className="text-xs text-slate-400 mt-5">Cần hỗ trợ về đơn này? Tạo ticket và ghi mã đơn {o.code} để được xử lý nhanh nhất.</p>
+        <OrderSupportActions code={o.code} category="smm" />
       </div>
     </div>
   );

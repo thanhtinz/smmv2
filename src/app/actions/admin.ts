@@ -1,5 +1,6 @@
 "use server";
 import { prisma } from "@/lib/db";
+import { cleanAttachments } from "@/lib/attachments";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
 import { refundSmmOrder, syncSmmOrderStatus, syncPremiumOrderStatus } from "@/lib/orders";
@@ -562,7 +563,7 @@ export async function adminReplyTicket(formData: FormData) {
   if (tk?.user.panelId) back("/admin/ticket", "err", "Ticket này của khách site con — do panel con tự hỗ trợ");
   const body = String(formData.get("body") || "").trim();
   const close = formData.get("close") === "on";
-  if (body) await prisma.ticketMessage.create({ data: { ticketId, body, fromAdmin: true } });
+  if (body) await prisma.ticketMessage.create({ data: { ticketId, body, fromAdmin: true, attachments: cleanAttachments(formData.get("attachments")) } });
   await prisma.ticket.update({ where: { id: ticketId }, data: { status: close ? "CLOSED" : "ANSWERED" } });
   redirect(`/admin/ticket/${ticketId}`);
 }
@@ -598,6 +599,7 @@ export async function adminSaveSettings(formData: FormData) {
     "smtp_enabled", "smtp_from_name", "module_affiliate", "panel_default_markup", "session_days", "premium_max_qty", "order_max_links",
     "panel_period_days", "panel_renew_horizon_hours", "provider_low_balance_default", "subscription_max_active",
     "auto_refill_window_days", "auto_refill_settle_minutes", "cleanup_retention_days", "usdt_min",
+    "points_per_100k", "points_value_vnd", "points_min_redeem", "ga_id", "gsc_verification",
   ];
   for (const k of keys) {
     const v = formData.get(k);

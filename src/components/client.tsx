@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { vnd, num, PLATFORMS, type PremiumCustomField } from "@/lib/format";
 import { PLATFORM_COLORS } from "@/components/ui";
+import { OrderSupportActions } from "@/components/order-support-actions";
 import { warrantyAction } from "@/app/actions/user";
 
 export type ServiceDTO = {
@@ -1263,6 +1264,10 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
                     <button className="btn-ghost btn-sm !py-2.5">Yêu cầu bảo hành</button>
                   </form>
                 )}
+              </section>
+              <section>
+                <div className="font-bold text-slate-900 mb-2.5">Hỗ trợ đơn này</div>
+                <OrderSupportActions code={sel.code} category="premium" />
               </section>
               <section>
                 <div className="font-bold text-slate-900 mb-2.5">Lịch sử xử lý</div>

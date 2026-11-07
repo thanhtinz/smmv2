@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { moduleOn } from "@/lib/modules";
 import { PageHead, Flash, Badge, Empty, Stat, I } from "@/components/ui";
 import { createTicketAction } from "@/app/actions/user";
+import { TicketAttachInput } from "@/components/ticket-attach";
 import { dt, num } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ const T_CAT: Record<string, string> = { smm: "Đơn SMM", premium: "Đơn Premiu
 
 /** Hỗ trợ — bố cục theo panel mẫu: thẻ thống kê, nút lọc theo trạng thái (có số lượng),
  *  tìm kiếm, bảng ticket và form tạo ở cuối trang. */
-export default async function TicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string; st?: string; q?: string } }) {
+export default async function TicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string; st?: string; q?: string; subject?: string; category?: string; body?: string } }) {
   const user = (await getCurrentUser())!;
   if (!(await moduleOn("tickets", user.panelId))) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
   const st = searchParams.st && T_STATUS[searchParams.st] ? searchParams.st : "";
@@ -96,7 +97,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="lbl">Chủ đề</label>
-            <select className="inp" name="category">
+            <select className="inp" name="category" defaultValue={searchParams.category || "other"}>
               <option value="smm">Đơn SMM</option>
               <option value="premium">Đơn Premium / bảo hành</option>
               <option value="deposit">Nạp tiền</option>
@@ -105,13 +106,14 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
           </div>
           <div>
             <label className="lbl">Tiêu đề</label>
-            <input className="inp" name="subject" required placeholder="Tóm tắt ngắn gọn vấn đề cần hỗ trợ" />
+            <input className="inp" name="subject" required placeholder="Tóm tắt ngắn gọn vấn đề cần hỗ trợ" defaultValue={searchParams.subject || ""} />
           </div>
         </div>
         <div>
           <label className="lbl">Mô tả chi tiết</label>
-          <textarea className="inp" name="body" rows={5} required placeholder="Mô tả chi tiết vấn đề bạn gặp phải, kèm mã đơn nếu có..." />
+          <textarea className="inp" name="body" rows={5} required placeholder="Mô tả chi tiết vấn đề bạn gặp phải, kèm mã đơn nếu có..." defaultValue={searchParams.body || ""} />
         </div>
+        <TicketAttachInput />
         <button className="btn-primary">Gửi yêu cầu</button>
       </form>
     </div>

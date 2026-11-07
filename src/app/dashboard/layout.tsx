@@ -75,6 +75,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   ];
   const supportChildren = [
     ...(ticketsOn ? [{ href: "/dashboard/ticket", label: L("Hỗ trợ / Ticket"), badge: openTickets }] : []),
+    { href: "/dashboard/faq", label: L("Hỏi đáp thường gặp") },
     { href: "/dashboard/thong-bao", label: L("Thông báo"), badge: unreadNoti },
     ...(s.module_blog !== "0" ? [{ href: "/dashboard/bai-viet", label: L("Bài viết") }] : []),
   ];

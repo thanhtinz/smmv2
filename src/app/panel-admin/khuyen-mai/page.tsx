@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash, Stat, I } from "@/components/ui";
 import { panelSaveConfigAction } from "@/app/actions/panel";
+import { FlashSaleAdmin } from "@/components/flash-admin";
 import { num } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,7 @@ export default async function PanelPromotions({ searchParams }: { searchParams: 
           </div>
         </div>
       </div>
+      <FlashSaleAdmin panelId={panel.id} />
     </div>
   );
 }

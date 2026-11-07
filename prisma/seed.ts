@@ -2,7 +2,9 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
-const key = (s: string) => s.padEnd(32, "x").slice(0, 32);
+// API key seed phải NGẪU NHIÊN (lỗi cũ: padEnd từ "adminkey"/"demokey" làm key lộ tiền tố dễ đoán)
+import { randomBytes } from "crypto";
+const key = (_s: string) => randomBytes(16).toString("hex");
 
 async function main() {
   /* ---------- Cấu hình mặc định ---------- */
@@ -194,6 +196,36 @@ async function main() {
       [["1 năm — mã kích hoạt", 549000, 495000, 0]], 3);
 
     console.log("Đã seed danh mục + sản phẩm Premium (giá theo bảng vốn/lãi đã khảo sát 04/11)");
+  }
+
+
+  // FAQ mẫu (danh mục slug "faq") — admin sửa/thêm qua Bài viết; trang khách /dashboard/faq đọc từ đây
+  const faqCat = await prisma.postCategory.upsert({
+    where: { slug: "faq" },
+    create: { name: "Hỏi đáp thường gặp", slug: "faq", description: "Câu hỏi thường gặp của khách hàng" },
+    update: {},
+  });
+  const faqs: [string, string, string][] = [
+    ["faq-nap-tien-chua-vao", "Nạp tiền rồi nhưng số dư chưa tăng thì làm sao?", "Kiểm tra lại nội dung chuyển khoản đã đúng cú pháp kèm mã nạp của bạn chưa (xem ở trang Nạp tiền). Giao dịch đúng cú pháp thường được cộng trong vài phút; nếu quá 30 phút chưa thấy, hãy tạo ticket kèm ảnh chụp giao dịch để được kiểm tra ngay."],
+    ["faq-don-loi", "Đơn hàng bị lỗi hoặc không chạy thì xử lý thế nào?", "Mở chi tiết đơn để xem trạng thái và ghi chú. Nếu đơn báo lỗi/hoàn một phần, phần chưa chạy sẽ được hoàn tiền tự động theo chính sách. Nếu cần hỗ trợ thêm, bấm nút Báo lỗi đơn ngay trong chi tiết đơn để gửi ticket kèm sẵn mã đơn."],
+    ["faq-api-o-dau", "Lấy API key và tài liệu API ở đâu?", "Vào Hồ sơ → tab Kết nối API để xem endpoint và API key của bạn; tài liệu đầy đủ có ở mục Tài liệu API trong menu. Giữ key bí mật như mật khẩu, tạo key mới sẽ làm key cũ hết hiệu lực ngay."],
+    ["faq-hoan-tien", "Chính sách hoàn tiền như thế nào?", "Đơn huỷ hoặc lỗi phần nào sẽ hoàn đúng phần chưa thực hiện vào số dư ví, xem được trong Lịch sử giao dịch. Đơn đã chạy hoàn thành thì không hoàn. Có thể bấm Yêu cầu hoàn tiền trong chi tiết đơn để đội hỗ trợ xem xét trường hợp đặc biệt."],
+    ["faq-thoi-gian-chay", "Đơn thường chạy trong bao lâu?", "Tuỳ dịch vụ: đa số bắt đầu trong vài phút đến vài giờ sau khi đặt. Thời gian dự kiến và tốc độ ghi rõ ở mô tả từng dịch vụ trong Bảng giá. Đơn chậm bất thường sẽ được hệ thống tự đồng bộ lại trạng thái."],
+    ["faq-nap-toi-thieu", "Nạp tối thiểu bao nhiêu và bằng cách nào?", "Số tiền nạp tối thiểu và các phương thức đang mở (chuyển khoản QR, PayPal/Stripe, USDT...) hiển thị ở trang Nạp tiền. Nạp qua chuyển khoản nhớ ghi đúng nội dung kèm mã nạp để tiền vào tự động."],
+  ];
+  for (const [slug, title, content] of faqs) {
+    await prisma.post.upsert({
+      where: { slug },
+      create: { title, slug, content, excerpt: content.slice(0, 250), categoryId: faqCat.id, published: true },
+      update: {},
+    });
+  }
+
+  // Tự xoay các API key cũ sinh từ seed lỗi (bắt đầu bằng adminkey/demokey) sang key ngẫu nhiên
+  const legacy = await prisma.user.findMany({ where: { OR: [{ apiKey: { startsWith: "adminkey" } }, { apiKey: { startsWith: "demokey" } }] }, select: { id: true, username: true } });
+  for (const u of legacy) {
+    await prisma.user.update({ where: { id: u.id }, data: { apiKey: randomBytes(16).toString("hex") } });
+    console.log(`Đã xoay API key mới cho ${u.username}`);
   }
 
   console.log("Seed hoàn tất.");

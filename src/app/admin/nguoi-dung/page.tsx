@@ -32,7 +32,7 @@ export default async function AdminUsers({ searchParams }: { searchParams: { q?:
             <tbody className="divide-y divide-slate-100">
               {users.map((u) => (
                 <tr key={u.id} className="hover:bg-slate-50/60">
-                  <td className="td"><div className="font-semibold">{u.username}</div><div className="text-xs text-slate-400">{u.email}{u.phone ? ` · ${u.phone}` : ""}</div></td>
+                  <td className="td"><div className="font-semibold">{u.username}</div><div className="text-xs text-slate-400">{u.email}{u.phone ? ` · ${u.phone}` : ""} · {u.emailVerified ? <span className="font-semibold text-emerald-600">Email đã xác thực</span> : <span className="text-amber-600">Email chưa xác thực</span>}</div></td>
                   <td className="td">{LEVEL_NAME[u.level]}{u.role !== "USER" && <Badge cls="bg-slate-900 text-white ml-2">{u.role}</Badge>}</td>
                   <td className="td font-bold text-emerald-700">{vnd(u.balance)}</td>
                   <td className="td text-slate-500">{vnd(u.totalDeposited)} / {vnd(u.totalSpent)}</td>

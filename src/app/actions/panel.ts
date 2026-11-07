@@ -1,5 +1,6 @@
 "use server";
 import { prisma } from "@/lib/db";
+import { cleanAttachments } from "@/lib/attachments";
 import { panelOrderCodes } from "@/lib/panel-orders";
 import { requireUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -182,7 +183,7 @@ export async function panelReplyTicket(formData: FormData) {
   if (!ticket) back("/panel-admin/ho-tro", "err", "Ticket này không thuộc khách của panel bạn");
   const body = str(formData, "body");
   const close = formData.get("close") === "on";
-  if (body) await prisma.ticketMessage.create({ data: { ticketId, body, fromAdmin: true } });
+  if (body) await prisma.ticketMessage.create({ data: { ticketId, body, fromAdmin: true, attachments: cleanAttachments(formData.get("attachments")) } });
   await prisma.ticket.update({ where: { id: ticketId }, data: { status: close ? "CLOSED" : "ANSWERED" } });
   if (body) await notifyUser(ticket.user.id, "Ticket của bạn có phản hồi mới", `"${ticket.subject}" — chủ website đã trả lời.`, `/dashboard/ho-tro/${ticketId}`);
   done(`/panel-admin/ho-tro/${ticketId}`, close ? "Đã trả lời và đóng ticket" : "Đã gửi phản hồi");

@@ -21,6 +21,13 @@ export default async function PanelSystem({ searchParams }: { searchParams: { ms
     codes.length ? prisma.apiLog.count({ where: { ref: { in: codes }, createdAt: { lt: cutoff } } }) : Promise.resolve(0),
     prisma.$queryRaw`SELECT 1 as ok`.then(() => true).catch(() => false),
   ]);
+  // Sức khoẻ phạm vi panel: hàng chờ + tỉ lệ lỗi 24h của đơn qua panel + hạn dùng panel
+  const d24p = new Date(Date.now() - 24 * 3600000);
+  const [panelPending, panelErr24, panelTot24] = await Promise.all([
+    prisma.smmOrder.count({ where: { panelId: panel.id, status: { in: ["PENDING", "PROCESSING", "IN_PROGRESS"] } } }),
+    prisma.smmOrder.count({ where: { panelId: panel.id, updatedAt: { gte: d24p }, status: { in: ["CANCELED", "REFUNDED"] } } }),
+    prisma.smmOrder.count({ where: { panelId: panel.id, updatedAt: { gte: d24p } } }),
+  ]);
   const jobs = [
     { kind: "notifications", label: "Thông báo đã đọc của khách (cũ hơn 30 ngày)", count: oldNoti },
     { kind: "events", label: "Dòng thời gian đơn của panel (cũ hơn 30 ngày)", count: oldEvents },
@@ -35,6 +42,8 @@ export default async function PanelSystem({ searchParams }: { searchParams: { ms
         <Stat label="Database" value={dbOk ? "Đã kết nối" : "Mất kết nối"} icon={I.server} tone={dbOk ? "blue" : "rose"} />
         <Stat label="Khách của panel" value={num(memberCount)} icon={I.users} tone="violet" />
         <Stat label="Đơn SMM qua panel" value={num(orderCount)} icon={I.cart} tone="amber" />
+        <Stat label="Đơn đang xử lý (hàng chờ)" value={num(panelPending)} icon={I.clock} tone="blue" />
+        <Stat label="Tỉ lệ đơn lỗi 24 giờ" value={panelTot24 ? `${Math.round((panelErr24 / panelTot24) * 1000) / 10}%` : "0%"} icon={I.chart} tone="rose" />
       </div>
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
         <div className="card p-6">

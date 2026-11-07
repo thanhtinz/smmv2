@@ -39,6 +39,11 @@ model User {
   sessionVersion Int        @default(0) // tăng khi đổi mật khẩu -> mọi phiên JWT cũ bị huỷ
   totpSecret     String?    @db.VarChar(255) // khoá TOTP 2FA (mã hoá bằng secret-box khi có APP_ENC_KEY)
   totpEnabled    Boolean    @default(false)
+  emailVerified  Boolean    @default(false) // đã xác thực email (gắn cờ + nhắc, không khoá tính năng)
+  emailVerifyToken String?  @db.VarChar(64) // sha256 của token xác thực email
+  emailVerifyExpiry DateTime?
+  notifyPrefs    String?    @db.Text // JSON {order,deposit,refund,promo,system,ticket} — tuỳ chỉnh loại thông báo
+  points         Int        @default(0) // điểm tích luỹ (đổi ra số dư theo setting points_value_vnd)
   backupCodes    String?    @db.Text // JSON mảng HASH bcrypt của mã dự phòng 2FA (mỗi mã dùng 1 lần)
   role           Role       @default(USER)
   status         UserStatus @default(ACTIVE)
@@ -441,6 +446,7 @@ enum TxType {
   PANEL_COMMISSION
   REFERRAL_COMMISSION
   PANEL_FEE
+  POINTS
 }
 
 model Transaction {
@@ -465,6 +471,8 @@ enum TicketStatus {
 
 model Ticket {
   id        Int          @id @default(autoincrement())
+  rating    Int? // khách chấm sao hỗ trợ 1–5 (chỉ khi ticket đã đóng)
+  ratingNote String?     @db.VarChar(255)
   userId    Int
   user      User         @relation(fields: [userId], references: [id])
   subject   String       @db.VarChar(200)
@@ -483,6 +491,7 @@ model TicketMessage {
   ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   fromAdmin Boolean  @default(false)
   body      String   @db.Text
+  attachments String? @db.Text // JSON mảng data-URL ảnh đính kèm (nén phía client, tối đa 3 ảnh/tin)
   createdAt DateTime @default(now())
 }
 
@@ -860,6 +869,21 @@ model Campaign {
   active    Boolean    @default(true)
   createdAt DateTime   @default(now())
   orders    SmmOrder[]
+}
+
+// Flash sale: giảm thêm % giá dịch vụ SMM trong khung giờ (theo từng site: panelId null = web mẹ)
+model FlashSale {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(120)
+  percent   Int // % giảm thêm
+  startsAt  DateTime
+  endsAt    DateTime
+  serviceIds String? @db.Text // JSON mảng id dịch vụ; null/rỗng = áp toàn bộ dịch vụ
+  panelId   Int? // null = web mẹ; có giá trị = flash sale riêng của panel đó
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([panelId, active, startsAt, endsAt])
 }
 
 // Lịch sử đăng nhập (bảo mật Enterprise GĐ1): mọi lần đăng nhập thành công/thất bại,

@@ -21,7 +21,8 @@ export async function generateMetadata(): Promise<Metadata> {
       title: `${panel.name} — SMM Panel & Tài khoản Premium`,
       description: panel.metaDescription || panel.tagline || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt",
       keywords: panel.metaKeywords ? panel.metaKeywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
-      openGraph: panel.ogImageUrl ? { images: [panel.ogImageUrl] } : undefined,
+      openGraph: { title: panel.name, description: panel.metaDescription || panel.tagline || undefined, type: "website", images: panel.ogImageUrl ? [panel.ogImageUrl] : undefined },
+      twitter: { card: "summary_large_image", title: panel.name, description: panel.metaDescription || panel.tagline || undefined, images: panel.ogImageUrl ? [panel.ogImageUrl] : undefined },
       manifest: "/manifest.webmanifest",
       appleWebApp: { capable: true, statusBarStyle: "default", title: panel.name },
       icons: { icon: panel.faviconUrl || s?.favicon_url || "/icon.svg", apple: panel.faviconUrl || s?.favicon_url || "/icon.svg" },
@@ -31,7 +32,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${s?.site_name || "SMMv2"} — SMM Panel & Tài khoản Premium`,
     description: s?.meta_description || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt",
     keywords: s?.meta_keywords ? s.meta_keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
-    openGraph: s?.og_image_url ? { images: [s.og_image_url] } : undefined,
+    openGraph: { title: s?.site_name || "SMMv2", description: s?.meta_description || s?.site_tagline || undefined, type: "website", images: s?.og_image_url ? [s.og_image_url] : ["/icon.svg"] },
+    twitter: { card: "summary_large_image", title: s?.site_name || "SMMv2", description: s?.meta_description || s?.site_tagline || undefined, images: s?.og_image_url ? [s.og_image_url] : ["/icon.svg"] },
+    alternates: { canonical: "/" },
     manifest: "/manifest.webmanifest",
     appleWebApp: { capable: true, statusBarStyle: "default", title: s?.site_name || "SMMv2" },
     icons: { icon: s?.favicon_url || "/icon.svg", apple: s?.favicon_url || "/icon.svg" },
@@ -53,6 +56,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" data-accent={accent} className={dark ? "dark" : undefined} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {s?.gsc_verification ? <meta name="google-site-verification" content={s.gsc_verification} /> : null}
+        {s?.ga_id ? (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${s.ga_id}`} />
+            <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${String(s.ga_id).replace(/[^A-Za-z0-9-]/g, "")}');` }} />
+          </>
+        ) : null}
         {headHtml ? <div hidden dangerouslySetInnerHTML={{ __html: headHtml }} /> : null}
       </head>
       <body>{children}<DisplayEngine />{bodyHtml ? <div hidden dangerouslySetInnerHTML={{ __html: bodyHtml }} /> : null}</body>
