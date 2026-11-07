@@ -265,12 +265,8 @@ export function PremiumInfoSections({ product }: {
           <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Bảo hành tối đa</dt><dd className="font-semibold text-slate-800 mt-1">{maxWarranty ? `${maxWarranty} ngày` : "Không bảo hành"}</dd></div>
         </dl>
       </section>
-      {usageSection ? (
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-          {warrantySection}
-          {usageSection}
-        </div>
-      ) : warrantySection}
+      {warrantySection}
+      {usageSection}
     </div>
   );
 }

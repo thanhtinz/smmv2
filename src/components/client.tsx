@@ -909,7 +909,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   note?: string | null; // hướng dẫn riêng của sản phẩm (hộp xanh phía trên các ô nhập)
   maxQty?: number; // trần số lượng mỗi đơn — lấy từ cấu hình hệ thống
   backBase?: string; // gốc đường dẫn trang chi tiết (/premium hoặc /dashboard/premium) để trả về đúng khung khi có lỗi
-  layout?: "stacked" | "split"; // split = bố cục 2 cột kiểu shopkey ở trang chi tiết web mẹ (gói trái, hộp đặt hàng phải); stacked = dạng cũ ở website con
+  layout?: "stacked" | "split"; // split = bố cục shopkey ở trang chi tiết web mẹ: form dùng lg:contents, các phần của form là ô của lưới trang 73/27 (gói + khối gập + đánh giá ở cột trái, hộp đặt hàng dính ở cột phải); stacked = dạng cũ ở website con
   productImage?: string | null;
   productColor?: string;
   belowVariants?: React.ReactNode; // khối hiển thị dưới danh sách gói ở cột trái (bố cục split): thông tin / bảo hành / hướng dẫn
@@ -955,11 +955,11 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
       </>
     );
     return (
-      <form action={action} className="flex flex-col gap-8 lg:grid lg:grid-cols-5 lg:items-start">
+      <form action={action} className="flex flex-col gap-8 lg:contents">
         <input type="hidden" name="slug" value={slug} />
         {backBase ? <input type="hidden" name="returnTo" value={`${backBase}/${slug}`} /> : null}
         <input type="hidden" name="variantId" value={v?.id || ""} />
-        <div className="order-1 lg:col-span-3">
+        <div className="order-1 lg:col-start-1">
           <h2 className="text-lg font-extrabold text-slate-900">Chọn gói sản phẩm</h2>
           <div className="mt-4 space-y-2.5">
             {variants.map((x) => {
@@ -997,8 +997,8 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
             })}
           </div>
         </div>
-        {belowVariants && <div className="order-2 lg:order-3 lg:col-span-5">{belowVariants}</div>}
-        <div className="card order-3 space-y-4 p-5 lg:order-2 lg:sticky lg:top-24 lg:col-span-2">
+        {belowVariants && <div className="order-2 lg:col-start-1">{belowVariants}</div>}
+        <div className="card order-3 space-y-4 p-5 lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-start lg:sticky lg:top-24">
           <div>
             <label className="lbl">Số lượng</label>
             <div className="flex h-[46px] items-stretch">
