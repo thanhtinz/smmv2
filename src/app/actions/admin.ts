@@ -190,11 +190,13 @@ export async function adminProviderAction(formData: FormData) {
         const rp = await syncProviderPremium(provider);
         parts.push(`Premium: tổng ${rp.total}, mới ${rp.created}, cập nhật ${rp.updated}, ${rp.variants} gói`);
       } catch (e: any) {
+        if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
         parts.push(`Premium lỗi: ${String(e?.message || e)}`);
       }
     }
     done("/admin/nha-cung-cap", `Đã đồng bộ ${provider.name} — ${parts.join(" · ")}`);
   } catch (e: any) {
+    if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
     back("/admin/nha-cung-cap", "err", String(e?.message || "Lỗi provider"));
   }
 }
@@ -273,6 +275,7 @@ export async function adminSmmOrderAction(formData: FormData) {
       await syncSmmOrderStatus(order);
       done(path, "Đã đồng bộ trạng thái từ nhà cung cấp");
     } catch (e: any) {
+      if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
       back(path, "err", String(e?.message || "Đồng bộ thất bại"));
     }
   }
@@ -444,6 +447,7 @@ export async function adminPremiumOrderAction(formData: FormData) {
       const after = await syncPremiumOrderStatus(order);
       done(path, after?.deliveryData ? "Đã đồng bộ — nhà cung cấp đã bàn giao, đơn chuyển Đã giao" : "Đã đồng bộ — nhà cung cấp chưa bàn giao");
     } catch (e: any) {
+      if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
       back(path, "err", String(e?.message || "Đồng bộ thất bại"));
     }
   }

@@ -258,6 +258,7 @@ export async function panelTestAiAction(formData: FormData) {
     const reply = await testAiConnection(cfg!);
     done("/panel-admin/ai", `Kết nối AI thành công — phản hồi: ${reply}`);
   } catch (e: any) {
+    if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
     back("/panel-admin/ai", "err", `Kết nối AI thất bại: ${String(e?.message || e).slice(0, 160)}`);
   }
 }
@@ -681,6 +682,7 @@ export async function panelTestChannelAction(formData: FormData) {
     }
     done(REPORT_PAGE, `Đã gửi tin thử qua ${channel} — kiểm tra nơi nhận nhé`);
   } catch (e: any) {
+    if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
     back(REPORT_PAGE, "err", `Gửi thử thất bại: ${String(e?.message || e)}`);
   }
 }

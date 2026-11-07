@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder } from "@/lib/orders";
+import { notifyUser } from "@/lib/notify";
 import { applyBalance } from "@/lib/wallet";
 import { getSettings, calcBonus, bonusTiersFor } from "@/lib/settings";
 import { moduleOn } from "@/lib/modules";
@@ -64,12 +65,13 @@ export async function placeSmmOrderAction(formData: FormData) {
     for (let i = 0; i < multiLinks.length; i++) {
       try {
         const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-        const order = await createSmmOrder({ user: fresh, serviceId, link: multiLinks[i], quantity, note, extra, dripfeed, promoCode: i === 0 ? String(formData.get("promoCode") || "") || undefined : undefined, campaignId: parseInt(String(formData.get("campaignId") || "0")) || undefined });
+        const order = await createSmmOrder({ user: fresh, serviceId, link: multiLinks[i], quantity, note, extra, dripfeed, silentNotify: true, promoCode: i === 0 ? String(formData.get("promoCode") || "") || undefined : undefined, campaignId: parseInt(String(formData.get("campaignId") || "0")) || undefined });
         codes.push(order.code);
       } catch (e: any) {
         errors.push(`link ${i + 1}: ${String(e?.message || "lỗi")}`);
       }
     }
+    if (codes.length > 0) await notifyUser(user.id, "Đặt đơn thành công", `Đã đặt ${codes.length} đơn: ${codes.join(", ")}`, "/dashboard/don-hang");
     if (codes.length === 0) back("/dashboard/dat-hang", "err", `Đặt thất bại cả ${multiLinks.length} link — ${errors[0] || ""}`);
     back("/dashboard/don-hang", "msg", `Đã đặt ${codes.length}/${multiLinks.length} đơn: ${codes.join(", ")}${errors.length ? ` — lỗi ở ${errors.slice(0, 3).join("; ")}` : ""}`);
   }
@@ -78,6 +80,7 @@ export async function placeSmmOrderAction(formData: FormData) {
     const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, note, extra, dripfeed, promoCode: String(formData.get("promoCode") || "") || undefined, campaignId: parseInt(String(formData.get("campaignId") || "0")) || undefined });
     back("/dashboard/don-hang", "msg", `Đặt đơn ${order.code} thành công — trạng thái: ${order.status === "REFUNDED" ? "provider từ chối, đã hoàn tiền" : "đang xử lý"}`);
   } catch (e: any) {
+    if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
     back("/dashboard/dat-hang", "err", String(e?.message || "Đặt đơn thất bại"));
   }
 }
@@ -108,7 +111,7 @@ export async function bulkPlaceOrdersAction(formData: FormData) {
       continue;
     }
     try {
-      const order = await createSmmOrder({ user: fresh, serviceId, link, quantity });
+      const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, silentNotify: true });
       ok++;
       codes.push(order.code);
     } catch (e: any) {
@@ -116,6 +119,7 @@ export async function bulkPlaceOrdersAction(formData: FormData) {
     }
   }
   await prisma.apiLog.create({ data: { kind: "bulk_order", ref: fresh.username, ok: errors.length === 0, detail: `ok=${ok}/${lines.length} codes=${codes.join(",")}` } });
+  if (ok > 0) await notifyUser(fresh.id, "Đặt đơn thành công", `Đặt hàng loạt: ${ok}/${lines.length} đơn thành công (${codes.slice(0, 5).join(", ")}${codes.length > 5 ? "…" : ""})`, "/dashboard/don-hang");
   if (ok === 0) back("/dashboard/dat-hang-loat", "err", `Không đặt được đơn nào. ${errors.slice(0, 3).join("; ")}`);
   const tail = errors.length ? ` ${errors.length} dòng lỗi: ${errors.slice(0, 3).join("; ")}${errors.length > 3 ? "…" : ""}` : "";
   back("/dashboard/don-hang", "msg", `Đặt hàng loạt xong: ${ok}/${lines.length} đơn thành công (${codes.slice(0, 5).join(", ")}${codes.length > 5 ? "…" : ""}).${tail}`);
@@ -370,6 +374,7 @@ export async function buyPremiumAction(formData: FormData) {
         : `Đặt ${order.code} thành công — admin sẽ giao trong thời gian sớm nhất.`
     );
   } catch (e: any) {
+    if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
     back(slug ? `/premium/${slug}` : "/premium", "err", String(e?.message || "Mua thất bại"));
   }
 }

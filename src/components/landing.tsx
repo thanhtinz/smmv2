@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { I } from "@/components/ui";
 import { PublicBurger } from "@/components/public-burger";
+import { NotificationBell } from "@/components/notification-bell";
 import { vnd, num, PLATFORMS } from "@/lib/format";
 
 /**
@@ -46,7 +47,8 @@ export function LandingView(props: {
             <Link href={links.api} className="transition hover:text-white">Tài liệu API</Link>
             <a href="#faq" className="transition hover:text-white">Hỏi đáp</a>
           </nav>
-          <div className="ml-auto shrink-0 lg:ml-0">
+          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
+            {props.loggedIn && <NotificationBell tone="dark" />}
             {props.loggedIn ? (
               <Link href={links.dashboard} className="inline-block rounded-full bg-rose-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-rose-500">Bảng điều khiển →</Link>
             ) : (

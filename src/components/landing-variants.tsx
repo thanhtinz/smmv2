@@ -3,6 +3,7 @@ import { I } from "@/components/ui";
 import { vnd, num, PLATFORMS } from "@/lib/format";
 import type { LandingView } from "@/components/landing";
 import { PublicBurger } from "@/components/public-burger";
+import { NotificationBell } from "@/components/notification-bell";
 
 type P = React.ComponentProps<typeof LandingView>;
 
@@ -43,6 +44,7 @@ export function LandingLight(props: P) {
             <a href="#faq" className="transition hover:text-brand-600">Hỏi đáp</a>
           </nav>
           <div className="ml-auto flex items-center gap-2 lg:ml-0">
+            {props.loggedIn && <NotificationBell />}
             {props.loggedIn ? (
               <Link href={links.dashboard} className="btn-primary btn-sm !px-4 !py-2">Bảng điều khiển</Link>
             ) : (
@@ -221,6 +223,7 @@ export function LandingClassic(props: P) {
             <a href="#faq" className="transition hover:text-white">Hỏi đáp</a>
           </nav>
           <div className="ml-auto flex items-center gap-2 lg:ml-0">
+            {props.loggedIn && <NotificationBell tone="dark" />}
             {props.loggedIn ? (
               <Link href={links.dashboard} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-brand-500">Bảng điều khiển</Link>
             ) : (

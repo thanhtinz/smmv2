@@ -57,6 +57,7 @@ export async function testMotherChannelAction(formData: FormData) {
     }
     back(PAGE, "msg", `Đã gửi tin thử qua ${channel} — kiểm tra nơi nhận nhé`);
   } catch (e: any) {
+    if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
     back(PAGE, "err", `Gửi thử thất bại: ${String(e?.message || e)}`);
   }
 }

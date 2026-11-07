@@ -1099,6 +1099,23 @@ export const DICT: Record<string, Tr> = {
   "Sẵn sàng tăng trưởng cùng": e("Ready to grow with", "准备好与以下品牌一起成长:", "พร้อมเติบโตไปกับ", "一緒に成長する準備はできましたか：", "함께 성장할 준비가 되셨나요:"),
   "Vì sao chọn": e("Why choose", "为什么选择", "ทำไมต้องเลือก", "選ぶ理由：", "선택하는 이유:"),
   "Tổng số dư khách": e("Customer balances", "客户总余额", "ยอดคงเหลือรวมของลูกค้า", "顧客の総残高", "고객 총 잔액"),
+  "Đặt đơn thành công": e("Order placed successfully", "下单成功", "สั่งซื้อสำเร็จ", "注文が正常に完了しました", "주문이 성공적으로 접수되었습니다"),
+  "Đặt hàng Premium thành công": e("Premium order placed successfully", "Premium 下单成功", "สั่งซื้อ Premium สำเร็จ", "Premium注文が正常に完了しました", "프리미엄 주문이 성공적으로 접수되었습니다"),
+  "Đơn đang chạy": e("Order in progress", "订单进行中", "ออเดอร์กำลังดำเนินการ", "注文処理中", "주문 진행 중"),
+  "Đơn hàng đã hoàn thành": e("Order completed", "订单已完成", "ออเดอร์เสร็จสมบูรณ์", "注文が完了しました", "주문이 완료되었습니다"),
+  "Đơn hàng hoàn một phần": e("Order partially completed", "订单部分完成", "ออเดอร์เสร็จบางส่วน", "注文が部分的に完了しました", "주문이 부분 완료되었습니다"),
+  "Đơn hàng đã bị huỷ": e("Order canceled", "订单已取消", "ออเดอร์ถูกยกเลิก", "注文がキャンセルされました", "주문이 취소되었습니다"),
+  "Đơn hàng đã hoàn tiền": e("Order refunded", "订单已退款", "ออเดอร์ได้รับเงินคืนแล้ว", "注文が返金されました", "주문이 환불되었습니다"),
+  "Đơn đã được tự động bảo hành": e("Order auto-refilled", "订单已自动补量", "ออเดอร์ได้รับการเติมอัตโนมัติ", "注文が自動補充されました", "주문이 자동 리필되었습니다"),
+  "Nạp tiền thành công": e("Deposit successful", "充值成功", "เติมเงินสำเร็จ", "入金が完了しました", "충전이 완료되었습니다"),
+  "Yêu cầu nạp tiền bị từ chối": e("Deposit request rejected", "充值申请被拒绝", "คำขอเติมเงินถูกปฏิเสธ", "入金リクエストが拒否されました", "충전 요청이 거부되었습니다"),
+  "Số dư đã được cộng": e("Balance credited", "余额已到账", "ยอดคงเหลือเข้าบัญชีแล้ว", "残高が加算されました", "잔액이 충전되었습니다"),
+  "Ticket của bạn có phản hồi mới": e("Your ticket has a new reply", "您的工单有新回复", "ตั๋วของคุณมีการตอบกลับใหม่", "チケットに新しい返信があります", "티켓에 새 답변이 있습니다"),
+  "Đơn Premium đã được giao": e("Premium order delivered", "Premium 订单已交付", "ออเดอร์ Premium จัดส่งแล้ว", "Premium注文が配信されました", "프리미엄 주문이 배송되었습니다"),
+  "Gói định kỳ đã đặt đơn": e("Subscription placed an order", "订阅已下单", "การสมัครสมาชิกได้สั่งซื้อแล้ว", "サブスクリプションが注文しました", "구독이 주문을 접수했습니다"),
+  "Gói định kỳ đã đạt mục tiêu": e("Subscription reached its target", "订阅已达目标", "การสมัครสมาชิกถึงเป้าหมายแล้ว", "サブスクリプションが目標に到達しました", "구독이 목표에 도달했습니다"),
+  "Gói định kỳ bị tạm dừng": e("Subscription paused", "订阅已暂停", "การสมัครสมาชิกถูกหยุดชั่วคราว", "サブスクリプションが一時停止されました", "구독이 일시 중지되었습니다"),
+  "Bạn được thêm làm Nhân viên panel": e("You were added as panel staff", "您已被添加为面板员工", "คุณถูกเพิ่มเป็นพนักงานพาเนล", "パネルのスタッフとして追加されました", "패널 직원으로 추가되었습니다"),
 };
 
 export const CURRENCIES: { key: string; name: string; rate: number }[] = [

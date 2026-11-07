@@ -15,6 +15,8 @@ export async function orderEvent(orderId: number, status: string, note?: string)
 }
 
 const NOTIFY_TITLES: Record<string, string> = {
+  PROCESSING: "Đơn đang chạy",
+  IN_PROGRESS: "Đơn đang chạy",
   COMPLETED: "Đơn hàng đã hoàn thành",
   PARTIAL: "Đơn hàng hoàn một phần",
   CANCELED: "Đơn hàng đã bị huỷ",

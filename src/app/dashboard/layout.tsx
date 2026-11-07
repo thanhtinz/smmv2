@@ -5,6 +5,7 @@ import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { SideNav, MobileSideNav } from "@/components/nav";
 import { DisplaySettings } from "@/components/display";
+import { NotificationBell } from "@/components/notification-bell";
 import { LiveChat } from "@/components/livechat";
 import { TermsGate, HomeModal } from "@/components/gates";
 import { I } from "@/components/ui";
@@ -81,6 +82,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <span className="font-extrabold text-slate-900 hidden sm:inline">{s.site_name}</span>
           </Link>
           <div className="ml-auto flex items-center gap-2.5">
+            <NotificationBell />
             <DisplaySettings />
             <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hidden sm:inline-block">{LEVEL_NAME[user.level]}</span>
             <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3.5 py-1.5 text-sm font-bold">{vnd(user.balance)}</span>

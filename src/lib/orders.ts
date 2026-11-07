@@ -127,6 +127,8 @@ export async function createSmmOrder(input: {
   promoCode?: string;
   campaignId?: number;
   subscriptionId?: number;
+  /** Đặt theo lô (nhiều link / hàng loạt / gói định kỳ): nơi gọi tự gửi 1 thông báo tóm tắt, tránh spam chuông */
+  silentNotify?: boolean;
 }) {
   if ((await getSettings()).module_smm === "0") throw new Error("Mảng dịch vụ SMM đang tạm tắt");
   if (input.user.panelId) {
@@ -264,6 +266,9 @@ export async function createSmmOrder(input: {
     return { ...o, code, charge: finalCharge };
   });
   await orderEvent(order.id, "PENDING", flagNote ? `Đã tạo đơn · Cờ: ${flagNote}` : "Đã tạo đơn");
+  if (!input.silentNotify && !input.subscriptionId) {
+    await notifyUser(input.user.id, "Đặt đơn thành công", `Đơn ${order.code}: ${order.quantity.toLocaleString("vi-VN")} × ${service.name} — đã trừ ${vnd(finalCharge)}`, `/dashboard/don-hang/${order.id}`);
+  }
   void alertMother("smm_order", `Đơn SMM mới ${order.code}`, `${input.user.username} đặt ${service.name} — ${finalCharge.toLocaleString("vi-VN")}đ`);
   if (service.telegramBot) {
     void (async () => { const { notifyServiceBot } = await import("./telegram"); await notifyServiceBot(service.telegramBot, `Đơn SMM mới ${order.code}\nDịch vụ: ${service.name}\nSL: ${order.quantity} · ${finalCharge.toLocaleString("vi-VN")}đ\nLink: ${order.link}`); })();
@@ -607,6 +612,7 @@ export async function createPremiumOrder(input: {
     return { ...o, code };
   });
   if (!ownProduct) void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
+  await notifyUser(input.user.id, "Đặt hàng Premium thành công", `Đơn ${created.code}: ${variant.product.name} — ${variant.name} × ${input.quantity} — đã trừ ${vnd(created.total)}${created.status === "DELIVERED" ? " — đã giao tự động, xem nội dung trong đơn" : ""}`, "/dashboard/don-premium");
   if (panel) void alertPanelOwner(panel.id, "premium_order", `Đơn Premium mới ${created.code}`, `Qua gian hàng ${panel.name}: ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
 
   // Đấu API mua sản phẩm (kiểu ThaTim): gọi action=buy cho từng đơn vị

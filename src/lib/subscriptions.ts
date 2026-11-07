@@ -64,6 +64,7 @@ export async function processSubscriptions(limit = 20) {
         quantity: qty,
         subscriptionId: sub.id,
         note: "Đơn tự động từ gói định kỳ",
+        silentNotify: true,
       });
       const reachedTarget = sub.targetTotal > 0 && sub.deliveredQty + qty >= sub.targetTotal;
       const reachedRuns = sub.totalRuns > 0 && sub.runs + 1 >= sub.totalRuns;

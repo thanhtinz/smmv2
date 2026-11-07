@@ -112,6 +112,11 @@ const FRAGMENTS: [string, Record<string, string>][] = [
   ["Đặt lại số dư nhà cung cấp đang lưu đệm (", { en: "Reset cached provider balances (", zh: "重置缓存的供应商余额(", th: "รีเซ็ตยอดผู้ให้บริการที่แคชไว้ (", ja: "キャッシュされたプロバイダー残高をリセット（", ko: "캐시된 공급자 잔액을 초기화합니다 (" }],
   [" nguồn) — lần kiểm tra kế tiếp sẽ lấy số dư thật từ nguồn", { en: " sources) — the next check will fetch the real balance from the source", zh: " 个来源)— 下次检查将从来源获取真实余额", th: " แหล่ง) — การตรวจสอบครั้งถัดไปจะดึงยอดจริงจากแหล่ง", ja: " 件）— 次回チェックでソースから実際の残高を取得します", ko: " 개 소스) — 다음 확인 시 소스에서 실제 잔액을 가져옵니다" }],
   [" tài khoản", { en: " accounts", zh: " 个账户", th: " บัญชี", ja: " アカウント", ko: " 계정" }],
+  [" — đã trừ ", { en: " — charged ", zh: " — 已扣除 ", th: " — หักเงิน ", ja: " — 差し引かれました ", ko: " — 차감됨 " }],
+  ["Đã đặt ", { en: "Placed ", zh: "已下 ", th: "สั่งแล้ว ", ja: "注文済み ", ko: "주문 완료 " }],
+  [" đơn: ", { en: " orders: ", zh: " 个订单:", th: " ออเดอร์: ", ja: " 件の注文：", ko: " 개 주문: " }],
+  [" — đã giao tự động, xem nội dung trong đơn", { en: " — auto-delivered, see the content in your order", zh: " — 已自动交付,请在订单中查看内容", th: " — จัดส่งอัตโนมัติแล้ว ดูเนื้อหาในออเดอร์", ja: " — 自動配信済み、注文内で内容をご確認ください", ko: " — 자동 배송됨, 주문에서 내용을 확인하세요" }],
+  [" vừa được đặt tự động, trừ ", { en: " was just placed automatically, charged ", zh: " 刚刚自动下单,扣除 ", th: " ถูกสั่งโดยอัตโนมัติ หักเงิน ", ja: " が自動で注文され、差し引かれました ", ko: " 자동 주문되어 차감됨 " }],
 ];
 const MONEY = /(\d{1,3}(?:\.\d{3})+|\d+)đ/g;
 const LOCALES: Record<string, string> = { vi: "vi-VN", en: "en-US", zh: "zh-CN", th: "th-TH", ja: "ja-JP", ko: "ko-KR" };

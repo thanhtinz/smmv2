@@ -304,6 +304,7 @@ export async function sendMarketingEmailAction(formData: FormData) {
     await prisma.apiLog.create({ data: { kind: "email_marketing", ok: true, ref: subject.slice(0, 80), detail: `Gửi ${sent} email — nhóm ${segment}` } });
     done("/admin/email-marketing", `Đã gửi email tới ${sent} người dùng`);
   } catch (e: any) {
+    if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
     back("/admin/email-marketing", "err", "Gửi thất bại: " + (e?.message || "lỗi SMTP"));
   }
 }
@@ -362,6 +363,7 @@ export async function testSmtpAction(formData: FormData) {
     await sendMail([to], "Email thử từ hệ thống", "<p>Đây là email thử. Nếu bạn nhận được thư này, cấu hình SMTP đã hoạt động đúng.</p>");
     done("/admin/email-marketing", `Đã gửi email thử tới ${to}`);
   } catch (e: any) {
+    if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
     back("/admin/email-marketing", "err", `Gửi thử thất bại: ${String(e?.message || e).slice(0, 180)}`);
   }
 }

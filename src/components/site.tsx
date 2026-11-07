@@ -7,6 +7,7 @@ import { logoutAction } from "@/app/actions/auth";
 import { vnd } from "@/lib/format";
 import { prisma } from "@/lib/db";
 import { DisplaySettings } from "@/components/display";
+import { NotificationBell } from "@/components/notification-bell";
 import { LiveChat } from "@/components/livechat";
 import { getFloatingContacts, type FloatingContact } from "@/lib/contact";
 
@@ -29,6 +30,7 @@ export async function SiteHeader() {
           <Link href="/premium" className="hover:text-brand-600">Tài khoản Premium</Link>
         </nav>
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5">
+          {session && <NotificationBell />}
           <DisplaySettings />
           {session ? (
             <>
@@ -92,6 +94,7 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
               ))}
             </nav>
             <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:ml-0">
+              {session && <NotificationBell tone="dark" />}
               <DisplaySettings />
               {session ? (
                 <>
