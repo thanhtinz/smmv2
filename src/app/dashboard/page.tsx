@@ -5,6 +5,7 @@ import { Stat, I, Badge } from "@/components/ui";
 import { vnd, num, SMM_STATUS, dt } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { RichText } from "@/components/rich-text";
+import { moduleOn } from "@/lib/modules";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,28 @@ export default async function DashboardHome() {
     panelTagline = p?.tagline || null;
   }
   if (!bannerHtml && s.sys_announce_enabled === "1" && s.sys_announce_content) bannerHtml = s.sys_announce_content;
+
+  // Timeline thông báo: bài viết thuộc chuyên mục "Thông báo" (admin đăng ở mục Bài viết),
+  // khách panel thấy bài của panel mình, panel chưa có thì dùng của web mẹ — như trang Bài viết.
+  let notices: { id: number; title: string; slug: string; excerpt: string | null; content: string; createdAt: Date }[] = [];
+  if (await moduleOn("blog", user.panelId)) {
+    let scopePid: number | null = user.panelId ?? null;
+    if (scopePid !== null) {
+      const cnt = await prisma.post.count({ where: { published: true, panelId: scopePid } });
+      if (cnt === 0) scopePid = null;
+    }
+    const cat = await prisma.postCategory.findUnique({ where: { slug: "thong-bao" }, select: { id: true } });
+    if (cat) {
+      notices = await prisma.post.findMany({
+        where: { published: true, panelId: scopePid, categoryId: cat.id },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 6,
+        select: { id: true, title: true, slug: true, excerpt: true, content: true, createdAt: true },
+      });
+    }
+  }
+  const noticeExcerpt = (p: (typeof notices)[number]) =>
+    (p.excerpt || p.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).slice(0, 150);
+  const noticeDate = (d: Date) => new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" }).format(d);
 
   const name = user.fullName || user.username;
   const tagline = panelTagline || s.site_tagline || "Hệ thống cung cấp dịch vụ mạng xã hội chuyên nghiệp, tự động 100%.";
@@ -147,6 +170,30 @@ export default async function DashboardHome() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="card mt-4 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <div className="font-bold text-slate-900">Thông báo</div>
+          <Link href="/dashboard/bai-viet" className="text-sm font-medium text-brand-600">Xem tất cả →</Link>
+        </div>
+        {notices.length === 0 ? (
+          <div className="p-6 text-sm text-slate-400">Chưa có thông báo nào.</div>
+        ) : (
+          <div className="relative px-5 py-5">
+            <span className="absolute bottom-5 left-[29px] top-5 w-0.5 bg-slate-100" aria-hidden="true" />
+            <div className="space-y-6">
+              {notices.map((p) => (
+                <div key={p.id} className="relative pl-10">
+                  <span className="absolute left-[3px] top-1 h-3 w-3 rounded-full border-2 border-white bg-brand-500 shadow" aria-hidden="true" />
+                  <div className="text-xs font-semibold text-slate-400">{noticeDate(p.createdAt)}</div>
+                  <Link href={`/dashboard/bai-viet/${p.slug}`} className="mt-0.5 block font-semibold text-slate-800 transition hover:text-brand-700">{p.title}</Link>
+                  <p className="mt-1 line-clamp-2 max-w-3xl text-sm leading-relaxed text-slate-500">{noticeExcerpt(p)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

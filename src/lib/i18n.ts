@@ -1132,6 +1132,9 @@ export const DICT: Record<string, Tr> = {
  "Hệ thống cung cấp dịch vụ mạng xã hội chuyên nghiệp, tự động 100%.": e("Professional social media service system, 100% automated.", "专业的社交媒体服务系统,100% 自动。", "ระบบบริการโซเชียลมีเดียระดับมืออาชีพ อัตโนมัติ 100%", "プロフェッショナルなソーシャルメディアサービスシステム、100%自動。", "전문 소셜 미디어 서비스 시스템, 100% 자동."),
  "Xem tất cả dịch vụ →": e("View all services →", "查看全部服务 →", "ดูบริการทั้งหมด →", "すべてのサービスを見る →", "모든 서비스 보기 →"),
  "Số lượng:": e("Quantity:", "数量:", "จำนวน:", "数量：", "수량:"),
+ "Xem tất cả →": e("View all →", "查看全部 →", "ดูทั้งหมด →", "すべて見る →", "전체 보기 →"),
+ "Chưa có thông báo nào.": e("No announcements yet.", "暂无公告。", "ยังไม่มีประกาศ", "お知らせはまだありません。", "아직 공지가 없습니다."),
+ "Đã hiểu": e("Got it", "知道了", "เข้าใจแล้ว", "了解しました", "확인"),
 };
 
 export const CURRENCIES: { key: string; name: string; rate: number }[] = [
