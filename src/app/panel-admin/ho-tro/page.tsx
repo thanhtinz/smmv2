@@ -25,7 +25,7 @@ export default async function PanelTicketsPage({ searchParams }: { searchParams:
   });
   return (
     <div>
-      <PageHead title="Hỗ trợ khách panel" desc="Ticket do khách của gian hàng bạn gửi — trả lời ngay tại đây, khách nhận thông báo." />
+      <PageHead title="Hỗ trợ khách panel" desc="Ticket do khách của website bạn gửi — trả lời ngay tại đây, khách nhận thông báo." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="mb-4 flex flex-wrap gap-2">
         {[{ v: "", l: "Tất cả" }, { v: "OPEN", l: "Chờ trả lời" }, { v: "ANSWERED", l: "Đã trả lời" }, { v: "CLOSED", l: "Đã đóng" }].map((t) => (

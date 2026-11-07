@@ -206,7 +206,7 @@ export async function createPanelAction(formData: FormData) {
     });
     await chargePanelCreation(tx, user, feeInfo, created.id, name);
   });
-  back("/panel-admin", "msg", `Đã tạo panel ${name} — gian hàng của bạn: /cua-hang/${slug}`);
+  back("/panel-admin", "msg", `Đã tạo panel ${name} — website của bạn: /cua-hang/${slug}`);
 }
 
 /** Đăng ký website con đúng mô hình panel mẫu (thatim): form chỉ có 1 ô TÊN MIỀN —
@@ -657,9 +657,9 @@ export async function startPaypalCheckoutAction(formData: FormData) {
 /** Nạp USDT: khách khai số USDT + mã giao dịch (tx hash) — admin đối chiếu ví rồi duyệt ở /admin/nap-tien. */
 export async function createPanelBankDepositAction(formData: FormData) {
   const user = await requireUser();
-  if (!user.panelId) back("/dashboard/nap-tien", "err", "Tài khoản không thuộc gian hàng nào");
+  if (!user.panelId) back("/dashboard/nap-tien", "err", "Tài khoản không thuộc website nào");
   const panel = await prisma.childPanel.findUnique({ where: { id: user.panelId } });
-  if (!panel || panel.status !== "ACTIVE" || !panel.bankAccount) back("/dashboard/nap-tien", "err", "Gian hàng chưa cài tài khoản ngân hàng riêng");
+  if (!panel || panel.status !== "ACTIVE" || !panel.bankAccount) back("/dashboard/nap-tien", "err", "Website chưa cài tài khoản ngân hàng riêng");
   const amount = parseInt(String(formData.get("amount") || "0"));
   const minBank = panel.depositMin || 10000;
   if (!amount || amount < minBank) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu ${minBank.toLocaleString("vi-VN")}đ`);
@@ -671,7 +671,7 @@ export async function createPanelBankDepositAction(formData: FormData) {
   const depCode2 = genCode("NAP", dep.id);
   await prisma.deposit.update({ where: { id: dep.id }, data: { code: depCode2 } });
   void (async () => { const { alertPanelOwner } = await import("@/lib/alerts"); await alertPanelOwner(panel.id, "deposit_pending", `Yêu cầu nạp chờ duyệt ${depCode2}`, `${user.username} · BANK · ${amount.toLocaleString("vi-VN")}đ — khách chuyển vào ngân hàng của panel`); })();
-  back("/dashboard/nap-tien", "msg", "Đã gửi yêu cầu — chủ gian hàng sẽ duyệt và cộng tiền sau khi nhận được chuyển khoản");
+  back("/dashboard/nap-tien", "msg", "Đã gửi yêu cầu — chủ website sẽ duyệt và cộng tiền sau khi nhận được chuyển khoản");
 }
 
 export async function createUsdtDepositAction(formData: FormData) {

@@ -474,7 +474,7 @@ model ApiLog {
   @@index([kind, createdAt])
 }
 
-// Panel con (child panel): gian hàng riêng của đại lý — khách của panel trả giá đã cộng
+// Panel con (child panel): website riêng của đại lý — khách của panel trả giá đã cộng
 // markup của chủ panel, phần chênh lệch trả về chủ panel dưới dạng hoa hồng (PANEL_COMMISSION).
 // Chạy tại /cua-hang/[slug] hoặc tên miền riêng của chủ panel (CNAME -> middleware nhận diện).
 model ChildPanel {
@@ -501,7 +501,7 @@ model ChildPanel {
   apiKey    String?  @db.VarChar(64) // API key tài khoản mẹ mà panel liên kết (nhập ở trang setup lần đầu)
   apiUserId Int? // tài khoản mẹ sở hữu API key trên
   setupDone Boolean  @default(false) // đã qua trang cấu hình lần đầu
-  // AI riêng của panel: chủ panel tự thêm key — livechat trên gian hàng dùng cấu hình này
+  // AI riêng của panel: chủ panel tự thêm key — livechat trên website dùng cấu hình này
   aiEnabled Boolean @default(false)
   aiProvider String  @default("openai") @db.VarChar(20)
   aiBaseUrl  String? @db.VarChar(200)
@@ -539,7 +539,7 @@ model ChildPanel {
   sellPremium Boolean @default(true)
   // Mô-đun riêng của panel (như trang Mô-đun của web mẹ, phạm vi khách của panel)
   moduleAffiliate Boolean @default(true) // tắt = khách panel không có mục Kiếm tiền + không tính hoa hồng giới thiệu
-  moduleRegister  Boolean @default(true) // tắt = gian hàng ngừng nhận đăng ký mới
+  moduleRegister  Boolean @default(true) // tắt = website ngừng nhận đăng ký mới
   // Tỉ giá quy đổi HIỂN THỊ riêng của panel (để trống = dùng tỉ giá của web mẹ; tiền thật vẫn là VNĐ)
   rateUsd String? @db.VarChar(20)
   rateEur String? @db.VarChar(20)
@@ -547,7 +547,7 @@ model ChildPanel {
   rateThb String? @db.VarChar(20)
   rateJpy String? @db.VarChar(20)
   rateKrw String? @db.VarChar(20)
-  // Danh mục bị ẩn trên gian hàng của panel (id danh mục SMM, cách nhau dấu phẩy)
+  // Danh mục bị ẩn trên website của panel (id danh mục SMM, cách nhau dấu phẩy)
   hiddenCats String? @db.VarChar(300)
   // Method nạp quốc tế RIÊNG của panel (như web mẹ): khách panel trả qua tài khoản
   // PayPal/Stripe CỦA CHỦ PANEL; panel chưa cấu hình thì dùng cổng của web mẹ.

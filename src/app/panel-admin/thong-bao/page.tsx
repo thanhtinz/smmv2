@@ -15,12 +15,12 @@ export default async function PanelBroadcastPage({ searchParams }: { searchParam
   ]);
   return (
     <div>
-      <PageHead title="Thông báo khách panel" desc={`Gửi thông báo tới toàn bộ ${num(memberCount)} khách đã đăng ký tại gian hàng của bạn.`} />
+      <PageHead title="Thông báo khách panel" desc={`Gửi thông báo tới toàn bộ ${num(memberCount)} khách đã đăng ký tại website của bạn.`} />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
         <form action={panelBroadcastAction} className="card space-y-4 p-6">
           <div className="font-bold text-slate-900">Soạn thông báo mới</div>
-          <div><label className="lbl">Tiêu đề</label><input name="title" required maxLength={150} className="inp" placeholder="VD: Khuyến mãi cuối tuần tại gian hàng" /></div>
+          <div><label className="lbl">Tiêu đề</label><input name="title" required maxLength={150} className="inp" placeholder="VD: Khuyến mãi cuối tuần tại website" /></div>
           <div><label className="lbl">Nội dung</label><textarea name="body" required rows={4} maxLength={500} className="inp" placeholder="Nội dung hiển thị trong mục Thông báo của khách..." /></div>
           <button className="btn-primary !py-2.5" disabled={memberCount === 0}>Gửi tới {num(memberCount)} khách</button>
           {memberCount === 0 && <p className="text-xs text-slate-400">Panel chưa có khách nào.</p>}

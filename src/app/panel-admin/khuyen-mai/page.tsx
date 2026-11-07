@@ -19,7 +19,7 @@ export default async function PanelPromotions({ searchParams }: { searchParams: 
   ]);
   return (
     <div>
-      <PageHead title="Khuyến mãi" desc="Thưởng nạp tiền, hoa hồng giới thiệu và mã giảm giá của gian hàng." />
+      <PageHead title="Khuyến mãi" desc="Thưởng nạp tiền, hoa hồng giới thiệu và mã giảm giá của website." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid items-start gap-6 xl:grid-cols-2">
         <form action={panelSaveConfigAction} className="card space-y-4 p-6">

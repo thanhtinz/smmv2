@@ -29,7 +29,7 @@ export default async function PanelPremiumProducts({ searchParams }: { searchPar
   }));
   return (
     <div>
-      <PageHead title="Sản phẩm & Gói" desc="Sản phẩm Premium bạn tự bán tại gian hàng." />
+      <PageHead title="Sản phẩm & Gói" desc="Sản phẩm Premium bạn tự bán tại website." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <PanelProductsClient products={dtos} categories={categories.map((c) => ({ id: c.id, name: c.name }))} />
     </div>

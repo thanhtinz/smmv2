@@ -9,7 +9,7 @@ import { num } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 /** Dịch vụ & Giá — dịch vụ đồng bộ từ web mẹ (chủ panel chỉnh giá bán) cộng với
- *  các dịch vụ chủ panel thêm vào gian hàng, nguồn lấy từ dịch vụ có sẵn của web mẹ. */
+ *  các dịch vụ chủ panel thêm vào website, nguồn lấy từ dịch vụ có sẵn của web mẹ. */
 export default async function PanelServicesPage({ searchParams }: { searchParams: { msg?: string; err?: string; q?: string } }) {
   const { panel } = await requirePanelOwnerPage();
   const q = (searchParams.q || "").trim();
@@ -98,7 +98,7 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
 
       <div className="mb-4 mt-10 flex flex-wrap items-center gap-3">
         <h2 className="text-lg font-extrabold text-slate-900">Dịch vụ đã thêm</h2>
-        <span className="text-sm text-slate-400">Thêm dịch vụ vào gian hàng của bạn — nguồn lấy từ dịch vụ có sẵn của web mẹ, hoặc dịch vụ thủ công do bạn tự xử lý đơn.</span>
+        <span className="text-sm text-slate-400">Thêm dịch vụ vào website của bạn — nguồn lấy từ dịch vụ có sẵn của web mẹ, hoặc dịch vụ thủ công do bạn tự xử lý đơn.</span>
       </div>
       <PanelAddedServicesClient services={addedDtos} sources={sourceDtos} categories={categoryDtos} />
 

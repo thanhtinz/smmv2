@@ -19,7 +19,7 @@ export default async function PanelSourcesPage({ searchParams }: { searchParams:
   const linked = !!panel.apiKey;
   return (
     <div>
-      <PageHead title="Nguồn API" desc="Nguồn duy nhất của gian hàng là web chính — web con đấu về API của web chính, mọi dịch vụ và đơn hàng đều do web chính xử lý." />
+      <PageHead title="Nguồn API" desc="Nguồn duy nhất của website là web chính — web con đấu về API của web chính, mọi dịch vụ và đơn hàng đều do web chính xử lý." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
@@ -40,7 +40,7 @@ export default async function PanelSourcesPage({ searchParams }: { searchParams:
         </div>
       </div>
       {!linked && (
-        <p className="mt-4 text-sm text-amber-600">Gian hàng chưa liên kết API key của tài khoản mẹ — hãy hoàn tất bước <b>Kết nối API</b> trong phần cấu hình lần đầu (hoặc Cài đặt panel) để nguồn hoạt động.</p>
+        <p className="mt-4 text-sm text-amber-600">Website chưa liên kết API key của tài khoản mẹ — hãy hoàn tất bước <b>Kết nối API</b> trong phần cấu hình lần đầu (hoặc Cài đặt panel) để nguồn hoạt động.</p>
       )}
       <p className="mt-4 text-sm text-slate-400">Muốn bán thêm dịch vụ? Vào mục <b className="text-slate-600">Dịch vụ & Giá → Thêm dịch vụ</b> và chọn từ danh sách dịch vụ có sẵn của web chính — tất cả đều chạy qua nguồn này.</p>
     </div>

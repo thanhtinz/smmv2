@@ -16,7 +16,7 @@ const CHANNELS = [
 const mask = (v: string | null | undefined) => (v ? "••••••••••••" : "");
 
 /** Báo cáo & báo tin của panel con: cùng chuẩn web mẹ nhưng chỉ tính dữ liệu
- *  của gian hàng mình; kênh gửi là cấu hình riêng của chủ panel. */
+ *  của website mình; kênh gửi là cấu hình riêng của chủ panel. */
 export default async function PanelReportPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { panel } = await requirePanelOwnerPage();
   const st = await getStats({ panelId: panel.id });
@@ -26,7 +26,7 @@ export default async function PanelReportPage({ searchParams }: { searchParams: 
 
   return (
     <div>
-      <PageHead title="Báo cáo & Thông báo" desc="Thu nhập, mặt hàng bán chạy và top khách của gian hàng bạn — kèm cấu hình gửi báo cáo/báo tin qua Email, Telegram, Discord.">
+      <PageHead title="Báo cáo & Thông báo" desc="Thu nhập, mặt hàng bán chạy và top khách của website bạn — kèm cấu hình gửi báo cáo/báo tin qua Email, Telegram, Discord.">
         <form action={panelSendReportNowAction}>
           <button className="btn-primary">Gửi báo cáo ngay</button>
         </form>

@@ -13,7 +13,7 @@ import { vnd, LEVEL_NAME } from "@/lib/format";
 export async function PanelShell({ panel, user, children }: { panel: ChildPanel; user: User; children: ReactNode }) {
   const motherSettings = await (await import("@/lib/settings")).getSettings();
   const items = [
-    { href: `/cua-hang/${panel.slug}`, label: "Gian hàng", icon: I.home },
+    { href: `/cua-hang/${panel.slug}`, label: "Website", icon: I.home },
     ...(panel.sellSmm ? [{ href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },] : []),
     { href: `/cua-hang/${panel.slug}/don-hang`, label: "Đơn hàng SMM", icon: I.list },
     ...(panel.sellPremium ? [{ href: `/cua-hang/${panel.slug}/premium`, label: "Mua Premium", icon: I.gem },] : []),

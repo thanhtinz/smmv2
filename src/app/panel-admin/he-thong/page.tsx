@@ -28,7 +28,7 @@ export default async function PanelSystem({ searchParams }: { searchParams: { ms
   ];
   return (
     <div>
-      <PageHead title="Hệ thống & Dọn dẹp" desc="Thông tin panel và dọn dữ liệu cũ trong phạm vi gian hàng của bạn — đơn hàng, người dùng và sổ tiền không bao giờ bị dọn." />
+      <PageHead title="Hệ thống & Dọn dẹp" desc="Thông tin panel và dọn dữ liệu cũ trong phạm vi website của bạn — đơn hàng, người dùng và sổ tiền không bao giờ bị dọn." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Trạng thái panel" value={panel.status === "ACTIVE" ? "Đang mở bán" : "Đã tạm ngưng"} icon={I.home} tone="emerald" />
@@ -40,7 +40,7 @@ export default async function PanelSystem({ searchParams }: { searchParams: { ms
         <div className="card p-6">
           <div className="mb-4 font-bold text-slate-900">Thông tin panel</div>
           <dl className="space-y-2.5 text-sm">
-            <div className="flex justify-between gap-3"><dt className="text-slate-400">Tên gian hàng</dt><dd className="font-semibold text-slate-800">{panel.name}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-slate-400">Tên website</dt><dd className="font-semibold text-slate-800">{panel.name}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-slate-400">Đường dẫn</dt><dd className="font-mono text-[13px] font-semibold text-slate-800">/cua-hang/{panel.slug}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-slate-400">Tên miền riêng</dt><dd className="font-semibold text-slate-800">{panel.domain || "Chưa gắn"}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-slate-400">Nguồn dịch vụ</dt><dd className="font-semibold text-slate-800">Web mẹ (API SMM v2 · /api/v2)</dd></div>

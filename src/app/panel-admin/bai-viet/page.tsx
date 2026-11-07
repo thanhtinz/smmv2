@@ -5,7 +5,7 @@ import { PanelPostsClient, type PanelPostDTO } from "@/components/panel-features
 
 export const dynamic = "force-dynamic";
 
-/** Bài viết riêng của gian hàng — hiện ở mục Bài viết trên storefront của panel. */
+/** Bài viết riêng của website — hiện ở mục Bài viết trên storefront của panel. */
 export default async function PanelPostsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { panel } = await requirePanelOwnerPage();
   const [posts, categories] = await Promise.all([
@@ -15,7 +15,7 @@ export default async function PanelPostsPage({ searchParams }: { searchParams: {
   const dtos: PanelPostDTO[] = posts.map((p) => ({ id: p.id, title: p.title, slug: p.slug, excerpt: p.excerpt, content: p.content, coverUrl: p.coverUrl, categoryId: p.categoryId, published: p.published, views: p.views, createdAt: p.createdAt }));
   return (
     <div>
-      <PageHead title="Bài viết gian hàng" desc="Tin tức, hướng dẫn, khuyến mãi hiển thị trên gian hàng của bạn." />
+      <PageHead title="Bài viết website" desc="Tin tức, hướng dẫn, khuyến mãi hiển thị trên website của bạn." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <PanelPostsClient posts={dtos} categories={categories} />
     </div>

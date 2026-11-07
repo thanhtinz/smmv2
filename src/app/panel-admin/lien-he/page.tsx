@@ -13,7 +13,7 @@ export default async function PanelContactWidgets({ searchParams }: { searchPara
   const panelHasLegacy = !!(panel.supportZalo || panel.supportTelegram || panel.supportFacebook || panel.supportHotline);
   return (
     <div>
-      <PageHead title="Widget Liên hệ" desc="Các kênh liên hệ hiện thị trên gian hàng của bạn. Để trống thì khách thấy widget của web chính." />
+      <PageHead title="Widget Liên hệ" desc="Các kênh liên hệ hiện thị trên website của bạn. Để trống thì khách thấy widget của web chính." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="card p-6">
         <div className="max-w-3xl">

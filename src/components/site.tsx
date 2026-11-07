@@ -58,7 +58,7 @@ export async function SiteHeader() {
 
 
 /** Header công khai kiểu pill tối — dùng cho mọi trang công khai (web mẹ + panel con)
- *  để đồng bộ với landing. `panel` truyền vào khi là trang thuộc gian hàng con. */
+ *  để đồng bộ với landing. `panel` truyền vào khi là trang thuộc website con. */
 export async function PublicHeader({ panel, announcement }: { panel?: { name: string; slug: string }; announcement?: string | null } = {}) {
   const session = await getSession();
   const s = await getSettings();

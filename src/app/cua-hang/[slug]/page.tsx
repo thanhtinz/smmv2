@@ -14,7 +14,7 @@ export default async function PanelStorefront({ params }: { params: { slug: stri
   const motherSettings = await getSettings();
   if (motherSettings.module_panels === "0") notFound();
   const user = await getCurrentUser().catch(() => null);
-  // Khách của panel này đã đăng nhập thì về thẳng bảng điều khiển (chủ panel vẫn xem được gian hàng của mình)
+  // Khách của panel này đã đăng nhập thì về thẳng bảng điều khiển (chủ panel vẫn xem được website của mình)
   if (user && user.panelId === panel.id) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
   const panelRate = (r: number) => Math.round(r * (1 + panel.markup / 100));
   const [services, categories, memberCount, panelOrderCount, panelPremiumCount, premiums, statusGroups] = await Promise.all([

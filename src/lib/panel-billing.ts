@@ -21,7 +21,7 @@ export async function monthlyFeeForPanel(panel: { parentPanelId: number | null }
  *  panel ACTIVE/EXPIRED có expiresAt trong vòng 36 giờ tới (hoặc đã qua) và bật
  *  autoRenew -> trừ phí tháng vào số dư chủ panel (panel lồng nhau: chủ panel cha
  *  nhận phí), cộng 30 ngày từ mốc hạn cũ (hoặc từ hiện tại nếu đã qua hạn).
- *  Không đủ số dư mà đã qua hạn -> status EXPIRED (gian hàng ngừng hoạt động,
+ *  Không đủ số dư mà đã qua hạn -> status EXPIRED (website ngừng hoạt động,
  *  /api/panels/resolve chỉ trả panel ACTIVE) + báo cho chủ panel. */
 export async function processPanelRenewals(limit = 50) {
   const now = new Date();

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 /** Shop Premium công khai (cho khách chưa đăng nhập). Đã đăng nhập -> vào bản trong
  *  khu khách /dashboard/premium để giao diện đồng bộ với SMM (một khung duy nhất). */
-export default async function PremiumPage({ searchParams }: { searchParams: { cat?: string; q?: string } }) {
+export default async function PremiumPage({ searchParams }: { searchParams: { cat?: string; q?: string; sort?: string; from?: string; to?: string } }) {
   const session = await getSession();
   if (session) {
     const qs = new URLSearchParams();
@@ -37,7 +37,7 @@ export default async function PremiumPage({ searchParams }: { searchParams: { ca
     <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
       <PublicHeader />
       <main className="flex-1 max-w-7xl mx-auto px-4 py-12 w-full">
-        <PremiumShopView cat={searchParams.cat} q={searchParams.q} base="/premium" />
+        <PremiumShopView cat={searchParams.cat} q={searchParams.q} sort={searchParams.sort} from={searchParams.from} to={searchParams.to} base="/premium" />
       </main>
       <SiteFooter />
     </div>

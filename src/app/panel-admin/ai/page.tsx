@@ -5,19 +5,19 @@ import { panelSaveAiAction, panelClearAiKeyAction, panelTestAiAction } from "@/a
 export const dynamic = "force-dynamic";
 
 /** AI riêng của panel: chủ panel tự thêm key của mình — livechat "Tư vấn"
- *  trên gian hàng sẽ tư vấn bằng AI này thay cho AI hệ thống. */
+ *  trên website sẽ tư vấn bằng AI này thay cho AI hệ thống. */
 export default async function PanelAiPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { panel } = await requirePanelOwnerPage();
   const hasKey = !!(panel.aiApiKey || "").trim();
   return (
     <div>
-      <PageHead title="AI tư vấn của panel" desc="Tự thêm key AI của bạn — trợ lý tư vấn trong livechat trên gian hàng sẽ dùng key này." />
+      <PageHead title="AI tư vấn của panel" desc="Tự thêm key AI của bạn — trợ lý tư vấn trong livechat trên website sẽ dùng key này." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_360px]">
         <form action={panelSaveAiAction} className="card space-y-4 p-6">
           <label className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
             <span>
-              <span className="block text-sm font-bold text-slate-800">Bật AI riêng cho gian hàng</span>
+              <span className="block text-sm font-bold text-slate-800">Bật AI riêng cho website</span>
               <span className="text-xs text-slate-400">Tắt thì livechat dùng AI hệ thống của web chính (nếu có).</span>
             </span>
             <input type="checkbox" name="aiEnabled" defaultChecked={panel.aiEnabled} className="h-5 w-5 shrink-0 accent-slate-900" />

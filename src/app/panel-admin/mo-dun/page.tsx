@@ -9,7 +9,7 @@ type Mod = { key: string; name: string; desc: string; icon: React.ReactNode };
 const MODULES: Mod[] = [
   { key: "sellSmm", name: "Đặt đơn SMM", desc: "Bán dịch vụ SMM cho khách của panel.", icon: I.cart },
   { key: "sellPremium", name: "Tài khoản Premium", desc: "Bán Premium theo giá panel đặt.", icon: I.gem },
-  { key: "moduleRegister", name: "Đăng ký tài khoản", desc: "Cho khách đăng ký tại gian hàng.", icon: I.users },
+  { key: "moduleRegister", name: "Đăng ký tài khoản", desc: "Cho khách đăng ký tại website.", icon: I.users },
   { key: "moduleBulk", name: "Đặt hàng loạt", desc: "Đặt nhiều đơn cùng lúc.", icon: I.layers },
   { key: "moduleSubscriptions", name: "Đăng ký định kỳ", desc: "Đơn hẹn giờ và lặp lại tự động.", icon: I.clock },
   { key: "moduleCampaigns", name: "Chiến dịch", desc: "Gom đơn theo chiến dịch, có trần ngân sách.", icon: I.megaphone },
@@ -17,16 +17,16 @@ const MODULES: Mod[] = [
   { key: "moduleAffiliate", name: "Kiếm tiền (Affiliate)", desc: "Hoa hồng cho người giới thiệu.", icon: I.money },
   { key: "moduleTickets", name: "Hỗ trợ / Ticket", desc: "Khách mở ticket hỗ trợ.", icon: I.ticket },
   { key: "moduleApi", name: "API đại lý", desc: "API /api/v2 cho khách của panel.", icon: I.key },
-  { key: "moduleBlog", name: "Bài viết", desc: "Bài viết riêng của gian hàng.", icon: I.file },
+  { key: "moduleBlog", name: "Bài viết", desc: "Bài viết riêng của website.", icon: I.file },
 ];
 
-/** Mô-đun của panel — chỗ bật/tắt từng tính năng cho khách của gian hàng, danh sách phẳng.
- *  Web mẹ tắt tính năng nào ở trang Mô-đun hệ thống thì tính năng đó tắt cho mọi gian hàng. */
+/** Mô-đun của panel — chỗ bật/tắt từng tính năng cho khách của website, danh sách phẳng.
+ *  Web mẹ tắt tính năng nào ở trang Mô-đun hệ thống thì tính năng đó tắt cho mọi website. */
 export default async function PanelModules({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { panel } = await requirePanelOwnerPage();
   return (
     <div>
-      <PageHead title="Mô-đun" desc="Bật / tắt từng tính năng cho khách của gian hàng. Web mẹ tắt thì tắt chung.">
+      <PageHead title="Mô-đun" desc="Bật / tắt từng tính năng cho khách của website. Web mẹ tắt thì tắt chung.">
         <button className="btn-primary !py-2.5" form="panel-modules-form" type="submit">Lưu thay đổi</button>
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />

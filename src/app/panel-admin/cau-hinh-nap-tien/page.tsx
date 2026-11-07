@@ -16,7 +16,7 @@ export default async function PanelMethodConfig({ searchParams }: { searchParams
   const bankCount = await prisma.panelBankAccount.count({ where: { panelId: panel.id, active: true } });
   return (
     <div>
-      <PageHead title="Cấu hình nạp tiền" desc="Bật/tắt và cấu hình từng phương thức nạp tiền của gian hàng." />
+      <PageHead title="Cấu hình nạp tiền" desc="Bật/tắt và cấu hình từng phương thức nạp tiền của website." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid items-start gap-6 xl:grid-cols-2">
         <form action={panelSaveConfigAction} className="card space-y-4 p-6">

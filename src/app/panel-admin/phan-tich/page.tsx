@@ -43,7 +43,7 @@ export default async function PanelAnalyticsPage({ searchParams }: { searchParam
   const full = await getStats({ panelId: panel.id });
   return (
     <div>
-      <PageHead title="Phân tích panel" desc="Số liệu 30 ngày gần nhất, chỉ tính trên gian hàng của bạn." />
+      <PageHead title="Phân tích panel" desc="Số liệu 30 ngày gần nhất, chỉ tính trên website của bạn." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Doanh thu SMM (30 ngày)" value={vnd(revenue30)} icon={I.money} tone="amber" />

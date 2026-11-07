@@ -7,7 +7,7 @@ import { panelToggleCategoryAction } from "@/app/actions/panel";
 export const dynamic = "force-dynamic";
 
 /** Danh mục — danh mục dịch vụ dùng chung của web mẹ; panel không sửa được danh mục
- *  nhưng được ẨN/HIỆN từng danh mục trên gian hàng của mình. */
+ *  nhưng được ẨN/HIỆN từng danh mục trên website của mình. */
 export default async function PanelCategories({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { panel } = await requirePanelOwnerPage();
   const hidden = new Set((panel.hiddenCats || "").split(",").map((x) => x.trim()).filter(Boolean));
@@ -18,11 +18,11 @@ export default async function PanelCategories({ searchParams }: { searchParams: 
   });
   return (
     <div>
-      <PageHead title="Danh mục" desc="Danh mục dịch vụ là của web mẹ (dùng chung cho mọi gian hàng). Bạn không sửa được danh mục, nhưng có thể ẩn những danh mục không muốn bán khỏi gian hàng của mình." />
+      <PageHead title="Danh mục" desc="Danh mục dịch vụ là của web mẹ (dùng chung cho mọi website). Bạn không sửa được danh mục, nhưng có thể ẩn những danh mục không muốn bán khỏi website của mình." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="card overflow-x-auto">
         <table className="w-full min-w-[680px]">
-          <thead><tr><th className="th">Danh mục</th><th className="th">Nền tảng</th><th className="th">Số dịch vụ</th><th className="th">Trên gian hàng</th><th className="th"></th></tr></thead>
+          <thead><tr><th className="th">Danh mục</th><th className="th">Nền tảng</th><th className="th">Số dịch vụ</th><th className="th">Trên website</th><th className="th"></th></tr></thead>
           <tbody className="divide-y divide-slate-100">
             {cats.map((c) => {
               const isHidden = hidden.has(String(c.id));
@@ -35,7 +35,7 @@ export default async function PanelCategories({ searchParams }: { searchParams: 
                   <td className="td text-right">
                     <form action={panelToggleCategoryAction}>
                       <input type="hidden" name="catId" value={c.id} />
-                      <button className="btn-ghost btn-sm">{isHidden ? "Hiện lại" : "Ẩn khỏi gian hàng"}</button>
+                      <button className="btn-ghost btn-sm">{isHidden ? "Hiện lại" : "Ẩn khỏi website"}</button>
                     </form>
                   </td>
                 </tr>

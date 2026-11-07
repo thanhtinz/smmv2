@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 /**
  * Nhận diện tên miền riêng của panel con: nếu Host không phải tên miền chính
- * và khớp domain của một panel đang mở, rewrite về gian hàng /cua-hang/[slug]
+ * và khớp domain của một panel đang mở, rewrite về website /cua-hang/[slug]
  * (giữ nguyên đường dẫn con). Mọi lỗi tra cứu đều cho qua như bình thường.
  */
 export async function middleware(req: NextRequest) {

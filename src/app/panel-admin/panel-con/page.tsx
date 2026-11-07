@@ -6,7 +6,7 @@ import { vnd, num } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-/** Website con lồng nhau — các gian hàng tạo từ khách của panel này, như mục Panel con của web mẹ. */
+/** Website con lồng nhau — các website tạo từ khách của panel này, như mục Panel con của web mẹ. */
 export default async function PanelChildren({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { panel } = await requirePanelOwnerPage();
   const panels = await prisma.childPanel.findMany({
@@ -20,7 +20,7 @@ export default async function PanelChildren({ searchParams }: { searchParams: { 
   });
   return (
     <div>
-      <PageHead title="Website con" desc="Các website con tạo từ gian hàng của bạn." />
+      <PageHead title="Website con" desc="Các website con tạo từ website của bạn." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">

@@ -24,7 +24,7 @@ export default async function PanelMembersPage({ searchParams }: { searchParams:
   const stats = new Map(orderCounts.map((o) => [o.userId, o]));
   return (
     <div>
-      <PageHead title="Khách hàng của panel" desc="Khách đăng ký tại gian hàng của bạn. Bấm vào tên khách để xem chi tiết.">
+      <PageHead title="Khách hàng của panel" desc="Khách đăng ký tại website của bạn. Bấm vào tên khách để xem chi tiết.">
         <a href="/panel-admin/khach-hang/csv" className="btn-ghost btn-sm !px-4 !py-2">Xuất CSV</a>
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
@@ -54,7 +54,7 @@ export default async function PanelMembersPage({ searchParams }: { searchParams:
                 </tr>
               ))}
               {members.length === 0 && (
-                <tr><td className="td text-slate-400" colSpan={6}>Chưa có khách nào. Chia sẻ link gian hàng <Badge cls="bg-brand-50 text-brand-700">/cua-hang/{panel.slug}</Badge> để khách đăng ký vào panel của bạn.</td></tr>
+                <tr><td className="td text-slate-400" colSpan={6}>Chưa có khách nào. Chia sẻ link website <Badge cls="bg-brand-50 text-brand-700">/cua-hang/{panel.slug}</Badge> để khách đăng ký vào panel của bạn.</td></tr>
               )}
             </tbody>
           </table>

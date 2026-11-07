@@ -133,7 +133,7 @@ export async function createSmmOrder(input: {
   if ((await getSettings()).module_smm === "0") throw new Error("Mảng dịch vụ SMM đang tạm tắt");
   if (input.user.panelId) {
     const pf = await prisma.childPanel.findUnique({ where: { id: input.user.panelId }, select: { sellSmm: true } });
-    if (pf && !pf.sellSmm) throw new Error("Gian hàng đang tắt bán dịch vụ SMM");
+    if (pf && !pf.sellSmm) throw new Error("Website đang tắt bán dịch vụ SMM");
   }
   const service = await prisma.smmService.findUnique({
     where: { id: input.serviceId },
@@ -275,7 +275,7 @@ export async function createSmmOrder(input: {
   }
   if (flagNote) void alertMother("risk", `Đơn rủi ro ${order.code}`, flagNote);
   if (panel) {
-    void alertPanelOwner(panel.id, "smm_order", `Đơn SMM mới ${order.code}`, `Qua gian hàng ${panel.name}: ${service.name} — ${finalCharge.toLocaleString("vi-VN")}đ`);
+    void alertPanelOwner(panel.id, "smm_order", `Đơn SMM mới ${order.code}`, `Qua website ${panel.name}: ${service.name} — ${finalCharge.toLocaleString("vi-VN")}đ`);
     if (flagNote) void alertPanelOwner(panel.id, "risk", `Đơn rủi ro ${order.code}`, flagNote);
   }
   // AI kiểm tra link (Cấu hình > tab AI Kiểm tra): chạy nền, không chặn luồng đặt đơn
@@ -493,7 +493,7 @@ export async function createPremiumOrder(input: {
   if ((await getSettings()).module_premium === "0") throw new Error("Mảng Premium đang tạm tắt");
   if (input.user.panelId) {
     const pf = await prisma.childPanel.findUnique({ where: { id: input.user.panelId }, select: { sellPremium: true } });
-    if (pf && !pf.sellPremium) throw new Error("Gian hàng đang tắt bán Premium");
+    if (pf && !pf.sellPremium) throw new Error("Website đang tắt bán Premium");
   }
   const variant = await prisma.premiumVariant.findUnique({
     where: { id: input.variantId },
@@ -613,7 +613,7 @@ export async function createPremiumOrder(input: {
   });
   if (!ownProduct) void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
   await notifyUser(input.user.id, "Đặt hàng Premium thành công", `Đơn ${created.code}: ${variant.product.name} — ${variant.name} × ${input.quantity} — đã trừ ${vnd(created.total)}${created.status === "DELIVERED" ? " — đã giao tự động, xem nội dung trong đơn" : ""}`, "/dashboard/don-premium");
-  if (panel) void alertPanelOwner(panel.id, "premium_order", `Đơn Premium mới ${created.code}`, `Qua gian hàng ${panel.name}: ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
+  if (panel) void alertPanelOwner(panel.id, "premium_order", `Đơn Premium mới ${created.code}`, `Qua website ${panel.name}: ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
 
   // Đấu API mua sản phẩm (kiểu ThaTim): gọi action=buy cho từng đơn vị
   if (variant.product.fulfillment === "API") {

@@ -26,7 +26,7 @@ export default async function AdminCleanupPage({ searchParams }: { searchParams:
     { label: "DATABASE", value: dbOk ? "Đã kết nối" : "Mất kết nối", cls: "bg-emerald-50 text-emerald-500", icon: (<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14a9 3 0 0 0 18 0V5" /><path d="M3 12a9 3 0 0 0 18 0" /></svg>) },
   ];
   const caches = [
-    { kind: "pages", title: "Cache trang", desc: "Xoá cache dựng sẵn của các trang công khai (trang chủ, dịch vụ, premium, bài viết, gian hàng) để khách thấy dữ liệu mới nhất" },
+    { kind: "pages", title: "Cache trang", desc: "Xoá cache dựng sẵn của các trang công khai (trang chủ, dịch vụ, premium, bài viết, website) để khách thấy dữ liệu mới nhất" },
     { kind: "routes", title: "Cache route", desc: "Xoá toàn bộ cache route/layout của Next.js trên toàn hệ thống — mọi trang dựng lại từ đầu ở lần mở kế tiếp" },
     { kind: "providers", title: "Cache số dư nhà cung cấp", desc: `Đặt lại số dư nhà cung cấp đang lưu đệm (${num(providersCached)} nguồn) — lần kiểm tra kế tiếp sẽ lấy số dư thật từ nguồn` },
   ];

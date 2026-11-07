@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /** Shop Premium TRONG khu khách — cùng khung dashboard với SMM (sidebar + header),
  *  dùng chung nội dung với trang công khai qua PremiumShopView. */
-export default async function DashboardPremiumPage({ searchParams }: { searchParams: { cat?: string; q?: string } }) {
+export default async function DashboardPremiumPage({ searchParams }: { searchParams: { cat?: string; q?: string; sort?: string; from?: string; to?: string } }) {
   if ((await getSettings()).module_premium === "0") {
     return (
       <div className="card p-8 text-center">
@@ -16,5 +16,5 @@ export default async function DashboardPremiumPage({ searchParams }: { searchPar
       </div>
     );
   }
-  return <PremiumShopView cat={searchParams.cat} q={searchParams.q} base="/dashboard/premium" />;
+  return <PremiumShopView cat={searchParams.cat} q={searchParams.q} sort={searchParams.sort} from={searchParams.from} to={searchParams.to} base="/dashboard/premium" />;
 }

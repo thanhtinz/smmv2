@@ -144,7 +144,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
 {accessiblePanels.length > 1 && <PanelSwitcher panels={accessiblePanels.map((a) => ({ id: a.panel.id, label: a.panel.domain || a.panel.name }))} currentId={panel.id} />}
                             <AdminRealtime endpoint="/api/panel-admin/realtime" suffix={`panel-${panel.id}`} />
               <DisplaySettings />
-              <Link href={`/cua-hang/${panel.slug}`} className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Xem gian hàng</Link>
+              <Link href={`/cua-hang/${panel.slug}`} className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Xem website</Link>
               <Link href="/dashboard" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Khu khách hàng</Link>
               <span className="hidden items-center gap-2 rounded-full bg-slate-100 py-1 pl-1 pr-3 sm:flex">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-xs font-bold text-white">{initial}</span>

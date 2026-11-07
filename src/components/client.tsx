@@ -733,7 +733,7 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
   const step1Ok = d.name.trim().length >= 3 && (mode === "edit" || d.slug.trim().length >= 3);
   const panelPrice = (rate: number) => Math.round(rate * (1 + (Number(d.markup) || 0) / 100));
   const tierPrice = (rate: number, disc: number) => Math.round(panelPrice(rate) * (1 - disc / 100));
-  const steps = ["Thông tin gian hàng", "Giá & cấp bậc", "Kết nối API", "Tên miền & hỗ trợ", "Hoàn tất"];
+  const steps = ["Thông tin website", "Giá & cấp bậc", "Kết nối API", "Tên miền & hỗ trợ", "Hoàn tất"];
   return (
     <form action={action} className="card p-6 sm:p-8">
       <input type="hidden" name="setupDone" value="1" />
@@ -749,7 +749,7 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
       </div>
 
       <div className={step === 1 ? "space-y-4 max-w-xl" : "hidden"}>
-          <div><label className="lbl">Tên panel / gian hàng *</label><input className="inp" name="name" required minLength={3} value={d.name} onChange={(e) => set("name", e.target.value)} placeholder="Vd: Tăng Tương Tác Pro" /></div>
+          <div><label className="lbl">Tên panel / website *</label><input className="inp" name="name" required minLength={3} value={d.name} onChange={(e) => set("name", e.target.value)} placeholder="Vd: Tăng Tương Tác Pro" /></div>
           <div>
             <label className="lbl">Đường dẫn (slug) {mode === "create" ? "*" : ""}</label>
             {mode === "create" ? (
@@ -761,7 +761,7 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
           </div>
           <div><label className="lbl">Câu giới thiệu</label><input className="inp" name="tagline" maxLength={255} value={d.tagline} onChange={(e) => set("tagline", e.target.value)} placeholder="Dịch vụ nhanh — bảo hành rõ ràng" /></div>
           <div>
-            <label className="lbl">Màu chủ đạo của gian hàng</label>
+            <label className="lbl">Màu chủ đạo của website</label>
             <input type="hidden" name="accent" value={d.accent} />
             <div className="flex flex-wrap gap-2">
               {accents.map((a) => (
@@ -826,12 +826,12 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
           <div>
             <label className="lbl">Tên miền riêng (tuỳ chọn)</label>
             <input className="inp" name="domain" value={d.domain} onChange={(e) => set("domain", e.target.value)} placeholder="shop.tenmiencuaban.com" />
-            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">Trỏ bản ghi <b>CNAME</b> của tên miền về máy chủ của hệ thống, gian hàng sẽ chạy ngay trên tên miền của bạn. Chưa có tên miền thì bỏ qua — dùng đường dẫn /cua-hang/{d.slug || "..."} cũng đầy đủ tính năng.</p>
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">Trỏ bản ghi <b>CNAME</b> của tên miền về máy chủ của hệ thống, website sẽ chạy ngay trên tên miền của bạn. Chưa có tên miền thì bỏ qua — dùng đường dẫn /cua-hang/{d.slug || "..."} cũng đầy đủ tính năng.</p>
           </div>
           <div>
             <label className="lbl">Liên hệ hỗ trợ của panel</label>
             <input className="inp" name="support" maxLength={255} value={d.support} onChange={(e) => set("support", e.target.value)} placeholder="Vd: Zalo 0901 234 567 hoặc https://t.me/hotrocuaban" />
-            <p className="text-xs text-slate-400 mt-1.5">Hiện ở gian hàng để khách của panel liên hệ bạn trực tiếp khi cần.</p>
+            <p className="text-xs text-slate-400 mt-1.5">Hiện ở website để khách của panel liên hệ bạn trực tiếp khi cần.</p>
           </div>
         </div>
 
@@ -839,13 +839,13 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
           <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5">
             <div className="font-bold text-emerald-800">Sẵn sàng mở bán</div>
             <ul className="mt-2.5 text-sm text-emerald-700 space-y-1.5">
-              <li>— Gian hàng: <b>/cua-hang/{d.slug || "..."}</b>{d.domain ? <> và tên miền <b>{d.domain}</b></> : ""}</li>
+              <li>— Website: <b>/cua-hang/{d.slug || "..."}</b>{d.domain ? <> và tên miền <b>{d.domain}</b></> : ""}</li>
               <li>— Liên kết web mẹ bằng API key <b className="font-mono">{d.apiKey ? `${d.apiKey.slice(0, 6)}••••••` : "(chưa nhập)"}</b></li>
               <li>— Giá bán: giá gốc + {Number(d.markup) || 0}%, giảm thêm theo bậc: Đại lý −{d.discountReseller}%, Tổng đại lý −{d.discountAgency}%, VIP −{d.discountVip}%</li>
-              <li>— Khách đăng ký tại gian hàng là khách của bạn; hoa hồng vào ví ngay khi có đơn.</li>
+              <li>— Khách đăng ký tại website là khách của bạn; hoa hồng vào ví ngay khi có đơn.</li>
             </ul>
           </div>
-          <p className="text-sm text-slate-500 mt-4 leading-relaxed">Sau khi {mode === "create" ? "tạo" : "lưu"}, hãy chia sẻ link gian hàng cho khách. Bạn gán cấp bậc cho từng khách và theo dõi hoa hồng tại Panel Admin của panel.</p>
+          <p className="text-sm text-slate-500 mt-4 leading-relaxed">Sau khi {mode === "create" ? "tạo" : "lưu"}, hãy chia sẻ link website cho khách. Bạn gán cấp bậc cho từng khách và theo dõi hoa hồng tại Panel Admin của panel.</p>
         </div>
 
       <div className="flex items-center justify-between mt-9 pt-5 border-t border-dashed">
@@ -928,7 +928,7 @@ export function PanelPriceEditor({ services, overrides, action, deleteAction }: 
 }
 
 /* ---------- Form mua premium ---------- */
-export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50, backBase }: {
+export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50, backBase, layout, productImage, productColor }: {
   variants: { id: number; name: string; price: number; warrantyDays: number; stock: number }[];
   slug: string;
   fulfillment: string;
@@ -937,10 +937,123 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   note?: string | null; // hướng dẫn riêng của sản phẩm (hộp xanh phía trên các ô nhập)
   maxQty?: number; // trần số lượng mỗi đơn — lấy từ cấu hình hệ thống
   backBase?: string; // gốc đường dẫn trang chi tiết (/premium hoặc /dashboard/premium) để trả về đúng khung khi có lỗi
+  layout?: "stacked" | "split"; // split = bố cục 2 cột kiểu shopkey ở trang chi tiết web mẹ (gói trái, hộp đặt hàng phải); stacked = dạng cũ ở website con
+  productImage?: string | null;
+  productColor?: string;
 }) {
   const [variantId, setVariantId] = useState(variants[0]?.id);
   const [qty, setQty] = useState(1);
   const v = variants.find((x) => x.id === variantId) || variants[0];
+
+  if (layout === "split") {
+    const total = (v?.price || 0) * qty;
+    const infoFields = (
+      <>
+        {fields && fields.length > 0 ? (
+          <div className="space-y-3.5">
+            {fields.map((f, i) => (
+              <div key={i}>
+                <label className="lbl">{f.label}{f.required ? " *" : ""}</label>
+                {f.type === "textarea" ? (
+                  <textarea className="inp" name={`cf_${i}`} rows={3} required={f.required} placeholder={f.placeholder || ""} />
+                ) : f.type === "select" ? (
+                  <select className="inp" name={`cf_${i}`} required={f.required} defaultValue="">
+                    <option value="" disabled>-- Chọn --</option>
+                    {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                ) : (
+                  <input className="inp" name={`cf_${i}`} required={f.required} placeholder={f.placeholder || ""} />
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (fulfillment === "MANUAL" || fulfillment === "API") ? (
+          <div>
+            <label className="lbl">Email / tài khoản của bạn để bàn giao *</label>
+            <input className="inp" name="buyerInfo" required placeholder="Vd: email nhận gói / tài khoản cần nâng cấp" />
+            <p className="mt-1.5 text-xs text-slate-400">{fulfillment === "API" ? "Thông tin này được gửi kèm đơn sang nhà cung cấp để bàn giao gói." : "Gói này được nâng cấp trực tiếp lên tài khoản của bạn — chỉ cần email, không cần mật khẩu."}</p>
+          </div>
+        ) : (
+          <div>
+            <label className="lbl">Ghi chú (tuỳ chọn)</label>
+            <input className="inp" name="buyerInfo" placeholder="Email nhận tài khoản (mặc định dùng email tài khoản của bạn)" />
+          </div>
+        )}
+      </>
+    );
+    return (
+      <form action={action} className="grid grid-cols-1 items-start gap-8 lg:grid-cols-5">
+        <input type="hidden" name="slug" value={slug} />
+        {backBase ? <input type="hidden" name="returnTo" value={`${backBase}/${slug}`} /> : null}
+        <input type="hidden" name="variantId" value={v?.id || ""} />
+        <div className="lg:col-span-3">
+          <h2 className="text-lg font-extrabold text-slate-900">Chọn gói sản phẩm</h2>
+          <div className="mt-4 space-y-2.5">
+            {variants.map((x) => {
+              const selected = x.id === v?.id;
+              return (
+                <button type="button" key={x.id} onClick={() => setVariantId(x.id)}
+                  className={`flex w-full items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left transition ${selected ? "border-brand-600 bg-brand-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                  <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${selected ? "border-brand-600" : "border-slate-300"}`}>
+                    {selected && <span className="h-2.5 w-2.5 rounded-full bg-brand-600" />}
+                  </span>
+                  {productImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={productImage} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                  ) : (
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-black text-white" style={{ background: productColor || "#3178fc" }}>{slug.charAt(0).toUpperCase()}</span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-bold text-slate-900">{x.name}</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">
+                      {x.warrantyDays ? `Bảo hành ${x.warrantyDays} ngày` : "Không bảo hành"}
+                      {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? ` · Còn ${x.stock} trong kho` : " · Hết kho — giao tay") : fulfillment === "API" ? " · Giao qua nhà cung cấp" : " · Giao thủ công"}
+                    </span>
+                  </span>
+                  {fulfillment === "AUTO_STOCK" && x.stock > 0 ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-teal-600">
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
+                      Giao ngay
+                    </span>
+                  ) : (
+                    <span className="shrink-0 text-xs font-bold text-slate-400">Order</span>
+                  )}
+                  <span className="shrink-0 font-extrabold text-rose-600">{vnd(x.price)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="card space-y-4 p-5 lg:sticky lg:top-24 lg:col-span-2">
+          <div>
+            <label className="lbl">Số lượng</label>
+            <div className="flex h-[46px] items-stretch">
+              <button type="button" aria-label="Giảm số lượng" onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-11 rounded-l-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">−</button>
+              <input className="w-16 border-y border-slate-300 bg-transparent text-center text-lg font-bold text-slate-900 outline-none" name="quantity" type="number" min={1} max={maxQty} value={qty} onChange={(e) => setQty(parseInt(e.target.value) || 1)} />
+              <button type="button" aria-label="Tăng số lượng" onClick={() => setQty((q) => Math.min(maxQty, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
+            </div>
+          </div>
+          {note && <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-sky-900">{note}</div>}
+          <div className="rounded-xl bg-slate-50 p-4">
+            <div className="mb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">Thông tin Order</div>
+            {infoFields}
+          </div>
+          <details>
+            <summary className="cursor-pointer list-none text-sm font-semibold text-brand-700 [&::-webkit-details-marker]:hidden">Bạn có mã giảm giá?</summary>
+            <input className="inp mt-2 uppercase" name="promoCode" placeholder="VD: SALE10" autoComplete="off" />
+          </details>
+          <div className="space-y-1.5 border-t border-slate-100 pt-3 text-sm">
+            <div className="flex justify-between text-slate-500"><span>Tạm tính</span><span className="font-semibold text-slate-700">{vnd(total)}</span></div>
+            <div className="flex items-baseline justify-between"><span className="font-semibold text-slate-700">Tổng cộng</span><span className="text-xl font-extrabold text-rose-600">{vnd(total)}</span></div>
+            <div className="text-xs text-slate-400">
+              {fulfillment === "AUTO_STOCK" ? `Kho hàng: ${v?.stock || 0} sản phẩm` : fulfillment === "API" ? "Giao tự động qua nhà cung cấp" : "Nâng cấp thủ công trên tài khoản của bạn"}
+            </div>
+          </div>
+          <button className="btn-primary w-full !py-3">Đặt hàng ngay</button>
+        </div>
+      </form>
+    );
+  }
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="slug" value={slug} />

@@ -10,7 +10,7 @@ const QUICK = ["Tăng follow TikTok cho kênh bán hàng", "Follow Facebook giá
 
 /** Livechat nổi: trợ lý tư vấn dịch vụ ngay trong khung chat — khách mô tả nhu cầu,
  *  hệ thống (AI nếu đã cấu hình, không thì tìm từ khoá) gợi ý dịch vụ kèm giá của
- *  chính khách và nút đặt đơn. panelSlug: khi đặt trong gian hàng con thì giá theo panel. */
+ *  chính khách và nút đặt đơn. panelSlug: khi đặt trong website con thì giá theo panel. */
 export function LiveChat({ panelSlug }: { panelSlug?: string }) {
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([

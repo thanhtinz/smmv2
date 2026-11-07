@@ -17,7 +17,7 @@ export default async function PanelEarn({ params, searchParams }: { params: { sl
       <PanelShell panel={panel} user={user}>
         <div className="card p-8 text-center">
           <div className="font-bold text-slate-900">Mục Kiếm tiền đang tắt</div>
-          <p className="mt-1 text-sm text-slate-400">Gian hàng này đã tắt mô-đun giới thiệu kiếm tiền.</p>
+          <p className="mt-1 text-sm text-slate-400">Website này đã tắt mô-đun giới thiệu kiếm tiền.</p>
         </div>
       </PanelShell>
     );

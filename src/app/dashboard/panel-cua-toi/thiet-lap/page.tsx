@@ -29,7 +29,7 @@ export default async function PanelSetupPage({ searchParams }: { searchParams: {
     <div>
       <PageHead
         title={panel ? "Cấu hình panel con" : "Cấu hình panel con lần đầu"}
-        desc={panel ? "Chỉnh lại thông tin, giá theo cấp bậc, API key liên kết, tên miền và hỗ trợ của gian hàng." : "Năm bước ngắn để gian hàng của bạn sẵn sàng mở bán: thông tin, giá theo cấp bậc, nhập API key liên kết web mẹ, tên miền và hỗ trợ."}
+        desc={panel ? "Chỉnh lại thông tin, giá theo cấp bậc, API key liên kết, tên miền và hỗ trợ của website." : "Năm bước ngắn để website của bạn sẵn sàng mở bán: thông tin, giá theo cấp bậc, nhập API key liên kết web mẹ, tên miền và hỗ trợ."}
       />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <PanelSetupWizard mode={panel ? "edit" : "create"} initial={initial} samples={samples} apiUrl={apiUrl} action={panel ? updatePanelAction : createPanelAction} />

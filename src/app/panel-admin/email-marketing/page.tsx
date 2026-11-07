@@ -19,7 +19,7 @@ export default async function PanelEmailPage({ searchParams }: { searchParams: {
   ]);
   return (
     <div>
-      <PageHead title="Email marketing" desc="Gửi email quảng bá tới khách của gian hàng qua hệ thống thư chung." />
+      <PageHead title="Email marketing" desc="Gửi email quảng bá tới khách của website qua hệ thống thư chung." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       {!globalReady && !panelReady && <div className="card mb-6 border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">Chưa gửi được email: hãy điền SMTP riêng của panel ở mục Cấu hình, hoặc nhờ Admin web chính cấu hình thư hệ thống (Cấu hình → Email).</div>}
       {panelReady && <div className="card mb-6 border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">Đang dùng SMTP riêng của panel ({panel.smtpHost}) để gửi.</div>}

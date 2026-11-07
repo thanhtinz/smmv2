@@ -18,8 +18,8 @@ export default async function PanelPremiumPage({ params, searchParams }: { param
         <main className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-12">
           <div className="card max-w-md p-8 text-center">
             <div className="text-lg font-bold text-slate-900">Mảng Premium đang tắt</div>
-            <p className="mt-2 text-sm text-slate-500">Gian hàng hiện không bán tài khoản Premium. Vui lòng quay lại sau.</p>
-            <Link href={`/cua-hang/${panel.slug}`} className="btn-primary mt-5 inline-block">Về gian hàng</Link>
+            <p className="mt-2 text-sm text-slate-500">Website hiện không bán tài khoản Premium. Vui lòng quay lại sau.</p>
+            <Link href={`/cua-hang/${panel.slug}`} className="btn-primary mt-5 inline-block">Về website</Link>
           </div>
         </main>
         <SiteFooter brand={{ name: panel.name, slug: panel.slug }} />

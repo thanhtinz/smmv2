@@ -5,7 +5,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { vnd, num, PLATFORMS } from "@/lib/format";
 
 /**
- * Landing tối dùng chung cho web mẹ và gian hàng panel con (hai nơi hiển thị giống hệt nhau,
+ * Landing tối dùng chung cho web mẹ và website panel con (hai nơi hiển thị giống hệt nhau,
  * chỉ khác thương hiệu, giá và liên kết). Nội dung số liệu do từng trang tự tính từ dữ liệu thật.
  */
 export type LandingPlatform = { platform: string; count: number; from: number; points: string[] };
@@ -265,7 +265,7 @@ export function LandingView(props: {
             {[
               { t: "Chủ shop & người bán hàng", d: "Tăng độ tin cậy cho fanpage và bài bán hàng, giữ nhịp tương tác đều mà không tốn chi phí quảng cáo lớn.", icon: I.cart },
               { t: "Nhà sáng tạo nội dung", d: "Đẩy kênh TikTok, YouTube, Instagram trong giai đoạn đầu — lúc thuật toán cần tín hiệu tương tác nhất.", icon: I.megaphone },
-              { t: "Đại lý & đội nhóm SMM", d: "Giá tốt dần theo cấp bậc, API đấu nối vào hệ thống riêng, và mở được gian hàng con mang thương hiệu của bạn.", icon: I.users },
+              { t: "Đại lý & đội nhóm SMM", d: "Giá tốt dần theo cấp bậc, API đấu nối vào hệ thống riêng, và mở được website con mang thương hiệu của bạn.", icon: I.users },
             ].map((c) => (
               <div key={c.t} className="rounded-[24px] border border-white/10 bg-white/[0.04] p-7">
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-600/15 text-rose-400">{c.icon}</span>

@@ -13,7 +13,7 @@ async function assertNotBanned(panelId?: number) {
   const ban = await prisma.ipBan
     .findFirst({ where: { ip, OR: [{ panelId: null }, ...(panelId ? [{ panelId }] : [])] } })
     .catch(() => null);
-  if (ban) throw new Error("Địa chỉ IP của bạn đã bị chặn" + (ban.panelId ? " khỏi gian hàng này" : " khỏi hệ thống") + (ban.reason ? `: ${ban.reason}` : ""));
+  if (ban) throw new Error("Địa chỉ IP của bạn đã bị chặn" + (ban.panelId ? " khỏi website này" : " khỏi hệ thống") + (ban.reason ? `: ${ban.reason}` : ""));
 }
 import { createSession, destroySession } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
@@ -81,7 +81,7 @@ export async function panelRegisterAction(formData: FormData) {
   const slug = String(formData.get("slug") || "");
   const panel = await prisma.childPanel.findUnique({ where: { slug } });
   if (!panel || panel.status !== "ACTIVE") back(`/cua-hang/${slug}`, "err", "Panel này đang tạm ngưng nhận khách mới");
-  if (!panel.moduleRegister) back(`/cua-hang/${slug}/dang-ky`, "err", "Gian hàng này đang tạm đóng đăng ký mới");
+  if (!panel.moduleRegister) back(`/cua-hang/${slug}/dang-ky`, "err", "Website này đang tạm đóng đăng ký mới");
   try { await assertNotBanned(panel.id); } catch (e: any) { back(`/cua-hang/${slug}/dang-ky`, "err", String(e?.message || "IP bị chặn")); }
   const username = String(formData.get("username") || "").trim().toLowerCase();
   const email = String(formData.get("email") || "").trim().toLowerCase();
@@ -108,7 +108,7 @@ export async function panelRegisterAction(formData: FormData) {
     },
   });
   await recordRegAttempt(regIp);
-  void (async () => { const { alertMother, alertPanelOwner } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản qua panel ${panel.name}`); await alertPanelOwner(panel.id, "new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản tại gian hàng của bạn`); })();
+  void (async () => { const { alertMother, alertPanelOwner } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản qua panel ${panel.name}`); await alertPanelOwner(panel.id, "new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản tại website của bạn`); })();
   await createSession({ id: user.id, role: user.role, username: user.username });
   redirect("/dashboard");
 }

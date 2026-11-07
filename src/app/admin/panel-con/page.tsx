@@ -19,7 +19,7 @@ export default async function AdminPanels({ searchParams }: { searchParams: { ms
   });
   return (
     <div>
-      <PageHead title="Panel con" desc="Các gian hàng riêng do đại lý tạo — khách của panel mua giá cộng markup, chủ panel hưởng hoa hồng." />
+      <PageHead title="Panel con" desc="Các website riêng do đại lý tạo — khách của panel mua giá cộng markup, chủ panel hưởng hoa hồng." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
@@ -57,7 +57,7 @@ export default async function AdminPanels({ searchParams }: { searchParams: { ms
           </table>
         </div>
       </div>
-      <p className="text-xs text-slate-400 mt-4">Tạo lúc: {panels[0] ? dt(panels[0].createdAt) : "—"} · Khoá panel = khách của panel mua theo giá gốc và chủ panel không nhận hoa hồng nữa; gian hàng cũng ẩn.</p>
+      <p className="text-xs text-slate-400 mt-4">Tạo lúc: {panels[0] ? dt(panels[0].createdAt) : "—"} · Khoá panel = khách của panel mua theo giá gốc và chủ panel không nhận hoa hồng nữa; website cũng ẩn.</p>
     </div>
   );
 }

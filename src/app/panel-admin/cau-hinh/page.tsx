@@ -41,12 +41,12 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Trang giới thiệu (Landing Page)</div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div><label className="lbl">Tiêu đề Hero (H1)</label><input className="inp" name="landingHeadline" defaultValue={panel.landingHeadline || ""} placeholder="VD: Shop Tăng Tương Tác Số 1" /><p className="mt-1 text-xs text-slate-400">Tiêu đề chính ở trang giới thiệu của gian hàng — để trống dùng câu mặc định.</p></div>
-          <div><label className="lbl">Phụ đề (Subtitle)</label><input className="inp" name="landingSubtitle" defaultValue={panel.landingSubtitle || ""} /><p className="mt-1 text-xs text-slate-400">Phụ đề ngay dưới tiêu đề chính — để trống dùng khẩu hiệu của gian hàng.</p></div>
+          <div><label className="lbl">Tiêu đề Hero (H1)</label><input className="inp" name="landingHeadline" defaultValue={panel.landingHeadline || ""} placeholder="VD: Shop Tăng Tương Tác Số 1" /><p className="mt-1 text-xs text-slate-400">Tiêu đề chính ở trang giới thiệu của website — để trống dùng câu mặc định.</p></div>
+          <div><label className="lbl">Phụ đề (Subtitle)</label><input className="inp" name="landingSubtitle" defaultValue={panel.landingSubtitle || ""} /><p className="mt-1 text-xs text-slate-400">Phụ đề ngay dưới tiêu đề chính — để trống dùng khẩu hiệu của website.</p></div>
         </div>
-        <a href={`/cua-hang/${panel.slug}`} target="_blank" className="btn-ghost btn-sm inline-block">Xem gian hàng của bạn</a>
+        <a href={`/cua-hang/${panel.slug}`} target="_blank" className="btn-ghost btn-sm inline-block">Xem website của bạn</a>
         <div>
-          <label className="lbl">Mẫu Landing Page của gian hàng</label>
+          <label className="lbl">Mẫu Landing Page của website</label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {landingTemplates.map((a) => (
               <label key={a.value} className="cursor-pointer">
@@ -64,7 +64,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
       </section>
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Giao diện trang Đăng nhập / Đăng ký</div>
-        <p className="text-sm text-slate-400">Áp dụng khi khách vào bằng tên miền riêng của gian hàng. Để trống là theo kiểu của web mẹ.</p>
+        <p className="text-sm text-slate-400">Áp dụng khi khách vào bằng tên miền riêng của website. Để trống là theo kiểu của web mẹ.</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {authStyles.map((a) => (
             <label key={a.value} className="cursor-pointer">
@@ -91,7 +91,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
         <form action={panelSaveConfigAction} className="card space-y-4 p-6">
           <input type="hidden" name="section" value="brand" />
           <div className="font-bold text-slate-900">Thương hiệu</div>
-          <div><label className="lbl">Tên gian hàng</label><input name="name" defaultValue={panel.name} className="inp" /></div>
+          <div><label className="lbl">Tên website</label><input name="name" defaultValue={panel.name} className="inp" /></div>
           <div><label className="lbl">Khẩu hiệu (tagline)</label><input name="tagline" defaultValue={panel.tagline || ""} className="inp" /></div>
           <div><label className="lbl">Màu chủ đạo</label>
             <select name="accent" defaultValue={panel.accent} className="inp">
@@ -131,7 +131,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
             <div className="mt-0.5 text-lg font-medium leading-snug text-[#1a0dab]">{panel.name} — SMM Panel &amp; Tài khoản Premium</div>
             <div className="mt-0.5 text-sm text-slate-500">{panel.metaDescription || panel.tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt"}</div>
           </div>
-          <p className="text-xs text-slate-400">Áp dụng trên tên miền riêng của gian hàng.</p>
+          <p className="text-xs text-slate-400">Áp dụng trên tên miền riêng của website.</p>
         </div>
         <form action={updatePanelAction} className="card space-y-4 p-6">
           <input type="hidden" name="back" value="/panel-admin/cau-hinh" />
@@ -139,7 +139,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
           <div>
             <label className="lbl">Tên miền riêng</label>
             <input className="inp" name="domain" defaultValue={panel.domain || ""} placeholder="vd: shopcuaban.vn" />
-            <p className="mt-1.5 text-xs text-slate-400">Trỏ NameServer của tên miền về máy chủ hệ thống để khách vào thẳng gian hàng bằng tên miền của bạn.</p>
+            <p className="mt-1.5 text-xs text-slate-400">Trỏ NameServer của tên miền về máy chủ hệ thống để khách vào thẳng website bằng tên miền của bạn.</p>
           </div>
           <div>
             <label className="lbl">API key liên kết web mẹ</label>
@@ -236,7 +236,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
     <form action={panelSaveConfigAction} className="card space-y-4 p-6">
       <input type="hidden" name="section" value="telegram" />
       <div className="font-bold text-slate-900">Telegram báo đơn</div>
-      <p className="text-sm text-slate-400">Có đơn mới qua gian hàng (SMM hoặc Premium), bot sẽ nhắn ngay cho bạn.</p>
+      <p className="text-sm text-slate-400">Có đơn mới qua website (SMM hoặc Premium), bot sẽ nhắn ngay cho bạn.</p>
       <div><label className="lbl">Bot token {panel.telegramBotToken && <span className="font-semibold text-emerald-600">— đã lưu</span>}</label><input name="telegramBotToken" defaultValue="" placeholder={mask(panel.telegramBotToken) || "123456:ABC-..."} className="inp" /></div>
       <div><label className="lbl">Chat ID của bạn</label><input name="telegramChatId" defaultValue={panel.telegramChatId || ""} className="inp" /></div>
       <button className="btn-primary !py-2.5">Lưu Telegram</button>
@@ -248,8 +248,8 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
     <form action={panelSaveConfigAction} className="space-y-6">
       <input type="hidden" name="section" value="thongbao" />
       <section className="card p-6 space-y-4">
-        <div className="font-bold text-slate-900">Thanh thông báo của gian hàng</div>
-        <div><label className="lbl">Nội dung thanh thông báo</label><input name="announcement" defaultValue={panel.announcement || ""} className="inp" placeholder="VD: Khuyến mãi nạp lần đầu +10% hôm nay" /><p className="mt-1 text-xs text-slate-400">Hiện ở đầu trang giới thiệu của gian hàng. Để trống là tắt.</p></div>
+        <div className="font-bold text-slate-900">Thanh thông báo của website</div>
+        <div><label className="lbl">Nội dung thanh thông báo</label><input name="announcement" defaultValue={panel.announcement || ""} className="inp" placeholder="VD: Khuyến mãi nạp lần đầu +10% hôm nay" /><p className="mt-1 text-xs text-slate-400">Hiện ở đầu trang giới thiệu của website. Để trống là tắt.</p></div>
       </section>
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Thông báo hệ thống ở trang chủ khách</div>
@@ -327,7 +327,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
     <>
       <div className="card space-y-4 p-6">
         <div className="font-bold text-slate-900">Bảo mật của panel</div>
-        <p className="text-sm leading-relaxed text-slate-500">Panel có mục Bảo mật riêng: chặn IP theo phạm vi gian hàng của bạn và xem nhật ký hoạt động quản trị của panel. Chính sách mật khẩu, giới hạn đăng nhập sai và CAPTCHA là cấu hình bảo mật chung của toàn hệ thống do web mẹ quản lý.</p>
+        <p className="text-sm leading-relaxed text-slate-500">Panel có mục Bảo mật riêng: chặn IP theo phạm vi website của bạn và xem nhật ký hoạt động quản trị của panel. Chính sách mật khẩu, giới hạn đăng nhập sai và CAPTCHA là cấu hình bảo mật chung của toàn hệ thống do web mẹ quản lý.</p>
         <a href="/panel-admin/bao-mat" className="btn-primary inline-block !py-2.5">Mở mục Bảo mật của panel</a>
       </div>
       <form action={panelSaveConfigAction} className="card mt-6 space-y-4 p-6">
@@ -347,7 +347,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
   const cron = (
     <div className="card space-y-4 p-6">
       <div className="font-bold text-slate-900">Công việc tự động của panel</div>
-      <p className="text-sm text-slate-500">Đồng bộ đơn, báo cáo và đơn hẹn giờ của gian hàng chạy tự động theo lịch hệ thống.</p>
+      <p className="text-sm text-slate-500">Đồng bộ đơn, báo cáo và đơn hẹn giờ của website chạy tự động theo lịch hệ thống.</p>
       <a href="/panel-admin/bao-cao" className="btn-ghost btn-sm inline-block">Mở Báo cáo &amp; Thông báo</a>
     </div>
   );
@@ -420,7 +420,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
       <input type="hidden" name="section" value="script" />
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">Mã chèn vào &lt;head&gt;</div>
-        <div className={infoBox}>Mã này chỉ chạy trên tên miền riêng của gian hàng bạn (mã của web mẹ không chạy ở đây và ngược lại). Hợp với mã thống kê, chat hỗ trợ ngoài, xác minh tên miền…</div>
+        <div className={infoBox}>Mã này chỉ chạy trên tên miền riêng của website bạn (mã của web mẹ không chạy ở đây và ngược lại). Hợp với mã thống kê, chat hỗ trợ ngoài, xác minh tên miền…</div>
         <textarea name="customHeadHtml" rows={6} defaultValue={panel.customHeadHtml || ""} className={codeArea} placeholder="<!-- Dán mã HTML/JS chèn vào <head> -->" spellCheck={false} />
       </section>
       <section className="card p-6 space-y-4">
@@ -448,7 +448,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
 
   return (
     <div>
-      <PageHead title="Cấu hình" desc="Đầy đủ cấu hình như web mẹ, áp cho riêng gian hàng của bạn — chỉ trừ cấu hình nguồn dịch vụ vốn thuộc về web mẹ." />
+      <PageHead title="Cấu hình" desc="Đầy đủ cấu hình như web mẹ, áp cho riêng website của bạn — chỉ trừ cấu hình nguồn dịch vụ vốn thuộc về web mẹ." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <SettingsTabs tabs={[
         { id: "landing", label: "Landing Page", icon: I.home, content: landing },

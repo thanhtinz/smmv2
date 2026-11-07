@@ -19,8 +19,8 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
   ]);
   return (
     <div>
-      <PageHead title="Tổng quan panel" desc={`Gian hàng của bạn: /cua-hang/${panel.slug}${panel.domain ? ` · tên miền ${panel.domain}` : ""}`}>
-        <Link href={`/cua-hang/${panel.slug}`} className="btn-primary btn-sm !px-4 !py-2">Xem gian hàng</Link>
+      <PageHead title="Tổng quan panel" desc={`Website của bạn: /cua-hang/${panel.slug}${panel.domain ? ` · tên miền ${panel.domain}` : ""}`}>
+        <Link href={`/cua-hang/${panel.slug}`} className="btn-primary btn-sm !px-4 !py-2">Xem website</Link>
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -39,7 +39,7 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
             <div className="font-bold text-slate-900">Đơn mới nhất qua panel</div>
             <Link href="/panel-admin/don-hang" className="text-sm font-semibold text-brand-600">Xem tất cả</Link>
           </div>
-          {orders.length === 0 ? <p className="text-sm text-slate-400">Chưa có đơn nào qua panel. Chia sẻ link gian hàng để bắt đầu có hoa hồng.</p> : (
+          {orders.length === 0 ? <p className="text-sm text-slate-400">Chưa có đơn nào qua panel. Chia sẻ link website để bắt đầu có hoa hồng.</p> : (
             <div className="divide-y divide-slate-100">{orders.map((o) => (
               <div key={o.id} className="py-2.5 flex items-center justify-between gap-3 text-sm">
                 <div className="min-w-0"><span className="font-mono font-semibold text-slate-700">{o.code}</span> <span className="text-slate-400">· {o.user.username}</span><div className="text-slate-500 truncate">{o.service.name}</div></div>

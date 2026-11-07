@@ -14,7 +14,7 @@ export default async function PanelBanks({ searchParams }: { searchParams: { msg
   const editing = searchParams.edit ? accounts.find((a) => a.id === parseInt(searchParams.edit!)) : undefined;
   return (
     <div>
-      <PageHead title="Ngân hàng" desc="Tài khoản ngân hàng nhận tiền nạp của riêng gian hàng — khách của panel thấy các tài khoản đang bật ở trang Nạp tiền. (Kênh nạp tự động QR ngân hàng qua SePay vẫn dùng cấu hình chung của web mẹ.)" />
+      <PageHead title="Ngân hàng" desc="Tài khoản ngân hàng nhận tiền nạp của riêng website — khách của panel thấy các tài khoản đang bật ở trang Nạp tiền. (Kênh nạp tự động QR ngân hàng qua SePay vẫn dùng cấu hình chung của web mẹ.)" />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

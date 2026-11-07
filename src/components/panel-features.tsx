@@ -54,7 +54,7 @@ export function PanelCodeModal({ code, onClose }: { code?: PanelCodeDTO; onClose
             <div><label className={lbl}>Bắt đầu</label><input name="startsAt" type="datetime-local" defaultValue={c?.startsAt || ""} className={inp} /></div>
             <div><label className={lbl}>Kết thúc</label><input name="endsAt" type="datetime-local" defaultValue={c?.endsAt || ""} className={inp} /></div>
           </div>
-          <p className="text-xs text-slate-400">Mã chỉ áp dụng cho khách mua qua gian hàng của bạn; khách web mẹ không dùng được mã này.</p>
+          <p className="text-xs text-slate-400">Mã chỉ áp dụng cho khách mua qua website của bạn; khách web mẹ không dùng được mã này.</p>
         </div>
         <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
           <button type="button" onClick={onClose} className="btn-ghost btn-sm !px-5 !py-2.5">Hủy</button>

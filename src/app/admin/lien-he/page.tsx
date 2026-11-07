@@ -36,7 +36,7 @@ export default async function AdminContactPage({ searchParams }: { searchParams:
         <div className="space-y-6">
           <form action={saveContactAction} className="card p-6">
             <div className="font-bold text-slate-900">Hiển thị widget</div>
-            <p className="mt-1 text-sm text-slate-400">Công tắc tổng — tắt là ẩn trên web mẹ, khu khách và mọi gian hàng con.</p>
+            <p className="mt-1 text-sm text-slate-400">Công tắc tổng — tắt là ẩn trên web mẹ, khu khách và mọi website con.</p>
             <div className="mt-3">
               <Switch name="support_widget_enabled" label="Hiện widget liên hệ nổi" defaultChecked={s.support_widget_enabled !== "0"} />
               <Switch name="livechat_enabled" label="Hiện nút AI tư vấn trên toàn hệ thống" defaultChecked={s.livechat_enabled !== "0"} />

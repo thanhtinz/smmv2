@@ -24,7 +24,7 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
   });
   return (
     <div>
-      <PageHead title="Bảo mật nâng cao" desc="Cấm IP trong phạm vi gian hàng của bạn và xem hoạt động gần đây liên quan tới panel." />
+      <PageHead title="Bảo mật nâng cao" desc="Cấm IP trong phạm vi website của bạn và xem hoạt động gần đây liên quan tới panel." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
@@ -54,7 +54,7 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
                 </tbody>
               </table>
             )}
-            <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">Ngoài ra hệ thống đang áp {globalCount} IP cấm toàn hệ thống do web mẹ đặt — các IP đó cũng bị chặn ở gian hàng của bạn.</p>
+            <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">Ngoài ra hệ thống đang áp {globalCount} IP cấm toàn hệ thống do web mẹ đặt — các IP đó cũng bị chặn ở website của bạn.</p>
           </div>
 
           <div className="card overflow-hidden">
@@ -87,7 +87,7 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
             <label className="lbl">Lý do (tuỳ chọn)</label>
             <input name="reason" className="inp" placeholder="VD: spam đơn, phá hoại..." />
           </div>
-          <p className="text-xs leading-relaxed text-slate-400">IP bị cấm sẽ không đăng ký được tài khoản mới tại gian hàng và khách của panel dùng IP đó sẽ không đăng nhập được. Cấm này chỉ áp trong panel của bạn — cấm toàn hệ thống là quyền của web mẹ.</p>
+          <p className="text-xs leading-relaxed text-slate-400">IP bị cấm sẽ không đăng ký được tài khoản mới tại website và khách của panel dùng IP đó sẽ không đăng nhập được. Cấm này chỉ áp trong panel của bạn — cấm toàn hệ thống là quyền của web mẹ.</p>
           <button className="btn-primary w-full !py-2.5">Cấm IP này</button>
         </form>
       </div>

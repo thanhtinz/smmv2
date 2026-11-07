@@ -145,7 +145,7 @@ export function PanelProductsClient({ products, categories }: { products: PanelP
                 </td>
               </tr>
             ))}
-            {list.length === 0 && <tr><td className="td text-slate-400" colSpan={6}>Chưa có sản phẩm nào. Bấm "+ Thêm sản phẩm" để tự bán thêm tại gian hàng.</td></tr>}
+            {list.length === 0 && <tr><td className="td text-slate-400" colSpan={6}>Chưa có sản phẩm nào. Bấm "+ Thêm sản phẩm" để tự bán thêm tại website.</td></tr>}
           </tbody>
         </table>
       </div>

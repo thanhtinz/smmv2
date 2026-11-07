@@ -21,7 +21,7 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
         <PageHead title="Đặt đơn SMM" />
         <div className="card p-8 text-center">
           <div className="text-lg font-bold text-slate-900">Mảng dịch vụ SMM đang tắt</div>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{panelActive && settings.module_smm !== "0" ? "Gian hàng của bạn hiện không bán dịch vụ SMM." : "Hệ thống đang tạm ngưng mảng dịch vụ SMM. Vui lòng quay lại sau."}</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{panelActive && settings.module_smm !== "0" ? "Website của bạn hiện không bán dịch vụ SMM." : "Hệ thống đang tạm ngưng mảng dịch vụ SMM. Vui lòng quay lại sau."}</p>
         </div>
       </div>
     );

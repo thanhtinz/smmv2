@@ -10,7 +10,7 @@ type Mod = { key: string; name: string; desc: string; icon: React.ReactNode };
 const MODULES: Mod[] = [
   { key: "module_smm", name: "Đặt đơn SMM", desc: "Bán dịch vụ SMM cho khách.", icon: I.cart },
   { key: "module_premium", name: "Tài khoản Premium", desc: "Bán tài khoản Premium cho khách.", icon: I.gem },
-  { key: "module_panels", name: "Website con", desc: "Cho khách mở gian hàng con bằng tên miền riêng.", icon: I.panels },
+  { key: "module_panels", name: "Website con", desc: "Cho khách mở website con bằng tên miền riêng.", icon: I.panels },
   { key: "module_register", name: "Đăng ký tài khoản", desc: "Cho khách đăng ký tài khoản mới.", icon: I.users },
   { key: "module_bulk", name: "Đặt hàng loạt", desc: "Đặt nhiều đơn cùng lúc.", icon: I.layers },
   { key: "module_subscriptions", name: "Đăng ký định kỳ", desc: "Đơn hẹn giờ và lặp lại tự động.", icon: I.clock },
