@@ -31,12 +31,12 @@ const STAT_TONES: Record<string, { tile: string; bar: string }> = {
 export function Stat({ label, value, sub, icon, tone = "brand" }: { label: string; value: string; sub?: ReactNode; icon: ReactNode; tone?: string }) {
   const t = STAT_TONES[tone] || STAT_TONES.brand;
   return (
-    <div className="card relative overflow-hidden p-5">
+    <div className="card relative overflow-hidden p-4 sm:p-5">
       <span className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${t.bar}`} />
-      <div className="flex items-start gap-4">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-lg ${t.tile}`}>{icon}</div>
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:gap-4">
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg sm:h-11 sm:w-11 ${t.tile}`}>{icon}</div>
         <div className="min-w-0">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+          <div className="text-[11px] font-semibold uppercase leading-snug tracking-wide text-slate-500 sm:text-xs">{label}</div>
           <div className="whitespace-nowrap text-[clamp(15px,4.2vw,20px)] font-extrabold leading-snug text-slate-900">{value}</div>
           {sub && <div className="mt-0.5 text-xs text-slate-400">{sub}</div>}
         </div>

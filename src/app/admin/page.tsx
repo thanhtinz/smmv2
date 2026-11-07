@@ -84,7 +84,7 @@ export default async function AdminHome() {
       <div className="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-4">
         <Stat label="Người dùng mới hôm nay" value={num(newUsersToday)} icon={I.users} tone="cyan" />
         <Stat label="Ticket đang mở" value={num(ticketOpen)} icon={I.ticket} tone="rose" />
-        <Stat label="Tổng số dư của người dùng" value={vnd(userAgg._sum.balance || 0)} icon={I.wallet} tone="blue" />
+        <Stat label="Tổng số dư khách" value={vnd(userAgg._sum.balance || 0)} icon={I.wallet} tone="blue" />
         <Stat label="Tổng người dùng" value={num(totalUsers)} icon={I.users} tone="violet" />
       </div>
 

@@ -581,7 +581,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             </div>
             <div className="mt-5 flex items-center gap-3">
               <PlatformBrandIcon platform={service.platform} />
-              <p className="min-w-0 flex-1 text-center text-[17px] font-medium leading-snug text-slate-800">{service.name}</p>
+              <p className="min-w-0 flex-1 text-center text-[15px] font-medium leading-snug text-slate-800">{service.name}</p>
               <span className="w-10 shrink-0" />
             </div>
             {discount > 0 && (

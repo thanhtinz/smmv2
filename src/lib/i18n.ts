@@ -1098,6 +1098,7 @@ export const DICT: Record<string, Tr> = {
   "Đặt đơn và theo dõi": e("Place orders and track", "下单并跟踪", "สั่งซื้อและติดตาม", "注文して追跡", "주문하고 추적"),
   "Sẵn sàng tăng trưởng cùng": e("Ready to grow with", "准备好与以下品牌一起成长:", "พร้อมเติบโตไปกับ", "一緒に成長する準備はできましたか：", "함께 성장할 준비가 되셨나요:"),
   "Vì sao chọn": e("Why choose", "为什么选择", "ทำไมต้องเลือก", "選ぶ理由：", "선택하는 이유:"),
+  "Tổng số dư khách": e("Customer balances", "客户总余额", "ยอดคงเหลือรวมของลูกค้า", "顧客の総残高", "고객 총 잔액"),
 };
 
 export const CURRENCIES: { key: string; name: string; rate: number }[] = [
