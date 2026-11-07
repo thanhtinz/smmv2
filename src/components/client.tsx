@@ -955,11 +955,11 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
       </>
     );
     return (
-      <form action={action} className="grid grid-cols-1 items-start gap-8 lg:grid-cols-5">
+      <form action={action} className="flex flex-col gap-8 lg:grid lg:grid-cols-5 lg:items-start">
         <input type="hidden" name="slug" value={slug} />
         {backBase ? <input type="hidden" name="returnTo" value={`${backBase}/${slug}`} /> : null}
         <input type="hidden" name="variantId" value={v?.id || ""} />
-        <div className="lg:col-span-3">
+        <div className="order-1 lg:col-span-3">
           <h2 className="text-lg font-extrabold text-slate-900">Chọn gói sản phẩm</h2>
           <div className="mt-4 space-y-2.5">
             {variants.map((x) => {
@@ -996,9 +996,9 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
               );
             })}
           </div>
-          {belowVariants}
         </div>
-        <div className="card space-y-4 p-5 lg:sticky lg:top-24 lg:col-span-2">
+        {belowVariants && <div className="order-2 lg:order-3 lg:col-span-5">{belowVariants}</div>}
+        <div className="card order-3 space-y-4 p-5 lg:order-2 lg:sticky lg:top-24 lg:col-span-2">
           <div>
             <label className="lbl">Số lượng</label>
             <div className="flex h-[46px] items-stretch">

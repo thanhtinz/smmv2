@@ -157,10 +157,11 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
   );
 }
 
-/** Khối gập/mở ở cột trái trang chi tiết (Chi tiết gói / Giới thiệu / ...). */
+/** Khối gập/mở ở dải thông tin trang chi tiết (Chi tiết gói / Giới thiệu / ...).
+ *  Khoảng cách giữa các khối do cột cha (space-y-6) quản lý. */
 function DetailSection({ title, open, children }: { title: string; open?: boolean; children: React.ReactNode }) {
   return (
-    <details className="card group mt-6" {...(open ? { open: true } : {})}>
+    <details className="card group" {...(open ? { open: true } : {})}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-6 py-4 text-sm font-extrabold uppercase tracking-wider text-slate-900 [&::-webkit-details-marker]:hidden"><span>{title}</span><span className="shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180">{I.chevron}</span></summary>
       <div className="border-t border-slate-100 px-6 py-5">{children}</div>
     </details>
@@ -218,14 +219,26 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
     include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, price: true } } },
   });
   const related = await buildCardData(relatedRaw);
-  const infoSections = (
-    <>
-      {product.description && (
-        <DetailSection title="Thông tin sản phẩm" open>
+  // Dải thông tin dưới khu chọn gói: full-width, desktop chia 2 cột cân bằng theo
+  // chiều cao ước lượng (khối mở sẵn ~163px, khối đóng ~54px) — khối mở sẵn đứng
+  // một mình ở cột trái, các khối đóng xếp thành nhóm accordion khít ở cột phải
+  // (desktop cách nhau 8px: 54×3+8×2 = 178 ≈ 163) cho hai cột kết thúc gần
+  // ngang nhau. Mobile giữ nguyên thứ tự đọc, xếp chồng 1 cột cách đều 24px.
+  const sectionItems: { el: React.ReactNode; tall: boolean }[] = [];
+  if (product.description) {
+    sectionItems.push({
+      tall: true,
+      el: (
+        <DetailSection key="desc" title="Thông tin sản phẩm" open>
           <RichText value={product.description} className="text-sm leading-relaxed text-slate-600" />
         </DetailSection>
-      )}
-      <DetailSection title="Chi tiết gói">
+      ),
+    });
+  }
+  sectionItems.push({
+    tall: false,
+    el: (
+      <DetailSection key="variants" title="Chi tiết gói">
         <ul className="space-y-2 text-sm text-slate-600">
           {product.variants.map((v) => (
             <li key={v.id} className="flex flex-wrap items-baseline justify-between gap-2">
@@ -235,17 +248,42 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
           ))}
         </ul>
       </DetailSection>
-      {product.warrantyInfo && (
-        <DetailSection title="Thông tin bảo hành">
+    ),
+  });
+  if (product.warrantyInfo) {
+    sectionItems.push({
+      tall: false,
+      el: (
+        <DetailSection key="warranty" title="Thông tin bảo hành">
           <RichText value={product.warrantyInfo} className="text-sm leading-relaxed text-slate-600" />
         </DetailSection>
-      )}
-      {product.usageGuide && (
-        <DetailSection title="Hướng dẫn sử dụng">
+      ),
+    });
+  }
+  if (product.usageGuide) {
+    sectionItems.push({
+      tall: false,
+      el: (
+        <DetailSection key="usage" title="Hướng dẫn sử dụng">
           <RichText value={product.usageGuide} className="text-sm leading-relaxed text-slate-600" />
         </DetailSection>
-      )}
-    </>
+      ),
+    });
+  }
+  const sectionCols: React.ReactNode[][] = [[], []];
+  const sectionHeights = [0, 0];
+  for (const it of sectionItems) {
+    const c = sectionHeights[0] <= sectionHeights[1] ? 0 : 1;
+    if (sectionCols[c].length) sectionHeights[c] += 8;
+    sectionHeights[c] += it.tall ? 163 : 54;
+    sectionCols[c].push(it.el);
+  }
+  const infoSections = (
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+      {sectionCols.map((nodes, i) => (
+        <div key={i} className="space-y-6 lg:space-y-2">{nodes}</div>
+      ))}
+    </div>
   );
   const reviewsCard = (
     <div className="card p-6">
@@ -254,12 +292,14 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
         <h2 className="text-base font-extrabold text-slate-900">Đánh giá sản phẩm</h2>
         <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">{reviewCount} đánh giá</span>
       </div>
-      <div className="mt-5 text-center">
-        <div className="text-[40px] font-black leading-none text-slate-900">{reviewCount > 0 ? reviewAvg.toFixed(1) : "—"}</div>
-        <div className="mt-2.5 flex justify-center"><Stars value={reviewAvg} className="h-5 w-5" /></div>
-        <div className="mt-2 text-[13px] text-slate-500">{reviewCount} đánh giá</div>
-      </div>
-      <div className="mx-auto mt-5 max-w-sm space-y-2">
+      <div className="mt-5 grid grid-cols-1 items-start gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div>
+          <div className="text-center">
+            <div className="text-[40px] font-black leading-none text-slate-900">{reviewCount > 0 ? reviewAvg.toFixed(1) : "—"}</div>
+            <div className="mt-2.5 flex justify-center"><Stars value={reviewAvg} className="h-5 w-5" /></div>
+            <div className="mt-2 text-[13px] text-slate-500">{reviewCount} đánh giá</div>
+          </div>
+          <div className="mt-5 space-y-2">
         {[5, 4, 3, 2, 1].map((n) => (
           <div key={n} className="flex items-center gap-2.5 text-[13px] text-slate-600">
             <span className="flex w-8 shrink-0 items-center gap-1 font-semibold">{n}<svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="#f59e0b"><path d="M12 3.5l2.55 5.37 5.9.72-4.34 4.06 1.1 5.83L12 16.9l-5.21 2.58 1.1-5.83L3.55 9.59l5.9-.72L12 3.5z" /></svg></span>
@@ -269,8 +309,9 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             <span className="w-5 shrink-0 text-right text-slate-400">{distMap.get(n) || 0}</span>
           </div>
         ))}
-      </div>
-      <div className="mt-6 border-t border-slate-100 pt-2">
+          </div>
+        </div>
+        <div className="border-t border-slate-100 pt-2 lg:border-t-0 lg:pt-0">
         {reviewList.length === 0 ? (
           <p className="py-4 text-center text-sm text-slate-500">Chưa có đánh giá nào cho sản phẩm này.</p>
         ) : (
@@ -311,8 +352,9 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             ))}
           </ul>
         )}
+        </div>
       </div>
-      <div className="border-t border-slate-100 pt-5">
+      <div className="mt-6 border-t border-slate-100 pt-5">
         <div className="text-sm font-extrabold text-slate-900">{myReview ? "Đánh giá của bạn" : "Viết đánh giá"}</div>
         {session && myPurchase ? (
           <PremiumReviewForm slug={product.slug} returnTo={`${base}/${product.slug}`} action={submitPremiumReviewAction} mine={myReview} />
@@ -383,8 +425,8 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
           belowVariants={infoSections}
         />
       ) : (
-        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-5">
-          <div className="lg:col-span-3">
+        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-5 lg:items-start">
+          <div className="order-1 lg:col-span-3">
             <h2 className="text-lg font-extrabold text-slate-900">Chọn gói sản phẩm</h2>
             <div className="mt-4 space-y-2.5">
               {product.variants.map((v) => (
@@ -394,9 +436,9 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
                 </div>
               ))}
             </div>
-            {infoSections}
           </div>
-          <div className="card p-6 text-center lg:col-span-2">
+          <div className="order-2 lg:order-3 lg:col-span-5">{infoSections}</div>
+          <div className="card order-3 p-6 text-center lg:order-2 lg:col-span-2">
             <p className="mb-4 text-sm text-slate-500">Đăng nhập để mua bằng số dư — nạp tiền bằng chuyển khoản, cộng tự động.</p>
             <Link href="/login" className="btn-primary">Đăng nhập</Link>
             <Link href="/register" className="btn-ghost ml-2">Đăng ký</Link>
@@ -404,9 +446,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
         </div>
       )}
 
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-5">
-        <div className="lg:col-span-3">{reviewsCard}</div>
-      </div>
+      <div className="mt-6">{reviewsCard}</div>
 
       {related.length > 0 && (
         <div className="mt-12">
