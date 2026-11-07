@@ -22,7 +22,7 @@ export default async function DashboardHome() {
   const [smmCount, smmRunning, recent, statusGroup, txCount, spendSmmAgg, spendPreAgg, recentTx] = await Promise.all([
     prisma.smmOrder.count({ where: { userId: user.id } }),
     prisma.smmOrder.count({ where: { userId: user.id, status: { in: ["PENDING", "PROCESSING", "IN_PROGRESS"] } } }),
-    prisma.smmOrder.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 10, include: { service: true } }),
+    prisma.smmOrder.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 5, include: { service: true } }),
     prisma.smmOrder.groupBy({ by: ["status"], where: { userId: user.id }, _count: true }),
     prisma.transaction.count({ where: { userId: user.id } }),
     prisma.smmOrder.aggregate({ where: { userId: user.id, status: { not: "CANCELED" } }, _sum: { charge: true } }),
@@ -116,7 +116,8 @@ export default async function DashboardHome() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="card overflow-hidden lg:col-span-2">
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <div className="card overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
             <div className="font-bold text-slate-900">Đơn hàng gần đây</div>
             <Link href="/dashboard/don-hang" className="text-sm font-medium text-brand-600">Xem tất cả đơn hàng →</Link>
@@ -137,6 +138,31 @@ export default async function DashboardHome() {
               ))}
             </div>
           )}
+          </div>
+        <div className="card flex-1 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
+            <div className="font-bold text-slate-900">Thông báo</div>
+            <Link href="/dashboard/bai-viet" className="text-sm font-medium text-brand-600">Xem tất cả →</Link>
+          </div>
+          {notices.length === 0 ? (
+            <div className="p-6 text-sm text-slate-400">Chưa có thông báo nào.</div>
+          ) : (
+            <div className="relative px-5 py-4">
+              <span className="absolute bottom-5 left-[29px] top-5 w-0.5 bg-slate-100" aria-hidden="true" />
+              <div className="space-y-5">
+                {notices.map((p) => (
+                  <div key={p.id} className="relative pl-10">
+                    <span className="absolute left-[3px] top-1 h-3 w-3 rounded-full border-2 border-white bg-brand-500 shadow" aria-hidden="true" />
+                    <div className="text-xs font-semibold text-slate-400">{noticeDate(p.createdAt)}</div>
+                    <Link href={`/dashboard/bai-viet/${p.slug}`} className="mt-0.5 block font-semibold text-slate-800 transition hover:text-brand-700">{p.title}</Link>
+                    <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-500">{noticeExcerpt(p)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         </div>
 
         <div className="flex flex-col gap-4">
@@ -148,7 +174,7 @@ export default async function DashboardHome() {
             <div className="font-bold text-slate-900">Kết nối API</div>
             <div className="mt-1 text-sm font-medium text-brand-600">Tài liệu API V2 →</div>
           </Link>
-          <div className="card overflow-hidden">
+          <div className="card flex-1 overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
               <div className="font-bold text-slate-900">Giao dịch ví</div>
               <Link href="/dashboard/giao-dich" className="text-sm font-medium text-brand-600">Xem thêm →</Link>
@@ -169,29 +195,6 @@ export default async function DashboardHome() {
               </div>
             )}
           </div>
-        <div className="card flex-1 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
-            <div className="font-bold text-slate-900">Thông báo</div>
-            <Link href="/dashboard/bai-viet" className="text-sm font-medium text-brand-600">Xem tất cả →</Link>
-          </div>
-          {notices.length === 0 ? (
-            <div className="p-6 text-sm text-slate-400">Chưa có thông báo nào.</div>
-          ) : (
-            <div className="relative px-5 py-4">
-              <span className="absolute bottom-5 left-[29px] top-5 w-0.5 bg-slate-100" aria-hidden="true" />
-              <div className="space-y-5">
-                {notices.map((p) => (
-                  <div key={p.id} className="relative pl-10">
-                    <span className="absolute left-[3px] top-1 h-3 w-3 rounded-full border-2 border-white bg-brand-500 shadow" aria-hidden="true" />
-                    <div className="text-xs font-semibold text-slate-400">{noticeDate(p.createdAt)}</div>
-                    <Link href={`/dashboard/bai-viet/${p.slug}`} className="mt-0.5 block font-semibold text-slate-800 transition hover:text-brand-700">{p.title}</Link>
-                    <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-slate-500">{noticeExcerpt(p)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
         </div>
       </div>
     </div>
