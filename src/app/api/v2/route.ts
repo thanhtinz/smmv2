@@ -91,7 +91,7 @@ async function handle(req: NextRequest) {
         ? await prisma.panelServicePrice.findMany({ where: { panelId: panelActive.id, level: user.level as any } })
         : [];
       const ovMap = new Map(overrides.map((o) => [o.serviceId, o.price]));
-      const flashSale = await getActiveFlashSale(user.panelId ?? null);
+      const flashSale = await getActiveFlashSale(user.panelId ?? null, "SMM");
       const withFlash = (svc: (typeof services)[number], v: number) => applyFlashAmount(v, flashAppliesTo(flashSale, svc.id) ? flashSale!.percent : 0);
       const rateFor = (svc: (typeof services)[number]) => {
         if (panelActive) {

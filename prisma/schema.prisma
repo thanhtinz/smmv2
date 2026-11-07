@@ -883,14 +883,17 @@ model Campaign {
   orders    SmmOrder[]
 }
 
-// Flash sale: giảm thêm % giá dịch vụ SMM trong khung giờ (theo từng site: panelId null = web mẹ)
+// Flash sale: giảm thêm % giá trong khung giờ (theo từng site: panelId null = web mẹ).
+// scope: "SMM" (chỉ dịch vụ SMM — mặc định, hành vi cũ) | "PREMIUM" (chỉ sản phẩm Premium) | "ALL" (cả hai)
 model FlashSale {
   id        Int      @id @default(autoincrement())
   name      String   @db.VarChar(120)
   percent   Int // % giảm thêm
   startsAt  DateTime
   endsAt    DateTime
-  serviceIds String? @db.Text // JSON mảng id dịch vụ; null/rỗng = áp toàn bộ dịch vụ
+  scope     String   @default("SMM") @db.VarChar(10) // phạm vi áp dụng: SMM | PREMIUM | ALL
+  serviceIds String? @db.Text // JSON mảng id dịch vụ SMM; null/rỗng = áp toàn bộ dịch vụ
+  productIds String? @db.Text // JSON mảng id sản phẩm Premium; null/rỗng = áp toàn bộ sản phẩm
   panelId   Int? // null = web mẹ; có giá trị = flash sale riêng của panel đó
   active    Boolean  @default(true)
   createdAt DateTime @default(now())

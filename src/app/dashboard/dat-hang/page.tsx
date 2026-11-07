@@ -35,7 +35,7 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
   const hiddenCatIds = new Set((panelActive?.hiddenCats || "").split(",").map((x) => parseInt(x.trim())).filter((n) => Number.isFinite(n)));
   // Thời gian trung bình: tính thật từ 10 đơn hoàn thành gần nhất; chưa có đơn thì dùng giá trị admin đặt
   const avgMap = await avgTimesFromRecentOrders(services.map((s) => s.id));
-  const flashSale = await getActiveFlashSale(user.panelId ?? null);
+  const flashSale = await getActiveFlashSale(user.panelId ?? null, "SMM");
   const dto: ServiceDTO[] = services.filter((s) => !hiddenCatIds.has(s.categoryId)).map((s) => ({
     id: s.id, name: s.name, description: s.description, notice: s.notice, rate: applyFlashAmount(s.panelId ? s.rate : panelActive ? Math.round(s.rate * (1 + panelActive.markup / 100)) : s.rate, flashAppliesTo(flashSale, s.id) ? flashSale!.percent : 0), min: s.min, max: s.max,
     avgTime: avgMap.get(s.id) ?? s.avgTime, refill: s.refill, dripfeed: s.dripfeed, categoryId: s.categoryId, categoryName: s.category.name, platform: s.category.platform,
@@ -55,7 +55,7 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
     <div>
       <PageHead title="Đặt đơn SMM" />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <FlashBanner panelId={user.panelId ?? null} />
+      <FlashBanner panelId={user.panelId ?? null} kind="SMM" />
       {panelActive && (
         <div className="card px-5 py-3.5 mb-5 text-sm text-slate-600">Bạn đang mua qua panel <b className="text-slate-900">{panelActive.name}</b> — giá đã gồm phụ phí {panelActive.markup}% của panel{panelTierDiscount(panelActive, user.level) > 0 ? `, cấp bậc của bạn được giảm thêm ${panelTierDiscount(panelActive, user.level)}%` : ""}.</div>
       )}

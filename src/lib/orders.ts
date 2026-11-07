@@ -5,7 +5,7 @@ import { checkPromo, consumePromo } from "./promo";
 import { levelDiscountFromSettings } from "./settings";
 import { getSettings, DEFAULT_SETTINGS } from "./settings";
 import { orderEvent, orderTransition, notifyUser } from "./notify";
-import { flashPercentFor, applyFlashAmount } from "./flash";
+import { flashPercentFor, flashPercentForProduct, applyFlashAmount } from "./flash";
 import { awardPointsForPremiumOrder } from "./points";
 import { alertMother, alertPanelOwner } from "./alerts";
 import { assertNotRiskRestricted, evaluateUserRisk } from "./risk";
@@ -548,7 +548,6 @@ export async function createPremiumOrder(input: {
   const panelRow = input.user.panelId ? await prisma.childPanel.findUnique({ where: { id: input.user.panelId } }) : null;
   const panel = panelRow && panelRow.status === "ACTIVE" ? panelRow : null;
   let total = variant.price * input.quantity;
-  let commission = 0;
   if (panel && !ownProduct) {
     // Giá riêng từng gói do chủ panel đặt (nếu có) là giá cuối, thay cho công thức markup + giảm bậc
     const override = await prisma.panelPremiumPrice.findUnique({ where: { panelId_variantId: { panelId: panel.id, variantId: variant.id } } });
@@ -559,11 +558,17 @@ export async function createPremiumOrder(input: {
       const disc = panelTierDiscount(panel, input.user.level);
       total = Math.max(1, Math.round(unit * input.quantity * (1 - disc / 100)));
     }
-    commission = Math.max(0, total - variant.price * input.quantity);
   }
+  // Flash sale (phạm vi có Premium) của site khách thuộc về (mẹ/panel riêng): giảm thêm %
+  // trên tổng sau giá panel — đúng thứ tự phía SMM: flash áp TRƯỚC hoa hồng panel và
+  // mã giảm giá (mã giảm tính trên số tiền đã trừ flash).
+  const flashPct = await flashPercentForProduct(variant.product.id, input.user.panelId ?? null);
+  if (flashPct > 0) total = applyFlashAmount(total, flashPct);
+  let commission = 0;
+  if (panel && !ownProduct) commission = Math.max(0, total - variant.price * input.quantity);
   const cost = variant.cost * input.quantity;
 
-  // Mã giảm giá: tính trên tổng tiền sau giá panel (nếu có)
+  // Mã giảm giá: tính trên tổng tiền sau giá panel + flash sale (nếu có)
   let promo: Awaited<ReturnType<typeof checkPromo>> = null;
   if (input.promoCode?.trim()) {
     promo = await checkPromo(input.promoCode, "PREMIUM", total, input.user.panelId ?? null);

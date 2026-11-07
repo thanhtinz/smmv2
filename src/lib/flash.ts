@@ -1,16 +1,25 @@
 import { prisma } from "./db";
 
-/** Flash sale (đợt bổ sung): giảm THÊM % trên giá dịch vụ SMM trong khung giờ.
- *  Mỗi site một chương trình riêng: panelId null = web mẹ, có giá trị = panel đó.
- *  Giá được áp tại createSmmOrder (server) + hiển thị ở bảng giá/API để nhất quán. */
+/** Flash sale: giảm THÊM % trên giá trong khung giờ, theo PHẠM VI (scope):
+ *  "SMM" = chỉ dịch vụ SMM (mặc định — hành vi cũ), "PREMIUM" = chỉ sản phẩm
+ *  Premium, "ALL" = cả hai. Mỗi site một chương trình riêng: panelId null =
+ *  web mẹ, có giá trị = panel đó. Quy tắc chọn đợt (bắt chước nguyên phía SMM):
+ *  trong các đợt đang chạy của site mà phạm vi bao phủ loại đơn này, chỉ lấy
+ *  MỘT đợt % CAO NHẤT (không cộng dồn nhiều đợt); serviceIds/productIds
+ *  null/rỗng = áp toàn bộ. Giá được áp tại createSmmOrder/createPremiumOrder
+ *  (server) + hiển thị ở bảng giá/API/form để nhất quán. */
 
-export type FlashSaleRow = { id: number; name: string; percent: number; startsAt: Date; endsAt: Date; serviceIds: string | null; panelId: number | null };
+export type FlashSaleRow = { id: number; name: string; percent: number; startsAt: Date; endsAt: Date; scope: string; serviceIds: string | null; productIds: string | null; panelId: number | null };
+export type FlashKind = "SMM" | "PREMIUM";
 
-export async function getActiveFlashSale(panelId: number | null): Promise<FlashSaleRow | null> {
+export async function getActiveFlashSale(panelId: number | null, kind?: FlashKind): Promise<FlashSaleRow | null> {
   try {
     const now = new Date();
     const sale = await prisma.flashSale.findFirst({
-      where: { panelId: panelId ?? null, active: true, startsAt: { lte: now }, endsAt: { gte: now } },
+      where: {
+        panelId: panelId ?? null, active: true, startsAt: { lte: now }, endsAt: { gte: now },
+        ...(kind ? { scope: { in: [kind, "ALL"] } } : {}),
+      },
       orderBy: { percent: "desc" },
     });
     return sale as FlashSaleRow | null;
@@ -19,20 +28,34 @@ export async function getActiveFlashSale(panelId: number | null): Promise<FlashS
   }
 }
 
-export function flashAppliesTo(sale: FlashSaleRow | null, serviceId: number): boolean {
-  if (!sale) return false;
-  if (!sale.serviceIds || !sale.serviceIds.trim()) return true;
+function idsInclude(json: string | null, id: number): boolean {
+  if (!json || !json.trim()) return true;
   try {
-    const ids = JSON.parse(sale.serviceIds) as number[];
-    return !Array.isArray(ids) || ids.length === 0 || ids.includes(serviceId);
+    const ids = JSON.parse(json) as number[];
+    return !Array.isArray(ids) || ids.length === 0 || ids.includes(id);
   } catch {
     return true;
   }
 }
 
+export function flashAppliesTo(sale: FlashSaleRow | null, serviceId: number): boolean {
+  if (!sale) return false;
+  return idsInclude(sale.serviceIds, serviceId);
+}
+
+export function flashAppliesToProduct(sale: FlashSaleRow | null, productId: number): boolean {
+  if (!sale) return false;
+  return idsInclude(sale.productIds, productId);
+}
+
 export async function flashPercentFor(serviceId: number, panelId: number | null): Promise<number> {
-  const sale = await getActiveFlashSale(panelId);
+  const sale = await getActiveFlashSale(panelId, "SMM");
   return flashAppliesTo(sale, serviceId) ? sale!.percent : 0;
+}
+
+export async function flashPercentForProduct(productId: number, panelId: number | null): Promise<number> {
+  const sale = await getActiveFlashSale(panelId, "PREMIUM");
+  return flashAppliesToProduct(sale, productId) ? sale!.percent : 0;
 }
 
 export function applyFlashAmount(amount: number, percent: number): number {

@@ -15,13 +15,20 @@ function parseSale(fd: FormData) {
   const percent = Math.min(90, Math.max(1, int(fd, "percent")));
   const startsAt = new Date(str(fd, "startsAt"));
   const endsAt = new Date(str(fd, "endsAt"));
-  const scope = str(fd, "scope");
+  // Phạm vi loại đơn: ALL (chung) | SMM | PREMIUM — mặc định SMM như hành vi cũ
+  const rawScope = str(fd, "applyScope").toUpperCase();
+  const scope = rawScope === "ALL" || rawScope === "PREMIUM" ? rawScope : "SMM";
   let serviceIds: string | null = null;
-  if (scope === "some") {
+  if (str(fd, "svcScope") === "some") {
     const ids = str(fd, "serviceIds").split(/[,\s]+/).map((x) => parseInt(x)).filter((n) => n > 0);
     serviceIds = JSON.stringify(ids);
   }
-  return { name, percent, startsAt, endsAt, serviceIds };
+  let productIds: string | null = null;
+  if (str(fd, "prodScope") === "some") {
+    const ids = fd.getAll("productIds").map((x) => parseInt(String(x))).filter((n) => n > 0);
+    productIds = JSON.stringify(ids);
+  }
+  return { name, percent, startsAt, endsAt, scope, serviceIds, productIds };
 }
 
 function validate(path: string, d: ReturnType<typeof parseSale>) {

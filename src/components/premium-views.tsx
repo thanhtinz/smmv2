@@ -13,6 +13,8 @@ import { PremiumCard, Stars, type PremiumCardData } from "@/components/premium-c
 import { PremiumReviewForm, HelpfulButton } from "@/components/premium-review-form";
 import { PremiumGrid } from "@/components/premium-grid";
 import { moduleOn } from "@/lib/modules";
+import { getActiveFlashSale, flashAppliesToProduct } from "@/lib/flash";
+import { FlashBanner } from "@/components/flash-banner";
 
 /** Dựng dữ liệu thẻ cho một nhóm sản phẩm: khoảng giá gói, tổng đã bán, còn kho. */
 async function buildCardData(
@@ -206,6 +208,11 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
         .filter((c) => c.usageLimit === 0 || c.usedCount < c.usageLimit)
         .map((c) => ({ code: c.code, type: c.type, value: c.value, maxDiscount: c.maxDiscount, minOrder: c.minOrder }))
     : [];
+  // Flash sale (phạm vi có Premium) của site người xem thuộc về — cùng quy tắc
+  // server áp khi đặt đơn (lib/flash): một đợt % cao nhất, productIds rỗng =
+  // mọi sản phẩm. Chỉ để form hiển thị giá đã giảm + xem trước dòng giảm.
+  const flashSale = await getActiveFlashSale(viewer?.panelId ?? null, "PREMIUM");
+  const flashPct = flashAppliesToProduct(flashSale, product.id) ? flashSale!.percent : 0;
   const variantIds = product.variants.map((v) => v.id);
   const [reviewAgg, reviewDist, reviewList] = await Promise.all([
     prisma.premiumReview.aggregate({ where: { productId: product.id }, _avg: { rating: true }, _count: true }),
@@ -400,6 +407,8 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
 
       <div className="mt-6"><Flash msg={searchParams.msg} err={searchParams.err} /></div>
 
+      <FlashBanner panelId={viewer?.panelId ?? null} kind="PREMIUM" />
+
       {/* Khu chính theo shopkey: 2 cột ~73/27 — cột trái lần lượt chọn gói →
           khối gập → đánh giá; cột phải CHỈ hộp đặt hàng/đăng nhập, ghim dính
           (sticky) trong toàn bộ khu. Nhánh đã đăng nhập: form mua dùng
@@ -420,6 +429,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             variants={product.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, warrantyDays: v.warrantyDays, stock: stockMap.get(v.id) || 0 }))}
             belowVariants={infoSections}
             promos={promoPreview}
+            flashPct={flashPct}
           />
         ) : (
           <>

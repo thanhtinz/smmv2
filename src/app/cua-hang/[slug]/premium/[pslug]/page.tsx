@@ -9,6 +9,8 @@ import { buyPremiumAction } from "@/app/actions/user";
 import { getSettings } from "@/lib/settings";
 import { vnd, parsePremiumFields, productImages } from "@/lib/format";
 import { ProductGallery } from "@/components/rich-editor";
+import { getActiveFlashSale, flashAppliesToProduct } from "@/lib/flash";
+import { FlashBanner } from "@/components/flash-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,9 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
   if (!product || !product.active) notFound();
   if (product.panelId != null && product.panelId !== panel.id) notFound();
   const panelRate = (r: number) => Math.round(r * (1 + panel.markup / 100));
+  // Flash sale riêng của panel này (phạm vi có Premium) — server vẫn chốt lại khi đặt đơn
+  const flashSale = await getActiveFlashSale(panel.id, "PREMIUM");
+  const flashPct = flashAppliesToProduct(flashSale, product.id) ? flashSale!.percent : 0;
   const base = `/cua-hang/${panel.slug}/premium`;
   const session = await getSession();
   const stocks = await prisma.premiumStock.groupBy({ by: ["variantId"], where: { status: "AVAILABLE", variantId: { in: product.variants.map((v) => v.id) } }, _count: true });
@@ -39,6 +44,7 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
       <PublicHeader panel={{ name: panel.name, slug: panel.slug }} announcement={panel.announcement} />
       <main className="flex-1 max-w-5xl mx-auto px-4 py-12 w-full">
         <Link href={base} className="text-sm font-medium text-brand-600">← Tất cả sản phẩm Premium của {panel.name}</Link>
+        <div className="mt-6 empty:hidden"><FlashBanner panelId={panel.id} kind="PREMIUM" /></div>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-6 items-start">
           <div className="lg:col-span-2">
             {productImages(product.images, product.imageUrl).length ? (
@@ -66,6 +72,7 @@ export default async function PanelPremiumDetail({ params, searchParams }: { par
                 action={buyPremiumAction}
                 fields={parsePremiumFields(product.customFields)}
                 note={product.buyNote}
+                flashPct={flashPct}
                 variants={product.variants.map((v) => ({ id: v.id, name: v.name, price: product.panelId ? v.price : panelRate(v.price), warrantyDays: v.warrantyDays, stock: stockMap.get(v.id) || 0 }))}
               />
             ) : (

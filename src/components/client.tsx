@@ -902,7 +902,11 @@ export function PanelPriceEditor({ services, overrides, action, deleteAction }: 
 /* ---------- Form mua premium ---------- */
 export type PremiumPromoPreview = { code: string; type: string; value: number; maxDiscount: number; minOrder: number };
 
-export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50, backBase, layout, productImage, productColor, belowVariants, promos }: {
+/** Công thức flash sale phía client — khớp hệt applyFlashAmount phía server (lib/flash). */
+const applyFlashClient = (amount: number, percent: number) =>
+  !percent || percent <= 0 ? amount : Math.max(1, Math.round(amount * (1 - Math.min(90, percent) / 100)));
+
+export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50, backBase, layout, productImage, productColor, belowVariants, promos, flashPct }: {
   variants: { id: number; name: string; price: number; warrantyDays: number; stock: number }[];
   slug: string;
   fulfillment: string;
@@ -916,6 +920,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   productColor?: string;
   belowVariants?: React.ReactNode; // khối hiển thị dưới danh sách gói ở cột trái (bố cục split): thông tin / bảo hành / hướng dẫn
   promos?: PremiumPromoPreview[]; // mã giảm giá đang hiệu lực (chỉ để XEM TRƯỚC số tiền giảm trong hộp tóm tắt — server vẫn chốt lại khi đặt đơn)
+  flashPct?: number; // % flash sale đang áp cho sản phẩm này (0/không truyền = không có) — hiển thị giá đã giảm + xem trước dòng giảm, server chốt lại khi đặt đơn
 }) {
   const [variantId, setVariantId] = useState(variants[0]?.id);
   const [qty, setQty] = useState(1);
@@ -924,17 +929,19 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
 
   if (layout === "split") {
     const total = (v?.price || 0) * qty;
-    // Xem trước số tiền giảm theo mã — dùng đúng công thức checkPromo phía server
-    // (server tính lại và chốt khi đặt đơn). Flash sale chỉ áp cho dịch vụ SMM,
-    // KHÔNG áp cho Premium nên không có dòng giảm flash ở đây.
+    // Xem trước số tiền giảm — đúng thứ tự server chốt khi đặt đơn: flash sale
+    // giảm TRƯỚC trên Tạm tính, mã giảm giá tính trên số tiền ĐÃ trừ flash
+    // (công thức checkPromo). Dòng "Giảm giá" trong hộp tóm tắt = flash + mã.
+    const afterFlash = applyFlashClient(total, flashPct || 0);
     const promoRow = (promos || []).find((p) => p.code === promoCode.trim().toUpperCase());
-    let discount = 0;
-    if (promoRow && total > 0 && total >= promoRow.minOrder) {
-      discount = promoRow.type === "PERCENT" ? Math.floor((total * promoRow.value) / 100) : promoRow.value;
-      if (promoRow.type === "PERCENT" && promoRow.maxDiscount > 0) discount = Math.min(discount, promoRow.maxDiscount);
-      discount = Math.max(0, Math.min(discount, total - 1));
+    let promoDiscount = 0;
+    if (promoRow && afterFlash > 0 && afterFlash >= promoRow.minOrder) {
+      promoDiscount = promoRow.type === "PERCENT" ? Math.floor((afterFlash * promoRow.value) / 100) : promoRow.value;
+      if (promoRow.type === "PERCENT" && promoRow.maxDiscount > 0) promoDiscount = Math.min(promoDiscount, promoRow.maxDiscount);
+      promoDiscount = Math.max(0, Math.min(promoDiscount, afterFlash - 1));
     }
-    const grandTotal = total - discount;
+    const discount = (total - afterFlash) + promoDiscount;
+    const grandTotal = afterFlash - promoDiscount;
     const infoFields = (
       <>
         {fields && fields.length > 0 ? (
@@ -1004,7 +1011,14 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
                       Giao ngay
                     </span>
                   )}
-                  <span className="shrink-0 font-extrabold text-rose-600">{vnd(x.price)}</span>
+                  {flashPct ? (
+                    <span className="shrink-0 text-right">
+                      <span className="block text-xs font-semibold text-slate-400 line-through">{vnd(x.price)}</span>
+                      <span className="block font-extrabold text-rose-600">{vnd(applyFlashClient(x.price, flashPct))}</span>
+                    </span>
+                  ) : (
+                    <span className="shrink-0 font-extrabold text-rose-600">{vnd(x.price)}</span>
+                  )}
                 </button>
               );
             })}
@@ -1014,7 +1028,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
         <div className="card order-3 space-y-4 p-5 lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-start lg:sticky lg:top-24">
           <div>
             <label className="lbl">Số lượng</label>
-            <div className="flex h-[46px] items-stretch">
+            <div className="flex h-[46px] items-stretch justify-center lg:justify-start">
               <button type="button" aria-label="Giảm số lượng" onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-11 rounded-l-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">−</button>
               <input className="w-16 border-y border-slate-300 bg-transparent text-center text-lg font-bold text-slate-900 outline-none" name="quantity" type="number" min={1} max={maxQty} value={qty} onChange={(e) => setQty(parseInt(e.target.value) || 1)} />
               <button type="button" aria-label="Tăng số lượng" onClick={() => setQty((q) => Math.min(maxQty, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
@@ -1057,7 +1071,10 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
             className={`text-left rounded-xl border-2 px-3.5 py-3 transition ${x.id === v?.id ? "border-brand-600 bg-brand-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
             <div className="flex items-baseline justify-between gap-2">
               <span className="font-bold text-slate-900 text-[15px]">{x.name}</span>
-              <span className="text-brand-700 font-extrabold whitespace-nowrap">{vnd(x.price)}</span>
+              <span className="whitespace-nowrap text-right">
+                {flashPct ? <span className="mr-1.5 text-xs font-semibold text-slate-400 line-through">{vnd(x.price)}</span> : null}
+                <span className="text-brand-700 font-extrabold">{vnd(applyFlashClient(x.price, flashPct || 0))}</span>
+              </span>
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
               {x.warrantyDays ? `Bảo hành ${x.warrantyDays} ngày` : "Không bảo hành"}
@@ -1078,7 +1095,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
         </div>
         <div className="text-right">
           <div className="text-xs text-slate-500">Tổng tiền</div>
-          <div className="text-2xl font-extrabold text-brand-700">{vnd((v?.price || 0) * qty)}</div>
+          <div className="text-2xl font-extrabold text-brand-700">{vnd(applyFlashClient((v?.price || 0) * qty, flashPct || 0))}</div>
         </div>
       </div>
       {note && (
