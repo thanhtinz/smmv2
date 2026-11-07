@@ -10,6 +10,8 @@ import { LiveChat } from "@/components/livechat";
 import { TermsGate, HomeModal } from "@/components/gates";
 import { I } from "@/components/ui";
 import { vnd, LEVEL_NAME } from "@/lib/format";
+import { tr } from "@/lib/i18n";
+import { getLang } from "@/lib/lang-server";
 import { prisma } from "@/lib/db";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +21,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (s.maintenance === "1" && user.role === "USER") {
     return <div className="min-h-screen flex items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold mb-2">Hệ thống đang bảo trì</h1><p className="text-slate-500">Vui lòng quay lại sau ít phút.</p></div></div>;
   }
+  const lang = getLang();
+  const L = (t: string) => tr(lang, t);
   const openTickets = await prisma.ticket.count({ where: { userId: user.id, status: "ANSWERED" } });
   // Khách của panel: điều khoản + modal trang chủ dùng bản RIÊNG của panel (nếu panel có bật);
   // panel không bật thì theo web mẹ như cũ.
@@ -53,40 +57,40 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const unreadNoti = await prisma.notification.count({ where: { userId: user.id, read: false } });
   // Menu gom nhóm dropdown cho gọn: nhóm nào đang chứa trang hiện tại thì tự mở
   const smmChildren = [
-    ...(smmOn ? [{ href: "/dashboard/dat-hang", label: "Đặt đơn SMM" }] : []),
-    ...(smmOn && bulkOn ? [{ href: "/dashboard/dat-hang-loat", label: "Đặt hàng loạt" }] : []),
-    { href: "/dashboard/dich-vu", label: "Bảng giá" },
-    { href: "/dashboard/don-hang", label: "Đơn hàng SMM" },
-    ...(smmOn && subsOn ? [{ href: "/dashboard/dinh-ky", label: "Đăng ký định kỳ" }] : []),
-    ...(smmOn && campOn ? [{ href: "/dashboard/chien-dich", label: "Chiến dịch" }] : []),
+    ...(smmOn ? [{ href: "/dashboard/dat-hang", label: L("Đặt đơn SMM") }] : []),
+    ...(smmOn && bulkOn ? [{ href: "/dashboard/dat-hang-loat", label: L("Đặt hàng loạt") }] : []),
+    { href: "/dashboard/dich-vu", label: L("Bảng giá") },
+    { href: "/dashboard/don-hang", label: L("Đơn hàng SMM") },
+    ...(smmOn && subsOn ? [{ href: "/dashboard/dinh-ky", label: L("Đăng ký định kỳ") }] : []),
+    ...(smmOn && campOn ? [{ href: "/dashboard/chien-dich", label: L("Chiến dịch") }] : []),
   ];
   const premiumChildren = [
-    ...(premiumOn ? [{ href: "/premium", label: "Mua Premium" }] : []),
-    { href: "/dashboard/don-premium", label: "Đơn hàng Premium" },
+    ...(premiumOn ? [{ href: "/dashboard/premium", label: L("Mua Premium") }] : []),
+    { href: "/dashboard/don-premium", label: L("Đơn hàng Premium") },
   ];
   const financeChildren = [
-    { href: "/dashboard/nap-tien", label: "Nạp tiền" },
-    { href: "/dashboard/giao-dich", label: "Lịch sử số dư" },
-    ...(affiliateOn ? [{ href: "/dashboard/kiem-tien", label: "Kiếm tiền" }] : []),
+    { href: "/dashboard/nap-tien", label: L("Nạp tiền") },
+    { href: "/dashboard/giao-dich", label: L("Lịch sử số dư") },
+    ...(affiliateOn ? [{ href: "/dashboard/kiem-tien", label: L("Kiếm tiền") }] : []),
   ];
   const apiChildren = apiOn ? [
-    { href: "/dashboard/api", label: "API đại lý" },
-    { href: "/dashboard/api-docs", label: "Tài liệu API" },
+    { href: "/dashboard/api-docs", label: L("Tài liệu API") },
   ] : [];
   const supportChildren = [
-    ...(ticketsOn ? [{ href: "/dashboard/ticket", label: "Hỗ trợ / Ticket", badge: openTickets }] : []),
-    { href: "/dashboard/thong-bao", label: "Thông báo", badge: unreadNoti },
-    ...(s.module_blog !== "0" ? [{ href: "/dashboard/bai-viet", label: "Bài viết" }] : []),
+    ...(ticketsOn ? [{ href: "/dashboard/ticket", label: L("Hỗ trợ / Ticket"), badge: openTickets }] : []),
+    { href: "/dashboard/thong-bao", label: L("Thông báo"), badge: unreadNoti },
+    ...(s.module_blog !== "0" ? [{ href: "/dashboard/bai-viet", label: L("Bài viết") }] : []),
   ];
   const items = [
-    { href: "/dashboard", label: "Tổng quan", icon: I.home },
-    ...(smmChildren.length ? [{ label: "Đơn SMM", icon: I.cart, children: smmChildren }] : []),
-    ...(premiumChildren.length ? [{ label: "Premium", icon: I.gem, children: premiumChildren }] : []),
-    ...(financeChildren.length ? [{ label: "Tài chính", icon: I.wallet, children: financeChildren }] : []),
-    ...(apiChildren.length ? [{ label: "API", icon: I.key, children: apiChildren }] : []),
-    ...(s.module_panels !== "0" ? [{ href: "/dashboard/panel-cua-toi", label: "Đăng ký panel con", icon: I.panels }] : []),
-    ...(supportChildren.length ? [{ label: "Hỗ trợ", icon: I.ticket, children: supportChildren }] : []),
-    { href: "/dashboard/ho-so", label: "Hồ sơ", icon: I.users },
+    { href: "/dashboard", label: L("Tổng quan"), icon: I.home },
+    ...(smmChildren.length ? [{ label: L("Đơn SMM"), icon: I.cart, children: smmChildren }] : []),
+    ...(premiumChildren.length ? [{ label: L("Premium"), icon: I.gem, children: premiumChildren }] : []),
+    ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),
+    ...(apiChildren.length ? [{ label: L("API"), icon: I.key, children: apiChildren }] : []),
+    ...(s.module_panels !== "0" ? [{ href: "/dashboard/panel-cua-toi", label: L("Đăng ký panel con"), icon: I.panels }] : []),
+    ...(supportChildren.length ? [{ label: L("Hỗ trợ"), icon: I.ticket, children: supportChildren }] : []),
+    { href: "/dashboard/ho-so", label: L("Hồ sơ"), icon: I.users },
+    ...(user.role === "ADMIN" ? [{ href: "/admin", label: "Admin Panel", icon: I.shield }] : []),
   ];
   return (
     <div className="min-h-screen">
@@ -103,7 +107,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hidden sm:inline-block">{LEVEL_NAME[user.level]}</span>
             <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1.5 text-sm font-bold sm:px-3.5">{vnd(user.balance)}</span>
             <span className="hidden md:inline text-sm font-medium text-slate-700">{user.username}</span>
-            <form action={logoutAction} className="hidden sm:block"><button className="btn-ghost btn-sm !py-2 whitespace-nowrap">Đăng xuất</button></form>
+            {user.role === "ADMIN" && <Link href="/admin" className="hidden md:inline-flex items-center rounded-full bg-slate-900 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-slate-700">Admin Panel</Link>}
+            <form action={logoutAction} className="hidden sm:block"><button className="btn-ghost btn-sm !py-2 whitespace-nowrap">{L("Đăng xuất")}</button></form>
           </div>
         </div>
       </header>

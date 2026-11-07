@@ -928,7 +928,7 @@ export function PanelPriceEditor({ services, overrides, action, deleteAction }: 
 }
 
 /* ---------- Form mua premium ---------- */
-export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50 }: {
+export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50, backBase }: {
   variants: { id: number; name: string; price: number; warrantyDays: number; stock: number }[];
   slug: string;
   fulfillment: string;
@@ -936,6 +936,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   fields?: PremiumCustomField[]; // trường tuỳ chỉnh của sản phẩm — có thì thay ô thông tin bàn giao mặc định
   note?: string | null; // hướng dẫn riêng của sản phẩm (hộp xanh phía trên các ô nhập)
   maxQty?: number; // trần số lượng mỗi đơn — lấy từ cấu hình hệ thống
+  backBase?: string; // gốc đường dẫn trang chi tiết (/premium hoặc /dashboard/premium) để trả về đúng khung khi có lỗi
 }) {
   const [variantId, setVariantId] = useState(variants[0]?.id);
   const [qty, setQty] = useState(1);
@@ -943,6 +944,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="slug" value={slug} />
+      {backBase ? <input type="hidden" name="returnTo" value={`${backBase}/${slug}`} /> : null}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {variants.map((x) => (
           <button type="button" key={x.id} onClick={() => setVariantId(x.id)}

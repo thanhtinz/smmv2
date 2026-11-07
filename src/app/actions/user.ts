@@ -251,6 +251,79 @@ export async function registerChildSiteAction(formData: FormData) {
   back("/dashboard/panel-cua-toi", "msg", `Đã đăng ký website con ${domain} — trỏ NameServer của tên miền theo thông tin trên trang này, rồi đăng nhập website con để tuỳ chỉnh`);
 }
 
+/** Tạo Child Panel theo WIZARD 5 bước (đúng giao diện mẫu Tín gửi 2026-11-06):
+ *  B1 tên miền (kiểm tra trực tiếp qua /api/panels/wizard-check) -> B2 tạo tài khoản
+ *  QUẢN TRỊ VIÊN riêng cho panel (PanelStaff role "ADMIN" = toàn quyền trong Panel Admin,
+ *  đăng nhập ngay trên website con) -> B3 xem lại + trừ phí từ số dư và tạo panel.
+ *  Panel + tài khoản admin + phí nằm trong MỘT transaction. Người tạo vẫn là CHỦ panel
+ *  (ownerId — hưởng phí panel con và hoa hồng); tài khoản admin là tài khoản vận hành.
+ *  Tạo xong chuyển sang B4 (trỏ NameServer) rồi B5 (hoàn tất) trên cùng trang. */
+export async function createPanelWizardAction(formData: FormData) {
+  const user = await requireUser();
+  if ((await getSettings()).module_panels === "0") back("/dashboard/panel-cua-toi", "err", "Tính năng mở website con đang tạm đóng");
+  const existing = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
+  if (existing) back("/dashboard/panel-cua-toi", "err", "Mỗi tài khoản chỉ tạo tối đa 1 website con");
+
+  // Bước 1: tên miền (cùng luật với registerChildSiteAction)
+  const domain = String(formData.get("domain") || "").trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0].split(":")[0];
+  if (domain.length < 4 || !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(domain)) {
+    back("/dashboard/panel-cua-toi", "err", "Tên miền chưa hợp lệ — chỉ chứa chữ thường, số, dấu chấm và gạch ngang (vd: myshop.vn)");
+  }
+  if (await prisma.childPanel.findFirst({ where: { domain } })) back("/dashboard/panel-cua-toi", "err", "Tên miền này đã được đăng ký cho website con khác");
+
+  // Bước 2: tài khoản quản trị viên của panel
+  const fullName = String(formData.get("adminName") || "").trim();
+  const email = String(formData.get("adminEmail") || "").trim().toLowerCase();
+  const phone = String(formData.get("adminPhone") || "").replace(/[\s.]/g, "");
+  const username = String(formData.get("adminUsername") || "").trim().toLowerCase();
+  const password = String(formData.get("adminPassword") || "");
+  const password2 = String(formData.get("adminPassword2") || "");
+  if (fullName.length < 2 || fullName.length > 128) back("/dashboard/panel-cua-toi", "err", "Họ và tên quản trị viên phải từ 2-128 ký tự");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) back("/dashboard/panel-cua-toi", "err", "Email quản trị viên chưa đúng định dạng");
+  if (await prisma.user.findFirst({ where: { email } })) back("/dashboard/panel-cua-toi", "err", "Email này đã được đăng ký — hãy dùng email khác cho tài khoản quản trị");
+  if (!/^[0-9]{10,15}$/.test(phone)) back("/dashboard/panel-cua-toi", "err", "Số điện thoại phải gồm 10-15 chữ số");
+  if (!/^[a-z0-9-]{6,32}$/.test(username)) back("/dashboard/panel-cua-toi", "err", "Tên đăng nhập phải 6-32 ký tự: chữ thường, số, dấu gạch ngang");
+  if (await prisma.user.findFirst({ where: { username } })) back("/dashboard/panel-cua-toi", "err", "Tên đăng nhập này đã có người dùng — hãy chọn tên khác");
+  const pwErr = passwordError(password, await getSettings());
+  if (pwErr) back("/dashboard/panel-cua-toi", "err", pwErr);
+  if (password !== password2) back("/dashboard/panel-cua-toi", "err", "Mật khẩu xác nhận không khớp");
+  if (formData.get("agree") !== "1") back("/dashboard/panel-cua-toi", "err", "Bạn cần đồng ý với điều khoản sử dụng để tiếp tục");
+  if (formData.get("confirm") !== "1") back("/dashboard/panel-cua-toi", "err", "Bạn cần tích xác nhận đã kiểm tra kỹ thông tin trước khi tạo");
+
+  // Bước 3: phí + liên kết API tự động bằng key của chính chủ panel (như luồng đăng ký thường)
+  let slug = panelSlug(domain);
+  if (slug.length < 3) slug = `site-${user.id}`;
+  if (RESERVED_SLUGS.includes(slug) || (await prisma.childPanel.findUnique({ where: { slug } }))) slug = `${slug}-${user.id}`;
+  const me = await prisma.user.findUnique({ where: { id: user.id }, select: { apiKey: true } });
+  const link = await panelApiLink(formData, { apiKey: me?.apiKey || null, apiUserId: user.id });
+  if (!link) back("/dashboard/panel-cua-toi", "err", "Không liên kết được API — vui lòng thử lại sau");
+  const feeInfo = await panelCreationFeeFor(user.id);
+  const st = await getSettings();
+  const parentCfg = feeInfo.parent ? await prisma.childPanel.findUnique({ where: { id: feeInfo.parent.id }, select: { panelDefaultMarkup: true, discountMember: true, discountReseller: true, discountAgency: true, discountVip: true } }) : null;
+  if (feeInfo.fee > feeInfo.balance) back("/dashboard/panel-cua-toi", "err", `Số dư không đủ để tạo website con — phí tạo là ${feeInfo.fee.toLocaleString("vi-VN")}₫, số dư hiện tại ${feeInfo.balance.toLocaleString("vi-VN")}₫`);
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.$transaction(async (tx) => {
+    const created = await tx.childPanel.create({
+      data: {
+        ownerId: user.id, name: domain, slug, markup: (parentCfg?.panelDefaultMarkup ?? parseInt(st.panel_default_markup)) || 20, accent: "blue", domain, parentPanelId: feeInfo.parent?.id ?? null,
+        apiKey: link.apiKey, apiUserId: link.apiUserId,
+        discountMember: parentCfg ? parentCfg.discountMember : parseInt(st.level_discount_MEMBER) || 0, discountReseller: parentCfg ? parentCfg.discountReseller : parseInt(st.level_discount_RESELLER) || 0, discountAgency: parentCfg ? parentCfg.discountAgency : parseInt(st.level_discount_AGENCY) || 0, discountVip: parentCfg ? parentCfg.discountVip : parseInt(st.level_discount_VIP) || 0,
+        setupDone: false,
+      },
+    });
+    const admin = await tx.user.create({
+      data: {
+        username, email, phone, fullName, passwordHash, panelId: created.id,
+        apiKey: randomKey(32),
+        depositCode: randomKey(6).toUpperCase(), refCode: randomKey(8).toUpperCase(),
+      },
+    });
+    await tx.panelStaff.create({ data: { panelId: created.id, userId: admin.id, role: "ADMIN" } });
+    await chargePanelCreation(tx, user, feeInfo, created.id, domain);
+  });
+  redirect("/dashboard/panel-cua-toi?step=4");
+}
+
 export async function updatePanelAction(formData: FormData) {
   const user = await requireUser();
   const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
@@ -375,7 +448,9 @@ export async function buyPremiumAction(formData: FormData) {
     );
   } catch (e: any) {
     if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
-    back(slug ? `/premium/${slug}` : "/premium", "err", String(e?.message || "Mua thất bại"));
+    const rt = String(formData.get("returnTo") || "");
+    const errTarget = rt.startsWith("/dashboard/premium/") || rt.startsWith("/premium/") ? rt : slug ? `/premium/${slug}` : "/premium";
+    back(errTarget, "err", String(e?.message || "Mua thất bại"));
   }
 }
 

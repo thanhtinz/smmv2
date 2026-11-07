@@ -1135,7 +1135,81 @@ export const DICT: Record<string, Tr> = {
  "Xem tất cả →": e("View all →", "查看全部 →", "ดูทั้งหมด →", "すべて見る →", "전체 보기 →"),
  "Chưa có thông báo nào.": e("No announcements yet.", "暂无公告。", "ยังไม่มีประกาศ", "お知らせはまだありません。", "아직 공지가 없습니다."),
  "Đã hiểu": e("Got it", "知道了", "เข้าใจแล้ว", "了解しました", "확인"),
+  "Tạo Child Panel": e("Create Child Panel", "创建子面板", "สร้าง Child Panel", "Child Panelを作成", "Child Panel 만들기"),
+  "Khởi tạo SMM Panel riêng trên domain của bạn": e("Create your own SMM Panel on your domain", "在您的域名上创建自己的 SMM 面板", "สร้าง SMM Panel ของคุณเองบนโดเมนของคุณ", "あなたのドメインで独自のSMMパネルを作成", "내 도메인에 나만의 SMM 패널 만들기"),
+  "Domain phải đã được đăng ký, có thể trỏ Nameserver và không vi phạm bản quyền thương hiệu.": e("The domain must already be registered, able to point Nameservers and not infringe trademark rights.", "域名必须已注册、可指向名称服务器且不侵犯商标权。", "โดเมนต้องจดทะเบียนแล้ว ชี้ Nameserver ได้ และไม่ละเมิดเครื่องหมายการค้า", "ドメインは登録済みで、ネームサーバーを指定でき、商標権を侵害していない必要があります。", "도메인은 이미 등록되어 있어야 하고, 네임서버를 지정할 수 있으며, 상표권을 침해하지 않아야 합니다."),
+  "Gợi ý nhà cung cấp domain": e("Suggested domain providers", "推荐域名注册商", "ผู้ให้บริการโดเมนที่แนะนำ", "おすすめのドメインプロバイダー", "추천 도메인 제공업체"),
+  "Chưa có domain? Đăng ký trước rồi quay lại tiếp tục.": e("No domain yet? Register one first, then come back to continue.", "还没有域名?请先注册,然后回来继续。", "ยังไม่มีโดเมน? สมัครก่อนแล้วกลับมาดำเนินการต่อ", "ドメインをお持ちでない場合は、先に登録してから戻って続行してください。", "도메인이 없나요? 먼저 등록한 후 돌아와서 계속하세요."),
+  "Thông tin gói": e("Package info", "套餐信息", "ข้อมูลแพ็กเกจ", "プラン情報", "패키지 정보"),
+  "Thời hạn": e("Duration", "期限", "ระยะเวลา", "期間", "기간"),
+  "Không giới hạn": e("Unlimited", "无限制", "ไม่จำกัด", "無制限", "무제한"),
+  "Câu hỏi thường gặp": e("Frequently asked questions", "常见问题", "คำถามที่พบบ่อย", "よくある質問", "자주 묻는 질문"),
+  "Child Panel là gì?": e("What is a Child Panel?", "什么是 Child Panel?", "Child Panel คืออะไร?", "Child Panelとは?", "Child Panel이란?"),
+  "Tôi cần chuẩn bị gì?": e("What do I need to prepare?", "我需要准备什么?", "ฉันต้องเตรียมอะไรบ้าง?", "何を準備すればよいですか?", "무엇을 준비해야 하나요?"),
+  "Sau khi tạo thì làm gì tiếp?": e("What do I do after creating it?", "创建后接下来做什么?", "หลังจากสร้างแล้วทำอะไรต่อ?", "作成後はどうすればよいですか?", "만든 후에는 무엇을 하나요?"),
+  "Tài khoản quản trị viên": e("Administrator account", "管理员账户", "บัญชีผู้ดูแลระบบ", "管理者アカウント", "관리자 계정"),
+  "Tài khoản này sẽ có quyền admin cao nhất trên Child Panel": e("This account will have the highest admin rights on the Child Panel", "此账户将在 Child Panel 上拥有最高管理员权限", "บัญชีนี้จะมีสิทธิ์ผู้ดูแลสูงสุดบน Child Panel", "このアカウントはChild Panelで最高の管理者権限を持ちます", "이 계정은 Child Panel에서 최고 관리자 권한을 갖습니다"),
+  "Xem lại trước khi xác nhận": e("Review before confirming", "确认前请核对", "ตรวจสอบก่อนยืนยัน", "確認前にレビュー", "확인 전에 검토"),
+  "Thông tin domain": e("Domain info", "域名信息", "ข้อมูลโดเมน", "ドメイン情報", "도메인 정보"),
+  "Chi phí tạo": e("Creation fee", "创建费用", "ค่าธรรมเนียมการสร้าง", "作成費用", "생성 비용"),
+  "Số dư sau khi tạo": e("Balance after creation", "创建后余额", "ยอดคงเหลือหลังสร้าง", "作成後の残高", "생성 후 잔액"),
+  "Tạo Child Panel thành công!": e("Child Panel created successfully!", "Child Panel 创建成功!", "สร้าง Child Panel สำเร็จ!", "Child Panelを作成しました!", "Child Panel이 생성되었습니다!"),
+  "Tên miền website con": e("Child site domain", "子网站域名", "โดเมนเว็บไซต์ย่อย", "子サイトのドメイン", "하위 사이트 도메인"),
+  "Mở website con": e("Open child site", "打开子网站", "เปิดเว็บไซต์ย่อย", "子サイトを開く", "하위 사이트 열기"),
+  "Quản trị website con": e("Child site admin", "子网站管理", "จัดการเว็บไซต์ย่อย", "子サイト管理", "하위 사이트 관리"),
+  "Vào Panel Admin": e("Open Panel Admin", "进入 Panel Admin", "เปิด Panel Admin", "Panel Adminを開く", "Panel Admin 열기"),
 };
+
+/* Dịch theo MẢNH cho các dòng ghép (vd "Đơn giá 45.000đ/1000", "Số lượng 500 · Bắt đầu —") */
+export const FRAGMENTS: [string, Record<string, string>][] = [
+  ["Đơn giá ", { en: "Rate ", zh: "单价 ", th: "ราคา ", ja: "単価 ", ko: "단가 " }],
+  ["đã hoàn ", { en: "refunded ", zh: "已退 ", th: "คืนแล้ว ", ja: "返金済み ", ko: "환불됨 " }],
+  ["Số lượng: ", { en: "Quantity: ", zh: "数量:", th: "จำนวน: ", ja: "数量：", ko: "수량: " }],
+  ["Số lượng ", { en: "Quantity ", zh: "数量 ", th: "จำนวน ", ja: "数量 ", ko: "수량 " }],
+  ["Bắt đầu ", { en: "Start ", zh: "开始 ", th: "เริ่ม ", ja: "開始 ", ko: "시작 " }],
+  ["Còn lại ", { en: "Remains ", zh: "剩余 ", th: "คงเหลือ ", ja: "残り ", ko: "남음 " }],
+  ["Cập nhật ", { en: "Updated ", zh: "更新 ", th: "อัปเดต ", ja: "更新 ", ko: "업데이트 " }],
+  ["qua API", { en: "via API", zh: "通过 API", th: "ผ่าน API", ja: "API経由", ko: "API 경유" }],
+  [" mục", { en: " items", zh: " 条", th: " รายการ", ja: " 件", ko: " 개" }],
+  ["Tổng: ", { en: "Total: ", zh: "总计: ", th: "ทั้งหมด: ", ja: "合計：", ko: "총: " }],
+  [" dịch vụ", { en: " services", zh: " 项服务", th: " บริการ", ja: " サービス", ko: " 서비스" }],
+  ["Giao ngay · còn ", { en: "Instant delivery · only ", zh: "现货速发 · 仅剩 ", th: "ส่งทันที · เหลือเพียง ", ja: "即時配送 · 残り ", ko: "즉시 배송 · 남은 수량 " }],
+  [" giao dịch trên toàn hệ thống — mọi thay đổi số dư đều có sổ ở đây.", { en: " transactions system-wide — every balance change is recorded here.", zh: " 笔全系统交易 — 每笔余额变动都有记录。", th: " ธุรกรรมทั่วทั้งระบบ — การเปลี่ยนแปลงยอดคงเหลือทั้งหมดถูกบันทึกไว้ที่นี่", ja: " 件のシステム全体の取引 — すべての残高変動がここに記録されます。", ko: " 건의 전체 시스템 거래 — 모든 잔액 변동이 여기에 기록됩니다." }],
+  [" tài khoản hiển thị · Tổng số dư khách đang giữ: ", { en: " accounts shown · Total customer balances held: ", zh: " 个账户显示 · 客户持有的总余额:", th: " บัญชีที่แสดง · ยอดคงเหลือรวมของลูกค้าที่ถืออยู่: ", ja: " 件のアカウント表示 · 顧客が保持する総残高：", ko: "개 계정 표시 · 고객이 보유한 총 잔액: " }],
+  [" (nợ phải trả của hệ thống)", { en: " (system liability)", zh: "(系统负债)", th: " (หนี้สินของระบบ)", ja: "（システムの負債）", ko: " (시스템 부채)" }],
+  [" đơn thủ công đang chờ xử lý", { en: " manual orders awaiting processing", zh: " 个手动订单等待处理", th: " ออเดอร์แมนนวลรอการดำเนินการ", ja: " 件の手動注文が処理待ち", ko: " 건의 수동 주문이 처리 대기 중" }],
+  [" đơn · Nạp ", { en: " orders · Deposits ", zh: " 单 · 充值 ", th: " ออเดอร์ · เติมเงิน ", ja: " 件 · 入金 ", ko: " 건 · 충전 " }],
+  [" · Nạp ", { en: " · Deposits ", zh: " · 充值 ", th: " · เติมเงิน ", ja: " · 入金 ", ko: " · 충전 " }],
+  [" đơn · ", { en: " orders · ", zh: " 单 · ", th: " ออเดอร์ · ", ja: " 件 · ", ko: " 건 · " }],
+  [" · 0 đơn", { en: " · 0 orders", zh: " · 0 单", th: " · 0 ออเดอร์", ja: " · 0 件", ko: " · 0 건" }],
+  ["Lãi ", { en: "Profit ", zh: "利润 ", th: "กำไร ", ja: "利益 ", ko: "이익 " }],
+  ["Đặt lại số dư nhà cung cấp đang lưu đệm (", { en: "Reset cached provider balances (", zh: "重置缓存的供应商余额(", th: "รีเซ็ตยอดผู้ให้บริการที่แคชไว้ (", ja: "キャッシュされたプロバイダー残高をリセット（", ko: "캐시된 공급자 잔액을 초기화합니다 (" }],
+  [" nguồn) — lần kiểm tra kế tiếp sẽ lấy số dư thật từ nguồn", { en: " sources) — the next check will fetch the real balance from the source", zh: " 个来源)— 下次检查将从来源获取真实余额", th: " แหล่ง) — การตรวจสอบครั้งถัดไปจะดึงยอดจริงจากแหล่ง", ja: " 件）— 次回チェックでソースから実際の残高を取得します", ko: " 개 소스) — 다음 확인 시 소스에서 실제 잔액을 가져옵니다" }],
+  [" phát sinh", { en: " transactions", zh: " 笔交易", th: " รายการ", ja: " 件", ko: " 건" }],
+  [" tài khoản", { en: " accounts", zh: " 个账户", th: " บัญชี", ja: " アカウント", ko: " 계정" }],
+  [" — đã trừ ", { en: " — charged ", zh: " — 已扣除 ", th: " — หักเงิน ", ja: " — 差し引かれました ", ko: " — 차감됨 " }],
+  ["Đã đặt ", { en: "Placed ", zh: "已下 ", th: "สั่งแล้ว ", ja: "注文済み ", ko: "주문 완료 " }],
+  [" đơn: ", { en: " orders: ", zh: " 个订单:", th: " ออเดอร์: ", ja: " 件の注文：", ko: " 개 주문: " }],
+  [" — đã giao tự động, xem nội dung trong đơn", { en: " — auto-delivered, see the content in your order", zh: " — 已自动交付,请在订单中查看内容", th: " — จัดส่งอัตโนมัติแล้ว ดูเนื้อหาในออเดอร์", ja: " — 自動配信済み、注文内で内容をご確認ください", ko: " — 자동 배송됨, 주문에서 내용을 확인하세요" }],
+  [" vừa được đặt tự động, trừ ", { en: " was just placed automatically, charged ", zh: " 刚刚自动下单,扣除 ", th: " ถูกสั่งโดยอัตโนมัติ หักเงิน ", ja: " が自動で注文され、差し引かれました ", ko: " 자동 주문되어 차감됨 " }],
+];
+
+/** Dịch tại lúc RENDER (server + client dùng chung): khớp chính xác theo từ điển.
+ *  lang="vi" hoặc chưa có bản dịch -> trả nguyên văn. Menu/khung giao diện dùng hàm này
+ *  để chữ đúng ngôn ngữ ngay từ bản vẽ đầu tiên, không qua lớp vá DOM. */
+export function tr(lang: string, text: string): string {
+  if (!lang || lang === "vi") return text;
+  const v = (DICT[text] as unknown as Record<string, string> | undefined)?.[lang];
+  return v || text;
+}
+/** Như tr() nhưng thêm dịch theo mảnh cho dòng ghép CÓ SỐ (đúng luật của lớp hiển thị). */
+export function trd(lang: string, text: string): string {
+  const exact = tr(lang, text);
+  if (exact !== text || !lang || lang === "vi" || !/\d/.test(text)) return exact;
+  let out = text;
+  for (const [frag, map] of FRAGMENTS) { const r = map[lang]; if (r && out.includes(frag)) out = out.split(frag).join(r); }
+  return out;
+}
 
 export const CURRENCIES: { key: string; name: string; rate: number }[] = [
   { key: "VND", name: "VND ₫", rate: 1 },

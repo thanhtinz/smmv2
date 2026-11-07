@@ -629,6 +629,7 @@ model ChildPanel {
 // giá, tiền, cấu hình, nhân sự là quyền của CHỦ panel.
 model PanelStaff {
   id        Int        @id @default(autoincrement())
+  role      String     @default("STAFF") // STAFF = nhân viên xử lý đơn; ADMIN = quản trị viên toàn quyền của panel (tạo qua wizard Tạo Child Panel)
   panelId   Int
   panel     ChildPanel @relation(fields: [panelId], references: [id], onDelete: Cascade)
   userId    Int

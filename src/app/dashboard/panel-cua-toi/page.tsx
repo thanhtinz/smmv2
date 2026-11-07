@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash, Badge, I } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
-import { registerChildSiteAction } from "@/app/actions/user";
+import { createPanelWizardAction } from "@/app/actions/user";
+import { PanelWizard } from "@/components/panel-wizard";
 import { vnd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +14,7 @@ export const dynamic = "force-dynamic";
  *  thống kê 4 ô + form tạo CHỈ 1 ô tên miền (không /cua-hang, không slug/tên cho khách nhập)
  *  + thẻ NameServer + hướng dẫn 5 bước + quyền lợi. Đã có website con -> thẻ thông tin
  *  tên miền + lối vào website con / quản trị TRÊN CHÍNH TÊN MIỀN ĐÓ. */
-export default async function ChildSiteRegisterPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function ChildSiteRegisterPage({ searchParams }: { searchParams: { msg?: string; err?: string; step?: string } }) {
   const user = (await getCurrentUser())!;
   const settings = await getSettings();
   const panel = await prisma.childPanel.findUnique({ where: { ownerId: user.id } });
@@ -26,6 +28,8 @@ export default async function ChildSiteRegisterPage({ searchParams }: { searchPa
   const totalOrders = (smmAgg?._count || 0) + (preAgg?._count || 0);
   const totalRevenue = (smmAgg?._sum.charge || 0) + (preAgg?._sum.total || 0);
   const totalProfit = (smmAgg?._sum.commission || 0) + (preAgg?._sum.commission || 0);
+  const step = searchParams.step === "4" ? 4 : searchParams.step === "5" ? 5 : 0;
+  const adminStaff = panel && step > 0 ? await prisma.panelStaff.findFirst({ where: { panelId: panel.id, role: "ADMIN" }, include: { user: { select: { username: true } } } }) : null;
   const ns1 = settings.child_ns1 || "";
   const ns2 = settings.child_ns2 || "";
   // Phí tạo website con theo ngữ cảnh: khách của panel thì theo phí panel đó tự đặt, khách web mẹ theo phí Cấu hình của mẹ
@@ -36,18 +40,6 @@ export default async function ChildSiteRegisterPage({ searchParams }: { searchPa
     { label: "Tổng đơn hàng", value: String(totalOrders), icon: I.list },
     { label: "Tổng doanh thu", value: vnd(totalRevenue), icon: I.chart },
     { label: "Tổng lợi nhuận", value: vnd(totalProfit), icon: I.money },
-  ];
-  const steps = [
-    { t: "Chuẩn bị tên miền", d: "Bạn cần có sẵn một tên miền riêng, mua tại inet.vn, tenten.vn hoặc nhà đăng ký khác." },
-    { t: "Nhập tên miền", d: "Điền tên miền vào form đăng ký bên dưới và bấm Đăng ký ngay — hệ thống tự cấu hình." },
-    { t: "Trỏ NameServer", d: "Trỏ tên miền của bạn về 2 NameServer trong thẻ Thông tin NameServer. Nhà đăng ký tên miền có thể hỗ trợ bước này." },
-    { t: "Đăng nhập website con", d: "Truy cập website con bằng chính tên miền vừa đăng ký và đăng nhập bằng tài khoản này — hệ thống đã tự liên kết API với tài khoản của bạn." },
-    { t: "Tuỳ chỉnh website", d: "Vào quản trị ngay trên website con để nhập API Token nếu cần, đổi logo, màu sắc và giá bán theo ý bạn." },
-  ];
-  const perks = [
-    { t: "Tuỳ chỉnh lợi nhuận", d: "Tự set giá bán và phần lợi nhuận của riêng bạn" },
-    { t: "Triển khai tức thì", d: "Cấu hình đơn giản, dễ sử dụng" },
-    { t: "Quản lý khách hàng", d: "Quản lý và chăm sóc tệp khách hàng của riêng bạn" },
   ];
   return (
     <div>
@@ -70,6 +62,10 @@ export default async function ChildSiteRegisterPage({ searchParams }: { searchPa
           <div className="text-lg font-bold text-slate-900">Tính năng mở website con đang tạm đóng</div>
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">Hệ thống đang tạm ngưng cho đăng ký website con mới. Vui lòng quay lại sau.</p>
         </div>
+      ) : panel && step === 4 ? (
+        <PostCreateSteps step={4} panel={panel} ns1={ns1} ns2={ns2} adminUsername={adminStaff?.user.username || ""} />
+      ) : panel && step === 5 ? (
+        <PostCreateSteps step={5} panel={panel} ns1={ns1} ns2={ns2} adminUsername={adminStaff?.user.username || ""} />
       ) : panel ? (
         <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
           <div className="card p-6 lg:col-span-3">
@@ -95,56 +91,9 @@ export default async function ChildSiteRegisterPage({ searchParams }: { searchPa
           </div>
         </div>
       ) : (
-        <>
-          <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
-            <form action={registerChildSiteAction} className="card p-6 lg:col-span-3">
-              <div className="text-base font-extrabold uppercase tracking-wide text-slate-900">Đăng ký website con</div>
-              <p className="mt-1 text-sm text-slate-500">Mỗi tài khoản được phép tạo tối đa 1 website</p>
-              <div className="mt-5">
-                <label className="lbl">Tên miền của bạn</label>
-                <input className="inp !h-[52px] !rounded-[14px] !text-[15px]" name="domain" required placeholder="vd: myshop.vn" autoComplete="off" />
-                <p className="mt-1.5 text-xs text-slate-400">Chỉ chứa chữ thường, số, dấu chấm và gạch ngang.</p>
-              </div>
-              <div className="mt-4 flex items-center justify-between text-sm">
-                <span className="text-slate-500">Chi phí đăng ký:</span>
-                <span className="text-base font-extrabold text-slate-900">{creationFee > 0 ? vnd(creationFee) : "0₫"}</span>
-              </div>
-              {creationFee > 0 && (
-                <p className="mt-1.5 text-right text-xs text-slate-400">Trừ vào số dư khi đăng ký thành công · Số dư hiện tại: {vnd(user.balance)}</p>
-              )}
-              <div className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-[13px] leading-relaxed text-slate-600">
-                Sau khi đăng ký, hãy trỏ NameServer của tên miền về thông tin ở thẻ bên cạnh — website con sẽ tự hoạt động trên tên miền của bạn ngay khi tên miền cập nhật xong.
-              </div>
-              <button type="submit" className="btn-primary mt-5 w-full !py-3">Đăng ký ngay</button>
-            </form>
-            <div className="space-y-6 lg:col-span-2">
-              <NsCard ns1={ns1} ns2={ns2} />
-              <div className="card p-6">
-                <div className="mb-3 font-bold text-slate-900">Quyền lợi khi sở hữu website con</div>
-                <ul className="space-y-3.5">
-                  {perks.map((p) => (
-                    <li key={p.t} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-md bg-emerald-500"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg></span>
-                      <span><span className="block text-sm font-semibold text-slate-800">{p.t}</span><span className="block text-[13px] leading-relaxed text-slate-500">{p.d}</span></span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div className="card mt-6 p-6">
-            <div className="mb-4 font-bold text-slate-900">Hướng dẫn tạo website con</div>
-            <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              {steps.map((s, i) => (
-                <li key={s.t} className="rounded-2xl bg-slate-50 p-4">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-[13px] font-extrabold text-white">{i + 1}</span>
-                  <div className="mt-2.5 text-sm font-bold text-slate-800">{s.t}</div>
-                  <p className="mt-1 text-[13px] leading-relaxed text-slate-500">{s.d}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </>
+        <div className="mt-6">
+          <PanelWizard fee={creationFee} balance={user.balance} action={createPanelWizardAction} defaults={{ fullName: user.fullName || "", email: user.email || "", phone: user.phone || "" }} />
+        </div>
       )}
     </div>
   );
@@ -178,6 +127,82 @@ function NsCard({ ns1, ns2, className = "" }: { ns1: string; ns2: string; classN
           <li>Chờ hệ thống cập nhật (thường 15 phút – 24 giờ), sau đó truy cập website con bằng chính tên miền của bạn.</li>
         </ol>
       </div>
+    </div>
+  );
+}
+
+/** Thanh 5 bước dùng cho bước 4-5 (render phía server sau khi tạo xong). */
+function WizardStepsBar({ step }: { step: number }) {
+  return (
+    <div className="flex items-center">
+      {[1, 2, 3, 4, 5].map((n, i) => {
+        const done = n < step || step === 5;
+        const cur = n === step && step !== 5;
+        return (
+          <div key={n} className={`flex items-center ${i < 4 ? "flex-1" : ""}`}>
+            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-sm font-extrabold ${done ? "border-brand-600 bg-brand-600 text-white" : cur ? "border-brand-600 bg-brand-50 text-brand-700" : "border-slate-200 bg-slate-50 text-slate-400"}`}>{done ? I.check : n}</span>
+            {i < 4 && <span className={`mx-2 h-0.5 flex-1 rounded ${n < step || step === 5 ? "bg-brand-600" : "bg-slate-200"}`} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Bước 4 (trỏ NameServer) và bước 5 (hoàn tất) của wizard Tạo Child Panel. */
+function PostCreateSteps({ step, panel, ns1, ns2, adminUsername }: { step: number; panel: { domain: string | null; name: string }; ns1: string; ns2: string; adminUsername: string }) {
+  const domain = panel.domain || panel.name;
+  return (
+    <div className="card mt-6 p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-extrabold text-slate-900">Tạo Child Panel</h2>
+          <p className="mt-1 text-sm text-slate-500">Khởi tạo SMM Panel riêng trên domain của bạn</p>
+        </div>
+        <span className="rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[11px] font-extrabold uppercase tracking-wider text-brand-700">Multi-tenant</span>
+      </div>
+      <div className="mt-6"><WizardStepsBar step={step} /></div>
+      {step === 4 ? (
+        <div className="mt-7">
+          <h3 className="font-bold text-slate-900">Trỏ NameServer cho tên miền {domain}</h3>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-500">Website con đã được tạo. Vào trang quản lý tên miền nơi bạn đã mua, đổi NameServer của <b className="text-slate-700">{domain}</b> thành 2 giá trị dưới đây — website con sẽ hoạt động trên tên miền của bạn ngay khi tên miền cập nhật xong (thường 15 phút – 24 giờ).</p>
+          <div className="mt-5 max-w-xl space-y-2.5">
+            {[["NS1", ns1], ["NS2", ns2]].map(([k, v]) => (
+              <div key={k} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3.5 py-2.5">
+                <span className="w-9 shrink-0 text-xs font-extrabold tracking-wide text-slate-400">{k}</span>
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">{v || "—"}</span>
+                {v ? <CopyBtn text={v} /> : null}
+              </div>
+            ))}
+          </div>
+          {!ns1 && !ns2 && <p className="mt-3 max-w-xl rounded-xl bg-amber-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-amber-700">NameServer đang được hệ thống cập nhật. Nếu bạn cần trỏ tên miền ngay, hãy liên hệ hỗ trợ để được cấp thông tin.</p>}
+          <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-5">
+            <Link href="/dashboard/panel-cua-toi?step=5" className="btn-primary btn-sm !px-5 !py-2.5">Tiếp tục ›</Link>
+            <Link href="/dashboard/panel-cua-toi" className="btn-ghost btn-sm !px-4 !py-2.5">Để sau</Link>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-7">
+          <div className="flex items-center gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">{I.check}</span>
+            <div>
+              <h3 className="text-lg font-extrabold text-slate-900">Tạo Child Panel thành công!</h3>
+              <p className="mt-0.5 text-sm text-slate-500">Website con của bạn đã sẵn sàng trên tên miền <b className="text-slate-700">{domain}</b>.</p>
+            </div>
+          </div>
+          <div className="mt-6 max-w-xl space-y-3 text-sm">
+            <div className="flex justify-between gap-4"><span className="text-slate-500">Tên miền website con</span><span className="font-bold text-slate-900">{domain}</span></div>
+            <div className="flex justify-between gap-4"><span className="text-slate-500">Tài khoản quản trị viên</span><span className="font-bold text-slate-900">{adminUsername || "—"}</span></div>
+            <div className="flex justify-between gap-4"><span className="text-slate-500">Đăng nhập quản trị bằng</span><span className="text-right font-medium text-slate-800">Tài khoản admin vừa tạo, hoặc chính tài khoản này (chủ panel)</span></div>
+          </div>
+          <div className="mt-7 flex flex-wrap gap-2.5 border-t border-slate-100 pt-5">
+            <a href={`https://${domain}`} target="_blank" rel="noreferrer" className="btn-primary btn-sm !py-2.5">Mở website con</a>
+            <a href={`https://${domain}/admin`} target="_blank" rel="noreferrer" className="btn-ghost btn-sm !py-2.5">Quản trị website con</a>
+            <Link href="/panel-admin" className="btn-ghost btn-sm !py-2.5">Vào Panel Admin</Link>
+            <Link href="/dashboard/panel-cua-toi" className="btn-ghost btn-sm !py-2.5">Về website con của tôi</Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

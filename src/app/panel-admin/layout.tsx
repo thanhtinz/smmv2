@@ -6,6 +6,8 @@ import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
 import AdminRealtime from "@/components/admin-realtime";
 import { DisplaySettings } from "@/components/display";
 import { prisma } from "@/lib/db";
+import { tr } from "@/lib/i18n";
+import { getLang } from "@/lib/lang-server";
 import { vnd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -32,71 +34,73 @@ export default async function PanelAdminLayout({ children }: { children: React.R
   // Thứ tự + tên mục bám đúng sidebar admin web mẹ / panel mẫu: Tổng quan → Quản lý SMM ▾ →
   // Tài khoản Premium ▾ → Khách hàng → Ticket hỗ trợ → tiền → ... → Mô-đun → Cài đặt →
   // Bảo mật nâng cao → Bài viết ▾ → Dọn dẹp hệ thống (mọi mục đều trong phạm vi dữ liệu của panel).
+  const lang = getLang();
+  const L = (t: string) => tr(lang, t);
   const allEntries: AdminNavEntry[] = [
-    { href: "/panel-admin", label: "Tổng quan", icon: "home" },
-    { href: "/panel-admin/phan-tich", label: "Phân tích", icon: "chart" },
+    { href: "/panel-admin", label: L("Tổng quan"), icon: "home" },
+    { href: "/panel-admin/phan-tich", label: L("Phân tích"), icon: "chart" },
     {
       group: "Quản lý SMM", icon: "cart",
       children: [
-        { href: "/panel-admin/danh-muc", label: "Danh mục", icon: "layers" },
-        { href: "/panel-admin/dich-vu", label: "Dịch vụ & Giá", icon: "list" },
-        { href: "/panel-admin/nguon-api", label: "Nguồn API", icon: "server" },
-        { href: "/panel-admin/cap-bac", label: "Cấp bậc", icon: "gem" },
-        { href: "/panel-admin/gia-thong-minh", label: "Giá thông minh", icon: "percent" },
-        { href: "/panel-admin/don-hang", label: "Quản lý đơn hàng", icon: "cart", badge: orderCount },
-        { href: "/panel-admin/kiem-tra-ai", label: "Kiểm tra AI", icon: "cpu" },
-        { href: "/panel-admin/hoa-hong", label: "Nhật ký hoa hồng", icon: "wallet" },
+        { href: "/panel-admin/danh-muc", label: L("Danh mục"), icon: "layers" },
+        { href: "/panel-admin/dich-vu", label: L("Dịch vụ & Giá"), icon: "list" },
+        { href: "/panel-admin/nguon-api", label: L("Nguồn API"), icon: "server" },
+        { href: "/panel-admin/cap-bac", label: L("Cấp bậc"), icon: "gem" },
+        { href: "/panel-admin/gia-thong-minh", label: L("Giá thông minh"), icon: "percent" },
+        { href: "/panel-admin/don-hang", label: L("Quản lý đơn hàng"), icon: "cart", badge: orderCount },
+        { href: "/panel-admin/kiem-tra-ai", label: L("Kiểm tra AI"), icon: "cpu" },
+        { href: "/panel-admin/hoa-hong", label: L("Nhật ký hoa hồng"), icon: "wallet" },
       ],
     },
     {
       group: "Tài khoản Premium", icon: "gem",
       children: [
-        { href: "/panel-admin/dich-vu", label: "Giá Premium", icon: "gem" },
-        { href: "/panel-admin/premium", label: "Sản phẩm & Gói", icon: "box" },
-        { href: "/panel-admin/don-premium", label: "Quản lý đơn hàng", icon: "box", badge: premiumPending || undefined },
+        { href: "/panel-admin/dich-vu", label: L("Giá Premium"), icon: "gem" },
+        { href: "/panel-admin/premium", label: L("Sản phẩm & Gói"), icon: "box" },
+        { href: "/panel-admin/don-premium", label: L("Quản lý đơn hàng"), icon: "box", badge: premiumPending || undefined },
       ],
     },
-    { href: "/panel-admin/khach-hang", label: "Khách hàng", icon: "users", badge: memberCount },
-    { href: "/panel-admin/panel-con", label: "Website con", icon: "panels" },
-    { href: "/panel-admin/ho-tro", label: "Ticket hỗ trợ", icon: "ticket", badge: openTickets },
+    { href: "/panel-admin/khach-hang", label: L("Khách hàng"), icon: "users", badge: memberCount },
+    { href: "/panel-admin/panel-con", label: L("Website con"), icon: "panels" },
+    { href: "/panel-admin/ho-tro", label: L("Ticket hỗ trợ"), icon: "ticket", badge: openTickets },
     {
       group: "Tài chính", icon: "wallet",
       children: [
-        { href: "/panel-admin/nap-tien", label: "Quản lý Nạp tiền", icon: "money", badge: pendingDeposits || undefined },
-        { href: "/panel-admin/cau-hinh-nap-tien", label: "Cấu hình nạp tiền", icon: "gear" },
-        { href: "/panel-admin/bien-dong", label: "Biến động số dư", icon: "chart" },
-        { href: "/panel-admin/ngan-hang", label: "Ngân hàng", icon: "landmark" },
-        { href: "/panel-admin/tien-te", label: "Quản lý tiền tệ", icon: "money" },
+        { href: "/panel-admin/nap-tien", label: L("Quản lý Nạp tiền"), icon: "money", badge: pendingDeposits || undefined },
+        { href: "/panel-admin/cau-hinh-nap-tien", label: L("Cấu hình nạp tiền"), icon: "gear" },
+        { href: "/panel-admin/bien-dong", label: L("Biến động số dư"), icon: "chart" },
+        { href: "/panel-admin/ngan-hang", label: L("Ngân hàng"), icon: "landmark" },
+        { href: "/panel-admin/tien-te", label: L("Quản lý tiền tệ"), icon: "money" },
       ],
     },
     {
       group: "Marketing", icon: "megaphone",
       children: [
-        { href: "/panel-admin/ma-giam-gia", label: "Mã giảm giá", icon: "gift" },
-        { href: "/panel-admin/khuyen-mai", label: "Khuyến mãi", icon: "percent" },
-        { href: "/panel-admin/email-marketing", label: "Email Marketing", icon: "mail" },
-        { href: "/panel-admin/lien-he", label: "Widget Liên hệ", icon: "megaphone" },
-        { href: "/panel-admin/thong-bao", label: "Thông báo khách", icon: "bell" },
+        { href: "/panel-admin/ma-giam-gia", label: L("Mã giảm giá"), icon: "gift" },
+        { href: "/panel-admin/khuyen-mai", label: L("Khuyến mãi"), icon: "percent" },
+        { href: "/panel-admin/email-marketing", label: L("Email Marketing"), icon: "mail" },
+        { href: "/panel-admin/lien-he", label: L("Widget Liên hệ"), icon: "megaphone" },
+        { href: "/panel-admin/thong-bao", label: L("Thông báo khách"), icon: "bell" },
       ],
     },
     {
       group: "Bài viết", icon: "file",
       children: [
-        { href: "/panel-admin/bai-viet", label: "Tất cả bài viết", icon: "file" },
+        { href: "/panel-admin/bai-viet", label: L("Tất cả bài viết"), icon: "file" },
       ],
     },
     {
       group: "Hệ thống", icon: "gear",
       children: [
-        { href: "/panel-admin/mo-dun", label: "Mô-đun", icon: "layers" },
-        { href: "/panel-admin/cau-hinh", label: "Cài đặt", icon: "gear" },
-        { href: "/panel-admin/bao-cao", label: "Báo cáo & Thông báo", icon: "bell" },
-        { href: "/panel-admin/bao-mat", label: "Bảo mật nâng cao", icon: "shield" },
-        { href: "/panel-admin/rui-ro", label: "Đơn rủi ro", icon: "shield" },
-        { href: "/panel-admin/nhat-ky", label: "Nhật ký API", icon: "list" },
-        { href: "/panel-admin/nhan-vien", label: "Nhân viên & Phân quyền", icon: "users" },
-        { href: "/panel-admin/ai", label: "AI tư vấn", icon: "cpu" },
-        { href: "/panel-admin/he-thong", label: "Dọn dẹp hệ thống", icon: "cpu" },
+        { href: "/panel-admin/mo-dun", label: L("Mô-đun"), icon: "layers" },
+        { href: "/panel-admin/cau-hinh", label: L("Cài đặt"), icon: "gear" },
+        { href: "/panel-admin/bao-cao", label: L("Báo cáo & Thông báo"), icon: "bell" },
+        { href: "/panel-admin/bao-mat", label: L("Bảo mật nâng cao"), icon: "shield" },
+        { href: "/panel-admin/rui-ro", label: L("Đơn rủi ro"), icon: "shield" },
+        { href: "/panel-admin/nhat-ky", label: L("Nhật ký API"), icon: "list" },
+        { href: "/panel-admin/nhan-vien", label: L("Nhân viên & Phân quyền"), icon: "users" },
+        { href: "/panel-admin/ai", label: L("AI tư vấn"), icon: "cpu" },
+        { href: "/panel-admin/he-thong", label: L("Dọn dẹp hệ thống"), icon: "cpu" },
       ],
     },
   ];

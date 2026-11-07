@@ -7,6 +7,8 @@ import { DisplaySettings } from "@/components/display";
 import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
 import AdminRealtime from "@/components/admin-realtime";
 import { prisma } from "@/lib/db";
+import { tr } from "@/lib/i18n";
+import { getLang } from "@/lib/lang-server";
 import { vnd } from "@/lib/format";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -28,70 +30,72 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Bảo mật nâng cao → Bài viết ▾ → Cập nhật hệ thống → Dọn dẹp hệ thống.
   // Các tính năng riêng của SMMv2 (Phân tích, Panel con, Báo cáo, Rủi ro, Nhật ký API, Hệ thống)
   // đặt ngay sau mục gần nhất của mẫu để không phá thứ tự gốc.
+  const lang = getLang();
+  const L = (t: string) => tr(lang, t);
   const all: (AdminNavEntry & { adminOnly?: boolean })[] = [
-    { href: "/admin", label: "Tổng quan", icon: "home" },
-    { href: "/admin/phan-tich", label: "Phân tích", icon: "chart", adminOnly: true },
+    { href: "/admin", label: L("Tổng quan"), icon: "home" },
+    { href: "/admin/phan-tich", label: L("Phân tích"), icon: "chart", adminOnly: true },
     {
       group: "Quản lý SMM", icon: "cart",
       children: [
-        { href: "/admin/danh-muc", label: "Danh mục dịch vụ", icon: "layers", adminOnly: true } as any,
-        { href: "/admin/dich-vu", label: "Danh sách dịch vụ", icon: "list", adminOnly: true } as any,
-        { href: "/admin/nha-cung-cap", label: "Nhà cung cấp (API)", icon: "server", adminOnly: true } as any,
-        { href: "/admin/cap-bac", label: "Cấp bậc người dùng", icon: "percent", adminOnly: true } as any,
-        { href: "/admin/don-smm", label: "Quản lý đơn hàng", icon: "cart", badge: manualPending },
-        { href: "/admin/kiem-tra-ai", label: "Kiểm tra AI", icon: "cpu", adminOnly: true } as any,
-        { href: "/admin/gia-thong-minh", label: "Giá thông minh", icon: "money", adminOnly: true } as any,
+        { href: "/admin/danh-muc", label: L("Danh mục dịch vụ"), icon: "layers", adminOnly: true } as any,
+        { href: "/admin/dich-vu", label: L("Danh sách dịch vụ"), icon: "list", adminOnly: true } as any,
+        { href: "/admin/nha-cung-cap", label: L("Nhà cung cấp (API)"), icon: "server", adminOnly: true } as any,
+        { href: "/admin/cap-bac", label: L("Cấp bậc người dùng"), icon: "percent", adminOnly: true } as any,
+        { href: "/admin/don-smm", label: L("Quản lý đơn hàng"), icon: "cart", badge: manualPending },
+        { href: "/admin/kiem-tra-ai", label: L("Kiểm tra AI"), icon: "cpu", adminOnly: true } as any,
+        { href: "/admin/gia-thong-minh", label: L("Giá thông minh"), icon: "money", adminOnly: true } as any,
       ],
     } as any,
     {
       group: "Tài khoản Premium", icon: "gem",
       children: [
-        { href: "/admin/premium/danh-muc", label: "Danh mục sản phẩm", icon: "layers", adminOnly: true } as any,
-        { href: "/admin/premium", label: "Sản phẩm & Gói", icon: "gem", adminOnly: true } as any,
-        { href: "/admin/don-premium", label: "Quản lý đơn hàng", icon: "box", badge: prePending },
+        { href: "/admin/premium/danh-muc", label: L("Danh mục sản phẩm"), icon: "layers", adminOnly: true } as any,
+        { href: "/admin/premium", label: L("Sản phẩm & Gói"), icon: "gem", adminOnly: true } as any,
+        { href: "/admin/don-premium", label: L("Quản lý đơn hàng"), icon: "box", badge: prePending },
       ],
     } as any,
-    { href: "/admin/nguoi-dung", label: "Người dùng", icon: "users", adminOnly: true },
-    { href: "/admin/panel-con", label: "Panel con", icon: "panels", adminOnly: true },
-    { href: "/admin/ticket", label: "Ticket hỗ trợ", icon: "ticket", badge: ticketOpen },
+    { href: "/admin/nguoi-dung", label: L("Người dùng"), icon: "users", adminOnly: true },
+    { href: "/admin/panel-con", label: L("Panel con"), icon: "panels", adminOnly: true },
+    { href: "/admin/ticket", label: L("Ticket hỗ trợ"), icon: "ticket", badge: ticketOpen },
     {
       group: "Tài chính", icon: "wallet",
       children: [
-        { href: "/admin/nap-tien", label: "Quản lý Nạp tiền", icon: "wallet", badge: depPending, adminOnly: true } as any,
-        { href: "/admin/cau-hinh-nap-tien", label: "Cấu hình nạp tiền", icon: "gear", adminOnly: true } as any,
-        { href: "/admin/bien-dong", label: "Biến động số dư", icon: "money", adminOnly: true } as any,
-        { href: "/admin/ngan-hang", label: "Ngân hàng", icon: "landmark", adminOnly: true } as any,
-        { href: "/admin/tien-te", label: "Quản lý tiền tệ", icon: "money", adminOnly: true } as any,
+        { href: "/admin/nap-tien", label: L("Quản lý Nạp tiền"), icon: "wallet", badge: depPending, adminOnly: true } as any,
+        { href: "/admin/cau-hinh-nap-tien", label: L("Cấu hình nạp tiền"), icon: "gear", adminOnly: true } as any,
+        { href: "/admin/bien-dong", label: L("Biến động số dư"), icon: "money", adminOnly: true } as any,
+        { href: "/admin/ngan-hang", label: L("Ngân hàng"), icon: "landmark", adminOnly: true } as any,
+        { href: "/admin/tien-te", label: L("Quản lý tiền tệ"), icon: "money", adminOnly: true } as any,
       ],
     } as any,
     {
       group: "Marketing", icon: "megaphone",
       children: [
-        { href: "/admin/ma-giam-gia", label: "Mã giảm giá", icon: "gift", adminOnly: true } as any,
-        { href: "/admin/khuyen-mai", label: "Khuyến mãi", icon: "percent", adminOnly: true } as any,
-        { href: "/admin/email-marketing", label: "Email Marketing", icon: "mail", adminOnly: true } as any,
-        { href: "/admin/lien-he", label: "Widget Liên hệ", icon: "megaphone", adminOnly: true } as any,
+        { href: "/admin/ma-giam-gia", label: L("Mã giảm giá"), icon: "gift", adminOnly: true } as any,
+        { href: "/admin/khuyen-mai", label: L("Khuyến mãi"), icon: "percent", adminOnly: true } as any,
+        { href: "/admin/email-marketing", label: L("Email Marketing"), icon: "mail", adminOnly: true } as any,
+        { href: "/admin/lien-he", label: L("Widget Liên hệ"), icon: "megaphone", adminOnly: true } as any,
       ],
     } as any,
     {
       group: "Bài viết", icon: "file",
       children: [
-        { href: "/admin/bai-viet", label: "Tất cả bài viết", icon: "file", adminOnly: true } as any,
-        { href: "/admin/bai-viet/danh-muc", label: "Danh mục", icon: "list", adminOnly: true } as any,
+        { href: "/admin/bai-viet", label: L("Tất cả bài viết"), icon: "file", adminOnly: true } as any,
+        { href: "/admin/bai-viet/danh-muc", label: L("Danh mục"), icon: "list", adminOnly: true } as any,
       ],
     } as any,
     {
       group: "Hệ thống", icon: "gear",
       children: [
-        { href: "/admin/mo-dun", label: "Mô-đun", icon: "layers", adminOnly: true } as any,
-        { href: "/admin/cau-hinh", label: "Cài đặt", icon: "gear", adminOnly: true } as any,
-        { href: "/admin/bao-cao", label: "Báo cáo & Thông báo", icon: "bell", adminOnly: true } as any,
-        { href: "/admin/bao-mat", label: "Bảo mật nâng cao", icon: "shield", adminOnly: true } as any,
-        { href: "/admin/rui-ro", label: "Phát hiện rủi ro", icon: "shield", adminOnly: true } as any,
-        { href: "/admin/nhat-ky", label: "Nhật ký API", icon: "clock" } as any,
-        { href: "/admin/cap-nhat", label: "Cập nhật hệ thống", icon: "cpu", adminOnly: true } as any,
-        { href: "/admin/he-thong", label: "Hệ thống", icon: "server", adminOnly: true } as any,
-        { href: "/admin/don-dep", label: "Dọn dẹp hệ thống", icon: "file", adminOnly: true } as any,
+        { href: "/admin/mo-dun", label: L("Mô-đun"), icon: "layers", adminOnly: true } as any,
+        { href: "/admin/cau-hinh", label: L("Cài đặt"), icon: "gear", adminOnly: true } as any,
+        { href: "/admin/bao-cao", label: L("Báo cáo & Thông báo"), icon: "bell", adminOnly: true } as any,
+        { href: "/admin/bao-mat", label: L("Bảo mật nâng cao"), icon: "shield", adminOnly: true } as any,
+        { href: "/admin/rui-ro", label: L("Phát hiện rủi ro"), icon: "shield", adminOnly: true } as any,
+        { href: "/admin/nhat-ky", label: L("Nhật ký API"), icon: "clock" } as any,
+        { href: "/admin/cap-nhat", label: L("Cập nhật hệ thống"), icon: "cpu", adminOnly: true } as any,
+        { href: "/admin/he-thong", label: L("Hệ thống"), icon: "server", adminOnly: true } as any,
+        { href: "/admin/don-dep", label: L("Dọn dẹp hệ thống"), icon: "file", adminOnly: true } as any,
       ],
     } as any,
   ];

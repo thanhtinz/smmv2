@@ -17,7 +17,7 @@ export async function getPanelAccess(userId: number): Promise<PanelAccess | null
     include: { panel: true },
     orderBy: { id: "asc" },
   });
-  if (staff) return { panel: staff.panel, isOwner: false };
+  if (staff) return { panel: staff.panel, isOwner: staff.role === "ADMIN" };
   return null;
 }
 

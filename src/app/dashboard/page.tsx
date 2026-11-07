@@ -81,7 +81,7 @@ export default async function DashboardHome() {
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2.5">
           {premiumOn && (
-            <Link href="/premium" className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-violet-700">
+            <Link href="/dashboard/premium" className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-violet-700">
               <span className="grid h-4 w-4 place-items-center [&>svg]:h-4 [&>svg]:w-4">{I.gem}</span>Mua Premium
             </Link>
           )}
