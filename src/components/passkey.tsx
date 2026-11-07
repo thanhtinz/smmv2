@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
+import { I } from "@/components/ui";
 
 /* Passkey / WebAuthn (bảo mật Enterprise GĐ3):
    - PasskeySection: thẻ quản lý passkey trong Hồ sơ → Bảo mật.
@@ -87,7 +88,10 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
   return (
     <div className="card space-y-4 p-6">
       <div className="flex items-center justify-between gap-3">
-        <div className="font-bold text-slate-900">Đăng nhập nhanh (Passkey)</div>
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 text-white shadow-lg shadow-violet-500/30">{I.fingerprint}</span>
+          <div className="font-bold text-slate-900">Đăng nhập nhanh (Passkey)</div>
+        </div>
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${passkeys.length ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
         >
@@ -105,7 +109,8 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
         <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-100">
           {passkeys.map((p) => (
             <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
-              <div className="min-w-0">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 [&_svg]:h-[18px] [&_svg]:w-[18px]">{I.fingerprint}</span>
+              <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold text-slate-800">{p.deviceName}</div>
                 <div className="mt-0.5 text-xs text-slate-400">
                   Tạo ngày {p.createdAt}
@@ -137,6 +142,7 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
           />
         </div>
         <button type="button" className="btn-primary" onClick={addPasskey} disabled={busy}>
+          {I.fingerprint}
           {busy ? "Đang chờ thiết bị..." : "Thêm passkey"}
         </button>
       </div>
@@ -186,7 +192,8 @@ export function PasskeyLoginButton() {
 
   return (
     <div>
-      <button type="button" className="btn-ghost w-full" onClick={login} disabled={busy}>
+      <button type="button" className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50" onClick={login} disabled={busy}>
+        <span className="[&_svg]:h-[18px] [&_svg]:w-[18px]">{I.fingerprint}</span>
         {busy ? "Đang chờ thiết bị..." : "Đăng nhập bằng Passkey"}
       </button>
       {err ? <p className="mt-2 text-center text-xs font-medium text-rose-600">{err}</p> : null}

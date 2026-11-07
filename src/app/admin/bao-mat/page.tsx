@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAdminPage, currentIp } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { PageHead, Flash, Empty, Badge } from "@/components/ui";
+import { PageHead, Flash, Empty, Badge, CardHead, I } from "@/components/ui";
 import { saveIpBanAction, deleteIpBanAction, saveSecurityPolicyAction } from "@/app/actions/admin-features";
 import { dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
@@ -25,8 +25,9 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
     <div>
       <PageHead title="Bảo mật nâng cao" desc="Chặn IP lạm dụng và chính sách mật khẩu. IP bị chặn sẽ không đăng nhập / đăng ký được." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <form action={saveSecurityPolicyAction} className="card mb-6 space-y-4 p-5">
-        <div className="font-bold text-slate-900">Bảo mật khu quản trị (2FA + IP được phép)</div>
+      <form action={saveSecurityPolicyAction} className="card mb-6 overflow-hidden">
+        <CardHead icon={I.shield} tone="brand" title="Bảo mật khu quản trị (2FA + IP được phép)" />
+        <div className="space-y-4 p-5 pt-4">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div>
             <label className="lbl">Bắt buộc tài khoản quản trị bật xác thực hai lớp (2FA)</label>
@@ -43,23 +44,28 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
           </div>
         </div>
         <button className="btn-primary">Lưu bảo mật khu quản trị</button>
+        </div>
       </form>
-      <form action={saveIpBanAction} className="card p-5">
-        <div className="font-bold text-slate-900">Chặn một IP</div>
-        <div className="mt-4 grid grid-cols-1 items-end gap-4 lg:grid-cols-[1fr_1.5fr_auto]">
+      <form action={saveIpBanAction} className="card overflow-hidden">
+        <CardHead icon={I.ban} tone="rose" title="Chặn một IP" />
+        <div className="p-5 pt-4">
+        <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-[1fr_1.5fr_auto]">
           <div><label className="lbl">Địa chỉ IP</label><input className="inp" name="ip" required placeholder="VD: 203.0.113.10" /></div>
           <div><label className="lbl">Lý do</label><input className="inp" name="reason" placeholder="Spam đăng ký, dò mật khẩu..." /></div>
           <button className="btn-primary whitespace-nowrap">Thêm vào danh sách chặn</button>
         </div>
+        </div>
       </form>
       <div className="card mt-6 overflow-x-auto">
-          <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Danh sách IP bị chặn ({bans.length})</div>
+          <CardHead icon={I.ban} tone="slate" title="Danh sách IP bị chặn">
+            <Badge cls="bg-slate-100 text-slate-600">{bans.length} IP</Badge>
+          </CardHead>
           {bans.length === 0 ? <Empty text="Chưa chặn IP nào" /> : (
             <table className="w-full min-w-[480px]">
               <thead><tr><th className="th">IP</th><th className="th">Lý do</th><th className="th">Thời gian chặn</th><th className="th"></th></tr></thead>
               <tbody className="divide-y divide-slate-100">
-                {bans.map((b) => (
-                  <tr key={b.id}>
+                {bans.map((b, i) => (
+                  <tr key={b.id} className={i % 2 ? "bg-slate-50/60" : undefined}>
                     <td className="td font-mono text-sm font-semibold">{b.ip}</td>
                     <td className="td text-slate-500">{b.reason || "—"}</td>
                     <td className="td whitespace-nowrap text-slate-500">{dt(b.createdAt)}</td>
@@ -71,8 +77,9 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
           )}
       </div>
       <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
-        <form action={saveSecurityPolicyAction} className="card space-y-4 p-5">
-          <div className="font-bold text-slate-900">Chính sách mật khẩu</div>
+        <form action={saveSecurityPolicyAction} className="card overflow-hidden">
+          <CardHead icon={I.lock} tone="violet" title="Chính sách mật khẩu" />
+          <div className="space-y-4 p-5 pt-4">
           <div><label className="lbl">Độ dài tối thiểu (ký tự)</label><input className="inp" name="password_min_length" type="number" min={4} max={32} defaultValue={s.password_min_length} /></div>
           <div className="grid grid-cols-3 gap-3">
             <div><label className="lbl">Chữ hoa</label>
@@ -90,9 +97,11 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
             <div><label className="lbl">Khoá (giây)</label><input className="inp" name="bf_lock_seconds" type="number" min={30} max={86400} defaultValue={s.bf_lock_seconds} /></div>
           </div>
           <button className="btn-primary">Lưu cấu hình bảo mật</button>
+          </div>
         </form>
-        <form action={saveSecurityPolicyAction} className="card space-y-4 p-5">
-          <div className="font-bold text-slate-900">Bảo mật đăng ký</div>
+        <form action={saveSecurityPolicyAction} className="card overflow-hidden">
+          <CardHead icon={I.users} tone="brand" title="Bảo mật đăng ký" />
+          <div className="space-y-4 p-5 pt-4">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="lbl">Honeypot chống bot</label>
               <select className="inp" name="reg_honeypot" defaultValue={s.reg_honeypot === "0" ? "0" : "1"}><option value="1">Bật</option><option value="0">Tắt</option></select></div>
@@ -102,23 +111,23 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
           <div><label className="lbl">Số lần đăng ký tối đa / IP / giờ (0 = không giới hạn)</label><input className="inp" name="reg_max_per_ip_hour" type="number" min={0} max={1000} defaultValue={s.reg_max_per_ip_hour} /></div>
           <div><label className="lbl">Danh sách tên miền email bị cấm (mỗi dòng 1 tên miền)</label><textarea className="inp font-mono" name="reg_banned_domains" rows={4} defaultValue={s.reg_banned_domains} /></div>
           <button className="btn-primary">Lưu bảo mật đăng ký</button>
+          </div>
         </form>
       </div>
       <div className="card mt-6 overflow-x-auto">
-        <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-5 py-4">
-          <span className="font-bold text-slate-900">Lịch sử đăng nhập gần đây</span>
-          <span className="ml-auto flex gap-2 text-sm font-semibold">
+        <CardHead icon={I.history} tone="blue" title="Lịch sử đăng nhập gần đây">
+          <span className="flex gap-2 text-sm font-semibold">
             <Link href="/admin/bao-mat" className={!onlyFail ? "text-brand-700" : "text-slate-400 hover:text-slate-700"}>Tất cả</Link>
             <span className="text-slate-300">|</span>
             <Link href="/admin/bao-mat?fail=1" className={onlyFail ? "text-rose-600" : "text-slate-400 hover:text-slate-700"}>Chỉ lần thất bại</Link>
           </span>
-        </div>
+        </CardHead>
         {logins.length === 0 ? <Empty text="Chưa có lần đăng nhập nào được ghi nhận" /> : (
           <table className="w-full min-w-[720px]">
             <thead><tr><th className="th">Tài khoản</th><th className="th">Kết quả</th><th className="th">IP</th><th className="th">Chi tiết</th><th className="th">Thời gian</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
-              {logins.map((ev) => (
-                <tr key={ev.id}>
+              {logins.map((ev, i) => (
+                <tr key={ev.id} className={i % 2 ? "bg-slate-50/60" : undefined}>
                   <td className="td font-medium">@{ev.username}{ev.panelId ? <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-700">Panel #{ev.panelId}</span> : null}</td>
                   <td className="td">{ev.success ? <Badge cls="bg-emerald-100 text-emerald-700">Thành công</Badge> : <Badge cls="bg-rose-100 text-rose-700">Thất bại</Badge>}{ev.isNewDevice ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">Thiết bị mới</span> : null}</td>
                   <td className="td font-mono text-[13px]">{ev.ip}</td>
@@ -131,14 +140,14 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
         )}
       </div>
       <div className="card mt-6 overflow-x-auto">
-        <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Nhật ký hoạt động hệ thống</div>
+        <CardHead icon={I.list} tone="slate" title="Nhật ký hoạt động hệ thống" />
         {activity.length === 0 ? <Empty text="Chưa có hoạt động nào được ghi" /> : (
           <table className="w-full min-w-[560px]">
             <thead><tr><th className="th">Loại</th><th className="th">Chi tiết</th><th className="th">Thời gian</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
-              {activity.map((a) => (
-                <tr key={a.id}>
-                  <td className="td font-medium">{KIND_LABEL[a.kind] || a.kind}</td>
+              {activity.map((a, i) => (
+                <tr key={a.id} className={i % 2 ? "bg-slate-50/60" : undefined}>
+                  <td className="td"><Badge cls="bg-slate-100 text-slate-600">{KIND_LABEL[a.kind] || a.kind}</Badge></td>
                   <td className="td"><span className="text-slate-500">{a.detail || a.ref || "—"}</span></td>
                   <td className="td whitespace-nowrap text-slate-500">{dt(a.createdAt)}</td>
                 </tr>

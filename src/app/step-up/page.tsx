@@ -5,7 +5,7 @@ import { getCurrentUser, hasStepUp } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { panelByHost } from "@/lib/panel-host";
 import { authCardClass } from "@/lib/auth-style";
-import { Flash } from "@/components/ui";
+import { Flash, I, AuthBadge } from "@/components/ui";
 import { verifyStepUpAction } from "@/app/actions/stepup";
 
 export const dynamic = "force-dynamic";
@@ -29,8 +29,9 @@ export default async function StepUpPage({ searchParams }: { searchParams: { nex
   return (
     <AuthShell style={style} brandName={panel?.name || settings?.site_name || "SMMv2"} tagline={panel?.tagline || settings?.site_tagline} panel={panel ? { name: panel.name, slug: panel.slug } : undefined} announcement={panel?.announcement} accent={panel?.accent}>
       <div className={authCardClass(style)}>
-        <h1 className="text-2xl font-extrabold text-slate-900">Xác thực lại để tiếp tục</h1>
-        <p className="mt-1.5 mb-6 text-sm text-slate-500">
+        <AuthBadge icon={I.lock} cls="bg-brand-50 text-brand-600 ring-brand-100" />
+        <h1 className="text-center text-2xl font-extrabold text-slate-900">Xác thực lại để tiếp tục</h1>
+        <p className="mt-1.5 mb-6 text-center text-sm text-slate-500">
           Thao tác này liên quan tới tiền hoặc cấu hình quan trọng. Vui lòng xác nhận lại danh tính của tài khoản <b className="text-slate-800">@{user.username}</b> — xác thực có hiệu lực 10 phút.
         </p>
         <Flash err={searchParams.err} />

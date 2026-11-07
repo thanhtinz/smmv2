@@ -2,20 +2,29 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, getSession, currentIp } from "@/lib/auth";
 import { revokeSessionAction, revokeOtherSessionsAction } from "@/app/actions/sessions";
-import { Flash, Stat, I, Badge } from "@/components/ui";
+import { Flash, Stat, I, Badge, DeviceTile, deviceKind } from "@/components/ui";
 import { updateProfileAction, changePasswordAction, regenApiKeyAction, saveApiKeyIpsAction, resendEmailVerificationAction, redeemPointsAction } from "@/app/actions/user";
 import { logoutAction } from "@/app/actions/auth";
-import { CopyBtn } from "@/components/client";
+import { CopyBtn, ApiKeyReveal } from "@/components/client";
 import { TwoFactorCard } from "@/components/two-factor";
 import { PasskeySection } from "@/components/passkey";
 import { ProfileTabs } from "@/components/profile-tabs";
 import { backupCodesLeft } from "@/lib/twofa";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
-import { LEVEL_NAME, vnd, num, dt, dshort } from "@/lib/format";
+import { LEVEL_NAME, vnd, num, dt, dshort, relTime } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { trd } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
+
+/** Tên thiết bị thân thiện từ userAgent: "Chrome · Windows"; không suy ra được thì null. */
+function parseUaLabel(ua?: string | null): string | null {
+  if (!ua) return null;
+  const browser = /Edg\//.test(ua) ? "Edge" : /OPR\/|Opera/.test(ua) ? "Opera" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : null;
+  const os = /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad|iPod/.test(ua) ? "iOS" : /Mac OS X|Macintosh/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : null;
+  if (browser && os) return `${browser} · ${os}`;
+  return browser || os;
+}
 
 /** Tài khoản — bố cục theo panel mẫu: đầu trang avatar + huy hiệu, 4 thẻ nhỏ,
  *  3 tab Hồ sơ cá nhân | Kết nối API | Bảo mật & Phiên đăng nhập. */
@@ -42,19 +51,22 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
   const endpoint = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/v2`;
   const passwordForm = (
     <form action={changePasswordAction} className="card space-y-4 p-6">
-      <div className="font-bold text-slate-900">Đổi mật khẩu</div>
+      <div className="flex items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shadow-brand-500/30">{I.lock}</span>
+        <div className="font-bold text-slate-900">Đổi mật khẩu</div>
+      </div>
       <div><label className="lbl">Mật khẩu hiện tại</label><input className="inp" name="oldPassword" type="password" required /></div>
       <div><label className="lbl">Mật khẩu mới</label><input className="inp" name="newPassword" type="password" required minLength={6} /></div>
       <div><label className="lbl">Xác nhận mật khẩu mới</label><input className="inp" name="newPassword2" type="password" required minLength={6} /></div>
       <div className="border-t border-slate-100 pt-4">
         <div className="text-sm font-bold text-slate-800">Yêu cầu mật khẩu mới</div>
         <ul className="mt-2 space-y-1.5 text-sm text-slate-500">
-          <li className="flex gap-2"><span className="text-emerald-600">•</span>Ít nhất {s.password_min_length || 8} ký tự</li>
-          {s.pw_require_upper === "1" && <li className="flex gap-2"><span className="text-emerald-600">•</span>Có ít nhất 1 chữ hoa (A–Z)</li>}
-          {s.pw_require_number === "1" && <li className="flex gap-2"><span className="text-emerald-600">•</span>Có ít nhất 1 chữ số (0–9)</li>}
-          {s.pw_require_special === "1" && <li className="flex gap-2"><span className="text-emerald-600">•</span>Có ít nhất 1 ký tự đặc biệt (vd: !@#$%)</li>}
-          <li className="flex gap-2"><span className="text-emerald-600">•</span>Sau khi đổi, mọi phiên đăng nhập khác sẽ tự đăng xuất</li>
-          <li className="flex gap-2"><span className="text-emerald-600">•</span>Mật khẩu được lưu dạng mã hoá một chiều, hệ thống không xem được mật khẩu gốc</li>
+          <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>Ít nhất {s.password_min_length || 8} ký tự</li>
+          {s.pw_require_upper === "1" && <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>Có ít nhất 1 chữ hoa (A–Z)</li>}
+          {s.pw_require_number === "1" && <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>Có ít nhất 1 chữ số (0–9)</li>}
+          {s.pw_require_special === "1" && <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>Có ít nhất 1 ký tự đặc biệt (vd: !@#$%)</li>}
+          <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>Sau khi đổi, mọi phiên đăng nhập khác sẽ tự đăng xuất</li>
+          <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>Mật khẩu được lưu dạng mã hoá một chiều, hệ thống không xem được mật khẩu gốc</li>
         </ul>
       </div>
       <button className="btn-dark">Cập nhật mật khẩu</button>
@@ -154,7 +166,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
 
         api={(
         <div className="card mt-6 space-y-5 p-6">
-          <div className="font-bold text-slate-900">API kết nối tài khoản</div>
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shadow-brand-500/30">{I.key}</span>
+            <div className="font-bold text-slate-900">API kết nối tài khoản</div>
+          </div>
           <div>
             <label className="lbl">API Endpoint</label>
             <div className="flex gap-2"><input className="inp font-mono" readOnly value={endpoint} /><CopyBtn text={endpoint} /></div>
@@ -162,20 +177,22 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
           <div>
             <label className="lbl">API Key của tôi</label>
             <div className="flex flex-wrap gap-2">
-              <input className="inp min-w-[260px] flex-1 font-mono" readOnly value={user.apiKey} />
-              <CopyBtn text={user.apiKey} />
+              <ApiKeyReveal value={user.apiKey} />
               <form action={regenApiKeyAction}><button className="btn-danger btn-sm whitespace-nowrap !py-2.5">Tạo mới khóa API</button></form>
             </div>
             <p className="mt-2 text-xs text-slate-400">Trạng thái: Đang hoạt động. Giữ key bí mật như mật khẩu — tạo key mới sẽ làm key cũ hết hiệu lực ngay.</p>
           </div>
-          <form action={saveApiKeyIpsAction} className="border-t border-slate-100 pt-5">
-            <div className="font-bold text-slate-900">Whitelist IP cho API key</div>
+          <form action={saveApiKeyIpsAction} className="rounded-2xl border border-slate-200/70 bg-slate-50/60 p-4 sm:p-5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30">{I.shield}</span>
+              <div className="font-bold text-slate-900">Whitelist IP cho API key</div>
+            </div>
             <p className="mt-1.5 text-sm text-slate-500">Chỉ các địa chỉ IP trong danh sách này mới gọi được API bằng key của bạn.</p>
             <div className="mt-3">
               <label className="lbl">Mỗi IP hoặc dải CIDR một dòng (để trống = không giới hạn)</label>
               <textarea className="inp font-mono" name="apiKeyIps" rows={4} defaultValue={user.apiKeyIps || ""} placeholder={"203.0.113.25\n203.0.113.0/24"} />
             </div>
-            <p className="mt-1.5 text-xs text-slate-400">IP hiện tại của bạn: <b className="font-mono text-slate-600">{myIp}</b> — thêm IP này vào danh sách nếu bạn gọi API từ chính kết nối hiện tại.</p>
+            <p className="mt-1.5 text-xs text-slate-400">IP hiện tại của bạn: <span className="inline-flex items-center gap-2 rounded-lg bg-white px-2.5 py-1 font-mono text-xs text-slate-700 ring-1 ring-slate-200">{myIp}<CopyBtn text={myIp} /></span> — thêm IP này vào danh sách nếu bạn gọi API từ chính kết nối hiện tại.</p>
             <button className="btn-primary mt-3">Lưu whitelist IP</button>
           </form>
           <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
@@ -194,34 +211,63 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
               {s.passkeys_enabled !== "0" && (
                 <PasskeySection passkeys={myPasskeys.map((p) => ({ id: p.id, deviceName: p.deviceName, createdAt: dt(p.createdAt), lastUsedAt: p.lastUsedAt ? dt(p.lastUsedAt) : null }))} />
               )}
-              <div className="card space-y-4 p-6">
-                <div className="font-bold text-slate-900">Phiên đăng nhập</div>
-                <p className="text-sm text-slate-500">Các thiết bị đang đăng nhập tài khoản của bạn. Thấy thiết bị lạ? Đăng xuất thiết bị đó ngay và đổi mật khẩu.</p>
-                <div className="space-y-2">
-                  {mySessions.length === 0 ? (
-                    <p className="text-sm text-slate-400">Chưa có phiên nào được ghi nhận (phiên tạo trước bản cập nhật bảo mật sẽ xuất hiện ở lần đăng nhập tới).</p>
-                  ) : mySessions.slice(0, 8).map((sess) => {
-                    const isCurrent = !!curSession?.sid && sess.sid === curSession.sid;
-                    return (
-                      <div key={sess.id} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-slate-800">{sess.userAgent || "Thiết bị không rõ"}</div>
-                          <div className="text-xs text-slate-400">IP {sess.ip} · Đăng nhập {dt(sess.createdAt)} · Hoạt động gần nhất {dt(sess.lastSeenAt)}</div>
-                        </div>
-                        {sess.revokedAt ? <Badge cls="bg-slate-200 text-slate-500">Đã đăng xuất</Badge> : isCurrent ? <Badge cls="bg-emerald-100 text-emerald-700">Thiết bị này</Badge> : (
-                          <form action={revokeSessionAction}><input type="hidden" name="id" value={sess.id} /><button className="btn-ghost btn-sm !text-rose-600">Đăng xuất</button></form>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <form action={logoutAction}><button className="btn-ghost">Đăng xuất khỏi thiết bị này</button></form>
-                  <form action={revokeOtherSessionsAction}><button className="btn-ghost !text-rose-600">Đăng xuất tất cả thiết bị khác</button></form>
-                </div>
+            </div>
+          </div>
+          <div className="card p-5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shadow-brand-500/30">{I.shield}</span>
+              <div className="font-bold text-slate-900">Tổng quan bảo mật</div>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+              <div>
+                <div className="text-xs font-semibold text-slate-400">Xác thực hai lớp (2FA)</div>
+                <div className="mt-1.5">{user.totpEnabled ? <Badge cls="bg-emerald-100 text-emerald-700">Đang bật</Badge> : <Badge cls="bg-slate-100 text-slate-500">Chưa bật</Badge>}</div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-400">Passkey</div>
+                <div className="mt-1.5 text-sm font-semibold text-slate-800">{myPasskeys.length > 0 ? `${myPasskeys.length} thiết bị` : "Chưa có"}</div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-400">Phiên đang hoạt động</div>
+                <div className="mt-1.5 text-sm font-semibold text-slate-800">{mySessions.filter((x) => !x.revokedAt).length} phiên</div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-400">Email</div>
+                <div className="mt-1.5">{user.emailVerified ? <Badge cls="bg-emerald-100 text-emerald-700">Đã xác thực</Badge> : <Badge cls="bg-amber-100 text-amber-700">Chưa xác thực</Badge>}</div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-400">Đăng nhập gần nhất</div>
+                <div className="mt-1.5 text-sm font-semibold text-slate-800">{loginHistory[0] ? <>{relTime(loginHistory[0].createdAt)} · IP {loginHistory[0].ip}</> : "Chưa ghi nhận"}</div>
               </div>
             </div>
           </div>
+            <div className="card space-y-4 p-6">
+              <div className="font-bold text-slate-900">Phiên đăng nhập</div>
+              <p className="text-sm text-slate-500">Các thiết bị đang đăng nhập tài khoản của bạn. Thấy thiết bị lạ? Đăng xuất thiết bị đó ngay và đổi mật khẩu.</p>
+              <div className="grid gap-2 xl:grid-cols-2">
+                {mySessions.length === 0 ? (
+                  <p className="text-sm text-slate-400">Chưa có phiên nào được ghi nhận (phiên tạo trước bản cập nhật bảo mật sẽ xuất hiện ở lần đăng nhập tới).</p>
+                ) : mySessions.slice(0, 8).map((sess) => {
+                  const isCurrent = !!curSession?.sid && sess.sid === curSession.sid;
+                  return (
+                    <div key={sess.id} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                      <DeviceTile ua={sess.userAgent} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-slate-800" title={sess.userAgent || undefined}>{parseUaLabel(sess.userAgent) || sess.userAgent || "Thiết bị không rõ"}</div>
+                        <div className="text-xs text-slate-400">IP {sess.ip} · Đăng nhập {dt(sess.createdAt)} · Hoạt động gần nhất {relTime(sess.lastSeenAt)}</div>
+                      </div>
+                      {sess.revokedAt ? <Badge cls="bg-slate-200 text-slate-500">Đã đăng xuất</Badge> : isCurrent ? <Badge cls="bg-emerald-100 text-emerald-700">Thiết bị này</Badge> : (
+                        <form action={revokeSessionAction}><input type="hidden" name="id" value={sess.id} /><button className="btn-ghost btn-sm !text-rose-600">Đăng xuất</button></form>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <form action={logoutAction}><button className="btn-ghost">Đăng xuất khỏi thiết bị này</button></form>
+                <form action={revokeOtherSessionsAction}><button className="btn-ghost !text-rose-600">Đăng xuất tất cả thiết bị khác</button></form>
+              </div>
+            </div>
           <div className="card overflow-x-auto">
             <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Lịch sử đăng nhập của bạn</div>
             {loginHistory.length === 0 ? (
@@ -230,11 +276,11 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
               <table className="w-full min-w-[640px]">
                 <thead><tr><th className="th">Kết quả</th><th className="th">IP</th><th className="th">Thiết bị / trình duyệt</th><th className="th">Chi tiết</th><th className="th">Thời gian</th></tr></thead>
                 <tbody className="divide-y divide-slate-100">
-                  {loginHistory.map((ev) => (
-                    <tr key={ev.id}>
+                  {loginHistory.map((ev, i) => (
+                    <tr key={ev.id} className={i % 2 === 1 ? "bg-slate-50" : undefined}>
                       <td className="td">{ev.success ? <Badge cls="bg-emerald-100 text-emerald-700">Thành công</Badge> : <Badge cls="bg-rose-100 text-rose-700">Thất bại</Badge>}</td>
                       <td className="td font-mono text-[13px]">{ev.ip}{ev.isNewDevice ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">Thiết bị mới</span> : null}</td>
-                      <td className="td max-w-[280px] truncate text-slate-500">{ev.userAgent || "—"}</td>
+                      <td className="td max-w-[280px] truncate text-slate-500" title={ev.userAgent || undefined}><span className="mr-1.5 inline-flex align-middle text-slate-400 [&_svg]:h-4 [&_svg]:w-4">{deviceKind(ev.userAgent) === "phone" ? I.phone : I.monitor}</span>{ev.userAgent || "—"}</td>
                       <td className="td text-slate-500">{ev.reason || "—"}</td>
                       <td className="td whitespace-nowrap text-slate-500">{dt(ev.createdAt)}</td>
                     </tr>

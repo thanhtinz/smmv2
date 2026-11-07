@@ -27,6 +27,7 @@ const STAT_TONES: Record<string, { tile: string; bar: string }> = {
   violet: { tile: "bg-gradient-to-br from-violet-500 to-purple-700 shadow-violet-500/30", bar: "from-violet-500 to-purple-300" },
   cyan: { tile: "bg-gradient-to-br from-cyan-500 to-sky-600 shadow-cyan-500/30", bar: "from-cyan-500 to-sky-300" },
   amber: { tile: "bg-gradient-to-br from-amber-500 to-yellow-600 shadow-amber-500/30", bar: "from-amber-500 to-yellow-300" },
+  slate: { tile: "bg-gradient-to-br from-slate-500 to-slate-700 shadow-slate-500/30", bar: "from-slate-500 to-slate-300" },
 };
 export function Stat({ label, value, sub, icon, tone = "brand" }: { label: string; value: string; sub?: ReactNode; icon: ReactNode; tone?: string }) {
   const t = STAT_TONES[tone] || STAT_TONES.brand;
@@ -132,7 +133,65 @@ export const I = {
   cpu: <P d="M5 5h14v14H5zM9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3M10 10h4v4h-4z" />,
   percent: <P d="M19 5L5 19M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm11 11a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />,
   panels: <P d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" />,
+  fingerprint: <P d="M12 10a2 2 0 0 0-2 2c0 1 .1 2.5-.26 4M14 13.1c0 2.4 0 6.4-1 8.9M17.3 21c.1-.6.4-2.3.5-3M2 12a10 10 0 0 1 18.4-6.3M2.3 5.2A14.5 14.5 0 0 1 6.4 3M5 8a10 10 0 0 1 8.1-5.6M8.5 15.5c.87 1 1.4 2.4 1.6 4M12 6a4 4 0 0 0-4 4v2.2M19 8.5c.3 1.1.5 2.3.5 3.5" />,
+  monitor: <P d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 21h8M12 17v4" />,
+  phone: <P d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM12 18h.01" />,
+  lock: <P d="M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2zM7 11V7a5 5 0 0 1 10 0v4" />,
+  alert: <P d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h16.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01" />,
+  ban: <P d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM4.9 4.9l14.2 14.2" />,
+  copy: <P d="M9 9h11a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />,
+  history: <P d="M3 12a9 9 0 1 0 2.6-6.4L3 8M3 3v5h5M12 7v5l4 2" />,
 };
+
+/** Đầu thẻ chuẩn toàn hệ: ô icon gradient + tiêu đề đậm + cụm phải (badge/nút). */
+export function CardHead({ icon, tone = "brand", title, children }: { icon: ReactNode; tone?: string; title: ReactNode; children?: ReactNode }) {
+  const t = STAT_TONES[tone] || STAT_TONES.brand;
+  return (
+    <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-5 py-4">
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-lg ${t.tile}`}>{icon}</span>
+      <span className="font-bold text-slate-900">{title}</span>
+      {children ? <span className="ml-auto flex flex-wrap items-center gap-2">{children}</span> : null}
+    </div>
+  );
+}
+
+/** Thanh đo điểm rủi ro: nền thang màu mờ toàn dải + phần điền cùng thang màu
+ *  theo đúng ngưỡng settings (theo dõi → hạn chế → nghiêm trọng) + vạch ngưỡng. */
+export function RiskBar({ score, watch = 40, restrict = 70, critical = 90, className = "" }: { score: number; watch?: number; restrict?: number; critical?: number; className?: string }) {
+  const s = Math.max(0, Math.min(100, Math.round(score)));
+  const grad = `linear-gradient(90deg,#10b981 0%,#f59e0b ${watch}%,#f97316 ${restrict}%,#f43f5e ${critical}%,#e11d48 100%)`;
+  return (
+    <div className={`relative h-2.5 rounded-full bg-slate-100 ${className}`} role="img" aria-label={`${s}/100`}>
+      <div className="absolute inset-0 rounded-full opacity-25" style={{ backgroundImage: grad }} />
+      {s > 0 && (
+        <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${s}%`, backgroundImage: grad, backgroundSize: `${10000 / s}% 100%`, backgroundRepeat: "no-repeat" }} />
+      )}
+      {[watch, restrict, critical].map((t) => (
+        <span key={t} title={`${t}`} className="absolute -inset-y-0.5 w-0.5 rounded bg-white shadow ring-1 ring-slate-300/70" style={{ left: `calc(${t}% - 1px)` }} />
+      ))}
+    </div>
+  );
+}
+
+/** Suy loại thiết bị từ userAgent: điện thoại/máy tính bảng → phone, còn lại máy tính. */
+export function deviceKind(ua?: string | null): "phone" | "monitor" {
+  if (!ua) return "monitor";
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|Mobile/i.test(ua) ? "phone" : "monitor";
+}
+
+/** Ô icon thiết bị cho danh sách phiên / lịch sử đăng nhập. */
+export function DeviceTile({ ua, className = "" }: { ua?: string | null; className?: string }) {
+  return (
+    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 ${className}`}>
+      {deviceKind(ua) === "phone" ? I.phone : I.monitor}
+    </span>
+  );
+}
+
+/** Vòng tròn icon lớn ở đầu các thẻ xác thực (step-up / khoá / chặn IP). */
+export function AuthBadge({ icon, cls }: { icon: ReactNode; cls: string }) {
+  return <div className={`mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full ring-1 ${cls}`}>{icon}</div>;
+}
 
 export const PLATFORM_COLORS: Record<string, string> = {
   facebook: "#1877F2",

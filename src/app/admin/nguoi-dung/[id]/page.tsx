@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, requireAdminPage } from "@/lib/auth";
-import { BackLink, Flash, Badge, Stat, I } from "@/components/ui";
+import { BackLink, Flash, Badge, Stat, I, CardHead, RiskBar } from "@/components/ui";
+import { getSettings } from "@/lib/settings";
 import { adminAdjustBalance, adminUpdateUser, adminForceLogoutAction } from "@/app/actions/admin";
 import { riskRecalcAction, riskReviewAction } from "@/app/actions/security-center";
 import { isRiskRestricted, type RiskFactor } from "@/lib/risk";
@@ -21,7 +22,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
   if (!u) notFound();
   // Tài khoản thuộc site con: web mẹ không xem được account này (kể cả số dư) — coi như không tồn tại
   if (u.panelId) notFound();
-  const [txs, smmAgg, preAgg, recentSmm, recentPre, tickets, deposits] = await Promise.all([
+  const [txs, smmAgg, preAgg, recentSmm, recentPre, tickets, deposits, settings] = await Promise.all([
     prisma.transaction.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 30 }),
     prisma.smmOrder.aggregate({ where: { userId: u.id, status: { notIn: ["REFUNDED"] } }, _sum: { charge: true }, _count: true }),
     prisma.premiumOrder.aggregate({ where: { userId: u.id, status: { notIn: ["REFUNDED", "CANCELED"] } }, _sum: { total: true }, _count: true }),
@@ -29,7 +30,9 @@ export default async function AdminUserDetail({ params, searchParams }: { params
     prisma.premiumOrder.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5, include: { variant: { include: { product: true } } } }),
     prisma.ticket.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5 }),
     prisma.deposit.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5 }),
+    getSettings(),
   ]);
+  const riskTh = { watch: parseInt(settings.risk_watch) || 40, restrict: parseInt(settings.risk_restrict) || 70, critical: parseInt(settings.risk_critical) || 90 };
   const userSessions = await prisma.userSession.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 10 });
   // GĐ3: điểm rủi ro + sự kiện rủi ro gần nhất của tài khoản này
   const riskEvents = await prisma.riskEvent.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5 });
@@ -104,20 +107,20 @@ export default async function AdminUserDetail({ params, searchParams }: { params
               {tickets.length === 0 && deposits.length === 0 && <tr><td className="td text-slate-400">Chưa có ticket / lượt nạp nào</td></tr>}
             </tbody></table>
           </div>
-        <div className="card p-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="font-bold text-slate-900">Điểm rủi ro gian lận</div>
+        <div className="card overflow-hidden">
+            <CardHead icon={I.shield} tone={u.riskLevel === "CRITICAL" ? "rose" : u.riskLevel === "HIGH" ? "orange" : u.riskLevel === "MEDIUM" ? "amber" : "slate"} title="Điểm rủi ro gian lận">
               <Badge cls={u.riskLevel === "CRITICAL" ? "bg-rose-100 text-rose-700" : u.riskLevel === "HIGH" ? "bg-orange-100 text-orange-700" : u.riskLevel === "MEDIUM" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}>{u.riskLevel}</Badge>
-            </div>
+            </CardHead>
+            <div className="space-y-3 p-6 pt-4">
             <div className="flex items-center gap-3">
-              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100"><div className={`h-full ${u.riskScore >= 90 ? "bg-rose-500" : u.riskScore >= 70 ? "bg-orange-500" : u.riskScore >= 40 ? "bg-amber-500" : "bg-slate-400"}`} style={{ width: `${u.riskScore}%` }} /></div>
+              <RiskBar score={u.riskScore} watch={riskTh.watch} restrict={riskTh.restrict} critical={riskTh.critical} className="flex-1" />
               <span className="text-xl font-black text-slate-900">{u.riskScore}<span className="text-sm font-semibold text-slate-400">/100</span></span>
             </div>
             {riskRestrictedNow ? <p className="text-sm font-semibold text-rose-600">Tài khoản đang bị hạn chế tạo đơn/nạp mới.</p> : u.riskReviewedAt ? <p className="text-sm text-emerald-600">Đã được duyệt lúc {dt(u.riskReviewedAt)} — chỉ hạn chế lại khi có tín hiệu mới.</p> : null}
             {riskFactors.length === 0 ? <p className="text-sm text-slate-400">Chưa ghi nhận yếu tố rủi ro nào.</p> : (
               <ul className="space-y-1.5">
                 {riskFactors.map((f) => (
-                  <li key={f.key} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm"><span className="text-slate-600">{f.label}</span><b className="text-slate-800">+{f.points}</b></li>
+                  <li key={f.key} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm"><span className="text-slate-600">{f.label}</span><Badge cls={f.points >= 20 ? "bg-rose-100 text-rose-700 font-mono" : f.points >= 10 ? "bg-amber-100 text-amber-700 font-mono" : "bg-slate-100 text-slate-600 font-mono"}>+{f.points} điểm</Badge></li>
                 ))}
               </ul>
             )}
@@ -132,6 +135,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
             <div className="flex gap-2">
               <form action={riskRecalcAction} className="flex-1"><input type="hidden" name="userId" value={u.id} /><input type="hidden" name="next" value={`/admin/nguoi-dung/${u.id}`} /><button className="btn-ghost w-full">Tính lại điểm</button></form>
               <form action={riskReviewAction} className="flex-1"><input type="hidden" name="userId" value={u.id} /><input type="hidden" name="next" value={`/admin/nguoi-dung/${u.id}`} /><button className="btn-primary w-full">Đánh dấu đã duyệt</button></form>
+            </div>
             </div>
           </div>
         <div className="card p-6 space-y-3">

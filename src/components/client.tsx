@@ -1169,6 +1169,28 @@ export function CopyBtn({ text, label = "Sao chép" }: { text: string; label?: s
   );
 }
 
+/** Ô hiện API key: mặc định che giữa (6 ký tự đầu + 4 ký tự cuối), nút con mắt
+ *  để hiện/ẩn toàn bộ + nút sao chép (luôn chép bản đầy đủ). Thuần trình bày. */
+export function ApiKeyReveal({ value }: { value: string }) {
+  const [show, setShow] = useState(false);
+  const masked = value.length > 12 ? `${value.slice(0, 6)}••••••••••${value.slice(-4)}` : "••••••••••";
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-2">
+      <input className="inp min-w-[200px] flex-1 font-mono" readOnly value={show ? value : masked} onFocus={(e) => e.target.select()} />
+      <button type="button" title={show ? "Ẩn bớt" : "Hiện toàn bộ key"} aria-label={show ? "Ẩn bớt" : "Hiện toàn bộ key"}
+        onClick={() => setShow((v) => !v)}
+        className="inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-brand-300 hover:text-brand-600">
+        {show ? (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.9 4.24A9.5 9.5 0 0 1 12 4c7 0 10 8 10 8a13.2 13.2 0 0 1-3.79 4.68M6.61 6.61A13.5 13.5 0 0 0 2 12s3 8 10 8a9.7 9.7 0 0 0 5.39-1.61M2 2l20 20M9.88 9.88a3 3 0 1 0 4.24 4.24" /></svg>
+        ) : (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8-10-8-10-8Z" /><circle cx="12" cy="12" r="3" /></svg>
+        )}
+      </button>
+      <CopyBtn text={value} />
+    </div>
+  );
+}
+
 /* ---------- Thẻ đơn Premium + popup chi tiết (kiểu thatim: Sản phẩm đã mua) ---------- */
 export type PremiumOrderCard = {
   id: number; code: string; name: string; variant: string; desc: string;

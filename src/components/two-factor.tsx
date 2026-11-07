@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { I } from "@/components/ui";
+import { CopyBtn } from "@/components/client";
 
 /** Thẻ quản lý 2FA trong Hồ sơ → Bảo mật: thiết lập (secret + otpauth URI để
  *  nhập vào app Authenticator), nhập mã để bật, hiện mã dự phòng 1 lần,
@@ -72,7 +74,10 @@ export function TwoFactorCard({ enabled, backupLeft, required }: { enabled: bool
   return (
     <div className="card space-y-4 p-6">
       <div className="flex items-center justify-between gap-3">
-        <div className="font-bold text-slate-900">Xác thực hai lớp (2FA)</div>
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30">{I.shield}</span>
+          <div className="font-bold text-slate-900">Xác thực hai lớp (2FA)</div>
+        </div>
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${enabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{enabled ? "Đang bật" : "Chưa bật"}</span>
       </div>
       {required && !enabled ? (
@@ -90,7 +95,10 @@ export function TwoFactorCard({ enabled, backupLeft, required }: { enabled: bool
 
       {codes ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <div className="text-sm font-bold text-amber-900">Mã dự phòng của bạn (chỉ hiện 1 lần này)</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-bold text-amber-900">Mã dự phòng của bạn (chỉ hiện 1 lần này)</div>
+            <CopyBtn text={codes.join("\n")} />
+          </div>
           <div className="mt-2 grid grid-cols-2 gap-1.5 font-mono text-sm font-semibold text-slate-800">
             {codes.map((c) => (<span key={c} className="rounded-lg bg-white px-2.5 py-1.5 text-center">{c}</span>))}
           </div>
@@ -105,19 +113,27 @@ export function TwoFactorCard({ enabled, backupLeft, required }: { enabled: bool
       {!enabled && setup ? (
         <div className="space-y-3">
           {setup.qr ? (
-            <div className="flex flex-col items-center gap-2 rounded-2xl bg-slate-50 px-4 py-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={setup.qr} alt="QR thiết lập 2FA" width={180} height={180} className="rounded-xl bg-white p-1" />
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={setup.qr} alt="QR thiết lập 2FA" width={180} height={180} className="rounded-xl bg-white p-1" />
+              </div>
               <p className="text-center text-xs text-slate-500">Quét mã QR bằng ứng dụng Authenticator (Google Authenticator, Microsoft Authenticator, Authy...)</p>
             </div>
           ) : null}
           <div>
             <label className="lbl">Mã bí mật (nhập vào ứng dụng Authenticator)</label>
-            <input className="inp font-mono" readOnly value={setup.secret} onFocus={(e) => e.target.select()} />
+            <div className="flex gap-2">
+              <input className="inp flex-1 font-mono" readOnly value={setup.secret} onFocus={(e) => e.target.select()} />
+              <CopyBtn text={setup.secret} />
+            </div>
           </div>
           <div>
             <label className="lbl">Hoặc dùng liên kết otpauth://</label>
-            <input className="inp font-mono text-xs" readOnly value={setup.uri} onFocus={(e) => e.target.select()} />
+            <div className="flex gap-2">
+              <input className="inp flex-1 font-mono text-xs" readOnly value={setup.uri} onFocus={(e) => e.target.select()} />
+              <CopyBtn text={setup.uri} />
+            </div>
           </div>
           <div>
             <label className="lbl">Nhập mã 6 số từ ứng dụng để hoàn tất</label>
