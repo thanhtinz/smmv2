@@ -12,6 +12,7 @@ import { RichText } from "@/components/rich-text";
 import { PremiumCard, Stars, type PremiumCardData } from "@/components/premium-card";
 import { PremiumReviewForm, HelpfulButton } from "@/components/premium-review-form";
 import { PremiumGrid } from "@/components/premium-grid";
+import { moduleOn } from "@/lib/modules";
 
 /** Dựng dữ liệu thẻ cho một nhóm sản phẩm: khoảng giá gói, tổng đã bán, còn kho. */
 async function buildCardData(
@@ -185,6 +186,26 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   const stockMap = new Map(stocks.map((x) => [x.variantId, x._count]));
   const sold = await prisma.premiumOrder.count({ where: { variantId: { in: product.variants.map((v) => v.id) }, status: { not: "CANCELED" } } });
   const maxQty = parseInt((await getSettings()).premium_max_qty) || 50;
+  // Mã giảm giá đang hiệu lực cho người xem này — chỉ để form XEM TRƯỚC số tiền
+  // giảm trong hộp tóm tắt (đúng tiêu chí checkPromo: scope ALL/PREMIUM, mã của
+  // mẹ hoặc của đúng panel người mua, trong khung thời gian, chưa hết lượt).
+  // Server vẫn tính lại và chốt khi đặt đơn.
+  const promoPreview = session && (await moduleOn("promo", viewer?.panelId ?? null))
+    ? (await prisma.discountCode.findMany({
+        where: {
+          active: true,
+          scope: { in: ["ALL", "PREMIUM"] },
+          OR: [{ panelId: null }, ...(viewer?.panelId ? [{ panelId: viewer.panelId }] : [])],
+          AND: [
+            { OR: [{ startsAt: null }, { startsAt: { lte: new Date() } }] },
+            { OR: [{ endsAt: null }, { endsAt: { gte: new Date() } }] },
+          ],
+        },
+        select: { code: true, type: true, value: true, maxDiscount: true, minOrder: true, usageLimit: true, usedCount: true },
+      }))
+        .filter((c) => c.usageLimit === 0 || c.usedCount < c.usageLimit)
+        .map((c) => ({ code: c.code, type: c.type, value: c.value, maxDiscount: c.maxDiscount, minOrder: c.minOrder }))
+    : [];
   const variantIds = product.variants.map((v) => v.id);
   const [reviewAgg, reviewDist, reviewList] = await Promise.all([
     prisma.premiumReview.aggregate({ where: { productId: product.id }, _avg: { rating: true }, _count: true }),
@@ -398,6 +419,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             productColor={product.color}
             variants={product.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, warrantyDays: v.warrantyDays, stock: stockMap.get(v.id) || 0 }))}
             belowVariants={infoSections}
+            promos={promoPreview}
           />
         ) : (
           <>

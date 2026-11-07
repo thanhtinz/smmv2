@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { vnd, num, PLATFORMS, type PremiumCustomField } from "@/lib/format";
-import { PLATFORM_COLORS } from "@/components/ui";
+import { I, PLATFORM_COLORS } from "@/components/ui";
 import { OrderSupportActions } from "@/components/order-support-actions";
 import { warrantyAction } from "@/app/actions/user";
 
@@ -900,7 +900,9 @@ export function PanelPriceEditor({ services, overrides, action, deleteAction }: 
 }
 
 /* ---------- Form mua premium ---------- */
-export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50, backBase, layout, productImage, productColor, belowVariants }: {
+export type PremiumPromoPreview = { code: string; type: string; value: number; maxDiscount: number; minOrder: number };
+
+export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50, backBase, layout, productImage, productColor, belowVariants, promos }: {
   variants: { id: number; name: string; price: number; warrantyDays: number; stock: number }[];
   slug: string;
   fulfillment: string;
@@ -913,13 +915,26 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   productImage?: string | null;
   productColor?: string;
   belowVariants?: React.ReactNode; // khối hiển thị dưới danh sách gói ở cột trái (bố cục split): thông tin / bảo hành / hướng dẫn
+  promos?: PremiumPromoPreview[]; // mã giảm giá đang hiệu lực (chỉ để XEM TRƯỚC số tiền giảm trong hộp tóm tắt — server vẫn chốt lại khi đặt đơn)
 }) {
   const [variantId, setVariantId] = useState(variants[0]?.id);
   const [qty, setQty] = useState(1);
+  const [promoCode, setPromoCode] = useState("");
   const v = variants.find((x) => x.id === variantId) || variants[0];
 
   if (layout === "split") {
     const total = (v?.price || 0) * qty;
+    // Xem trước số tiền giảm theo mã — dùng đúng công thức checkPromo phía server
+    // (server tính lại và chốt khi đặt đơn). Flash sale chỉ áp cho dịch vụ SMM,
+    // KHÔNG áp cho Premium nên không có dòng giảm flash ở đây.
+    const promoRow = (promos || []).find((p) => p.code === promoCode.trim().toUpperCase());
+    let discount = 0;
+    if (promoRow && total > 0 && total >= promoRow.minOrder) {
+      discount = promoRow.type === "PERCENT" ? Math.floor((total * promoRow.value) / 100) : promoRow.value;
+      if (promoRow.type === "PERCENT" && promoRow.maxDiscount > 0) discount = Math.min(discount, promoRow.maxDiscount);
+      discount = Math.max(0, Math.min(discount, total - 1));
+    }
+    const grandTotal = total - discount;
     const infoFields = (
       <>
         {fields && fields.length > 0 ? (
@@ -966,8 +981,8 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
               const selected = x.id === v?.id;
               return (
                 <button type="button" key={x.id} onClick={() => setVariantId(x.id)}
-                  className={`flex w-full items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left transition ${selected ? "border-brand-600 bg-brand-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                  <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${selected ? "border-brand-600" : "border-slate-300"}`}>
+                  className={`flex w-full items-start gap-3 rounded-2xl border-2 px-4 py-3 text-left transition ${selected ? "border-brand-600 bg-brand-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${selected ? "border-brand-600" : "border-slate-300"}`}>
                     {selected && <span className="h-2.5 w-2.5 rounded-full bg-brand-600" />}
                   </span>
                   {productImage ? (
@@ -977,19 +992,17 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-black text-white" style={{ background: productColor || "#3178fc" }}>{slug.charAt(0).toUpperCase()}</span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-bold text-slate-900">{x.name}</span>
+                    <span className="block break-words font-bold text-slate-900">{x.name}</span>
                     <span className="mt-0.5 block text-xs text-slate-500">
                       {x.warrantyDays ? `Bảo hành ${x.warrantyDays} ngày` : "Không bảo hành"}
                       {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? ` · Còn ${x.stock} trong kho` : " · Hết kho — giao tay") : fulfillment === "API" ? " · Giao qua nhà cung cấp" : " · Giao thủ công"}
                     </span>
                   </span>
-                  {fulfillment === "AUTO_STOCK" && x.stock > 0 ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-teal-600">
+                  {fulfillment === "AUTO_STOCK" && x.stock > 0 && (
+                    <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-xs font-bold text-teal-600">
                       <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
                       Giao ngay
                     </span>
-                  ) : (
-                    <span className="shrink-0 text-xs font-bold text-slate-400">Đặt mua</span>
                   )}
                   <span className="shrink-0 font-extrabold text-rose-600">{vnd(x.price)}</span>
                 </button>
@@ -1012,16 +1025,22 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
             <div className="mb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">Thông tin đặt hàng</div>
             {infoFields}
           </div>
-          <details>
-            <summary className="cursor-pointer list-none text-sm font-semibold text-brand-700 [&::-webkit-details-marker]:hidden">Bạn có mã giảm giá?</summary>
-            <input className="inp mt-2 uppercase" name="promoCode" placeholder="VD: SALE10" autoComplete="off" />
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-brand-700 [&::-webkit-details-marker]:hidden">
+              Bạn có mã giảm giá?
+              <span className="text-slate-400 transition-transform duration-200 group-open:rotate-180">{I.chevron}</span>
+            </summary>
+            <input className="inp mt-2 uppercase" name="promoCode" placeholder="VD: SALE10" autoComplete="off" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} />
           </details>
-          <div className="space-y-1.5 border-t border-slate-100 pt-3 text-sm">
+          <div className="space-y-1.5 rounded-xl bg-slate-50 p-4 text-sm">
             <div className="flex justify-between text-slate-500"><span>Tạm tính</span><span className="font-semibold text-slate-700">{vnd(total)}</span></div>
-            <div className="flex items-baseline justify-between"><span className="font-semibold text-slate-700">Tổng cộng</span><span className="text-xl font-extrabold text-rose-600">{vnd(total)}</span></div>
-            <div className="text-xs text-slate-400">
-              {fulfillment === "AUTO_STOCK" ? `Kho hàng: ${v?.stock || 0} sản phẩm` : fulfillment === "API" ? "Giao tự động qua nhà cung cấp" : "Nâng cấp thủ công trên tài khoản của bạn"}
-            </div>
+            {discount > 0 && (
+              <div className="flex justify-between font-semibold text-emerald-600"><span>Giảm giá</span><span>−{vnd(discount)}</span></div>
+            )}
+            <div className="flex items-baseline justify-between border-t border-slate-200/70 pt-2"><span className="font-semibold text-slate-700">Tổng cộng</span><span className="text-xl font-extrabold text-rose-600">{vnd(grandTotal)}</span></div>
+          </div>
+          <div className="text-xs text-slate-400">
+            {fulfillment === "AUTO_STOCK" ? `Kho hàng: ${v?.stock || 0} sản phẩm` : fulfillment === "API" ? "Giao tự động qua nhà cung cấp" : "Nâng cấp thủ công trên tài khoản của bạn"}
           </div>
           <button className="btn-primary w-full !py-3">Đặt hàng ngay</button>
         </div>
