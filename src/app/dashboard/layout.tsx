@@ -42,14 +42,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const homeModalContent = myPanelGate?.homeModalEnabled && myPanelGate.homeModalContent?.trim()
     ? myPanelGate.homeModalContent
     : s.home_modal_enabled === "1" && s.home_modal_content?.trim() ? s.home_modal_content : null;
-  const myPanelFlags = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sellSmm: true, sellPremium: true, moduleAffiliate: true, moduleBulk: true, moduleSubscriptions: true, moduleCampaigns: true, moduleTickets: true, moduleApi: true } }) : null;
+  const myPanelFlags = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sellSmm: true, sellPremium: true, moduleAffiliate: true, moduleBulk: true, moduleTickets: true, moduleApi: true } }) : null;
   const smmOn = s.module_smm !== "0" && (myPanelFlags ? myPanelFlags.sellSmm : true);
   const premiumOn = s.module_premium !== "0" && (myPanelFlags ? myPanelFlags.sellPremium : true);
   const affiliateOn = s.module_affiliate !== "0" && (myPanelFlags ? myPanelFlags.moduleAffiliate : true);
   // Mô-đun tính năng: web mẹ tắt là tắt chung; panel tắt chỉ áp cho khách của panel đó
   const bulkOn = s.module_bulk !== "0" && (myPanelFlags ? myPanelFlags.moduleBulk : true);
-  const subsOn = s.module_subscriptions !== "0" && (myPanelFlags ? myPanelFlags.moduleSubscriptions : true);
-  const campOn = s.module_campaigns !== "0" && (myPanelFlags ? myPanelFlags.moduleCampaigns : true);
   const ticketsOn = s.module_tickets !== "0" && (myPanelFlags ? myPanelFlags.moduleTickets : true);
   const apiOn = s.module_api !== "0" && (myPanelFlags ? myPanelFlags.moduleApi : true);
   const unreadNoti = await prisma.notification.count({ where: { userId: user.id, read: false } });
@@ -59,8 +57,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ...(smmOn && bulkOn ? [{ href: "/dashboard/dat-hang-loat", label: L("Đặt hàng loạt") }] : []),
     { href: "/dashboard/dich-vu", label: L("Bảng giá") },
     { href: "/dashboard/don-hang", label: L("Đơn hàng SMM") },
-    ...(smmOn && subsOn ? [{ href: "/dashboard/dinh-ky", label: L("Đăng ký định kỳ") }] : []),
-    ...(smmOn && campOn ? [{ href: "/dashboard/chien-dich", label: L("Chiến dịch") }] : []),
   ];
   const premiumChildren = [
     ...(premiumOn ? [{ href: "/dashboard/premium", label: L("Mua Premium") }] : []),

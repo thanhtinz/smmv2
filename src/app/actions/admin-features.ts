@@ -347,7 +347,7 @@ export async function saveModulesAction(formData: FormData) {
   await requireAdmin();
   for (const k of [
     "module_smm", "module_premium", "module_panels", "module_affiliate", "module_register",
-    "module_bulk", "module_subscriptions", "module_campaigns", "module_promo", "module_tickets",
+    "module_bulk", "module_promo", "module_tickets",
     "module_api", "module_blog", "livechat_enabled", "support_widget_enabled",
   ]) {
     await setSetting(k, formData.get(k) === "on" ? "1" : "0");

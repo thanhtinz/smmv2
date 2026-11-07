@@ -22,7 +22,7 @@ export default async function AdminLevels({ searchParams }: { searchParams: { ms
     <div>
       <PageHead title="Cấp bậc" desc="Chiết khấu theo cấp bậc áp trên giá dịch vụ SMM khi khách đặt đơn (không áp cho khách thuộc panel con — panel có bảng giảm riêng)." />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[1fr_380px]">
+      <div>
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[560px]">
             <thead><tr><th className="th">Cấp bậc</th><th className="th">Giảm giá</th><th className="th">Số người dùng</th><th className="th">Mô tả</th></tr></thead>
@@ -38,15 +38,17 @@ export default async function AdminLevels({ searchParams }: { searchParams: { ms
             </tbody>
           </table>
         </div>
-        <form action={saveLevelsAction} className="card space-y-4 p-5">
+        <form action={saveLevelsAction} className="card mt-6 p-5">
           <div className="font-bold text-slate-900">Chỉnh % giảm theo cấp</div>
-          {LEVELS.map((lv) => (
-            <div key={lv}>
-              <label className="lbl">{LEVEL_NAME[lv]} (%)</label>
-              <input className="inp" name={"level_discount_" + lv} type="number" min={0} max={90} defaultValue={s["level_discount_" + lv]} />
-            </div>
-          ))}
-          <button className="btn-primary w-full">Lưu chiết khấu</button>
+          <div className="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-4">
+            {LEVELS.map((lv) => (
+              <div key={lv}>
+                <label className="lbl">{LEVEL_NAME[lv]} (%)</label>
+                <input className="inp" name={"level_discount_" + lv} type="number" min={0} max={90} defaultValue={s["level_discount_" + lv]} />
+              </div>
+            ))}
+          </div>
+          <button className="btn-primary mt-4">Lưu chiết khấu</button>
         </form>
       </div>
     </div>

@@ -17,10 +17,10 @@ export default async function AdminBanks({ searchParams }: { searchParams: { edi
         {edit && <Link href="/admin/ngan-hang" className="btn-ghost">+ Thêm ngân hàng</Link>}
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[1fr_380px]">
+      <div>
         <div>
           {banks.length === 0 ? <Empty text="Chưa có ngân hàng nào — trang Nạp tiền đang dùng ngân hàng khai trong Cấu hình" /> : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {banks.map((b) => {
                 const qr = b.qrImage || vietqrUrl(b.bankName, b.accountNumber, b.holder);
                 return (
@@ -47,20 +47,20 @@ export default async function AdminBanks({ searchParams }: { searchParams: { edi
             </div>
           )}
         </div>
-        <form action={saveBankAction} className="card space-y-4 p-5">
+        <form action={saveBankAction} className="card mt-6 p-5">
           <div className="font-bold text-slate-900">{edit ? `Sửa: ${edit.bankName}` : "Thêm ngân hàng"}</div>
           {edit && <input type="hidden" name="id" value={edit.id} />}
-          <div><label className="lbl">Tên ngân hàng</label><input className="inp" name="bankName" required defaultValue={edit?.bankName || ""} placeholder="VD: Vietcombank" /></div>
-          <div><label className="lbl">Số tài khoản</label><input className="inp" name="accountNumber" required defaultValue={edit?.accountNumber || ""} /></div>
-          <div><label className="lbl">Chủ tài khoản</label><input className="inp uppercase" name="holder" required defaultValue={edit?.holder || ""} /></div>
-          <div><label className="lbl">Chi nhánh</label><input className="inp" name="branch" defaultValue={edit?.branch || ""} /></div>
-          <div><label className="lbl">Ảnh QR (URL, để trống = tự sinh VietQR)</label><input className="inp" name="qrImage" defaultValue={edit?.qrImage || ""} placeholder="https://..." /></div>
-          <div><label className="lbl">Ghi chú</label><input className="inp" name="note" defaultValue={edit?.note || ""} /></div>
-          <div className="grid grid-cols-2 items-end gap-3">
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div><label className="lbl">Tên ngân hàng</label><input className="inp" name="bankName" required defaultValue={edit?.bankName || ""} placeholder="VD: Vietcombank" /></div>
+            <div><label className="lbl">Số tài khoản</label><input className="inp" name="accountNumber" required defaultValue={edit?.accountNumber || ""} /></div>
+            <div><label className="lbl">Chủ tài khoản</label><input className="inp uppercase" name="holder" required defaultValue={edit?.holder || ""} /></div>
+            <div><label className="lbl">Chi nhánh</label><input className="inp" name="branch" defaultValue={edit?.branch || ""} /></div>
+            <div><label className="lbl">Ảnh QR (URL, để trống = tự sinh VietQR)</label><input className="inp" name="qrImage" defaultValue={edit?.qrImage || ""} placeholder="https://..." /></div>
+            <div><label className="lbl">Ghi chú</label><input className="inp" name="note" defaultValue={edit?.note || ""} /></div>
             <div><label className="lbl">Thứ tự</label><input className="inp" name="sort" type="number" defaultValue={edit?.sort ?? 0} /></div>
-            <label className="flex items-center gap-2 pb-2.5 text-sm font-medium text-slate-700"><input type="checkbox" name="active" defaultChecked={edit ? edit.active : true} className="h-4 w-4 accent-brand-600" /> Đang bật</label>
+            <label className="flex items-center gap-2 self-end pb-2.5 text-sm font-medium text-slate-700"><input type="checkbox" name="active" defaultChecked={edit ? edit.active : true} className="h-4 w-4 accent-brand-600" /> Đang bật</label>
           </div>
-          <button className="btn-primary w-full">{edit ? "Lưu thay đổi" : "Thêm ngân hàng"}</button>
+          <button className="btn-primary mt-4">{edit ? "Lưu thay đổi" : "Thêm ngân hàng"}</button>
         </form>
       </div>
     </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Flash, Badge, Empty } from "@/components/ui";
 import { PremiumOrderCards, type PremiumOrderCard } from "@/components/client";
+import { PremiumOrderTabs } from "@/components/premium-order-tabs";
 import { vnd, num, SMM_STATUS, PRE_STATUS, dt } from "@/lib/format";
 
 type SP = Record<string, string | string[] | undefined>;
@@ -12,7 +13,12 @@ const one = (v: string | string[] | undefined): string => arr(v)[0] || "";
 export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) {
   const ALL = Object.keys(SMM_STATUS);
   const filtering = one(sp.f) === "1";
-  const selected = filtering ? arr(sp.st).filter((s) => ALL.includes(s)) : ALL;
+  // Bộ chọn trạng thái là RADIO một lựa chọn: mặc định "Tất cả"; chọn 1 trạng thái
+  // thì chỉ trạng thái đó active + lọc đúng (trước đây là checkbox mặc định tích hết
+  // mọi trạng thái nên nhìn như "tự động chọn hết" — lỗi Tín báo 2026-11-07).
+  const stParam = filtering ? one(sp.st) : "";
+  const activeTab = stParam && stParam !== "ALL" && ALL.includes(stParam) ? stParam : "ALL";
+  const selected = activeTab === "ALL" ? ALL : [activeTab];
   const size = [10, 20, 30, 50, 100].includes(parseInt(one(sp.size))) ? parseInt(one(sp.size)) : 20;
   const page = Math.max(1, parseInt(one(sp.page) || "1"));
   const sortOld = one(sp.sort) === "old";
@@ -36,7 +42,7 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
   const href = (p: number) => {
     const u = new URLSearchParams();
     u.set("f", "1");
-    selected.forEach((s) => u.append("st", s));
+    if (activeTab !== "ALL") u.set("st", activeTab);
     if (q) u.set("q", q);
     if (from) u.set("from", from);
     if (to) u.set("to", to);
@@ -56,9 +62,13 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
         <input type="hidden" name="f" value="1" />
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs font-semibold text-slate-500 mr-1">Chọn trạng thái</span>
+          <label className="cursor-pointer">
+            <input type="radio" name="st" value="ALL" defaultChecked={activeTab === "ALL"} className="peer sr-only" />
+            <span className="inline-block rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900">Tất cả</span>
+          </label>
           {ALL.map((k) => (
             <label key={k} className="cursor-pointer">
-              <input type="checkbox" name="st" value={k} defaultChecked={selected.includes(k)} className="peer sr-only" />
+              <input type="radio" name="st" value={k} defaultChecked={activeTab === k} className="peer sr-only" />
               <span className="inline-block rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900">{SMM_STATUS[k].label}</span>
             </label>
           ))}
@@ -144,31 +154,40 @@ const PRE_TABS: { key: string; label: string; statuses: string[] | null }[] = [
 ];
 
 export async function PremiumOrdersView({ userId, sp, base }: { userId: number; sp: SP; base: string }) {
-  const tab = PRE_TABS.find((t) => t.key === one(sp.tab)) || PRE_TABS[0];
-  const where: any = { userId };
-  if (tab.statuses) where.status = { in: tab.statuses };
-  const orders = await prisma.premiumOrder.findMany({
-    where,
-    orderBy: { id: "desc" },
-    take: 50,
-    include: { variant: { include: { product: true } } },
-  });
-  const cards: PremiumOrderCard[] = orders.map((o) => ({
-    id: o.id,
-    code: o.code,
-    name: o.variant.product.name,
-    variant: o.variant.name,
-    desc: (o.variant.product.description || "").split("\n")[0].slice(0, 140),
-    total: o.total,
-    quantity: o.quantity,
-    status: o.status,
-    statusLabel: PRE_STATUS[o.status].label,
-    statusCls: PRE_STATUS[o.status].cls,
-    created: o.createdAt.toISOString(),
-    updated: o.updatedAt.toISOString(),
-    delivery: o.deliveryData || "",
-    buyerInfo: o.buyerInfo || "",
-    warrantyUntil: o.warrantyUntil ? o.warrantyUntil.toISOString() : null,
+  void base; // base không còn dùng cho tab (tab đã chuyển client-side tại chỗ)
+  const initial = (PRE_TABS.find((t) => t.key === one(sp.tab)) || PRE_TABS[0]).key;
+  // Tải sẵn cả 4 tab (mỗi tab tối đa 50 đơn như trước) để chuyển tab tại chỗ
+  const tabs = await Promise.all(PRE_TABS.map(async (t) => {
+    const where: any = { userId };
+    if (t.statuses) where.status = { in: t.statuses };
+    const orders = await prisma.premiumOrder.findMany({
+      where,
+      orderBy: { id: "desc" },
+      take: 50,
+      include: { variant: { include: { product: true } } },
+    });
+    const cards: PremiumOrderCard[] = orders.map((o) => ({
+      id: o.id,
+      code: o.code,
+      name: o.variant.product.name,
+      variant: o.variant.name,
+      desc: (o.variant.product.description || "").split("\n")[0].slice(0, 140),
+      total: o.total,
+      quantity: o.quantity,
+      status: o.status,
+      statusLabel: PRE_STATUS[o.status].label,
+      statusCls: PRE_STATUS[o.status].cls,
+      created: o.createdAt.toISOString(),
+      updated: o.updatedAt.toISOString(),
+      delivery: o.deliveryData || "",
+      buyerInfo: o.buyerInfo || "",
+      warrantyUntil: o.warrantyUntil ? o.warrantyUntil.toISOString() : null,
+    }));
+    return {
+      key: t.key,
+      label: t.label,
+      content: cards.length === 0 ? <Empty text="Chưa có sản phẩm nào" /> : <PremiumOrderCards orders={cards} />,
+    };
   }));
   return (
     <div>
@@ -177,12 +196,7 @@ export async function PremiumOrdersView({ userId, sp, base }: { userId: number; 
         <p className="text-sm text-slate-500 mt-0.5">Danh sách sản phẩm đã mua của bạn</p>
       </div>
       <Flash msg={one(sp.msg)} err={one(sp.err)} />
-      <div className="flex flex-wrap gap-2 mb-5">
-        {PRE_TABS.map((t) => (
-          <Link key={t.key} href={t.key === "all" ? base : `${base}?tab=${t.key}`} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${t.key === tab.key ? "bg-slate-900 text-white" : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300"}`}>{t.label}</Link>
-        ))}
-      </div>
-      {cards.length === 0 ? <Empty text="Chưa có sản phẩm nào" /> : <PremiumOrderCards orders={cards} />}
+      <PremiumOrderTabs initial={initial} tabs={tabs} />
     </div>
   );
 }

@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { ensureRefCode } from "@/lib/wallet";
 import { Empty, Stat, I } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
+import { KiemTienTabs } from "@/components/kiemtien-tabs";
 import { vnd, num, dt, dshort } from "@/lib/format";
 
 type SP = Record<string, string | string[] | undefined>;
@@ -17,8 +17,7 @@ export async function KiemTienView({ userId, linkBase, sp, tabBase }: { userId: 
   const code = await ensureRefCode(userId);
   const link = `${linkBase}?ref=${code}`;
   const tab = sp?.tab === "hist" ? "hist" : "ref";
-  const base = tabBase || "/dashboard/kiem-tien";
-
+  void tabBase; // tab đã chuyển client-side tại chỗ, không còn Link ?tab=
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
@@ -59,47 +58,48 @@ export async function KiemTienView({ userId, linkBase, sp, tabBase }: { userId: 
         <p className="mt-3 text-[13px] leading-relaxed text-slate-400">Chia sẻ link này cho bạn bè, người thân. Khi họ đăng ký qua link này và mua dịch vụ, hoa hồng sẽ tự động cộng vào số dư của bạn.</p>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        <Link href={base} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "ref" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600"}`}>Người đã giới thiệu ({refCount})</Link>
-        <Link href={`${base}?tab=hist`} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "hist" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600"}`}>Lịch sử hoa hồng ({history.length})</Link>
-      </div>
-
-      {tab === "ref" ? (
-        referrals.length === 0 ? <div className="mt-4"><Empty text="Chưa có người được giới thiệu" /></div> : (
-          <div className="card mt-4 overflow-x-auto">
-            <table className="w-full min-w-[640px]">
-              <thead className="border-b border-slate-200 bg-slate-50"><tr><th className="th">Người dùng</th><th className="th">Ngày tham gia</th><th className="th">Tổng nạp</th><th className="th">Đã mua</th></tr></thead>
-              <tbody className="divide-y divide-slate-100">
-                {referrals.map((r) => (
-                  <tr key={r.username} className="hover:bg-slate-50/60">
-                    <td className="td font-medium">{r.username}</td>
-                    <td className="td text-xs text-slate-500">{dshort(r.createdAt)}</td>
-                    <td className="td">{vnd(r.totalDeposited)}</td>
-                    <td className="td font-semibold">{vnd(r.totalSpent)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-      ) : (
-        history.length === 0 ? <div className="mt-4"><Empty text="Chưa có lịch sử nhận hoa hồng" /></div> : (
-          <div className="card mt-4 overflow-x-auto">
-            <table className="w-full min-w-[640px]">
-              <thead className="border-b border-slate-200 bg-slate-50"><tr><th className="th">Thời gian</th><th className="th">Nội dung</th><th className="th">Hoa hồng</th></tr></thead>
-              <tbody className="divide-y divide-slate-100">
-                {history.map((t) => (
-                  <tr key={t.id} className="hover:bg-slate-50/60">
-                    <td className="td whitespace-nowrap text-xs text-slate-500">{dt(t.createdAt)}</td>
-                    <td className="td text-slate-600">{t.note || "Hoa hồng giới thiệu"}</td>
-                    <td className={`td font-bold ${t.amount >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{t.amount >= 0 ? "+" : "−"}{vnd(Math.abs(t.amount))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-      )}
+      <KiemTienTabs
+        initial={tab}
+        refLabel={`Người đã giới thiệu (${refCount})`}
+        histLabel={`Lịch sử hoa hồng (${history.length})`}
+        refContent={
+          referrals.length === 0 ? <div className="mt-4"><Empty text="Chưa có người được giới thiệu" /></div> : (
+            <div className="card mt-4 overflow-x-auto">
+              <table className="w-full min-w-[640px]">
+                <thead className="border-b border-slate-200 bg-slate-50"><tr><th className="th">Người dùng</th><th className="th">Ngày tham gia</th><th className="th">Tổng nạp</th><th className="th">Đã mua</th></tr></thead>
+                <tbody className="divide-y divide-slate-100">
+                  {referrals.map((r) => (
+                    <tr key={r.username} className="hover:bg-slate-50/60">
+                      <td className="td font-medium">{r.username}</td>
+                      <td className="td text-xs text-slate-500">{dshort(r.createdAt)}</td>
+                      <td className="td">{vnd(r.totalDeposited)}</td>
+                      <td className="td font-semibold">{vnd(r.totalSpent)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        }
+        histContent={
+          history.length === 0 ? <div className="mt-4"><Empty text="Chưa có lịch sử nhận hoa hồng" /></div> : (
+            <div className="card mt-4 overflow-x-auto">
+              <table className="w-full min-w-[640px]">
+                <thead className="border-b border-slate-200 bg-slate-50"><tr><th className="th">Thời gian</th><th className="th">Nội dung</th><th className="th">Hoa hồng</th></tr></thead>
+                <tbody className="divide-y divide-slate-100">
+                  {history.map((t) => (
+                    <tr key={t.id} className="hover:bg-slate-50/60">
+                      <td className="td whitespace-nowrap text-xs text-slate-500">{dt(t.createdAt)}</td>
+                      <td className="td text-slate-600">{t.note || "Hoa hồng giới thiệu"}</td>
+                      <td className={`td font-bold ${t.amount >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{t.amount >= 0 ? "+" : "−"}{vnd(Math.abs(t.amount))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        }
+      />
     </div>
   );
 }

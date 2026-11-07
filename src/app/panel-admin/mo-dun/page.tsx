@@ -11,8 +11,6 @@ const MODULES: Mod[] = [
   { key: "sellPremium", name: "Tài khoản Premium", desc: "Bán Premium theo giá panel đặt.", icon: I.gem },
   { key: "moduleRegister", name: "Đăng ký tài khoản", desc: "Cho khách đăng ký tại website.", icon: I.users },
   { key: "moduleBulk", name: "Đặt hàng loạt", desc: "Đặt nhiều đơn cùng lúc.", icon: I.layers },
-  { key: "moduleSubscriptions", name: "Đăng ký định kỳ", desc: "Đơn hẹn giờ và lặp lại tự động.", icon: I.clock },
-  { key: "moduleCampaigns", name: "Chiến dịch", desc: "Gom đơn theo chiến dịch, có trần ngân sách.", icon: I.megaphone },
   { key: "modulePromo", name: "Mã giảm giá", desc: "Áp mã giảm giá khi đặt đơn.", icon: I.gift },
   { key: "moduleAffiliate", name: "Kiếm tiền (Affiliate)", desc: "Hoa hồng cho người giới thiệu.", icon: I.money },
   { key: "moduleTickets", name: "Hỗ trợ / Ticket", desc: "Khách mở ticket hỗ trợ.", icon: I.ticket },

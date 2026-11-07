@@ -766,8 +766,6 @@ export async function panelSaveModulesAction(formData: FormData) {
       moduleAffiliate: formData.has("moduleAffiliate"),
       moduleRegister: formData.has("moduleRegister"),
       moduleBulk: formData.has("moduleBulk"),
-      moduleSubscriptions: formData.has("moduleSubscriptions"),
-      moduleCampaigns: formData.has("moduleCampaigns"),
       modulePromo: formData.has("modulePromo"),
       moduleTickets: formData.has("moduleTickets"),
       moduleApi: formData.has("moduleApi"),

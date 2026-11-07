@@ -9,7 +9,7 @@ import { TwoFactorCard } from "@/components/two-factor";
 import { ProfileTabs } from "@/components/profile-tabs";
 import { backupCodesLeft } from "@/lib/twofa";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
-import { LEVEL_NAME, vnd, num, dt } from "@/lib/format";
+import { LEVEL_NAME, vnd, num, dt, dshort } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { trd } from "@/lib/i18n";
 
@@ -40,6 +40,17 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
       <div><label className="lbl">Mật khẩu hiện tại</label><input className="inp" name="oldPassword" type="password" required /></div>
       <div><label className="lbl">Mật khẩu mới</label><input className="inp" name="newPassword" type="password" required minLength={6} /></div>
       <div><label className="lbl">Xác nhận mật khẩu mới</label><input className="inp" name="newPassword2" type="password" required minLength={6} /></div>
+      <div className="border-t border-slate-100 pt-4">
+        <div className="text-sm font-bold text-slate-800">Yêu cầu mật khẩu mới</div>
+        <ul className="mt-2 space-y-1.5 text-sm text-slate-500">
+          <li className="flex gap-2"><span className="text-emerald-600">•</span>Ít nhất {s.password_min_length || 8} ký tự</li>
+          {s.pw_require_upper === "1" && <li className="flex gap-2"><span className="text-emerald-600">•</span>Có ít nhất 1 chữ hoa (A–Z)</li>}
+          {s.pw_require_number === "1" && <li className="flex gap-2"><span className="text-emerald-600">•</span>Có ít nhất 1 chữ số (0–9)</li>}
+          {s.pw_require_special === "1" && <li className="flex gap-2"><span className="text-emerald-600">•</span>Có ít nhất 1 ký tự đặc biệt (vd: !@#$%)</li>}
+          <li className="flex gap-2"><span className="text-emerald-600">•</span>Sau khi đổi, mọi phiên đăng nhập khác sẽ tự đăng xuất</li>
+          <li className="flex gap-2"><span className="text-emerald-600">•</span>Mật khẩu được lưu dạng mã hoá một chiều, hệ thống không xem được mật khẩu gốc</li>
+        </ul>
+      </div>
       <button className="btn-dark">Cập nhật mật khẩu</button>
     </form>
   );
@@ -93,6 +104,14 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
               <input className="inp font-mono" name="webhookUrl" defaultValue={user.webhookUrl || ""} placeholder="https://he-thong-cua-ban.vn/webhook" />
               <p className="mt-1.5 text-xs text-slate-400">Hệ thống POST JSON {"{ event, code, status, note, at }"} tới URL này mỗi khi đơn SMM của bạn chuyển trạng thái.</p>
             </div>
+            <div className="border-t border-slate-100 pt-4">
+              <div className="font-bold text-slate-900">Thông tin đăng nhập</div>
+              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div><label className="lbl">Tên đăng nhập</label><input className="inp font-mono" value={user.username} disabled /></div>
+                <div><label className="lbl">Ngày tham gia</label><input className="inp" value={dshort(user.createdAt)} disabled /></div>
+              </div>
+              <p className="mt-2 text-xs text-slate-400">Đăng nhập gần nhất: {loginHistory[0] ? `${dt(loginHistory[0].createdAt)} · IP ${loginHistory[0].ip}` : "chưa ghi nhận"} — chi tiết ở tab Bảo mật &amp; Phiên đăng nhập.</p>
+            </div>
             <button className="btn-primary">Lưu thay đổi</button>
           </form>
           <div className="space-y-6">
@@ -115,11 +134,12 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
                 <input className="inp" name="points" type="number" min={parseInt(s.points_min_redeem || "10") || 10} placeholder={`${trd(lang, "Từ")} ${s.points_min_redeem} ${trd(lang, "điểm")}`} />
                 <button className="btn-primary whitespace-nowrap">Đổi ra số dư</button>
               </form>
-              <p className="mt-2 text-xs text-slate-400">Điểm cộng tự động khi đơn SMM/Premium hoàn thành. Đổi điểm sẽ cộng thẳng vào số dư ví và ghi vào lịch sử giao dịch.</p>
+              <p className="mt-2 text-xs text-slate-400">Điểm cộng tự động khi đơn hoàn thành, đổi ra số dư ví ngay tại đây.</p>
             </div>
             <div className="card p-6">
               <div className="font-bold text-slate-900">Giới thiệu bạn bè</div>
               <p className="mt-2 text-sm text-slate-500">Bạn đã giới thiệu <b className="text-slate-800">{num(refCount)}</b> người tham gia.</p>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">Hoa hồng <b className="text-slate-800">{s.affiliate_percent}%</b> trên mỗi đơn mua của người được giới thiệu.</p>
               <Link href="/dashboard/kiem-tien" className="btn-ghost btn-sm mt-3">Lấy link giới thiệu</Link>
             </div>
           </div>
@@ -165,6 +185,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
                   <Badge cls="bg-emerald-100 text-emerald-700">Đang online</Badge>
                 </div>
                 <p className="text-sm text-slate-500">Khi đăng nhập ở trình duyệt hoặc thiết bị khác, hãy giữ mật khẩu và API key bí mật. Đăng xuất sẽ kết thúc phiên hiện tại.</p>
+                <div className="text-sm text-slate-500">
+                  <div className="flex justify-between gap-3"><span>Đăng nhập gần nhất</span><b className="text-slate-700">{loginHistory[0] ? dt(loginHistory[0].createdAt) : "—"}</b></div>
+                </div>
                 <form action={logoutAction}><button className="btn-ghost">Đăng xuất khỏi thiết bị này</button></form>
               </div>
             </div>

@@ -13,8 +13,6 @@ const MODULES: Mod[] = [
   { key: "module_panels", name: "Website con", desc: "Cho khách mở website con bằng tên miền riêng.", icon: I.panels },
   { key: "module_register", name: "Đăng ký tài khoản", desc: "Cho khách đăng ký tài khoản mới.", icon: I.users },
   { key: "module_bulk", name: "Đặt hàng loạt", desc: "Đặt nhiều đơn cùng lúc.", icon: I.layers },
-  { key: "module_subscriptions", name: "Đăng ký định kỳ", desc: "Đơn hẹn giờ và lặp lại tự động.", icon: I.clock },
-  { key: "module_campaigns", name: "Chiến dịch", desc: "Gom đơn theo chiến dịch, có trần ngân sách.", icon: I.megaphone },
   { key: "module_promo", name: "Mã giảm giá", desc: "Áp mã giảm giá khi đặt đơn.", icon: I.gift },
   { key: "module_affiliate", name: "Giới thiệu (Affiliate)", desc: "Hoa hồng cho người giới thiệu.", icon: I.money },
   { key: "module_tickets", name: "Hỗ trợ / Ticket", desc: "Khách mở ticket hỗ trợ.", icon: I.ticket },

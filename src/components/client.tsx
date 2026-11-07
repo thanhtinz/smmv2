@@ -255,11 +255,6 @@ export function OrderForm({ services, categories, discount, preselect, action, b
   const [dripOn, setDripOn] = useState(false);
   const [dripRuns, setDripRuns] = useState(10);
   const [dripInterval, setDripInterval] = useState(60);
-  const [schedOn, setSchedOn] = useState(false);
-  const [schedAt, setSchedAt] = useState("");
-  const [loopOn, setLoopOn] = useState(false);
-  const [loopTimes, setLoopTimes] = useState(5);
-  const [loopInterval, setLoopInterval] = useState(60);
   const [link, setLink] = useState(initialLink || "");
   const [platform, setPlatform] = useState<string>(() => (preselect ? services.find((s) => s.id === preselect)?.platform : undefined) || categories[0]?.platform || "");
   const [openMenu, setOpenMenu] = useState<null | "quick" | "platform" | "cat" | "svc">(null);
@@ -522,45 +517,6 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           <label className="lbl !text-[17px] !font-bold text-slate-800">Ghi chú:</label>
           <textarea className="w-full rounded-2xl border-0 bg-slate-100 px-5 py-4 text-[15px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 dark:bg-white/5" name="note" rows={3} placeholder="Nhập ghi chú nếu cần" />
         </div>
-        <div className="space-y-4 pt-1">
-          <div>
-            <div className="flex items-center gap-3.5">
-              <button type="button" role="switch" aria-checked={schedOn} aria-label="Đặt lịch chạy" onClick={() => setSchedOn(!schedOn)} className={`relative h-9 w-16 shrink-0 rounded-full border transition-colors ${schedOn ? "border-brand-600 bg-brand-600" : "border-slate-300 bg-white"}`}>
-                <span className={`absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full shadow transition-all ${schedOn ? "left-[33px] bg-white" : "left-1 bg-slate-400"}`} />
-              </button>
-              <span className="text-[17px] font-bold text-slate-800">Đặt lịch chạy</span>
-            </div>
-            {schedOn && (
-              <div className="mt-3 pl-[52px] sm:pl-[76px]">
-                <input type="hidden" name="schedule" value="1" />
-                <input className="inp" type="datetime-local" name="scheduleAt" required value={schedAt} onChange={(e) => setSchedAt(e.target.value)} />
-                <p className="mt-1.5 text-xs text-slate-400">Đơn tự đặt vào thời gian bạn chọn, tiền trừ khi đơn chạy.</p>
-              </div>
-            )}
-          </div>
-          <div>
-            <div className="flex items-center gap-3.5">
-              <button type="button" role="switch" aria-checked={loopOn} aria-label="Đặt hàng lặp lại" onClick={() => setLoopOn(!loopOn)} className={`relative h-9 w-16 shrink-0 rounded-full border transition-colors ${loopOn ? "border-brand-600 bg-brand-600" : "border-slate-300 bg-white"}`}>
-                <span className={`absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full shadow transition-all ${loopOn ? "left-[33px] bg-white" : "left-1 bg-slate-400"}`} />
-              </button>
-              <span className="text-[17px] font-bold text-slate-800">Đặt hàng lặp lại</span>
-            </div>
-            {loopOn && (
-              <div className="mt-3 grid grid-cols-2 gap-3 pl-[52px] sm:pl-[76px]">
-                <input type="hidden" name="loop" value="1" />
-                <div>
-                  <label className="lbl">Số lần lặp</label>
-                  <input className="inp" type="number" name="loopTimes" min={2} max={50} value={loopTimes} onChange={(e) => setLoopTimes(parseInt(e.target.value) || 2)} />
-                </div>
-                <div>
-                  <label className="lbl">Mỗi lần cách nhau (phút)</label>
-                  <input className="inp" type="number" name="loopInterval" min={5} max={10080} value={loopInterval} onChange={(e) => setLoopInterval(parseInt(e.target.value) || 60)} />
-                </div>
-                <p className="col-span-2 text-xs leading-relaxed text-slate-500">Tổng dự kiến <b>{vnd(shownCharge * (loopTimes || 0))}</b> cho {num(loopTimes || 0)} lần — tiền trừ dần mỗi lần đơn chạy, thiếu tiền gói sẽ tự dừng.</p>
-              </div>
-            )}
-          </div>
-        </div>
         <div className="flex items-center gap-2.5 rounded-[26px] border border-[#d9e6fd] bg-[#eaf1fe] px-3.5 py-3.5 dark:border-white/10 dark:bg-white/5 sm:gap-4 sm:px-5 sm:py-5">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#d3e4ff] text-brand-600 dark:bg-white/10 sm:h-14 sm:w-14">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 sm:h-7 sm:w-7"><path d="M20 7H5a2 2 0 0 1 0-4h13v4" /><path d="M3 5.5V18a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2Z" /><circle cx="17" cy="15" r="1.15" fill="currentColor" stroke="none" /></svg>
@@ -612,11 +568,6 @@ export function OrderForm({ services, categories, discount, preselect, action, b
               <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="text-slate-400"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z" /><path d="M3 7l9 4.5L21 7" /><path d="M12 11.5v10" /></svg>}>
                 Số lượng đơn này: {num(qty || 0)}{multiOn ? ` / link${orderCount > 0 ? ` × ${num(orderCount)} link` : ""}` : ""}
               </DetailLine>
-              {(schedOn || loopOn) && (
-                <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-slate-400"><rect x="3.5" y="5" width="17" height="16" rx="2.5" /><path d="M3.5 10h17" /><path d="M8 3v4" /><path d="M16 3v4" /></svg>}>
-                  Chế độ: {loopOn ? `Đặt hàng lặp lại ×${num(loopTimes || 0)} lần, mỗi ${num(loopInterval || 0)} phút` : `Đặt lịch chạy${schedAt ? ` lúc ${schedAt.replace("T", " ")}` : ""}`}
-                </DetailLine>
-              )}
               {service.notice && (
                 <div className="pt-1">
                   <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5 22 20H2z" stroke="#f59e0b" strokeWidth="1.6" strokeLinejoin="round" /><path d="M12 10v4.2" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" /><circle cx="12" cy="17" r="1.25" fill="#fff" /></svg>}>
@@ -673,14 +624,31 @@ export function BulkOrderForm({ services, discount, balance, action }: {
         <textarea className="inp font-mono !text-[13px] leading-relaxed" name="bulk" rows={12} value={text} onChange={(e) => setText(e.target.value)}
           placeholder={"1 | https://facebook.com/trangcanhan | 1000\n6 | https://tiktok.com/@kenhcuaban | 5000\n# dòng bắt đầu bằng # là ghi chú, được bỏ qua"} />
         <p className="text-xs text-slate-400 mt-2">Tối đa 50 dòng/lần. ID dịch vụ xem ở trang Bảng giá dịch vụ. Dòng lỗi được bỏ qua, các dòng đúng vẫn đặt bình thường.</p>
-        <button type="submit" disabled={valid.length === 0 || notEnough} className="btn-primary w-full mt-4 !py-3 disabled:opacity-50">
-          {valid.length === 0 ? "Nhập ít nhất 1 dòng hợp lệ" : notEnough ? "Chưa đủ số dư" : `Đặt ${valid.length} đơn — tổng ${vnd(total)}`}
-        </button>
       </div>
       <div className="card p-6 lg:col-span-2 lg:sticky lg:top-24">
         <div className="font-bold text-slate-900 mb-3">Xem trước</div>
         {parsed.length === 0 ? (
-          <p className="text-sm text-slate-400">Chưa có dòng nào. Dán danh sách vào ô bên trái để xem trước từng đơn và tổng tiền.</p>
+          <div>
+            <p className="text-sm text-slate-400">Chưa có dòng nào. Dán danh sách vào ô bên trái để xem trước từng đơn và tổng tiền.</p>
+            {services.slice(0, 1).length > 0 && (
+              <div className="space-y-2.5 mt-3">
+                <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Ví dụ kết quả sẽ hiện</div>
+                {services.slice(0, 1).map((sv) => {
+                  const q = Math.min(sv.max, Math.max(sv.min, 1000));
+                  const c = Math.round(Math.ceil((sv.rate * q) / 1000) * (1 - discount / 100));
+                  return (
+                    <div key={sv.id} className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-xs leading-relaxed">
+                      <div className="flex justify-between gap-3">
+                        <span className="font-bold">Dòng · ID {sv.id}</span>
+                        <span className="font-bold text-brand-700">{vnd(c)}</span>
+                      </div>
+                      <div className="text-slate-500 mt-0.5 truncate">{sv.name} — {num(q)} lượt</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         ) : (
           <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
             {parsed.map((p) => (
@@ -700,6 +668,9 @@ export function BulkOrderForm({ services, discount, balance, action }: {
           <div className="flex justify-between"><span className="text-slate-500">Số dư hiện tại</span><b>{vnd(balance)}</b></div>
           {notEnough && <p className="text-xs text-rose-600 font-medium">Còn thiếu {vnd(total - balance)} — nạp thêm hoặc bỏ bớt dòng.</p>}
         </div>
+        <button type="submit" disabled={valid.length === 0 || notEnough} className="btn-primary w-full mt-4 !py-3 disabled:opacity-50">
+          {valid.length === 0 ? "Nhập ít nhất 1 dòng hợp lệ" : notEnough ? "Chưa đủ số dư" : `Đặt ${valid.length} đơn — tổng ${vnd(total)}`}
+        </button>
       </div>
     </form>
   );
@@ -1018,7 +989,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
                       Giao ngay
                     </span>
                   ) : (
-                    <span className="shrink-0 text-xs font-bold text-slate-400">Order</span>
+                    <span className="shrink-0 text-xs font-bold text-slate-400">Đặt mua</span>
                   )}
                   <span className="shrink-0 font-extrabold text-rose-600">{vnd(x.price)}</span>
                 </button>
@@ -1038,7 +1009,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
           </div>
           {note && <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-sky-900">{note}</div>}
           <div className="rounded-xl bg-slate-50 p-4">
-            <div className="mb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">Thông tin Order</div>
+            <div className="mb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">Thông tin đặt hàng</div>
             {infoFields}
           </div>
           <details>

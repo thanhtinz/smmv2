@@ -411,7 +411,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
       {related.length > 0 && (
         <div className="mt-12">
           <h2 className="mb-5 text-xl font-extrabold text-slate-900">Sản phẩm liên quan</h2>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {related.map((item) => <PremiumCard key={item.slug} item={item} base={base} />)}
           </div>
         </div>

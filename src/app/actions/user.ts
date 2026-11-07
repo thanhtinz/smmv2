@@ -52,27 +52,10 @@ export async function placeSmmOrderAction(formData: FormData) {
   if (comments) extra.comments = comments;
   if (reaction) extra.reaction = reaction;
   if (minutes > 0) extra.minutes = minutes;
-  // Schedule / Loop: không đặt ngay — tạo gói hẹn giờ/lặp trong bảng Subscription, cron sẽ tự đặt đơn khi tới lượt
-  const schedOn = formData.get("schedule") === "1";
-  const loopOn = formData.get("loop") === "1";
-  if (schedOn || loopOn) {
-    if (!(await moduleOn("subscriptions", user.panelId))) back("/dashboard/dat-hang", "err", "Tính năng đặt hẹn giờ / lặp lại đang tắt");
-    const atRaw = String(formData.get("scheduleAt") || "");
-    const runAt = schedOn && atRaw ? new Date(atRaw) : new Date(Date.now() + 60000);
-    if (schedOn && (!atRaw || isNaN(runAt.getTime()) || runAt.getTime() < Date.now() - 60000)) back("/dashboard/dat-hang", "err", "Giờ hẹn phải ở tương lai");
-    const svc = await prisma.smmService.findUnique({ where: { id: serviceId } });
-    if (!svc || !svc.active) back("/dashboard/dat-hang", "err", "Dịch vụ không còn bán");
-    if (quantity < svc.min || quantity > svc.max) back("/dashboard/dat-hang", "err", `Số lượng mỗi lượt phải từ ${svc.min} đến ${svc.max}`);
-    const schedLinks = multiLinks.length > 0 ? multiLinks : [link];
-    if (!schedLinks[0]) back("/dashboard/dat-hang", "err", "Chưa nhập link");
-    const times = loopOn ? Math.max(2, Math.min(50, parseInt(String(formData.get("loopTimes") || "2")) || 2)) : 1;
-    const intervalMin = loopOn ? Math.max(5, Math.min(10080, parseInt(String(formData.get("loopInterval") || "60")) || 60)) : 0;
-    for (const l of schedLinks) {
-      await prisma.subscription.create({ data: { userId: user.id, serviceId, link: l, quantity, intervalDays: 1, intervalMinutes: intervalMin, totalRuns: times, kind: loopOn ? "LOOP" : "SCHEDULE", nextRunAt: runAt } });
-    }
-    back("/dashboard/dinh-ky", "msg", loopOn
-      ? `Đã tạo ${schedLinks.length} gói Loop (${times} lần, mỗi ${intervalMin} phút) — quản lý ở mục Đăng ký định kỳ`
-      : `Đã hẹn giờ đặt ${schedLinks.length} đơn lúc ${runAt.toLocaleString("vi-VN")} — quản lý ở mục Đăng ký định kỳ`);
+  // Schedule / Loop (gói định kỳ) ĐÃ GỠ khỏi khu khách (lệnh Tín 2026-11-07): form cũ
+  // còn gửi cờ schedule/loop thì báo rõ đã ngừng hỗ trợ thay vì tạo gói không chạy.
+  if (formData.get("schedule") === "1" || formData.get("loop") === "1") {
+    back("/dashboard/dat-hang", "err", "Tính năng đặt lịch / lặp lại đã ngừng hỗ trợ — vui lòng đặt đơn trực tiếp.");
   }
   // Chế độ nhiều link: tạo lần lượt từng đơn độc lập; mã giảm giá chỉ áp cho đơn đầu tiên
   if (multiLinks.length > 1) {

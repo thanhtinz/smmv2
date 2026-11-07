@@ -19,7 +19,7 @@ export function FlashCountdown({ name, percent, endsAt }: { name: string; percen
   }, [endsAt]);
   return (
     <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl bg-gradient-to-r from-rose-600 to-orange-500 px-5 py-3.5 text-white shadow-sm">
-      <span className="font-black uppercase tracking-wide">Flash Sale</span>
+      <span className="font-black uppercase tracking-wide">Giảm giá chớp nhoáng</span>
       <span className="font-semibold">{name} — giảm thêm {percent}% giá dịch vụ</span>
       {left && <span className="ml-auto text-sm font-semibold text-white/90">Kết thúc sau {left}</span>}
     </div>

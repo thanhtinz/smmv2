@@ -47,13 +47,13 @@ export function PremiumCard({ item, base }: { item: PremiumCardData; base: strin
           <img src={item.image} alt={item.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" loading="lazy" />
         ) : (
           <div className="flex h-full w-full items-center justify-center" style={{ background: `linear-gradient(135deg, ${item.color}, #0ea5e9)` }}>
-            <span className="text-5xl font-black text-white/90">{item.name.charAt(0)}</span>
+            <span className="text-4xl font-black text-white/90 sm:text-5xl">{item.name.charAt(0)}</span>
           </div>
         )}
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <div className="line-clamp-2 min-h-[2.6em] font-bold leading-snug text-slate-900 group-hover:text-brand-700">{item.name}</div>
-        <div className="mt-2 text-[17px] font-extrabold text-rose-600">
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        <div className="line-clamp-2 min-h-[2.6em] text-[15px] font-bold leading-snug text-slate-900 group-hover:text-brand-700 sm:text-base">{item.name}</div>
+        <div className="mt-2 text-[15px] font-extrabold leading-tight text-rose-600 sm:text-[17px]">
           {contact ? "Liên hệ" : item.maxPrice > item.minPrice ? `${vnd(item.minPrice)} ~ ${vnd(item.maxPrice)}` : vnd(item.minPrice)}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
@@ -68,9 +68,9 @@ export function PremiumCard({ item, base }: { item: PremiumCardData; base: strin
         </div>
         <div className="mt-auto pt-3">
           {contact ? (
-            <span className="inline-block rounded-lg bg-teal-600 px-3.5 py-1.5 text-[13px] font-bold text-white">Order</span>
+            <span className="inline-block rounded-lg bg-teal-600 px-3.5 py-1.5 text-[13px] font-bold text-white">Đặt mua</span>
           ) : !item.instant || !item.hasStock ? (
-            <span className="text-[13px] font-bold text-teal-700">Order</span>
+            <span className="text-[13px] font-bold text-teal-700">Đặt mua</span>
           ) : null}
         </div>
       </div>

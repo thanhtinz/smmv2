@@ -11,7 +11,7 @@ export function PremiumGrid({ items, base }: { items: PremiumCardData[]; base: s
   const visible = items.slice(0, shown);
   return (
     <>
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
         {visible.map((item) => (
           <PremiumCard key={item.slug} item={item} base={base} />
         ))}

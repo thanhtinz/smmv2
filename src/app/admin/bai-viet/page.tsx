@@ -22,7 +22,7 @@ export default async function AdminPosts({ searchParams }: { searchParams: { edi
         {edit && <Link href="/admin/bai-viet" className="btn-primary">+ Viết bài mới</Link>}
       </PageHead>
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px] [&>*]:min-w-0">
+      <div>
         <div>
           <form className="mb-4 flex gap-2">
             <input className="inp !w-80" name="q" placeholder="Tìm tiêu đề bài viết..." defaultValue={searchParams.q || ""} />
@@ -54,22 +54,26 @@ export default async function AdminPosts({ searchParams }: { searchParams: { edi
             </div>
           )}
         </div>
-        <form action={savePostAction} className="card space-y-4 p-5">
+        <form action={savePostAction} className="card mt-6 space-y-4 p-5">
           <div className="font-bold text-slate-900">{edit ? "Sửa bài viết" : "Viết bài mới"}</div>
           {edit && <input type="hidden" name="id" value={edit.id} />}
-          <div><label className="lbl">Tiêu đề</label><input className="inp" name="title" required defaultValue={edit?.title || ""} /></div>
-          <div><label className="lbl">Slug (để trống = tự tạo)</label><input className="inp" name="slug" defaultValue={edit?.slug || ""} placeholder="vd: huong-dan-nap-tien" /></div>
-          <div><label className="lbl">Danh mục</label>
-            <select className="inp" name="categoryId" defaultValue={edit?.categoryId || ""}>
-              <option value="">— Không chọn —</option>
-              {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select></div>
-          <div><label className="lbl">Ảnh bìa (URL)</label><input className="inp" name="coverUrl" defaultValue={edit?.coverUrl || ""} placeholder="https://..." /></div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div><label className="lbl">Tiêu đề</label><input className="inp" name="title" required defaultValue={edit?.title || ""} /></div>
+            <div><label className="lbl">Slug (để trống = tự tạo)</label><input className="inp" name="slug" defaultValue={edit?.slug || ""} placeholder="vd: huong-dan-nap-tien" /></div>
+            <div><label className="lbl">Danh mục</label>
+              <select className="inp" name="categoryId" defaultValue={edit?.categoryId || ""}>
+                <option value="">— Không chọn —</option>
+                {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select></div>
+            <div><label className="lbl">Ảnh bìa (URL)</label><input className="inp" name="coverUrl" defaultValue={edit?.coverUrl || ""} placeholder="https://..." /></div>
+          </div>
           <div><label className="lbl">Tóm tắt</label><textarea className="inp" name="excerpt" rows={2} defaultValue={edit?.excerpt || ""} /></div>
           <div><label className="lbl">Nội dung</label><textarea className="inp" name="content" rows={12} required defaultValue={edit?.content || ""} placeholder={"Mỗi dòng là một đoạn văn.\nDòng bắt đầu bằng ## là tiêu đề mục."} /></div>
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" name="published" defaultChecked={edit ? edit.published : true} className="h-4 w-4 accent-brand-600" /> Xuất bản ngay</label>
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" name="pinned" defaultChecked={edit?.pinned} className="h-4 w-4 accent-brand-600" /> Ghim lên đầu trang Bài viết</label>
-          <button className="btn-primary w-full">{edit ? "Lưu thay đổi" : "Đăng bài"}</button>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" name="published" defaultChecked={edit ? edit.published : true} className="h-4 w-4 accent-brand-600" /> Xuất bản ngay</label>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" name="pinned" defaultChecked={edit?.pinned} className="h-4 w-4 accent-brand-600" /> Ghim lên đầu trang Bài viết</label>
+            <button className="btn-primary ml-auto">{edit ? "Lưu thay đổi" : "Đăng bài"}</button>
+          </div>
         </form>
       </div>
     </div>

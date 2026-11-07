@@ -96,7 +96,7 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
           </div>
         </div>
 
-        <form action={panelBanIpAction} className="card space-y-4 p-6">
+        <form action={panelBanIpAction} className="card space-y-4 p-6 lg:sticky lg:top-24">
           <div className="font-bold text-slate-900">Cấm IP mới</div>
           <div>
             <label className="lbl">Địa chỉ IP</label>

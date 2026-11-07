@@ -22,18 +22,16 @@ export default async function AdminContactPage({ searchParams }: { searchParams:
     <div>
       <PageHead title="Widget Liên hệ" desc="Quản lý các kênh liên hệ hiển thị trên website" />
       <Flash msg={searchParams.msg} err={searchParams.err} />
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
-        <div>
-          <ContactWidgetsManager
-            items={items}
-            saveAction={saveContactWidgetAction}
-            deleteAction={deleteContactWidgetAction}
-            toggleAction={toggleContactWidgetAction}
-            seedAction={seedContactWidgetsAction}
-            hasLegacy={hasLegacy}
-          />
-        </div>
-        <div className="space-y-6">
+      <div>
+        <ContactWidgetsManager
+          items={items}
+          saveAction={saveContactWidgetAction}
+          deleteAction={deleteContactWidgetAction}
+          toggleAction={toggleContactWidgetAction}
+          seedAction={seedContactWidgetsAction}
+          hasLegacy={hasLegacy}
+        />
+        <div className="mt-6 grid items-start gap-6 xl:grid-cols-2">
           <form action={saveContactAction} className="card p-6">
             <div className="font-bold text-slate-900">Hiển thị widget</div>
             <p className="mt-1 text-sm text-slate-400">Công tắc tổng — tắt là ẩn trên web mẹ, khu khách và mọi website con.</p>
@@ -41,6 +39,7 @@ export default async function AdminContactPage({ searchParams }: { searchParams:
               <Switch name="support_widget_enabled" label="Hiện widget liên hệ nổi" defaultChecked={s.support_widget_enabled !== "0"} />
               <Switch name="livechat_enabled" label="Hiện nút AI tư vấn trên toàn hệ thống" defaultChecked={s.livechat_enabled !== "0"} />
             </div>
+            <p className="mt-3 text-[13px] leading-relaxed text-slate-400">Thay đổi áp dụng ngay sau khi lưu cho web mẹ, khu khách và mọi website con. Panel con có thể tắt riêng từng nút cho khách của mình ở trang Mô-đun của panel.</p>
             <button className="btn-primary mt-4 w-full !py-2.5">Lưu công tắc</button>
           </form>
           <div className="card p-6">

@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { syncSmmOrderStatus, syncPremiumOrderStatus, processDripfeedOrders, processAutoRefills } from "@/lib/orders";
 import { syncProviderServices, syncProviderPremium, providerBalance } from "@/lib/provider";
-import { processSubscriptions } from "@/lib/subscriptions";
 import { processPanelRenewals } from "@/lib/panel-billing";
 
 /**
@@ -37,12 +36,8 @@ export async function GET(req: NextRequest) {
     result.dripfeedError = String(e?.message || e);
   }
 
-  // Đăng ký định kỳ: đặt đơn tự động cho các gói đến hạn
-  try {
-    result.subscriptions = await processSubscriptions(20);
-  } catch (e: any) {
-    result.subscriptionsError = String(e?.message || e);
-  }
+  // Đăng ký định kỳ ĐÃ GỠ khỏi khu khách (lệnh 2026-11-07): cron KHÔNG còn tạo đơn
+  // mới từ subscription. Dữ liệu gói cũ giữ nguyên trong DB, không xử lý nữa.
 
   // Gia hạn website con theo tháng: trừ phí tự động, hết tiền thì tạm ngưng
   try {

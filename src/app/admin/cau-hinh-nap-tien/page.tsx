@@ -47,6 +47,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
           <p className="text-sm text-slate-500">
             Đang có {banks.length} tài khoản nhận tiền{banks.length ? `: ${banks.map((b) => b.bankName).join(", ")}` : ""} — quản lý ở trang Ngân hàng.
           </p>
+          <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">Khách ghi đúng nội dung chứa mã nạp thì hệ thống tự đối soát và cộng tiền trong vài phút; sai nội dung sẽ chờ duyệt tay ở trang Quản lý nạp tiền.</p>
           <div className="flex gap-2">
             <button className="btn-primary !py-2.5">Lưu SePay</button>
             <a href="/admin/ngan-hang" className="btn-ghost !py-2.5">Mở trang Ngân hàng</a>
@@ -73,6 +74,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
             </div>
             <div><label className="lbl">Tỉ giá 1 USDT (đ)</label><input className="inp" name="usdt_rate" type="number" min={0} defaultValue={s.usdt_rate} placeholder={s.usd_rate || "25000"} /></div>
           </div>
+          <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">Địa chỉ ví phải đúng mạng đã chọn — khách gửi sai mạng có thể mất tiền. Tiền cộng vào ví sau khi giao dịch được ghi nhận.</p>
           <button className="btn-primary !py-2.5">Lưu USDT</button>
         </form>
 
@@ -94,6 +96,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
               <option value="sandbox">Sandbox (thử nghiệm)</option><option value="live">Live (thật)</option>
             </select>
           </div>
+          <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">Lấy Client ID / Secret tại PayPal Developer → Apps &amp; Credentials, chọn đúng môi trường khớp ô Môi trường ở trên. PayPal không cần cấu hình webhook.</p>
           <button className="btn-primary !py-2.5">Lưu PayPal</button>
         </form>
 

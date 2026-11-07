@@ -42,9 +42,6 @@ export default async function AdminSmartPricing({ searchParams }: { searchParams
             </select>
           </div>
           <div><label className="lbl">Giá trị % (âm = giảm khi ở chế độ tăng/giảm)</label><input className="inp" name="value" type="number" defaultValue={30} required /></div>
-          <p className="rounded-xl bg-amber-50 px-3.5 py-2.5 text-xs font-medium leading-relaxed text-amber-700">
-            Thao tác áp ngay lên giá bán và không hoàn tác tự động được. Nên chỉnh theo từng nguồn/danh mục thay vì toàn bộ.
-          </p>
           <button className="btn-primary w-full">Áp dụng giá mới</button>
         </form>
         <div className="card p-6">
@@ -55,9 +52,13 @@ export default async function AdminSmartPricing({ searchParams }: { searchParams
             <div className="rounded-xl bg-slate-50 px-4 py-3"><div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Biên lãi trung bình</div><div className="mt-0.5 text-lg font-bold">{margin}%</div></div>
             <div className="rounded-xl bg-slate-50 px-4 py-3"><div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Giá bán TB / 1000</div><div className="mt-0.5 text-lg font-bold">{vnd(avgRate)}</div></div>
             <div className="rounded-xl bg-slate-50 px-4 py-3"><div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Giá vốn TB / 1000</div><div className="mt-0.5 text-lg font-bold">{vnd(avgCost)}</div></div>
+            <div className="rounded-xl bg-slate-50 px-4 py-3"><div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Chưa có giá vốn</div><div className="mt-0.5 text-lg font-bold">{num(total - withCost)}</div></div>
           </div>
           <p className="mt-4 text-sm leading-relaxed text-slate-500">
             Chế độ <b>theo giá vốn + % lãi</b> là cách các panel thường dùng khi đồng bộ dịch vụ từ nhà cung cấp: giá vốn thay đổi thì chỉ cần áp lại tỉ lệ lãi là toàn bộ bảng giá cập nhật theo. Dịch vụ thủ công chưa có giá vốn sẽ bị bỏ qua ở chế độ này.
+          </p>
+          <p className="mt-4 rounded-xl bg-amber-50 px-3.5 py-2.5 text-xs font-medium leading-relaxed text-amber-700">
+            Lưu ý: thao tác chỉnh giá áp ngay lên giá bán và không hoàn tác tự động được. Nên chỉnh theo từng nguồn/danh mục thay vì toàn bộ.
           </p>
         </div>
       </div>

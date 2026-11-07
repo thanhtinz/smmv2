@@ -55,6 +55,8 @@ export default async function PanelMethodConfig({ searchParams }: { searchParams
             <div><label className="lbl">Mạng</label><input name="usdtNetwork" defaultValue={panel.usdtNetwork || ""} placeholder="TRC20" className="inp" /></div>
             <div><label className="lbl">Tỉ giá 1 USDT (đ)</label><input name="usdtRate" type="number" min={0} defaultValue={panel.usdtRate || ""} placeholder="25400" className="inp" /></div>
           </div>
+          <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">Địa chỉ ví phải đúng mạng đã khai — khách gửi sai mạng có thể mất tiền. Khách chuyển USDT xong sẽ báo đã chuyển ở trang Nạp tiền, giao dịch vào trang Quản lý nạp tiền chờ bạn duyệt cộng.</p>
+          <p className="text-sm text-slate-500">{panel.usdtAddress ? "Phương thức USDT đang hiện ở trang Nạp tiền của khách với địa chỉ ví và tỉ giá này." : "Chưa nhập địa chỉ ví nên khách chưa thấy phương thức USDT ở trang Nạp tiền."}</p>
           <button className="btn-primary !py-2.5">Lưu USDT</button>
         </form>
 

@@ -44,16 +44,15 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
         </div>
         <button className="btn-primary">Lưu bảo mật khu quản trị</button>
       </form>
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
-        <div className="space-y-6">
-          <form action={saveIpBanAction} className="card space-y-4 p-5">
-            <div className="font-bold text-slate-900">Chặn một IP</div>
-            <div><label className="lbl">Địa chỉ IP</label><input className="inp" name="ip" required placeholder="VD: 203.0.113.10" /></div>
-            <div><label className="lbl">Lý do</label><textarea className="inp" name="reason" rows={2} placeholder="Spam đăng ký, dò mật khẩu..." /></div>
-            <button className="btn-primary">Thêm vào danh sách chặn</button>
-          </form>
+      <form action={saveIpBanAction} className="card p-5">
+        <div className="font-bold text-slate-900">Chặn một IP</div>
+        <div className="mt-4 grid grid-cols-1 items-end gap-4 lg:grid-cols-[1fr_1.5fr_auto]">
+          <div><label className="lbl">Địa chỉ IP</label><input className="inp" name="ip" required placeholder="VD: 203.0.113.10" /></div>
+          <div><label className="lbl">Lý do</label><input className="inp" name="reason" placeholder="Spam đăng ký, dò mật khẩu..." /></div>
+          <button className="btn-primary whitespace-nowrap">Thêm vào danh sách chặn</button>
         </div>
-        <div className="card overflow-x-auto">
+      </form>
+      <div className="card mt-6 overflow-x-auto">
           <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Danh sách IP bị chặn ({bans.length})</div>
           {bans.length === 0 ? <Empty text="Chưa chặn IP nào" /> : (
             <table className="w-full min-w-[480px]">
@@ -70,7 +69,6 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
               </tbody>
             </table>
           )}
-        </div>
       </div>
       <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
         <form action={saveSecurityPolicyAction} className="card space-y-4 p-5">
@@ -102,7 +100,7 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
               <select className="inp" name="reg_block_disposable" defaultValue={s.reg_block_disposable === "1" ? "1" : "0"}><option value="0">Tắt</option><option value="1">Bật</option></select></div>
           </div>
           <div><label className="lbl">Số lần đăng ký tối đa / IP / giờ (0 = không giới hạn)</label><input className="inp" name="reg_max_per_ip_hour" type="number" min={0} max={1000} defaultValue={s.reg_max_per_ip_hour} /></div>
-          <div><label className="lbl">Danh sách tên miền email bị cấm (mỗi dòng 1 tên miền)</label><textarea className="inp font-mono" name="reg_banned_domains" rows={5} defaultValue={s.reg_banned_domains} /></div>
+          <div><label className="lbl">Danh sách tên miền email bị cấm (mỗi dòng 1 tên miền)</label><textarea className="inp font-mono" name="reg_banned_domains" rows={4} defaultValue={s.reg_banned_domains} /></div>
           <button className="btn-primary">Lưu bảo mật đăng ký</button>
         </form>
       </div>
