@@ -51,25 +51,41 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const ticketsOn = s.module_tickets !== "0" && (myPanelFlags ? myPanelFlags.moduleTickets : true);
   const apiOn = s.module_api !== "0" && (myPanelFlags ? myPanelFlags.moduleApi : true);
   const unreadNoti = await prisma.notification.count({ where: { userId: user.id, read: false } });
+  // Menu gom nhóm dropdown cho gọn: nhóm nào đang chứa trang hiện tại thì tự mở
+  const smmChildren = [
+    ...(smmOn ? [{ href: "/dashboard/dat-hang", label: "Đặt đơn SMM" }] : []),
+    ...(smmOn && bulkOn ? [{ href: "/dashboard/dat-hang-loat", label: "Đặt hàng loạt" }] : []),
+    { href: "/dashboard/dich-vu", label: "Bảng giá" },
+    { href: "/dashboard/don-hang", label: "Đơn hàng SMM" },
+    ...(smmOn && subsOn ? [{ href: "/dashboard/dinh-ky", label: "Đăng ký định kỳ" }] : []),
+    ...(smmOn && campOn ? [{ href: "/dashboard/chien-dich", label: "Chiến dịch" }] : []),
+  ];
+  const premiumChildren = [
+    ...(premiumOn ? [{ href: "/premium", label: "Mua Premium" }] : []),
+    { href: "/dashboard/don-premium", label: "Đơn hàng Premium" },
+  ];
+  const financeChildren = [
+    { href: "/dashboard/nap-tien", label: "Nạp tiền" },
+    { href: "/dashboard/giao-dich", label: "Lịch sử số dư" },
+    ...(affiliateOn ? [{ href: "/dashboard/kiem-tien", label: "Kiếm tiền" }] : []),
+  ];
+  const apiChildren = apiOn ? [
+    { href: "/dashboard/api", label: "API đại lý" },
+    { href: "/dashboard/api-docs", label: "Tài liệu API" },
+  ] : [];
+  const supportChildren = [
+    ...(ticketsOn ? [{ href: "/dashboard/ticket", label: "Hỗ trợ / Ticket", badge: openTickets }] : []),
+    { href: "/dashboard/thong-bao", label: "Thông báo", badge: unreadNoti },
+    ...(s.module_blog !== "0" ? [{ href: "/dashboard/bai-viet", label: "Bài viết" }] : []),
+  ];
   const items = [
     { href: "/dashboard", label: "Tổng quan", icon: I.home },
-    ...(smmOn ? [{ href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },] : []),
-    ...(smmOn && bulkOn ? [{ href: "/dashboard/dat-hang-loat", label: "Đặt hàng loạt", icon: I.layers },] : []),
-    { href: "/dashboard/dich-vu", label: "Bảng giá", icon: I.percent },
-    { href: "/dashboard/don-hang", label: "Đơn hàng SMM", icon: I.list },
-    ...(smmOn && subsOn ? [{ href: "/dashboard/dinh-ky", label: "Đăng ký định kỳ", icon: I.clock },] : []),
-    ...(smmOn && campOn ? [{ href: "/dashboard/chien-dich", label: "Chiến dịch", icon: I.megaphone },] : []),
-    ...(premiumOn ? [{ href: "/premium", label: "Mua Premium", icon: I.gem },] : []),
-    { href: "/dashboard/don-premium", label: "Đơn hàng Premium", icon: I.box },
-    { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
-    { href: "/dashboard/giao-dich", label: "Lịch sử số dư", icon: I.chart },
-    ...(affiliateOn ? [{ href: "/dashboard/kiem-tien", label: "Kiếm tiền", icon: I.money }] : []),
-    ...(s.module_blog !== "0" ? [{ href: "/dashboard/bai-viet", label: "Bài viết", icon: I.file }] : []),
-    ...(apiOn ? [{ href: "/dashboard/api", label: "API đại lý", icon: I.key }] : []),
-    ...(apiOn ? [{ href: "/dashboard/api-docs", label: "Tài liệu API", icon: I.file }] : []),
+    ...(smmChildren.length ? [{ label: "Đơn SMM", icon: I.cart, children: smmChildren }] : []),
+    ...(premiumChildren.length ? [{ label: "Premium", icon: I.gem, children: premiumChildren }] : []),
+    ...(financeChildren.length ? [{ label: "Tài chính", icon: I.wallet, children: financeChildren }] : []),
+    ...(apiChildren.length ? [{ label: "API", icon: I.key, children: apiChildren }] : []),
     ...(s.module_panels !== "0" ? [{ href: "/dashboard/panel-cua-toi", label: "Đăng ký panel con", icon: I.panels }] : []),
-    ...(ticketsOn ? [{ href: "/dashboard/ticket", label: "Hỗ trợ / Ticket", icon: I.ticket, badge: openTickets }] : []),
-    { href: "/dashboard/thong-bao", label: "Thông báo", icon: I.bell, badge: unreadNoti },
+    ...(supportChildren.length ? [{ label: "Hỗ trợ", icon: I.ticket, children: supportChildren }] : []),
     { href: "/dashboard/ho-so", label: "Hồ sơ", icon: I.users },
   ];
   return (

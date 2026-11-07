@@ -5,21 +5,73 @@ import { ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { logoutAction } from "@/app/actions/auth";
 
-type NavItem = { href: string; label: string; icon: ReactNode; badge?: number };
+type NavChild = { href: string; label: string; badge?: number };
+type NavItem = { href?: string; label: string; icon: ReactNode; badge?: number; children?: NavChild[] };
+
+const isActivePath = (path: string, href: string) =>
+  href === "/dashboard" ? path === href : path === href || path.startsWith(href + "/");
 
 function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
   const path = usePathname();
+  const [open, setOpen] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const it of items) {
+      if (it.children?.some((c) => isActivePath(path, c.href))) init[it.label] = true;
+    }
+    return init;
+  });
+  // Đang ở trang con nào thì tự mở nhóm chứa nó (sidebar desktop không đóng lại được bằng tay)
+  useEffect(() => {
+    for (const it of items) {
+      if (it.children?.some((c) => isActivePath(path, c.href))) {
+        setOpen((o) => (o[it.label] ? o : { ...o, [it.label]: true }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path]);
+
+  const linkCls = (active: boolean) =>
+    `flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm whitespace-nowrap transition ${active ? "bg-brand-50 text-brand-700 font-semibold shadow-[inset_0_0_0_1px] shadow-brand-100" : "font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"}`;
+  const badge = (n?: number) =>
+    n ? <span className="ml-auto bg-rose-500 text-white text-[11px] font-bold rounded-full px-2 py-0.5">{n}</span> : null;
+
   return (
     <>
       {items.map((it) => {
-        const active = path === it.href || path.startsWith(it.href + "/");
+        if (!it.children) {
+          const active = isActivePath(path, it.href!);
+          return (
+            <Link key={it.label} href={it.href!} onClick={onNavigate} className={linkCls(active)}>
+              <span className="shrink-0 [&>svg]:w-5 [&>svg]:h-5">{it.icon}</span>
+              {it.label}
+              {badge(it.badge)}
+            </Link>
+          );
+        }
+        const groupOpen = !!open[it.label];
+        const childActive = it.children.some((c) => isActivePath(path, c.href));
+        const totalBadge = it.children.reduce((sum, c) => sum + (c.badge || 0), 0);
         return (
-          <Link key={it.href} href={it.href} onClick={onNavigate}
-            className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm whitespace-nowrap transition ${active ? "bg-brand-50 text-brand-700 font-semibold shadow-[inset_0_0_0_1px] shadow-brand-100" : "font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"}`}>
-            <span className="shrink-0 [&>svg]:w-5 [&>svg]:h-5">{it.icon}</span>
-            {it.label}
-            {!!it.badge && <span className="ml-auto bg-rose-500 text-white text-[11px] font-bold rounded-full px-2 py-0.5">{it.badge}</span>}
-          </Link>
+          <div key={it.label}>
+            <button type="button" onClick={() => setOpen((o) => ({ ...o, [it.label]: !o[it.label] }))}
+              className={`flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm whitespace-nowrap transition ${childActive ? "font-semibold text-brand-700" : "font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"}`}>
+              <span className="shrink-0 [&>svg]:w-5 [&>svg]:h-5">{it.icon}</span>
+              {it.label}
+              {badge(totalBadge)}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 text-slate-400 transition-transform ${totalBadge ? "" : "ml-auto"} ${groupOpen ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+            {groupOpen && (
+              <div className="mt-0.5 space-y-0.5">
+                {it.children.map((c) => (
+                  <Link key={c.href} href={c.href} onClick={onNavigate}
+                    className={`flex items-center gap-2.5 rounded-xl py-2 pl-11 pr-3.5 text-sm whitespace-nowrap transition ${isActivePath(path, c.href) ? "bg-brand-50 text-brand-700 font-semibold shadow-[inset_0_0_0_1px] shadow-brand-100" : "font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"}`}>
+                    {c.label}
+                    {badge(c.badge)}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         );
       })}
     </>
