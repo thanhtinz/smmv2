@@ -141,6 +141,7 @@ export const I = {
   ban: <P d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM4.9 4.9l14.2 14.2" />,
   copy: <P d="M9 9h11a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />,
   history: <P d="M3 12a9 9 0 1 0 2.6-6.4L3 8M3 3v5h5M12 7v5l4 2" />,
+  chevron: <P d="m6 9 6 6 6-6" />,
 };
 
 /** Đầu thẻ chuẩn toàn hệ: ô icon gradient + tiêu đề đậm + cụm phải (badge/nút). */

@@ -160,8 +160,8 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
 /** Khối gập/mở ở cột trái trang chi tiết (Chi tiết gói / Giới thiệu / ...). */
 function DetailSection({ title, open, children }: { title: string; open?: boolean; children: React.ReactNode }) {
   return (
-    <details className="card mt-6" {...(open ? { open: true } : {})}>
-      <summary className="cursor-pointer list-none px-6 py-4 text-sm font-extrabold uppercase tracking-wider text-slate-900 [&::-webkit-details-marker]:hidden">{title}</summary>
+    <details className="card group mt-6" {...(open ? { open: true } : {})}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-6 py-4 text-sm font-extrabold uppercase tracking-wider text-slate-900 [&::-webkit-details-marker]:hidden"><span>{title}</span><span className="shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180">{I.chevron}</span></summary>
       <div className="border-t border-slate-100 px-6 py-5">{children}</div>
     </details>
   );
