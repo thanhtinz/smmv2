@@ -1826,6 +1826,10 @@ export const DICT: Record<string, Tr> = {
   "Đăng xuất thiết bị này": e("Sign out this device", "登出此设备", "ออกจากระบบอุปกรณ์นี้", "このデバイスからログアウト", "이 기기 로그아웃"),
   "Buộc đăng xuất mọi thiết bị": e("Force sign-out on all devices", "强制登出所有设备", "บังคับออกจากระบบทุกอุปกรณ์", "すべてのデバイスから強制ログアウト", "모든 기기 강제 로그아웃"),
   "Quét mã QR bằng ứng dụng xác thực (Google Authenticator, Authy...) rồi nhập mã 6 số để bật.": e("Scan the QR code with your authenticator app (Google Authenticator, Authy...) then enter the 6-digit code to enable.", "使用验证器应用（Google Authenticator、Authy...）扫描二维码，然后输入 6 位验证码以启用。", "สแกน QR ด้วยแอปยืนยันตัวตน (Google Authenticator, Authy...) แล้วป้อนรหัส 6 หลักเพื่อเปิดใช้งาน", "認証アプリ（Google Authenticator、Authyなど）でQRコードをスキャンし、6桁のコードを入力して有効化してください。", "인증 앱(Google Authenticator, Authy 등)으로 QR 코드를 스캔한 뒤 6자리 코드를 입력해 활성화하세요."),
+  "Hệ thống đang tạm khoá": e("The system is temporarily locked", "系统暂时锁定", "ระบบถูกล็อกชั่วคราว", "システムは一時的にロックされています", "시스템이 일시적으로 잠겼습니다"),
+  "Huỷ và quay lại": e("Cancel and go back", "取消并返回", "ยกเลิกและย้อนกลับ", "キャンセルして戻る", "취소하고 돌아가기"),
+  "Về trang đăng nhập": e("Back to sign-in", "返回登录页", "กลับไปหน้าเข้าสู่ระบบ", "ログインページへ戻る", "로그인 페이지로 돌아가기"),
+  "Nhập mật khẩu của bạn": e("Enter your password", "输入您的密码", "ป้อนรหัสผ่านของคุณ", "パスワードを入力してください", "비밀번호를 입력하세요"),
 };
 
 /* Dịch theo MẢNH cho các dòng ghép (vd "Đơn giá 45.000đ/1000", "Số lượng 500 · Bắt đầu —") */
