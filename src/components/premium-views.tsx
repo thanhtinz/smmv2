@@ -59,6 +59,13 @@ async function buildCardData(
   });
 }
 
+/** Che tên người đánh giá kiểu shopkey: "admin" -> "ad***n". */
+function maskName(u: string): string {
+  if (!u) return "***";
+  if (u.length <= 3) return u.charAt(0) + "***";
+  return u.slice(0, 2) + "***" + u.slice(-1);
+}
+
 const SORTS = [
   { key: "mac-dinh", label: "Mặc định" },
   { key: "ban-chay", label: "Bán chạy" },
@@ -192,6 +199,12 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   const myReview = session
     ? await prisma.premiumReview.findUnique({ where: { productId_userId: { productId: product.id, userId: session.id } }, select: { rating: true, content: true } })
     : null;
+  const reviewerIds = Array.from(new Set(reviewList.map((r) => r.userId)));
+  const reviewerOrders = reviewerIds.length
+    ? await prisma.premiumOrder.findMany({ where: { userId: { in: reviewerIds }, variantId: { in: variantIds }, status: { notIn: ["CANCELED", "REFUNDED"] } }, orderBy: { createdAt: "desc" }, select: { userId: true, variant: { select: { name: true } } } })
+    : [];
+  const variantByUser = new Map<number, string>();
+  for (const o of reviewerOrders) if (!variantByUser.has(o.userId)) variantByUser.set(o.userId, o.variant.name);
   const relatedRaw = await prisma.premiumProduct.findMany({
     where: { active: true, categoryId: product.categoryId, id: { not: product.id }, OR: [{ panelId: null }, ...(viewer?.panelId ? [{ panelId: viewer.panelId }] : [])] },
     orderBy: { sort: "asc" }, take: 4,
@@ -226,6 +239,75 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
         </DetailSection>
       )}
     </>
+  );
+  const reviewsCard = (
+    <div className="card p-6">
+      <div className="flex items-center gap-2">
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="#f59e0b"><path d="M12 3.5l2.55 5.37 5.9.72-4.34 4.06 1.1 5.83L12 16.9l-5.21 2.58 1.1-5.83L3.55 9.59l5.9-.72L12 3.5z" /></svg>
+        <h2 className="text-base font-extrabold text-slate-900">Đánh giá sản phẩm</h2>
+        <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">{reviewCount} đánh giá</span>
+      </div>
+      <div className="mt-5 text-center">
+        <div className="text-[40px] font-black leading-none text-slate-900">{reviewCount > 0 ? reviewAvg.toFixed(1) : "—"}</div>
+        <div className="mt-2.5 flex justify-center"><Stars value={reviewAvg} className="h-5 w-5" /></div>
+        <div className="mt-2 text-[13px] text-slate-500">{reviewCount} đánh giá</div>
+      </div>
+      <div className="mx-auto mt-5 max-w-sm space-y-2">
+        {[5, 4, 3, 2, 1].map((n) => (
+          <div key={n} className="flex items-center gap-2.5 text-[13px] text-slate-600">
+            <span className="flex w-8 shrink-0 items-center gap-1 font-semibold">{n}<svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="#f59e0b"><path d="M12 3.5l2.55 5.37 5.9.72-4.34 4.06 1.1 5.83L12 16.9l-5.21 2.58 1.1-5.83L3.55 9.59l5.9-.72L12 3.5z" /></svg></span>
+            <span className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+              <span className="block h-full rounded-full bg-amber-400" style={{ width: `${reviewCount > 0 ? ((distMap.get(n) || 0) / reviewCount) * 100 : 0}%` }} />
+            </span>
+            <span className="w-5 shrink-0 text-right text-slate-400">{distMap.get(n) || 0}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-6 border-t border-slate-100 pt-2">
+        {reviewList.length === 0 ? (
+          <p className="py-4 text-center text-sm text-slate-500">Chưa có đánh giá nào cho sản phẩm này.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {reviewList.map((r) => (
+              <li key={r.id} className="py-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z" /></svg>
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-bold text-slate-900">{maskName(r.user.username)}</div>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Đã mua hàng
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  <Stars value={r.rating} className="h-3.5 w-3.5" />
+                  <span className="text-xs text-slate-400">{r.createdAt.toLocaleDateString("vi-VN")}</span>
+                </div>
+                {variantByUser.get(r.userId) && (
+                  <span className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600">
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 7h15l-1.5 9h-12L6 7z" /><path d="M6 7L5 3H2" /><circle cx="9" cy="20" r="1.6" /><circle cx="17" cy="20" r="1.6" /></svg>
+                    {variantByUser.get(r.userId)}
+                  </span>
+                )}
+                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-600">{r.content}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div className="border-t border-slate-100 pt-5">
+        <div className="text-sm font-extrabold text-slate-900">{myReview ? "Đánh giá của bạn" : "Viết đánh giá"}</div>
+        {session && myPurchase ? (
+          <PremiumReviewForm slug={product.slug} returnTo={`${base}/${product.slug}`} action={submitPremiumReviewAction} mine={myReview} />
+        ) : session ? (
+          <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">Chỉ khách đã mua sản phẩm mới được đánh giá.</p>
+        ) : (
+          <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">Chỉ khách đã mua sản phẩm mới được đánh giá. <Link href="/login" className="font-bold text-brand-700">Đăng nhập</Link></p>
+        )}
+      </div>
+    </div>
   );
   const images = productImages(product.images, product.imageUrl);
   const homeHref = base.startsWith("/dashboard") ? "/dashboard" : "/";
@@ -307,59 +389,8 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
         </div>
       )}
 
-      <div className="card mt-10 p-6">
-        <h2 className="text-xl font-extrabold text-slate-900">Đánh giá sản phẩm</h2>
-        <div className="mt-5 grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <div>
-            <div className="flex items-end gap-2">
-              <span className="text-4xl font-black text-slate-900">{reviewCount > 0 ? reviewAvg.toFixed(1) : "—"}</span>
-              <span className="pb-1.5 text-sm text-slate-500">/ 5 · {reviewCount} đánh giá</span>
-            </div>
-            <div className="mt-2"><Stars value={reviewAvg} className="h-5 w-5" /></div>
-            <div className="mt-4 space-y-1.5">
-              {[5, 4, 3, 2, 1].map((n) => (
-                <div key={n} className="flex items-center gap-2 text-xs text-slate-500">
-                  <span className="w-10 shrink-0 whitespace-nowrap font-semibold">{n} sao</span>
-                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                    <span className="block h-full rounded-full bg-amber-400" style={{ width: `${reviewCount > 0 ? ((distMap.get(n) || 0) / reviewCount) * 100 : 0}%` }} />
-                  </span>
-                  <span className="w-6 shrink-0 text-right">{distMap.get(n) || 0}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 border-t border-slate-100 pt-5">
-              <div className="text-sm font-extrabold text-slate-900">{myReview ? "Đánh giá của bạn" : "Viết đánh giá"}</div>
-              {session && myPurchase ? (
-                <PremiumReviewForm slug={product.slug} returnTo={`${base}/${product.slug}`} action={submitPremiumReviewAction} mine={myReview} />
-              ) : session ? (
-                <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">Chỉ khách đã mua sản phẩm mới được đánh giá.</p>
-              ) : (
-                <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">Chỉ khách đã mua sản phẩm mới được đánh giá. <Link href="/login" className="font-bold text-brand-700">Đăng nhập</Link></p>
-              )}
-            </div>
-          </div>
-          <div className="lg:col-span-2">
-            {reviewList.length === 0 ? (
-              <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">Chưa có đánh giá nào cho sản phẩm này.</p>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {reviewList.map((r) => (
-                  <li key={r.id} className="py-4 first:pt-0">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-black text-white">{r.user.username.charAt(0).toUpperCase()}</span>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-bold text-slate-900">{r.user.username}</div>
-                        <div className="text-xs text-slate-400">{r.createdAt.toLocaleDateString("vi-VN")}</div>
-                      </div>
-                      <span className="ml-auto"><Stars value={r.rating} className="h-3.5 w-3.5" /></span>
-                    </div>
-                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-600">{r.content}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-5">
+        <div className="lg:col-span-3">{reviewsCard}</div>
       </div>
 
       {related.length > 0 && (
