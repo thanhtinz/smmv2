@@ -1,0 +1,20 @@
+[Unit]
+Description=SMMv2 (Next.js) — web mẹ + các website con
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=smmv2
+Group=smmv2
+WorkingDirectory=/opt/smmv2
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
