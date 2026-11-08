@@ -49,16 +49,18 @@ export async function famToggleVariant(fd: FormData) {
   back(rt(fd), true, on ? "Đã bật bán gói" : "Đã tắt bán gói");
 }
 
-/** Tỉ giá + markup của nhà cung cấp FZR — đầu vào giá THẬT của Stars và
- *  Steam Gift (chốt tươi mỗi đơn) và của mọi đợt đồng bộ giá. */
+/** Markup CHUNG của nhà cung cấp FZR (thẻ nhà cung cấp trên các trang khu
+ *  vực). TỈ GIÁ KHÔNG được lưu ở đây: tỉ giá chỉ có MỘT nguồn duy nhất là
+ *  hồ sơ nhà cung cấp (Admin → Nhà cung cấp, Provider.exchangeRate) — thẻ
+ *  khu vực chỉ hiển thị để tham chiếu, và mọi đường tính giá đều đọc
+ *  provider.exchangeRate tại thời điểm dùng. */
 export async function famSaveProviderPricing(fd: FormData) {
   await requireAdmin();
   const providerId = parseInt(String(fd.get("providerId") || "0"));
-  const exchangeRate = parseInt(String(fd.get("exchangeRate") || "0"));
   const markupPercent = Math.max(0, Math.min(1000, parseInt(String(fd.get("markupPercent") || "0")) || 0));
-  if (!providerId || !(exchangeRate > 0)) back(rt(fd), false, "Tỉ giá phải lớn hơn 0");
-  await prisma.provider.update({ where: { id: providerId }, data: { exchangeRate, markupPercent } });
-  back(rt(fd), true, "Đã lưu tỉ giá và markup nhà cung cấp");
+  if (!providerId) back(rt(fd), false, "Nhà cung cấp không hợp lệ");
+  await prisma.provider.update({ where: { id: providerId }, data: { markupPercent } });
+  back(rt(fd), true, "Đã lưu markup nhà cung cấp");
 }
 
 async function categoryId(name: string, providerId: number): Promise<number> {

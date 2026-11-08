@@ -5,8 +5,9 @@ import { ADMIN_VARIANT_MARK, type FamilyVariant } from "@/lib/families";
 import type { Provider } from "@prisma/client";
 
 /** FIX8 TASK 4 — Mảnh giao diện dùng chung cho admin họ Telegram/Steam:
- *  thẻ giá nhà cung cấp (tỉ giá + markup) và hàng gói (sửa tên/giá, bật/tắt).
- *  Server components thuần form — không JS phía khách. */
+ *  thẻ nhà cung cấp (tỉ giá CHỈ ĐỌC — nguồn duy nhất là hồ sơ nhà cung cấp
+ *  ở Admin → Nhà cung cấp; markup chung sửa tại đây) và hàng gói (sửa
+ *  tên/giá, bật/tắt). Server components thuần form — không JS phía khách. */
 
 export const fmtVnd = (n: number) => `${n.toLocaleString("vi-VN")}đ`;
 
@@ -24,21 +25,26 @@ export function ProviderPricingCard({ provider, returnTo }: { provider: Provider
         </span>
       </div>
       <p className="mt-1.5 text-[13px] text-slate-500">
-        Tỉ giá và markup là đầu vào giá của Stars và Steam Gift (chốt tươi theo báo giá FZR mỗi đơn) và của giá đồng bộ các gói khác.
+        Tỉ giá chỉ lưu MỘT chỗ duy nhất trong hồ sơ nhà cung cấp — thẻ này chỉ hiển thị để tham chiếu, mọi đường tính giá (đồng bộ, báo giá tươi của Stars và Steam Gift mỗi đơn) đều đọc thẳng giá trị đó. Markup dưới đây là markup chung của nhà cung cấp.
       </p>
-      <form action={famSaveProviderPricing} className="mt-3 flex flex-wrap items-end gap-3">
-        <input type="hidden" name="providerId" value={provider.id} />
-        <input type="hidden" name="returnTo" value={returnTo} />
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold text-slate-500">Tỉ giá (VNĐ / 1 USD)</span>
-          <input name="exchangeRate" type="number" min={1} defaultValue={provider.exchangeRate} className="inp !w-44" />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold text-slate-500">Markup (%)</span>
-          <input name="markupPercent" type="number" min={0} max={1000} defaultValue={provider.markupPercent} className="inp !w-32" />
-        </label>
-        <button className="btn-primary btn-sm !px-4 !py-2.5">Lưu giá nhà cung cấp</button>
-      </form>
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <div>
+          <span className="mb-1 block text-xs font-semibold text-slate-500">Tỉ giá (VNĐ / 1 USD) — của nhà cung cấp</span>
+          <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-200">
+            {fmtVnd(provider.exchangeRate)}
+            <Link href="/admin/nha-cung-cap" className="text-xs font-semibold text-brand-600 hover:underline">Sửa tại Nhà cung cấp</Link>
+          </div>
+        </div>
+        <form action={famSaveProviderPricing} className="flex flex-wrap items-end gap-3">
+          <input type="hidden" name="providerId" value={provider.id} />
+          <input type="hidden" name="returnTo" value={returnTo} />
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-slate-500">Markup chung (%)</span>
+            <input name="markupPercent" type="number" min={0} max={1000} defaultValue={provider.markupPercent} className="inp !w-32" />
+          </label>
+          <button className="btn-primary btn-sm !px-4 !py-2.5">Lưu markup nhà cung cấp</button>
+        </form>
+      </div>
     </section>
   );
 }
