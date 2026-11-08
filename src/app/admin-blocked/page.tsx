@@ -24,7 +24,7 @@ export default async function AdminBlockedPage() {
           <p className="text-xs text-slate-400">{Ld("Đang đăng nhập:")} @{user.username} {Ld("— khu khách hàng vẫn dùng bình thường.")}</p>
         ) : null}
         <div className="flex justify-center gap-3 pt-2">
-          <a href="/dashboard" className="btn-primary">{Ld("Về khu khách hàng")}</a>
+          <a href="/" className="btn-primary">{Ld("Về khu khách hàng")}</a>
           <form action={logoutAction}><button className="btn-ghost">{Ld("Đăng xuất")}</button></form>
         </div>
       </div>

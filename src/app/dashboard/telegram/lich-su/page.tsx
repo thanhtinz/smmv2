@@ -18,7 +18,7 @@ export default async function TelegramHistoryPage({ searchParams }: {
 }) {
   const user = (await getCurrentUser())!;
   const { L, Ld, M } = await getServerI18n();
-  if (!(await telegramEnabled())) redirect("/dashboard");
+  if (!(await telegramEnabled())) redirect("/");
   const base = telegramOrderWhere(user.id);
   const [totalOrders, doneAgg, starsAgg, spentAgg] = await Promise.all([
     prisma.premiumOrder.count({ where: base }),

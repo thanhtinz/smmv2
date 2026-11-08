@@ -11,8 +11,9 @@ export const dynamic = "force-dynamic";
 
 /** Trang chủ = CỬA HÀNG Premium theo cấu trúc shopkey (lệnh Tín 2026-11-07):
  *  slider hero → khối danh mục → Sản phẩm nổi bật → Sản phẩm bán chạy → Đã xem
- *  gần đây. CHỈ nội dung trang chủ thay đổi — header/menu/footer giữ nguyên
- *  khung cũ; landing đã bỏ hẳn; không còn chuyển hướng khách đã đăng nhập. */
+ *  gần đây. Trang tổng quan khách đã bỏ hẳn — trang chủ là nhà của site, /dashboard
+ *  chỉ còn chuyển hướng về đây. Màu theo hệ theme chung (sáng mặc định / tối khi
+ *  khách bật), không còn da đen riêng của storefront hay tàn dư landing nào. */
 export default async function HomePage() {
   const s = await getSettings();
   const { L, Ld } = await getServerI18n();
@@ -67,7 +68,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="dark pub-dark min-h-screen bg-[#07090d] text-slate-300 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <PublicHeader />
       {homeModal && user ? <HomeModal content={homeModal} /> : null}
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4">

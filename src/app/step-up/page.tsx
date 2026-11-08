@@ -11,7 +11,7 @@ import { getServerI18n } from "@/lib/lang-server";
 export const dynamic = "force-dynamic";
 
 function safeNext(raw: string | undefined): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/";
   return raw.slice(0, 300);
 }
 
@@ -51,7 +51,7 @@ export default async function StepUpPage({ searchParams }: { searchParams: { nex
           <button className="btn-primary w-full">{L("Xác thực và tiếp tục")}</button>
         </form>
         <p className="mt-6 text-center text-sm text-slate-500">
-          <Link href="/dashboard" className="font-semibold text-brand-600">{L("Huỷ và quay lại")}</Link>
+          <Link href="/" className="font-semibold text-brand-600">{L("Huỷ và quay lại")}</Link>
         </p>
       </div>
     </AuthShell>

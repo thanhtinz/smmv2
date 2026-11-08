@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  *  trong tự hiện theo phiên đăng nhập; xem chi tiết không cần đăng nhập. */
 export default async function PremiumDetail({ params, searchParams }: { params: { slug: string }; searchParams: { msg?: string; err?: string } }) {
   return (
-    <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <PublicHeader />
       <main className="flex-1 max-w-5xl mx-auto px-4 py-12 w-full">
         <PremiumDetailView slug={params.slug} searchParams={searchParams} base="/premium" />

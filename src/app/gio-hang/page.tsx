@@ -31,10 +31,10 @@ export default async function CartPage() {
     suggested = (ranked.length > 0 ? ranked : cards).slice(0, 4);
   }
   return (
-    <div className="dark pub-dark min-h-screen bg-[#07090d] text-slate-300 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <PublicHeader />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10">
-        <h1 className="mb-6 text-2xl font-extrabold text-white sm:text-3xl">{L("Giỏ hàng")}</h1>
+        <h1 className="mb-6 text-2xl font-extrabold text-slate-900 sm:text-3xl">{L("Giỏ hàng")}</h1>
         <CartView loggedIn={!!session} flash={flash} suggested={suggested} />
       </main>
       <SiteFooter />

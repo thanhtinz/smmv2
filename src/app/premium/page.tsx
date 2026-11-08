@@ -13,7 +13,7 @@ export default async function PremiumPage({ searchParams }: { searchParams: { ca
   const { L } = await getServerI18n();
   if ((await getSettings()).module_premium === "0") {
     return (
-      <div className="dark pub-dark bg-[#07090d] text-slate-300 flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col">
         <PublicHeader />
         <main className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-12">
           <div className="card max-w-md p-8 text-center">
@@ -27,7 +27,7 @@ export default async function PremiumPage({ searchParams }: { searchParams: { ca
     );
   }
   return (
-    <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <PublicHeader />
       <main className="flex-1 max-w-7xl mx-auto px-4 py-12 w-full">
         <PremiumShopView cat={searchParams.cat} q={searchParams.q} sort={searchParams.sort} from={searchParams.from} to={searchParams.to} base="/premium" />

@@ -71,10 +71,10 @@ export function CartView({ loggedIn, flash, suggested = [] }: {
         {suggested.length > 0 && (
           <section className="mt-10">
             <div className="mb-4 flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white [&>svg]:h-5 [&>svg]:w-5">{I.gem}</span>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 [&>svg]:h-5 [&>svg]:w-5">{I.gem}</span>
               <div>
-                <h2 className="text-xl font-extrabold text-white sm:text-2xl">{t("Sản phẩm gợi ý")}</h2>
-                <p className="mt-0.5 text-[13px] text-slate-400">{t("Được khách hàng mua nhiều nhất trên cửa hàng.")}</p>
+                <h2 className="text-xl font-extrabold text-slate-900 sm:text-2xl">{t("Sản phẩm gợi ý")}</h2>
+                <p className="mt-0.5 text-[13px] text-slate-500">{t("Được khách hàng mua nhiều nhất trên cửa hàng.")}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">

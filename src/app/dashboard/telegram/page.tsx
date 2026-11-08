@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function TelegramOrderPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
   const { L, Ld } = await getServerI18n();
-  if (!(await telegramEnabled())) redirect("/dashboard");
+  if (!(await telegramEnabled())) redirect("/");
   const provider = await getTelegramProvider();
   const variants = provider ? await getTelegramVariants(provider.id) : { stars: null, premium: [] as never[] };
 

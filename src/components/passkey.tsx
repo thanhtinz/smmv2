@@ -188,7 +188,7 @@ export function PasskeyLoginButton() {
         setErr(data.error || t("Đăng nhập bằng passkey thất bại, hãy đăng nhập bằng mật khẩu"));
         return;
       }
-      location.href = data.redirect || "/dashboard";
+      location.href = data.redirect || "/";
     } catch (e) {
       setErr(errorText(e, t("Đăng nhập bằng passkey thất bại, hãy đăng nhập bằng mật khẩu"), t));
     } finally {

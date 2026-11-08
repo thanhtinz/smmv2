@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
     await createSession({ id: user.id, role: user.role, username: user.username });
     // GĐ3: tính lại điểm rủi ro nền sau đăng nhập
     void (async () => { const { evaluateUserRisk } = await import("@/lib/risk"); await evaluateUserRisk(user.id); })();
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return NextResponse.redirect(new URL("/", req.url));
   } catch {
     return fail("Đăng nhập Google gặp lỗi, thử lại sau");
   }

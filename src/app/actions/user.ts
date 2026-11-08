@@ -363,7 +363,7 @@ export async function acceptTermsAction() {
   const user = await requireUser();
   const s = await getSettings();
   await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: parseInt(s.terms_version || "1") || 1 } });
-  redirect("/dashboard");
+  redirect("/");
 }
 
 export async function changePasswordAction(formData: FormData) {

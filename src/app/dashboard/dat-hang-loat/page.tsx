@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function BulkOrderPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
-  if (!(await moduleOn("bulk"))) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
+  if (!(await moduleOn("bulk"))) { const { redirect } = await import("next/navigation"); redirect("/"); }
   const settings = await getSettings();
   const { L, Ld } = await getServerI18n();
   const services = await prisma.smmService.findMany({ where: { active: true, panelId: null }, include: { category: true }, orderBy: [{ categoryId: "asc" }, { sort: "asc" }] });

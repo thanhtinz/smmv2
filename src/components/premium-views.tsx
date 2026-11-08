@@ -126,7 +126,7 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
   else if (sortKey === "moi-nhat") items.sort((a, b) => (bySlug.get(b.slug)?.createdAt.getTime() || 0) - (bySlug.get(a.slug)?.createdAt.getTime() || 0));
   else if (sortKey === "ten-az") items.sort((a, b) => a.name.localeCompare(b.name, "vi"));
   else if (sortKey === "ten-za") items.sort((a, b) => b.name.localeCompare(a.name, "vi"));
-  const homeHref = base.startsWith("/dashboard") ? "/dashboard" : "/";
+  const homeHref = "/";
 
   return (
     <>
@@ -404,7 +404,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
     </div>
   );
   const images = productImages(product.images, product.imageUrl);
-  const homeHref = base.startsWith("/dashboard") ? "/dashboard" : "/";
+  const homeHref = "/";
   const fulfillmentTag = product.fulfillment === "AUTO_STOCK" ? L("Giao ngay") : product.fulfillment === "API" ? L("Giao qua đối tác") : L("Nâng cấp chính chủ");
   const prices = product.variants.map((v) => v.price).filter((x) => x > 0);
 

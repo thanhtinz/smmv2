@@ -15,7 +15,7 @@ const PAGE = 8;
 function ChevronBtn({ dir, onClick, label, className = "" }: { dir: "prev" | "next"; onClick: () => void; label: string; className?: string }) {
   return (
     <button type="button" onClick={onClick} aria-label={label} title={label}
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white backdrop-blur transition hover:bg-black/60 sm:h-10 sm:w-10 ${className}`}>
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 sm:h-10 sm:w-10 ${className}`}>
       <span className={`[&>svg]:h-4 [&>svg]:w-4 ${dir === "prev" ? "rotate-90" : "-rotate-90"}`}>{I.chevron}</span>
     </button>
   );
@@ -43,7 +43,7 @@ function HeroSlider({ slides }: { slides: HomeSlide[] }) {
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={s.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#07090d]/90 via-[#07090d]/55 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
               </>
             ) : (
               <>
@@ -81,15 +81,15 @@ function SectionHead({ icon, title, subtitle, href, extra }: { icon: React.React
   return (
     <div className="mb-4 flex items-end justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
         <div className="min-w-0">
-          <h2 className="truncate text-xl font-extrabold text-white sm:text-2xl">{title}</h2>
-          {subtitle && <p className="mt-0.5 truncate text-[13px] text-slate-400">{subtitle}</p>}
+          <h2 className="truncate text-xl font-extrabold text-slate-900 sm:text-2xl">{title}</h2>
+          {subtitle && <p className="mt-0.5 truncate text-[13px] text-slate-500">{subtitle}</p>}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
         {extra}
-        <Link href={href} className="text-sm font-bold text-cyan-300 hover:text-cyan-200">{t("Xem tất cả")} →</Link>
+        <Link href={href} className="text-sm font-bold text-brand-600 hover:text-brand-500">{t("Xem tất cả")} →</Link>
       </div>
     </div>
   );
@@ -142,11 +142,11 @@ export function HomeShop({ slides, cats, all, best }: { slides: HomeSlide[]; cat
       <HeroSlider slides={slides} />
 
       {cats.length > 0 && (
-        <section className="mt-8 rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-6">
+        <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white [&>svg]:h-5 [&>svg]:w-5">{I.layers}</span>
-              <h2 className="text-lg font-extrabold text-white sm:text-xl">{t("Danh mục sản phẩm")}</h2>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 [&>svg]:h-5 [&>svg]:w-5">{I.layers}</span>
+              <h2 className="text-lg font-extrabold text-slate-900 sm:text-xl">{t("Danh mục sản phẩm")}</h2>
             </div>
             <div className="hidden gap-2 sm:flex">
               <ChevronBtn dir="prev" label={t("Trang trước")} onClick={() => scrollTiles(-1)} />
@@ -154,15 +154,15 @@ export function HomeShop({ slides, cats, all, best }: { slides: HomeSlide[]; cat
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button type="button" onClick={() => pickCat(null)} className={`rounded-full px-4 py-2 text-sm font-bold transition ${cat == null ? "bg-rose-600 text-white" : "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"}`}>{t("Tất cả")}</button>
+            <button type="button" onClick={() => pickCat(null)} className={`rounded-full px-4 py-2 text-sm font-bold transition ${cat == null ? "bg-brand-600 text-white hover:bg-brand-500" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{t("Tất cả")}</button>
             {cats.map((c) => (
-              <button key={c.id} type="button" onClick={() => pickCat(c.id)} className={`rounded-full px-4 py-2 text-sm font-bold transition ${cat === c.id ? "bg-rose-600 text-white" : "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"}`}>{c.name}</button>
+              <button key={c.id} type="button" onClick={() => pickCat(c.id)} className={`rounded-full px-4 py-2 text-sm font-bold transition ${cat === c.id ? "bg-brand-600 text-white hover:bg-brand-500" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{c.name}</button>
             ))}
           </div>
           <div ref={tileRef} className="mt-4 flex snap-x gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {cats.map((c) => (
               <button key={c.id} type="button" onClick={() => pickCat(c.id, true)}
-                className={`w-[104px] shrink-0 snap-start rounded-2xl border p-2.5 text-center transition ${cat === c.id ? "border-rose-400/60 bg-rose-500/10" : "border-white/10 bg-white/[0.04] hover:bg-white/[0.08]"}`}>
+                className={`w-[104px] shrink-0 snap-start rounded-2xl border p-2.5 text-center transition ${cat === c.id ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-slate-50 hover:bg-slate-100"}`}>
                 <span className="block h-14 w-full overflow-hidden rounded-lg">
                   {c.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -171,7 +171,7 @@ export function HomeShop({ slides, cats, all, best }: { slides: HomeSlide[]; cat
                     <span className="flex h-full w-full items-center justify-center text-2xl font-black text-white/90" style={{ background: `linear-gradient(135deg, ${c.color}, #0ea5e9)` }}>{c.name.charAt(0).toUpperCase()}</span>
                   )}
                 </span>
-                <span className="mt-2 line-clamp-2 block min-h-[2.5em] text-xs font-semibold leading-snug text-slate-200">{c.name}</span>
+                <span className="mt-2 line-clamp-2 block min-h-[2.5em] text-xs font-semibold leading-snug text-slate-700">{c.name}</span>
               </button>
             ))}
           </div>
@@ -186,7 +186,7 @@ export function HomeShop({ slides, cats, all, best }: { slides: HomeSlide[]; cat
         {filtered.length === 0 && <p className="py-8 text-center text-sm text-slate-500">{t("Chưa có sản phẩm nào phù hợp.")}</p>}
         {shown < filtered.length && (
           <div className="mt-8 text-center">
-            <button type="button" onClick={() => setShown((n) => n + PAGE)} className="rounded-full border border-white/25 px-7 py-2.5 text-sm font-bold text-white transition hover:bg-white/10">
+            <button type="button" onClick={() => setShown((n) => n + PAGE)} className="rounded-full border border-slate-300 px-7 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
               {t("Tải thêm sản phẩm")}
             </button>
           </div>

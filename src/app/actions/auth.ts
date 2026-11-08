@@ -74,7 +74,7 @@ export async function registerAction(formData: FormData) {
   await recordRegAttempt(regIp);
   void (async () => { const { alertMother } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản`); })();
   await createSession({ id: user.id, role: user.role, username: user.username });
-  redirect("/dashboard");
+  redirect("/");
 }
 
 export async function loginAction(formData: FormData) {
@@ -140,7 +140,7 @@ export async function loginAction(formData: FormData) {
   await createSession({ id: user.id, role: user.role, username: user.username });
   // GĐ3: tính lại điểm rủi ro nền sau đăng nhập (dùng chung IP/thiết bị là 1 tín hiệu)
   void (async () => { const { evaluateUserRisk } = await import("@/lib/risk"); await evaluateUserRisk(user.id); })();
-  redirect(user.role === "ADMIN" || user.role === "STAFF" ? "/admin" : "/dashboard");
+  redirect(user.role === "ADMIN" || user.role === "STAFF" ? "/admin" : "/");
 }
 
 export async function logoutAction() {

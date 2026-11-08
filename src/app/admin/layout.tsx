@@ -14,7 +14,7 @@ import { vnd } from "@/lib/format";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.role !== "ADMIN" && user.role !== "STAFF") redirect("/dashboard");
+  if (user.role !== "ADMIN" && user.role !== "STAFF") redirect("/");
   await enforceAdminSecurity(user);
   const s = await getSettings();
   const [manualPending, prePending, depPending, ticketOpen] = await Promise.all([

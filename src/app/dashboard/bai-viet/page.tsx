@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function DashPostsPage({ searchParams }: { searchParams: { cat?: string; q?: string } }) {
   const user = (await getCurrentUser())!;
   const { L, Ld } = await getServerI18n();
-  if (!(await moduleOn("blog"))) redirect("/dashboard");
+  if (!(await moduleOn("blog"))) redirect("/");
   const scopePid: number | null = null;
   const catId = searchParams.cat ? parseInt(searchParams.cat) : undefined;
   const q = (searchParams.q || "").trim();

@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function DashPostDetail({ params }: { params: { slug: string } }) {
   const user = (await getCurrentUser())!;
   const { L, Ld } = await getServerI18n();
-  if (!(await moduleOn("blog"))) redirect("/dashboard");
+  if (!(await moduleOn("blog"))) redirect("/");
   const post = await prisma.post.findUnique({ where: { slug: params.slug }, include: { category: true } });
   if (!post || !post.published) notFound();
   if (post.panelId !== null) notFound();

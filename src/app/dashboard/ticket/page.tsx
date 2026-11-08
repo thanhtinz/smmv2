@@ -21,7 +21,7 @@ const T_CAT: Record<string, string> = { smm: "Đơn SMM", premium: "Đơn Premiu
 export default async function TicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string; st?: string; q?: string; subject?: string; category?: string; body?: string } }) {
   const user = (await getCurrentUser())!;
   const { L, Ld } = await getServerI18n();
-  if (!(await moduleOn("tickets"))) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
+  if (!(await moduleOn("tickets"))) { const { redirect } = await import("next/navigation"); redirect("/"); }
   const st = searchParams.st && T_STATUS[searchParams.st] ? searchParams.st : "";
   const q = (searchParams.q || "").trim();
   const [counts, tickets] = await Promise.all([

@@ -12,7 +12,7 @@ function back(next: string, text: string): never {
 }
 
 function safeNext(raw: string): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/";
   return raw.slice(0, 300);
 }
 
@@ -21,7 +21,7 @@ function safeNext(raw: string): string {
 export async function verifyStepUpAction(formData: FormData) {
   const user0 = await getCurrentUser();
   if (!user0) redirect("/login");
-  const next = safeNext(String(formData.get("next") || "/dashboard"));
+  const next = safeNext(String(formData.get("next") || "/"));
   const ip = clientIp(headers());
   if (rateLimitExceeded(`stepup|${user0.id}|${ip}`, 10, 5 * 60 * 1000)) back(next, "Thử lại quá nhiều lần, vui lòng đợi ít phút");
   const user = await prisma.user.findUnique({ where: { id: user0.id } });

@@ -24,7 +24,7 @@ export function PublicBurger({ tone = "dark", home, loggedIn, registerHref, item
     { href: "/premium", label: "Premium" },
     ...(loggedIn
       ? [
-          { href: "/dashboard", label: t("Bảng điều khiển") },
+          { href: "/dashboard/ho-so", label: t("Tài khoản") },
           { href: "/dashboard/nap-tien", label: t("Nạp tiền") },
         ]
       : [{ href: registerHref, label: t("Đăng ký") }]),

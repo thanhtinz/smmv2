@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EarnPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const { getSettings } = await import("@/lib/settings");
-  if ((await getSettings()).module_affiliate === "0") { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
+  if ((await getSettings()).module_affiliate === "0") { const { redirect } = await import("next/navigation"); redirect("/"); }
   const user = (await getCurrentUser())!;
   const h = headers();
   const host = h.get("host") || "localhost:3000";
