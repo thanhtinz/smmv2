@@ -3586,6 +3586,20 @@ export const DICT: Record<string, Tr> = {
   "Bạn đã có tài khoản?": e("Already have an account?", "已有账号？", "มีบัญชีอยู่แล้วใช่ไหม?", "すでにアカウントをお持ちですか？", "이미 계정이 있으신가요?"),
   "Mật khẩu nhập lại không khớp, vui lòng kiểm tra lại.": e("The re-entered password does not match, please check again.", "两次输入的密码不一致，请重新检查。", "รหัสผ่านที่กรอกซ้ำไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง", "再入力したパスワードが一致しません。もう一度ご確認ください。", "재입력한 비밀번호가 일치하지 않습니다. 다시 확인해 주세요."),
   "đã bật 2FA. Nhập mã 6 số trong ứng dụng Authenticator, hoặc một mã dự phòng đã lưu.": e("has 2FA enabled. Enter the 6-digit code from your Authenticator app, or a saved backup code.", "已启用双重验证。请输入 Authenticator 应用中的 6 位验证码，或已保存的备用码。", "เปิดใช้ 2FA แล้ว กรอกรหัส 6 หลักจากแอป Authenticator หรือรหัสสำรองที่บันทึกไว้", "は2FAを有効化しています。Authenticatorアプリの6桁コード、または保存したバックアップコードを入力してください。", "계정은 2FA가 활성화되어 있습니다. Authenticator 앱의 6자리 코드 또는 저장한 백업 코드를 입력하세요."),
+  "Quên mật khẩu": e("Forgot password", "忘记密码", "ลืมรหัสผ่าน", "パスワードを忘れた場合", "비밀번호 찾기"),
+  "Quên mật khẩu?": e("Forgot your password?", "忘记密码？", "ลืมรหัสผ่าน?", "パスワードをお忘れですか？", "비밀번호를 잊으셨나요?"),
+  "Nhập email để nhận liên kết đặt lại mật khẩu": e("Enter your email to receive a password reset link", "输入邮箱以接收密码重置链接", "กรอกอีเมลเพื่อรับลิงก์รีเซ็ตรหัสผ่าน", "パスワードリセットリンクを受け取るメールアドレスを入力してください", "비밀번호 재설정 링크를 받을 이메일을 입력하세요"),
+  "Gửi liên kết đặt lại": e("Send reset link", "发送重置链接", "ส่งลิงก์รีเซ็ต", "リセットリンクを送信", "재설정 링크 보내기"),
+  "Nếu email này có trong hệ thống, chúng tôi đã gửi liên kết đặt lại mật khẩu. Hãy kiểm tra hộp thư của bạn.": e("If this email exists in our system, we have sent a password reset link. Please check your inbox.", "如果此邮箱存在于系统中，我们已发送密码重置链接，请查收您的邮箱。", "หากอีเมลนี้อยู่ในระบบ เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปแล้ว กรุณาตรวจสอบกล่องจดหมายของคุณ", "このメールアドレスがシステムに登録されている場合、パスワードリセットリンクを送信しました。受信トレイをご確認ください。", "이 이메일이 시스템에 등록되어 있으면 비밀번호 재설정 링크를 보냈습니다. 받은편지함을 확인해 주세요."),
+  "Đặt lại mật khẩu": e("Reset password", "重置密码", "รีเซ็ตรหัสผ่าน", "パスワードのリセット", "비밀번호 재설정"),
+  "Nhập mật khẩu mới cho tài khoản của bạn": e("Enter a new password for your account", "为您的账号输入新密码", "กรอกรหัสผ่านใหม่สำหรับบัญชีของคุณ", "アカウントの新しいパスワードを入力してください", "계정의 새 비밀번호를 입력하세요"),
+  "Đặt mật khẩu mới": e("Set new password", "设置新密码", "ตั้งรหัสผ่านใหม่", "新しいパスワードを設定", "새 비밀번호 설정"),
+  "Đã đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.": e("Your password has been reset successfully. Please sign in with your new password.", "密码重置成功，请使用新密码登录。", "รีเซ็ตรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่", "パスワードのリセットが完了しました。新しいパスワードでログインしてください。", "비밀번호가 성공적으로 재설정되었습니다. 새 비밀번호로 로그인해 주세요."),
+  "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã được sử dụng.": e("This password reset link is invalid or has already been used.", "此密码重置链接无效或已被使用。", "ลิงก์รีเซ็ตรหัสผ่านนี้ไม่ถูกต้องหรือถูกใช้ไปแล้ว", "このパスワードリセットリンクは無効か、すでに使用されています。", "이 비밀번호 재설정 링크는 유효하지 않거나 이미 사용되었습니다."),
+  "Liên kết đặt lại mật khẩu đã hết hạn. Hãy yêu cầu liên kết mới.": e("This password reset link has expired. Please request a new one.", "此密码重置链接已过期，请重新申请。", "ลิงก์รีเซ็ตรหัสผ่านนี้หมดอายุแล้ว กรุณาขอลิงก์ใหม่", "このパスワードリセットリンクは有効期限切れです。新しいリンクをリクエストしてください。", "이 비밀번호 재설정 링크는 만료되었습니다. 새 링크를 요청해 주세요."),
+  "Yêu cầu liên kết mới": e("Request a new link", "申请新链接", "ขอลิงก์ใหม่", "新しいリンクをリクエスト", "새 링크 요청"),
+  "Đặt lại mật khẩu qua email": e("Password reset via email", "通过邮箱重置密码", "รีเซ็ตรหัสผ่านผ่านอีเมล", "メールによるパスワードリセット", "이메일로 비밀번호 재설정"),
+  "Mật khẩu đã được đặt lại": e("Your password was reset", "您的密码已被重置", "รหัสผ่านของคุณถูกรีเซ็ตแล้ว", "パスワードがリセットされました", "비밀번호가 재설정되었습니다"),
 
 };
 

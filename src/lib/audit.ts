@@ -76,6 +76,7 @@ export const ACTION_LABEL: Record<string, string> = {
   "balance.adjust": "Cộng/trừ tiền tay",
   "user.update": "Sửa/khoá tài khoản",
   "user.force_logout": "Buộc đăng xuất mọi thiết bị",
+  "user.password_reset": "Đặt lại mật khẩu qua email",
   "provider.save": "Lưu nhà cung cấp",
   "provider.delete": "Xoá nhà cung cấp",
   "deposit.approve": "Duyệt nạp tiền",

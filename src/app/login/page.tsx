@@ -36,6 +36,11 @@ export default async function LoginPage({ searchParams }: { searchParams: { msg?
           {settings?.recaptcha_enabled === "1" && settings?.recaptcha_login === "1" && settings?.recaptcha_site_key ? <RecaptchaWidget siteKey={settings.recaptcha_site_key} /> : null}
           <button className={authBtnCls}>{L("Đăng nhập")}</button>
         </form>
+        <div className="mt-4 text-center text-sm">
+          <Link href="/forgot-password" className="font-semibold text-brand-600 hover:underline">
+            {L("Quên mật khẩu?")}
+          </Link>
+        </div>
         {(googleOn || passkeyOn) && (
           <>
             <div className="my-5 flex items-center gap-3 text-xs text-slate-400">

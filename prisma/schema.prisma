@@ -42,6 +42,8 @@ model User {
   emailVerified  Boolean    @default(false) // đã xác thực email (gắn cờ + nhắc, không khoá tính năng)
   emailVerifyToken String?  @db.VarChar(64) // sha256 của token xác thực email
   emailVerifyExpiry DateTime?
+  passwordResetToken String?  @db.VarChar(64) // sha256 của token đặt lại mật khẩu (quên mật khẩu)
+  passwordResetExpiry DateTime?
   notifyPrefs    String?    @db.Text // JSON {order,deposit,refund,promo,system,ticket} — tuỳ chỉnh loại thông báo
   points         Int        @default(0) // điểm tích luỹ (đổi ra số dư theo setting points_value_vnd)
   backupCodes    String?    @db.Text // JSON mảng HASH bcrypt của mã dự phòng 2FA (mỗi mã dùng 1 lần)
