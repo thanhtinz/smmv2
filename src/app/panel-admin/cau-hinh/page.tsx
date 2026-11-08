@@ -100,6 +100,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
               <option value="orange">{L("Cam")}</option><option value="rose">{L("Hồng")}</option><option value="teal">{L("Ngọc")}</option>
             </select></div>
           <div><label className="lbl">{L("Đường dẫn logo (URL)")}</label><input name="logoUrl" defaultValue={panel.logoUrl || ""} placeholder="https://..." className="inp" /></div>
+          <div><label className="lbl">{L("Đường dẫn logo menu (URL)")}</label><input name="logoMenuUrl" defaultValue={panel.logoMenuUrl || ""} placeholder="https://..." className="inp" /></div>
           <div><label className="lbl">{L("Đường dẫn favicon (URL)")}</label><input name="faviconUrl" defaultValue={panel.faviconUrl || ""} placeholder="https://..." className="inp" /></div>
           <div className="font-bold text-slate-900 pt-2">{L("Kênh hỗ trợ hiển thị cho khách")}</div>
           <div className="grid grid-cols-2 gap-4">

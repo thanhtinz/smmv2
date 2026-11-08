@@ -23,7 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // panel không bật thì theo web mẹ như cũ.
   const myPanelGate = user.panelId ? await prisma.childPanel.findUnique({
     where: { id: user.panelId },
-    select: { termsEnabled: true, termsTitle: true, termsContent: true, termsVersion: true, termsCheckboxText: true, termsButtonText: true, homeModalEnabled: true, homeModalContent: true, langConfig: true, logoUrl: true },
+    select: { termsEnabled: true, termsTitle: true, termsContent: true, termsVersion: true, termsCheckboxText: true, termsButtonText: true, homeModalEnabled: true, homeModalContent: true, langConfig: true, logoUrl: true, logoMenuUrl: true },
   }) : null;
   const i18n = await getServerI18n(myPanelGate?.langConfig ?? undefined);
   const { L, M } = i18n;
@@ -117,8 +117,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const nameParts = (user.fullName || user.username).trim().split(/\s+/);
   const accountInitials = (nameParts.length > 1 ? nameParts[0][0] + nameParts[nameParts.length - 1][0] : (user.fullName || user.username).slice(0, 2)).toUpperCase();
   const menuFooter = <MenuBottomCluster accountName={user.fullName || user.username} accountEmail={user.email} accountInitials={accountInitials} depositLabel={L("Nạp tiền")} adminLabel={user.role === "ADMIN" ? "Admin Panel" : null} logoutLabel={L("Đăng xuất")} />;
-  // Logo đầu menu burger: panel có logo riêng thì dùng logo panel, không thì logo web mẹ (settings logo_url)
-  const drawerLogoUrl = (user.panelId ? myPanelGate?.logoUrl : null) || s.logo_url || null;
+  // Logo đầu ngăn kéo menu = LOGO MENU (ảnh chữ nhật ngang): logo menu của panel →
+  // logo nhỏ của panel → logo menu web mẹ (logo_menu_url) → logo nhỏ web mẹ (logo_url)
+  // → ô chữ viết tắt mặc định. Header vẫn dùng logo nhỏ như cũ.
+  const drawerLogoUrl = myPanelGate?.logoMenuUrl || myPanelGate?.logoUrl || s.logo_menu_url || s.logo_url || null;
   return (
     <LangProvider lang={i18n.lang} ov={i18n.cfg.overrides[i18n.lang]} cur={i18n.cur} rates={i18n.rates}>
     <div className="min-h-screen">

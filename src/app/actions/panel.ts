@@ -608,7 +608,7 @@ export async function panelSaveConfigAction(formData: FormData) {
       data: {
         name, tagline: str(formData, "tagline") || null,
         accent: ["blue", "violet", "emerald", "orange", "rose", "teal"].includes(str(formData, "accent")) ? str(formData, "accent") : panel.accent,
-        logoUrl: str(formData, "logoUrl") || null, faviconUrl: str(formData, "faviconUrl") || null,
+        logoUrl: str(formData, "logoUrl") || null, logoMenuUrl: str(formData, "logoMenuUrl") || null, faviconUrl: str(formData, "faviconUrl") || null,
         supportZalo: str(formData, "supportZalo").slice(0, 120) || null, supportTelegram: str(formData, "supportTelegram").slice(0, 120) || null,
         supportFacebook: str(formData, "supportFacebook").slice(0, 120) || null, supportHotline: str(formData, "supportHotline").slice(0, 120) || null,
       },

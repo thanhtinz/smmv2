@@ -98,6 +98,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <div><label className="lbl">{L("Tên website")}</label><input className="inp" name="site_name" defaultValue={s.site_name} /></div>
           <div><label className="lbl">{L("Khẩu hiệu (tagline)")}</label><input className="inp" name="site_tagline" defaultValue={s.site_tagline} /></div>
           <div><label className="lbl">{L("Logo (URL ảnh — để trống dùng chữ viết tắt)")}</label><input className="inp" name="logo_url" defaultValue={s.logo_url} placeholder="https://.../logo.png" /><p className="mt-1 text-xs text-slate-400">{L("PNG, JPG — hiển thị ở header và trang giới thiệu.")}</p></div>
+          <div><label className="lbl">{L("Logo menu (URL ảnh ngang — để trống dùng logo nhỏ)")}</label><input className="inp" name="logo_menu_url" defaultValue={s.logo_menu_url} placeholder="https://.../logo-menu.png" /><p className="mt-1 text-xs text-slate-400">{L("PNG, JPG — hiển thị ở đầu ngăn kéo menu trên điện thoại.")}</p></div>
           <div><label className="lbl">{L("Favicon (URL ảnh)")}</label><input className="inp" name="favicon_url" defaultValue={s.favicon_url} placeholder="https://.../favicon.png" /><p className="mt-1 text-xs text-slate-400">{L("Ảnh vuông (tỉ lệ 1x1) hiển thị trên tab trình duyệt, ICO hoặc PNG.")}</p></div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>

@@ -639,6 +639,7 @@ model ChildPanel {
   parentPanelId Int? // website con này được tạo từ trong panel nào (null = tạo từ web mẹ)
   // Cấu hình hiển thị riêng của panel (đồng bộ trang Cài đặt của web mẹ, phạm vi panel)
   logoUrl     String? @db.VarChar(500)
+  logoMenuUrl String? @db.VarChar(500)
   faviconUrl  String? @db.VarChar(500)
   metaDescription String? @db.Text
   metaKeywords    String? @db.VarChar(500)

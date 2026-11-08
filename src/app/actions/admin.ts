@@ -619,7 +619,7 @@ export async function adminSaveSettings(formData: FormData) {
     "usdt_enabled", "usdt_address", "usdt_network", "usdt_rate",
     "rate_eur", "rate_cny", "rate_thb", "rate_jpy", "rate_krw",
     "landing_enabled", "landing_headline", "landing_subtitle", "auth_style", "landing_template",
-    "logo_url", "favicon_url", "meta_description", "meta_keywords", "og_image_url", "contact_email", "footer_text",
+    "logo_url", "logo_menu_url", "favicon_url", "meta_description", "meta_keywords", "og_image_url", "contact_email", "footer_text",
     "home_modal_enabled", "home_modal_content",
     "terms_enabled", "terms_title", "terms_content", "terms_version", "terms_checkbox_text", "terms_button_text",
     "telegram_bots",

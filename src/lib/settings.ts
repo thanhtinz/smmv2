@@ -58,6 +58,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   auth_style: "classic",
   landing_template: "hien-dai",
   logo_url: "",
+  logo_menu_url: "",
   favicon_url: "",
   meta_description: "",
   meta_keywords: "",

@@ -107,42 +107,43 @@ function NavLinks({ items, onNavigate }: { items: NavEntry[]; onNavigate?: () =>
 
 /** Cụm đáy menu GHIM CỐ ĐỊNH: luôn hiện ở đáy khung menu không cần cuộn. Thứ tự +
  *  thành phần (lệnh Tín 2026-11-07 19:29, thay bản 15:18/15:32): BỎ Điều khoản; còn
- *  Nạp tiền → Admin Panel (nếu có quyền) → thẻ tài khoản → nút Đăng xuất; cụm làm
- *  NHỎ GỌN lại (trước quá bự): chữ text-sm, icon 20px, avatar 36px. Toàn cụm ĐỒNG MÀU
- *  với menu (bề mặt slate-50/viền slate-200, chữ + icon slate — không tông riêng) ở cả
- *  sáng lẫn tối. Cụm này đứng NGOÀI vùng cuộn của danh sách (drawer mobile: thanh riêng
- *  shrink-0; sidebar desktop: chân thẻ, danh sách cuộn nội bộ). */
+ *  Nạp tiền → Admin Panel (nếu có quyền) → thẻ tài khoản → nút Đăng xuất. Cỡ cụm:
+ *  thu nhỏ lần 2 (lệnh Tín 2026-11-07 19:59 "vẫn bự"): mỗi hàng ≈36–38px — thẻ py-2,
+ *  icon 18px, avatar 32px, tên 13px, email 11px, khoảng cách giữa thẻ 6px. Toàn cụm
+ *  ĐỒNG MÀU với menu (bề mặt slate-50/viền slate-200, chữ + icon slate — không tông
+ *  riêng) ở cả sáng lẫn tối. Cụm này đứng NGOÀI vùng cuộn của danh sách (drawer
+ *  mobile: thanh riêng shrink-0; sidebar desktop: chân thẻ, danh sách cuộn nội bộ). */
 export function MenuBottomCluster({ accountName, accountEmail, accountInitials, depositLabel, adminLabel, logoutLabel }: {
   accountName: string; accountEmail: string; accountInitials: string;
   depositLabel: string; adminLabel: string | null; logoutLabel: string;
 }) {
-  const card = "flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition";
+  const card = "flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition";
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <Link href="/dashboard/nap-tien" className={`${card} border-slate-200/80 bg-slate-50 text-slate-800 hover:bg-slate-100`}>
-        <span className="relative shrink-0 text-slate-700 [&>svg]:h-5 [&>svg]:w-5">
+        <span className="relative shrink-0 text-slate-700 [&>svg]:h-[18px] [&>svg]:w-[18px]">
           {I.wallet}
-          <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-slate-700 [&>svg]:h-2.5 [&>svg]:w-2.5">{I.plus}</span>
+          <span className="absolute -bottom-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-white text-slate-700 [&>svg]:h-2 [&>svg]:w-2">{I.plus}</span>
         </span>
         {depositLabel}
       </Link>
       {adminLabel && (
         <Link href="/admin" className={`${card} border-slate-200/80 bg-slate-50 text-slate-800 hover:bg-slate-100`}>
-          <span className="shrink-0 text-slate-700 [&>svg]:h-5 [&>svg]:w-5">{I.shield}</span>
+          <span className="shrink-0 text-slate-700 [&>svg]:h-[18px] [&>svg]:w-[18px]">{I.shield}</span>
           {adminLabel}
         </Link>
       )}
       <Link href="/dashboard/ho-so"
-        className="flex items-center gap-2.5 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2.5 transition hover:bg-slate-100">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-extrabold text-slate-700">{accountInitials}</span>
+        className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 transition hover:bg-slate-100">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-extrabold text-slate-700">{accountInitials}</span>
         <span className="min-w-0">
-          <span className="block truncate text-sm font-bold text-slate-900">{accountName}</span>
-          <span className="block truncate text-xs text-slate-500">{accountEmail}</span>
+          <span className="block truncate text-[13px] font-bold text-slate-900">{accountName}</span>
+          <span className="block truncate text-[11px] text-slate-500">{accountEmail}</span>
         </span>
       </Link>
       <form action={logoutAction}>
         <button className={`${card} border-slate-200/80 bg-slate-50 text-slate-800 hover:bg-slate-100`}>
-          <span className="shrink-0 text-slate-700 [&>svg]:h-5 [&>svg]:w-5">{I.logout}</span>
+          <span className="shrink-0 text-slate-700 [&>svg]:h-[18px] [&>svg]:w-[18px]">{I.logout}</span>
           {logoutLabel}
         </button>
       </form>
@@ -165,8 +166,9 @@ export function SideNav({ items, footer }: { items: NavEntry[]; footer?: ReactNo
 
 /** Nút burger + ngăn kéo menu cho điện thoại — gom toàn bộ mục của sidebar vào đây
  *  (thay thanh menu footer dưới đáy đã bỏ). Đặt trong header khu khách hàng.
- *  Đầu ngăn kéo: CHỈ logo website (ảnh, căn giữa, to rõ) — không hiện tên website;
- *  site chưa cấu hình ảnh logo thì dùng dấu chữ viết tắt mặc định của hệ. */
+ *  Đầu ngăn kéo: CHỈ logo MENU (ảnh chữ nhật ngang, căn giữa) — không hiện tên
+ *  website; nguồn ảnh + fallback do layout quyết định (logo menu → logo nhỏ → ô
+ *  chữ viết tắt mặc định của hệ). Header vẫn dùng logo nhỏ, không dùng logo này. */
 export function MobileSideNav({ items, siteName, footer, logoUrl, logoText }: {
   items: NavEntry[]; siteName: string; footer?: ReactNode; logoUrl?: string | null; logoText?: string;
 }) {
@@ -187,7 +189,7 @@ export function MobileSideNav({ items, siteName, footer, logoUrl, logoText }: {
             <div className="relative flex h-20 shrink-0 items-center justify-center border-b border-slate-100 px-12">
               {logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt={siteName} className="h-14 w-auto max-w-[180px] object-contain" />
+                <img src={logoUrl} alt={siteName} className="max-h-14 w-auto max-w-[220px] object-contain" />
               ) : (
                 <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-2xl font-black text-white">{logoText || "S"}</span>
               )}
