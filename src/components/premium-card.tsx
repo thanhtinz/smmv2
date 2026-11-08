@@ -54,7 +54,12 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
     item.flashPct > 0 && amount > 0 ? Math.max(1, Math.round(amount * (1 - Math.min(90, item.flashPct) / 100))) : amount;
   const range = (lo: number, hi: number) => (hi > lo ? `${m(lo)} ~ ${m(hi)}` : m(lo));
   return (
-    <Link href={`${base}/${item.slug}`} className={`card group flex h-full flex-col overflow-hidden transition hover:shadow-lg ${className}`}>
+    // HỢP ĐỒNG CAO ĐỀU (lệnh Tín 2026-11-08): thẻ KHÔNG đặt h-full (làm flex/
+    // grid hết kéo giãn theo hàng) — cha (grid/rail) stretch thẻ theo ô cao
+    // nhất; bên trong: tiêu đề giữ sẵn 2 dòng, hàng giá cũ giữ sẵn chiều cao
+    // (ẩn khi không flash), hàng meta giữ sẵn 1 dòng (min-h-4) dù trống, CTA
+    // ghim đáy bằng mt-auto -> mọi thẻ trong khu cao bằng nhau tuyệt đối.
+    <Link href={`${base}/${item.slug}`} className={`card group flex flex-col overflow-hidden transition hover:shadow-lg ${className}`}>
       <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
         {item.image ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -73,10 +78,8 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
         <div className="mt-2 text-[15px] font-extrabold leading-tight text-rose-600 sm:text-[17px]">
           {contact ? t("Liên hệ") : range(flashPrice(item.minPrice), flashPrice(item.maxPrice))}
         </div>
-        {item.flashPct > 0 && !contact && (
-          <div className="mt-0.5 text-xs font-medium text-slate-400 line-through">{range(item.minPrice, item.maxPrice)}</div>
-        )}
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+        <div aria-hidden={!(item.flashPct > 0 && !contact)} className={`mt-0.5 h-4 text-xs font-medium leading-4 text-slate-400 line-through ${item.flashPct > 0 && !contact ? "" : "invisible"}`}>{range(item.minPrice, item.maxPrice)}</div>
+        <div className="mt-2 flex min-h-4 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
           {item.reviewCount > 0 && <span className="inline-flex items-center gap-1.5"><Stars value={item.rating} className="h-3.5 w-3.5" /><b className="text-slate-700">{item.rating.toFixed(1)}</b>({item.reviewCount})</span>}
           {item.sold > 0 && <span>{t("Đã bán ")}{item.sold.toLocaleString("vi-VN")}</span>}
           {item.instant && item.hasStock && (

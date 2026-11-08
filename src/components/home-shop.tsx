@@ -110,7 +110,7 @@ function RailSection({ icon, title, subtitle, href, items }: { icon: React.React
           <ChevronBtn dir="next" label={t("Trang sau")} onClick={() => scroll(1)} />
         </span>
       )} />
-      <div ref={ref} className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5">
+      <div ref={ref} className="flex snap-x snap-mandatory items-stretch gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5">
         {items.map((item) => (
           <PremiumCard key={item.slug} item={item} base="/premium" className="w-[47%] shrink-0 snap-start sm:w-[31.5%] lg:w-[23.8%]" />
         ))}
