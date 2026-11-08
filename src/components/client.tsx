@@ -706,8 +706,24 @@ export type PremiumPromoPreview = { code: string; type: string; value: number; m
 const applyFlashClient = (amount: number, percent: number) =>
   !percent || percent <= 0 ? amount : Math.max(1, Math.round(amount * (1 - Math.min(90, percent) / 100)));
 
+/** Huy hiệu loại giao hàng của gói (Giao nhanh/Giao chậm) — dùng ở thẻ gói
+ *  trang chi tiết; trang khách chưa đăng nhập dùng bản tương tự phía server. */
+export function DeliveryBadge({ type, t }: { type: "FAST" | "SLOW"; t: (s: string) => string }) {
+  return type === "FAST" ? (
+    <span className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-teal-700">
+      <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
+      {t("Giao nhanh")}
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">
+      <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
+      {t("Giao chậm")}
+    </span>
+  );
+}
+
 export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50, backBase, layout, productImage, productColor, belowVariants, promos, flashPct, cartProduct }: {
-  variants: { id: number; name: string; price: number; warrantyDays: number; stock: number }[];
+  variants: { id: number; name: string; price: number; warrantyDays: number; stock: number; delivery?: "FAST" | "SLOW"; soldOut?: boolean; stockQty?: number | null }[];
   slug: string;
   fulfillment: string;
   action: (formData: FormData) => void;
@@ -724,7 +740,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   cartProduct?: { id: number; name: string; groups: Record<number, string | null> }; // bật nút thêm vào giỏ (nhóm Telegram không vào giỏ)
 }) {
   const { t, td, m } = useLang();
-  const [variantId, setVariantId] = useState(variants[0]?.id);
+  const [variantId, setVariantId] = useState(() => (variants.find((x) => !x.soldOut) || variants[0])?.id);
   const [qty, setQty] = useState(1);
   const [promoCode, setPromoCode] = useState("");
   const v = variants.find((x) => x.id === variantId) || variants[0];
@@ -748,7 +764,8 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
       variantId: v.id, productId: cartProduct.id, productName: cartProduct.name, variantName: v.name,
       image: productImage || null, price: v.price, qty,
       custom, buyerInfo,
-      stockCap: fulfillment === "AUTO_STOCK" ? (v.stock || 0) : null,
+      stockCap: fulfillment === "AUTO_STOCK" ? (v.stock || 0) : (v.stockQty ?? null),
+      delivery: v.delivery ?? null,
       group: cartGroup,
     });
   };
@@ -825,22 +842,28 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
             {variants.map((x) => {
               const selected = x.id === v?.id;
               return (
-                <button type="button" key={x.id} onClick={() => setVariantId(x.id)} className={`${pickCls(selected)} block w-full p-4 sm:p-5`}>
+                <button type="button" key={x.id} disabled={!!x.soldOut} onClick={() => setVariantId(x.id)} className={x.soldOut ? "block w-full cursor-not-allowed rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 text-left opacity-70 sm:p-5" : `${pickCls(selected)} block w-full p-4 sm:p-5`}>
                   <span className="flex items-start justify-between gap-3">
                     <span className="min-w-0">
                       <span className="block break-words text-base font-extrabold text-slate-900">{x.name}</span>
                       <span className="mt-1 block text-[13px] text-slate-500">
                         {x.warrantyDays ? <>{t("Bảo hành")} {x.warrantyDays} {t("ngày")}</> : t("Không bảo hành")}
                         {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? <>{t(" · Còn ")}{x.stock}{t(" trong kho")}</> : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
+                        {x.stockQty != null && fulfillment !== "AUTO_STOCK" && !x.soldOut ? <>{t(" · Còn ")}{x.stockQty}{t(" trong kho")}</> : null}
                       </span>
-                      {fulfillment === "AUTO_STOCK" && x.stock > 0 && (
-                        <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-teal-600">
-                          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
-                          {t("Giao ngay")}
-                        </span>
-                      )}
+                      <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {x.delivery && <DeliveryBadge type={x.delivery} t={t} />}
+                        {fulfillment === "AUTO_STOCK" && x.stock > 0 && (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-teal-600">
+                            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
+                            {t("Giao ngay")}
+                          </span>
+                        )}
+                      </span>
                     </span>
-                    {flashPct ? (
+                    {x.soldOut ? (
+                      <span className="shrink-0 text-[15px] font-extrabold text-rose-600">{t("Hết hàng")}</span>
+                    ) : flashPct ? (
                       <span className="shrink-0 text-right">
                         <span className="block text-xs font-semibold text-slate-400 line-through">{m(x.price)}</span>
                         <span className="block text-[17px] font-extrabold text-rose-600">{m(applyFlashClient(x.price, flashPct))}</span>
@@ -1163,7 +1186,7 @@ export function ApiKeyReveal({ value }: { value: string }) {
 export type PremiumOrderCard = {
   id: number; code: string; name: string; variant: string; desc: string;
   total: number; quantity: number; status: string; statusLabel: string; statusCls: string;
-  created: string; updated: string; delivery: string; buyerInfo: string; warrantyUntil: string | null;
+  created: string; updated: string; delivery: string; deliveryType: "FAST" | "SLOW"; buyerInfo: string; warrantyUntil: string | null;
 };
 const dtf = (iso: string) => new Date(iso).toLocaleString("vi-VN", { hour12: false });
 
@@ -1222,6 +1245,7 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
                   <div className="flex items-start justify-between gap-3 px-4 py-3.5"><span className="shrink-0 text-[15px] text-slate-500">{t("Số lượng")}</span><span className="font-bold text-slate-900">{sel.quantity}</span></div>
                   <div className="flex items-start justify-between gap-3 px-4 py-3.5"><span className="shrink-0 text-[15px] text-slate-500">{t("Số tiền thanh toán:")}</span><span className="font-bold text-slate-900">{m(sel.total)}</span></div>
                   <div className="flex items-start justify-between gap-3 px-4 py-3.5"><span className="shrink-0 text-[15px] text-slate-500">{t("Trạng thái:")}</span><span className="font-bold text-slate-900">{t(sel.statusLabel)}</span></div>
+                  <div className="flex items-start justify-between gap-3 px-4 py-3.5"><span className="shrink-0 text-[15px] text-slate-500">{t("Loại giao hàng")}</span><span className="font-bold text-slate-900">{sel.deliveryType === "FAST" ? t("Giao nhanh") : t("Giao chậm")}</span></div>
                   {sel.warrantyUntil && (
                     <div className="flex items-start justify-between gap-3 px-4 py-3.5"><span className="shrink-0 text-[15px] text-slate-500">{t("Bảo hành đến")}</span><span className="font-bold text-slate-900">{dtf(sel.warrantyUntil)}</span></div>
                   )}

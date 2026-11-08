@@ -12,6 +12,7 @@ import { DICT } from "@/lib/i18n";
 import { LANG_KEYS, sanitizeEnabled, sanitizeOverrides, type LangOverrides } from "@/lib/lang-config";
 import { encryptSecret } from "@/lib/secret-box";
 import { genCode, normalizePremiumFieldsJson } from "@/lib/format";
+import { restoreVariantStock } from "@/lib/variant-stock";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -416,6 +417,14 @@ export async function adminSaveVariant(formData: FormData) {
   await requireAdmin();
   const id = parseInt(String(formData.get("id") || "0"));
   const productId = parseInt(String(formData.get("productId")));
+  // Kho + loại giao hàng theo gói: AUTO_STOCK theo dõi bằng dòng kho nên ép
+  // stockQty = null + outOfStock = false (không đếm hai lần); MANUAL/API mới
+  // đọc số lượng kho + cờ chặn bán từ form. deliveryType áp cho mọi hình thức.
+  const product = await prisma.premiumProduct.findUnique({ where: { id: productId }, select: { fulfillment: true } });
+  const isAutoStock = product?.fulfillment === "AUTO_STOCK";
+  const deliveryRaw = String(formData.get("deliveryType") || "");
+  const stockQtyRaw = String(formData.get("stockQty") ?? "").trim();
+  const stockQtyParsed = stockQtyRaw === "" ? null : parseInt(stockQtyRaw);
   const data = {
     productId,
     name: String(formData.get("name") || "").trim(),
@@ -423,6 +432,9 @@ export async function adminSaveVariant(formData: FormData) {
     cost: parseInt(String(formData.get("cost") || "0")),
     warrantyDays: parseInt(String(formData.get("warrantyDays") || "0")),
     providerCycle: formData.get("providerCycle") ? parseInt(String(formData.get("providerCycle"))) : null,
+    deliveryType: deliveryRaw === "FAST" || deliveryRaw === "SLOW" ? deliveryRaw : null,
+    outOfStock: !isAutoStock && formData.get("outOfStock") === "on",
+    stockQty: isAutoStock ? null : (stockQtyParsed != null && Number.isFinite(stockQtyParsed) && stockQtyParsed >= 0 ? stockQtyParsed : null),
     active: formData.get("active") === "on",
     sort: parseInt(String(formData.get("sort") || "0")),
   };
@@ -502,6 +514,8 @@ export async function adminPremiumOrderAction(formData: FormData) {
       });
       if (claim.count === 0) return;
       claimed = true;
+      // Đơn chưa giao (PENDING) bị huỷ -> trả kho số lượng đã trừ khi đặt
+      if (order.status === "PENDING") await restoreVariantStock(tx, order.variantId, order.quantity);
       await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Admin huỷ đơn premium — hoàn tiền");
     });
     if (!claimed) back(path, "err", "Đơn đã kết thúc — không hoàn tiền thêm được");

@@ -109,7 +109,7 @@ export function PremiumCategoriesClient({ categories }: { categories: PremiumCat
 }
 
 /* ================= SẢN PHẨM & GÓI ================= */
-export type PremiumVariantDTO = { id: number; name: string; price: number; cost: number; warrantyDays: number; providerCycle: number | null; active: boolean; sort: number; stockAvailable: number; stockTotal: number };
+export type PremiumVariantDTO = { id: number; name: string; price: number; cost: number; warrantyDays: number; providerCycle: number | null; deliveryType: string | null; outOfStock: boolean; stockQty: number | null; active: boolean; sort: number; stockAvailable: number; stockTotal: number };
 export type PremiumProductDTO = {
   id: number; categoryId: number; categoryName: string; name: string; slug: string; tagline: string | null; description: string | null;
   color: string; fulfillment: string; providerId: number | null; providerProductId: string | null; customFields: string | null;
@@ -220,8 +220,27 @@ export function VariantsModal({ product, onClose }: { product: PremiumProductDTO
                 <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="active" defaultChecked={v.active} className="h-4 w-4" /> {t("Đang bán")}</label>
                 <div className="flex items-center gap-2">
                   <button className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">{t("Lưu")}</button>
-                  <span className="text-xs text-slate-400">{`${t("Kho:")} ${v.stockAvailable}/${v.stockTotal}`}</span>
+                  {product.fulfillment === "AUTO_STOCK"
+                    ? <span className="text-xs text-slate-400">{`${t("Kho:")} ${v.stockAvailable}/${v.stockTotal}`}</span>
+                    : <span className="text-xs text-slate-400">{v.stockQty == null ? t("Kho: không giới hạn") : `${t("Kho:")} ${v.stockQty}`}</span>}
                 </div>
+              </div>
+              {/* Hàng 2: loại giao hàng + kho số lượng + cờ hết hàng (AUTO_STOCK
+                  theo dõi bằng dòng kho nên chỉ hiện loại giao hàng). */}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-1.5 text-xs text-slate-500">{t("Loại giao hàng")}
+                  <select name="deliveryType" defaultValue={v.deliveryType ?? ""} className={`${small} !w-auto`}>
+                    <option value="">{t("Mặc định theo hình thức giao")}</option>
+                    <option value="FAST">{t("Giao nhanh")}</option>
+                    <option value="SLOW">{t("Giao chậm")}</option>
+                  </select>
+                </label>
+                {product.fulfillment !== "AUTO_STOCK" && (
+                  <>
+                    <input name="stockQty" type="number" min={0} defaultValue={v.stockQty ?? ""} className={`${small} !w-40`} placeholder={t("Số lượng kho — để trống = không giới hạn")} title={t("Số lượng kho — để trống = không giới hạn")} />
+                    <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="outOfStock" defaultChecked={v.outOfStock} className="h-4 w-4" /> {t("Hết hàng (chặn đặt)")}</label>
+                  </>
+                )}
               </div>
             </form>
           ))}
@@ -240,6 +259,21 @@ export function VariantsModal({ product, onClose }: { product: PremiumProductDTO
               <input name="sort" type="number" defaultValue={0} className={small} placeholder={t("Thứ tự")} />
               <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="active" defaultChecked className="h-4 w-4" /> {t("Đang bán")}</label>
               <button className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">{t("+ Thêm gói")}</button>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-1.5 text-xs text-slate-500">{t("Loại giao hàng")}
+                <select name="deliveryType" defaultValue="" className={`${small} !w-auto`}>
+                  <option value="">{t("Mặc định theo hình thức giao")}</option>
+                  <option value="FAST">{t("Giao nhanh")}</option>
+                  <option value="SLOW">{t("Giao chậm")}</option>
+                </select>
+              </label>
+              {product.fulfillment !== "AUTO_STOCK" && (
+                <>
+                  <input name="stockQty" type="number" min={0} className={`${small} !w-40`} placeholder={t("Số lượng kho — để trống = không giới hạn")} title={t("Số lượng kho — để trống = không giới hạn")} />
+                  <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="outOfStock" className="h-4 w-4" /> {t("Hết hàng (chặn đặt)")}</label>
+                </>
+              )}
             </div>
           </form>
           <div className="mt-4 flex items-center justify-between">

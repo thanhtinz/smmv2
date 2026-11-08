@@ -4,6 +4,7 @@ import { notifyUser } from "./notify";
 import { alertMother } from "./alerts";
 import { getSettings } from "./settings";
 import { awardPointsForPremiumOrder } from "./points";
+import { restoreVariantStock } from "./variant-stock";
 import {
   FzrError, FZR_LABELS,
   fzrUsdToVnd, fzrUsdCostVnd, fzrOrderStatus, fzrOrderIdOf, extractFzrDelivery, fzrDeliveryOrRaw,
@@ -43,6 +44,8 @@ export async function refundFzrPremiumOrder(
     });
     if (claim.count === 0) return;
     claimed = true;
+    // Đơn chưa giao (PENDING) bị hoàn/huỷ -> trả kho số lượng đã trừ khi đặt
+    if (order.status === "PENDING") await restoreVariantStock(tx, order.variantId, order.quantity);
     await applyBalance(tx, order.userId, order.total, "REFUND", order.code, reason);
   });
   if (claimed) {
@@ -298,6 +301,7 @@ export async function executeFzrPremiumOrder(args: {
     const failedUnits = units - succeeded;
     const refundAmt = Math.floor((order.total * failedUnits) / units);
     await prisma.$transaction(async (tx) => {
+      await restoreVariantStock(tx, order.variantId, failedUnits);
       await applyBalance(tx, order.userId, refundAmt, "REFUND", order.code, `Hoàn ${failedUnits} lượt FZR không thực thi được`);
     });
     await clawbackReferralCommission(order.userId, refundAmt, order.code);

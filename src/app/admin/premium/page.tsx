@@ -36,7 +36,7 @@ export default async function AdminPremiumProducts({ searchParams }: { searchPar
     color: p.color, fulfillment: p.fulfillment, providerId: p.providerId, providerProductId: p.providerProductId, customFields: p.customFields,
     buyNote: p.buyNote, imageUrl: p.imageUrl, images: productImages(p.images, p.imageUrl), usageGuide: p.usageGuide, warrantyInfo: p.warrantyInfo,
     active: p.active, sort: p.sort, orderCount: p.variants.reduce((sum, v) => sum + (orderCountByVariant.get(v.id) || 0), 0),
-    variants: p.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, cost: v.cost, warrantyDays: v.warrantyDays, providerCycle: v.providerCycle, active: v.active, sort: v.sort, stockAvailable: stockMap.get(v.id)?.avail || 0, stockTotal: stockMap.get(v.id)?.total || 0 })),
+    variants: p.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, cost: v.cost, warrantyDays: v.warrantyDays, providerCycle: v.providerCycle, deliveryType: v.deliveryType, outOfStock: v.outOfStock, stockQty: v.stockQty, active: v.active, sort: v.sort, stockAvailable: stockMap.get(v.id)?.avail || 0, stockTotal: stockMap.get(v.id)?.total || 0 })),
   }));
   const catDtos = categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, description: c.description, icon: c.icon, sort: c.sort, active: c.active, productCount: c._count.products }));
   return (

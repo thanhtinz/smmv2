@@ -5,6 +5,7 @@ import { PremiumOrderCards, type PremiumOrderCard } from "@/components/client";
 import { PremiumOrderTabs } from "@/components/premium-order-tabs";
 import { num, SMM_STATUS, PRE_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
+import { resolveDeliveryType } from "@/lib/variant-stock";
 
 type SP = Record<string, string | string[] | undefined>;
 const arr = (v: string | string[] | undefined): string[] => (v === undefined ? [] : Array.isArray(v) ? v : [v]);
@@ -183,6 +184,7 @@ export async function PremiumOrdersView({ userId, sp, base }: { userId: number; 
       created: o.createdAt.toISOString(),
       updated: o.updatedAt.toISOString(),
       delivery: o.deliveryData || "",
+      deliveryType: resolveDeliveryType(o.variant.deliveryType, o.variant.product.fulfillment),
       buyerInfo: o.buyerInfo || "",
       warrantyUntil: o.warrantyUntil ? o.warrantyUntil.toISOString() : null,
     }));

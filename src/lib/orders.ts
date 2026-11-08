@@ -15,6 +15,7 @@ import {
   type SmmExtraParams,
 } from "./provider";
 import { executeFzrPremiumOrder, refreshFzrQuotePrice, parseBuyerInfoLines } from "./fzr-orders";
+import { claimVariantStock, restoreVariantStock, variantSoldOut, OUT_OF_STOCK_ERROR } from "./variant-stock";
 import type { PremiumOrder, SmmOrder, User } from "@prisma/client";
 
 /** Trạng thái drip-feed lưu trong params của đơn (JSON) */
@@ -488,6 +489,12 @@ export async function createPremiumOrder(input: {
   if ((variant.product.fulfillment === "MANUAL" || variant.product.fulfillment === "API") && !buyerInfo?.trim())
     throw new Error("Gói này cần thông tin tài khoản/email của bạn để bàn giao");
 
+  // Kho theo gói (MANUAL/API): cờ chặn bán tay hoặc kho số lượng đã cạn ->
+  // chốt chặn SỚM bằng lỗi hết hàng chuẩn, TRƯỚC mọi lần gọi provider. Phần
+  // trừ kho nguyên tử nằm trong transaction tiền bên dưới (claimVariantStock).
+  if (variantSoldOut(variant, variant.product.fulfillment)) throw new Error(OUT_OF_STOCK_ERROR);
+  if (variant.product.fulfillment !== "AUTO_STOCK" && variant.stockQty != null && variant.stockQty < input.quantity) throw new Error(OUT_OF_STOCK_ERROR);
+
   let total = variant.price * input.quantity;
   // Flash sale (phạm vi có Premium): giảm thêm % trên tổng — đúng thứ tự phía SMM:
   // flash áp TRƯỚC mã giảm giá (mã giảm tính trên số tiền đã trừ flash).
@@ -504,6 +511,9 @@ export async function createPremiumOrder(input: {
   }
 
   const created = await prisma.$transaction(async (tx) => {
+    // Trừ kho số lượng NGUYÊN TỬ cùng transaction với tiền: thiếu kho -> ném
+    // lỗi, cả tiền lẫn đơn rollback (không bán vượt, không trừ tiền oan).
+    await claimVariantStock(tx, variant, variant.product.fulfillment, input.quantity);
     await applyBalance(tx, input.user.id, -total, "PREMIUM_ORDER", undefined, `Mua ${variant.product.name} — ${variant.name}`);
     if (promo) await consumePromo(tx, promo.row.id);
     const o = await tx.premiumOrder.create({
@@ -613,8 +623,9 @@ export async function createPremiumOrder(input: {
       }
     }
     if (codes.length === 0) {
-      // Provider từ chối toàn bộ -> hoàn tiền đủ
+      // Provider từ chối toàn bộ -> hoàn tiền đủ + trả kho số lượng đã trừ
       await prisma.$transaction(async (tx) => {
+        await restoreVariantStock(tx, variant.id, input.quantity);
         await applyBalance(tx, input.user.id, total, "REFUND", created.code, "Nhà cung cấp từ chối đơn premium — hoàn tiền");
         await tx.premiumOrder.update({ where: { id: created.id }, data: { status: "REFUNDED" } });
       });
@@ -624,6 +635,7 @@ export async function createPremiumOrder(input: {
     if (failed > 0) {
       const refundAmt = Math.floor((total * failed) / input.quantity);
       await prisma.$transaction(async (tx) => {
+        await restoreVariantStock(tx, variant.id, failed);
         await applyBalance(tx, input.user.id, refundAmt, "REFUND", created.code, `Hoàn ${failed} đơn vị provider không nhận`);
       });
       await clawbackReferralCommission(input.user.id, refundAmt, created.code);
@@ -692,6 +704,8 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
       });
       if (claim.count === 0) return;
       claimed = true;
+      // Đơn chưa giao (PENDING) bị huỷ -> trả kho số lượng đã trừ khi đặt
+      if (order.status === "PENDING") await restoreVariantStock(tx, order.variantId, order.quantity);
       await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Nhà cung cấp huỷ đơn premium — hoàn tiền");
     });
     if (claimed) await clawbackReferralCommission(order.userId, order.total, order.code);

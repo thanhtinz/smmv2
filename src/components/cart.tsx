@@ -17,7 +17,8 @@ export type CartItem = {
   qty: number;
   custom: Record<string, string>;
   buyerInfo?: string | null; // thông tin bàn giao tự do (sản phẩm không có trường tuỳ chỉnh)
-  stockCap: number | null; // AUTO_STOCK: trần theo kho còn lại; null = không trần kho
+  stockCap: number | null; // trần theo kho còn lại (AUTO_STOCK: số dòng kho; MANUAL/API: stockQty theo dõi); null = không trần kho
+  delivery?: string | null; // FAST | SLOW — loại giao hàng của gói lúc thêm vào giỏ
   group: string | null; // providerGroup (telegram_* không bao giờ vào giỏ)
 };
 

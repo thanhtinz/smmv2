@@ -309,6 +309,9 @@ model PremiumVariant {
   provider      Provider?      @relation("VariantProvider", fields: [providerId], references: [id])
   providerGroup String?        @db.VarChar(30) // nhóm FZR: gamekeys | giftcards | topups | manual | steam_topup | steam_gift | telegram_stars | telegram_premium
   providerItemId String?       @db.VarChar(120) // id item phía FZR (manual: "<serviceId>:<offerId>", topups: "<offerId>|<amountUsd>", telegram_premium: số tháng, steam_topup: mệnh giá USD, steam_gift: appid)
+  deliveryType String?       @db.VarChar(8) // FAST | SLOW — loại giao hàng của gói (lệnh Tín 2026-11-07 23:34); null = mặc định theo hình thức giao của sản phẩm (AUTO_STOCK/API: nhanh, MANUAL: chậm), admin ghi đè từng gói
+  outOfStock   Boolean        @default(false) // chặn bán thủ công cho gói MANUAL/API (gói AUTO_STOCK theo dõi bằng dòng kho, không dùng cờ này)
+  stockQty     Int? // tồn kho theo SỐ LƯỢNG cho gói MANUAL/API (nắp kho của shop trên cả provider); null = không theo dõi (không giới hạn); gói AUTO_STOCK để null — kho của chúng là dòng PremiumStock
   active      Boolean        @default(true)
   sort        Int            @default(0)
 

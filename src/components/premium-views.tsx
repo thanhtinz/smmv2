@@ -15,6 +15,7 @@ import { PremiumGrid } from "@/components/premium-grid";
 import { RecordRecentView } from "@/components/recent";
 import { moduleOn } from "@/lib/modules";
 import { getActiveFlashSale, flashAppliesToProduct } from "@/lib/flash";
+import { resolveDeliveryType, variantSoldOut, isQtyTracked } from "@/lib/variant-stock";
 import { FlashBanner } from "@/components/flash-banner";
 
 /** Dựng dữ liệu thẻ cho một nhóm sản phẩm: khoảng giá gói, tổng đã bán, còn kho. */
@@ -462,7 +463,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             note={product.buyNote}
             productImage={images[0] || null}
             productColor={product.color}
-            variants={product.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, warrantyDays: v.warrantyDays, stock: stockMap.get(v.id) || 0 }))}
+            variants={product.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, warrantyDays: v.warrantyDays, stock: stockMap.get(v.id) || 0, delivery: resolveDeliveryType(v.deliveryType, product.fulfillment), soldOut: variantSoldOut(v, product.fulfillment), stockQty: isQtyTracked(product.fulfillment, v.stockQty) ? v.stockQty : null }))}
             promos={promoPreview}
             flashPct={flashPct}
             cartProduct={{ id: product.id, name: product.name, groups: Object.fromEntries(product.variants.map((v) => [v.id, v.providerGroup ?? null])) }}
@@ -475,12 +476,26 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
                 <span className="text-[17px] font-extrabold text-slate-900">{L("Chọn gói")}</span>
               </div>
               <div className="mt-4 space-y-3">
-                {product.variants.map((v) => (
-                  <div key={v.id} className="flex items-center justify-between gap-3 rounded-2xl border-2 border-slate-200 px-4 py-3.5">
-                    <span className="min-w-0 break-words font-bold text-slate-900">{v.name}</span>
-                    <span className="shrink-0 font-extrabold text-rose-600">{M(v.price)}</span>
-                  </div>
-                ))}
+                {product.variants.map((v) => {
+                  const soldOut = variantSoldOut(v, product.fulfillment);
+                  const delivery = resolveDeliveryType(v.deliveryType, product.fulfillment);
+                  return (
+                    <div key={v.id} className={`flex items-center justify-between gap-3 rounded-2xl border-2 border-slate-200 px-4 py-3.5 ${soldOut ? "bg-slate-50 opacity-70" : ""}`}>
+                      <span className="min-w-0">
+                        <span className="block break-words font-bold text-slate-900">{v.name}</span>
+                        <span className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${delivery === "FAST" ? "border-teal-200 bg-teal-50 text-teal-700" : "border-slate-200 bg-slate-100 text-slate-600"}`}>
+                          {delivery === "FAST"
+                            ? <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
+                            : <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>}
+                          {delivery === "FAST" ? L("Giao nhanh") : L("Giao chậm")}
+                        </span>
+                      </span>
+                      {soldOut
+                        ? <span className="shrink-0 font-extrabold text-rose-600">{L("Hết hàng")}</span>
+                        : <span className="shrink-0 font-extrabold text-rose-600">{M(v.price)}</span>}
+                    </div>
+                  );
+                })}
               </div>
             </section>
             <section className="card p-6 text-center">
