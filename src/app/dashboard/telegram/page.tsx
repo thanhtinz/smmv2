@@ -20,6 +20,11 @@ export default async function TelegramOrderPage({ searchParams }: { searchParams
   let starPrice = variants.stars?.price || 0;
   let starMin = 50;
   let starMax = 100000;
+  // Giá bán do SITE quyết: gói đã có trong catalog thì hiển thị đúng giá gói
+  // (giá admin đặt ở Admin → Telegram → Sản phẩm, và cũng là giá createPremiumOrder
+  // tính tiền — hiển thị và tính tiền không được lệch nhau). Giá tươi phía FZR
+  // chỉ lấp vào tháng nào catalog chưa có gói. Stars khác hẳn: giá chốt theo
+  // báo giá tại lúc mua nên hiển thị theo báo giá là đúng cả hai phía.
   let plans: TelegramPlan[] = variants.premium
     .map((v) => ({ months: parseInt(v.providerItemId || "0"), price: v.price }))
     .filter((p) => [3, 6, 12].includes(p.months))
@@ -33,10 +38,12 @@ export default async function TelegramOrderPage({ searchParams }: { searchParams
     }
     const livePlans = await fzrTelegramPremiumPlans(provider).catch(() => null);
     if (livePlans?.length) {
-      plans = livePlans
-        .filter((p) => [3, 6, 12].includes(p.durationMonths))
-        .map((p) => ({ months: p.durationMonths, price: fzrUsdToVnd(p.finalPrice || p.price, provider.exchangeRate, provider.markupPercent) }))
-        .sort((a, b) => a.months - b.months);
+      const have = new Set(plans.map((p) => p.months));
+      for (const p of livePlans) {
+        if (![3, 6, 12].includes(p.durationMonths) || have.has(p.durationMonths)) continue;
+        plans.push({ months: p.durationMonths, price: fzrUsdToVnd(p.finalPrice || p.price, provider.exchangeRate, provider.markupPercent) });
+      }
+      plans.sort((a, b) => a.months - b.months);
     }
   }
   const configured = !!provider && (!!variants.stars || plans.length > 0);

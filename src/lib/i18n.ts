@@ -3714,6 +3714,8 @@ export const DICT: Record<string, Tr> = {
   "Xem sản phẩm": e("View product", "查看产品", "ดูสินค้า", "商品を見る", "상품 보기"),
   "Ví dụ curl": e("curl example", "curl 示例", "ตัวอย่าง curl", "curl の例", "curl 예시"),
   "Lưu ý": e("Note", "注意", "หมายเหตุ", "注意", "참고"),
+  "Hai họ gói Telegram theo nhà cung cấp: Stars và Premium. Sửa giá/tên/bật tắt tại đây áp dụng ngay cho trang đặt đơn Telegram.": e("The two Telegram package families from the provider: Stars and Premium. Price, name and on/off edits here apply immediately to the Telegram order page.", "服务商的两个 Telegram 套餐系列：Stars 和 Premium。在此处修改价格、名称和开关会立即应用到 Telegram 下单页。", "แพ็กเกจ Telegram สองตระกูลจากผู้ให้บริการ: Stars และ Premium การแก้ราคา ชื่อ และเปิด/ปิดที่นี่จะมีผลกับหน้า สั่งซื้อ Telegram ทันที", "プロバイダーの Telegram パッケージ2系統（Stars と Premium）。ここでの価格・名前・オンオフの編集は Telegram 注文ページに即時反映されます。", "제공업체의 텔레그램 패키지 두 계열(Stars, Premium). 여기서 가격·이름·온오프를 수정하면 텔레그램 주문 페이지에 즉시 적용됩니다."),
+  "Hai họ gói Steam theo nhà cung cấp: Top-Up theo mệnh giá và Game gift theo appid. Sửa giá/tên/bật tắt tại đây áp dụng ngay cho trang đặt hàng Steam.": e("The two Steam package families from the provider: Top-Up by denomination and Game gifts by appid. Price, name and on/off edits here apply immediately to the Steam order pages.", "服务商的两个 Steam 套餐系列：按面额充值和按 appid 的游戏赠礼。在此处修改价格、名称和开关会立即应用到 Steam 下单页。", "แพ็กเกจ Steam สองตระกูลจากผู้ให้บริการ: เติมเงินตามมูลค่าและเกมกิฟต์ตาม appid การแก้ราคา ชื่อ และเปิด/ปิดที่นี่จะมีผลกับหน้า สั่งซื้อ Steam ทันที", "プロバイダーの Steam パッケージ2系統（金額別トップアップと appid 別のゲームギフト）。ここでの価格・名前・オンオフの編集は Steam 注文ページに即時反映されます。", "제공업체의 스팀 패키지 두 계열(금액별 충전, appid별 게임 기프트). 여기서 가격·이름·온오프를 수정하면 스팀 주문 페이지에 즉시 적용됩니다."),
 
 };
 

@@ -1,5 +1,6 @@
 import { prisma } from "./db";
 import { FZR_LABELS, fzrUsdToVnd, fzrUsdCostVnd } from "./fzr";
+import { ADMIN_VARIANT_MARK } from "./families";
 import {
   fzrGameKeys, fzrGiftCards, fzrTopups, fzrManualServices, fzrManualOffers,
   fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrSteamGiftGames,
@@ -373,7 +374,9 @@ export async function syncFzrCatalog(provider: Provider, opts: { includeSteamGif
             providerId: provider.id,
             active: true,
             ...(provider.syncContent ? { name: v.name } : {}),
-            ...(provider.autoUpdatePrice ? { price, cost } : {}),
+            // Gói admin tự thêm (dấu CUSTOM ở trang họ Telegram/Steam): sync
+            // không ghi đè giá — admin toàn quyền giá gói đó.
+            ...(provider.autoUpdatePrice && ev.deliveryType !== ADMIN_VARIANT_MARK ? { price, cost } : {}),
             ...(v.cycle ? { providerCycle: v.cycle } : {}),
           },
         });
@@ -396,9 +399,11 @@ export async function syncFzrCatalog(provider: Provider, opts: { includeSteamGif
   if (syncedGroups.size) {
     const stale = await prisma.premiumVariant.findMany({
       where: { providerId: provider.id, providerGroup: { in: Array.from(syncedGroups) }, active: true },
-      select: { id: true },
+      select: { id: true, deliveryType: true },
     });
-    const staleIds = stale.filter((v) => !seenVariantIds.has(v.id)).map((v) => v.id);
+    // Gói admin tự thêm (dấu CUSTOM) không nằm trong danh sách FZR nhưng vẫn
+    // giữ nguyên — đồng bộ không tắt (xem lib/families).
+    const staleIds = stale.filter((v) => !seenVariantIds.has(v.id) && v.deliveryType !== ADMIN_VARIANT_MARK).map((v) => v.id);
     if (staleIds.length) {
       const r = await prisma.premiumVariant.updateMany({ where: { id: { in: staleIds } }, data: { active: false } });
       deactivated = r.count;
