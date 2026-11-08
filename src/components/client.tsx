@@ -61,13 +61,13 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-white" style={{ background: PLATFORM_COLORS[p] || "#64748b" }}>{(PLATFORMS[p] || p).charAt(0)}</span>
             <span className="min-w-0">
               <span className="block truncate font-bold text-slate-900">{PLATFORMS[p] || p}</span>
-              <span className="block text-xs text-slate-400">{td(`${platCounts.get(p) || 0} dịch vụ`)}</span>
+              <span className="block text-xs text-slate-400">{platCounts.get(p) || 0} {t("dịch vụ")}</span>
             </span>
           </button>
         ))}
       </div>
       <div className="mb-5 text-sm text-slate-500">
-        {t("Tổng cộng:")} <b className="text-slate-800">{td(`${services.length} dịch vụ`)}</b> · {td(`${catCount} danh mục`)} · {td(`${platforms.length} nền tảng`)}
+        {t("Tổng cộng:")} <b className="text-slate-800">{services.length} {t("dịch vụ")}</b> · {catCount} {t("danh mục")} · {platforms.length} {t("nền tảng")}
         {platform !== "all" && <button type="button" onClick={() => setPlatform("all")} className="ml-3 font-semibold text-brand-600">{t("Xem tất cả")}</button>}
       </div>
       <div className="flex flex-col xl:flex-row gap-3 mb-5">
@@ -84,7 +84,7 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
             <option value="m10">{t("10.000 – 50.000đ")}</option>
             <option value="o50">{t("Trên 50.000đ")}</option>
           </select>
-          <button onClick={() => setFavOnly((v) => !v)} className={`btn-sm rounded-full font-semibold ${favOnly ? "bg-amber-500 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>{td(`Yêu thích (${favs.length})`)}</button>
+          <button onClick={() => setFavOnly((v) => !v)} className={`btn-sm rounded-full font-semibold ${favOnly ? "bg-amber-500 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>{t("Yêu thích (")}{favs.length})</button>
           <div className="flex rounded-full border border-slate-200 bg-white p-0.5">
             <button onClick={() => setView("table")} className={`btn-sm rounded-full font-semibold ${view === "table" ? "bg-brand-600 text-white" : "text-slate-500"}`}>{t("Bảng")}</button>
             <button onClick={() => setView("grid")} className={`btn-sm rounded-full font-semibold ${view === "grid" ? "bg-brand-600 text-white" : "text-slate-500"}`}>{t("Lưới")}</button>
@@ -146,7 +146,7 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
           {list.length === 0 && <div className="card p-10 text-center text-slate-400 sm:col-span-2 xl:col-span-3">{t("Không tìm thấy dịch vụ phù hợp")}</div>}
         </div>
       )}
-      <p className="text-xs text-slate-400 mt-3">{td(`Hiển thị ${list.length}/${services.length} dịch vụ. Giá đã gồm VAT; cấp Đại lý / Tổng đại lý / VIP được chiết khấu thêm tự động khi đặt đơn. Bấm ngôi sao để ghim dịch vụ hay dùng.`)}</p>
+      <p className="text-xs text-slate-400 mt-3">{t("Hiển thị")} {list.length}/{services.length} {t("dịch vụ. Giá đã gồm VAT; cấp Đại lý / Tổng đại lý / VIP được chiết khấu thêm tự động khi đặt đơn. Bấm ngôi sao để ghim dịch vụ hay dùng.")}</p>
     </div>
   );
 }
@@ -343,7 +343,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
                 <button key={p} type="button" onClick={() => pickPlatform(p)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50 ${p === platform ? "bg-brand-50" : ""}`}>
                   <PlatformIcon platform={p} size={32} />
                   <span className="flex-1 text-sm font-semibold text-slate-800">{PLATFORMS[p] || p}</span>
-                  <span className="text-xs text-slate-400">{td(`${services.filter((s) => s.platform === p).length} dịch vụ`)}</span>
+                  <span className="text-xs text-slate-400">{services.filter((s) => s.platform === p).length} {t("dịch vụ")}</span>
                 </button>
               ))}
             </div>
@@ -363,7 +363,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
                 <button key={c.id} type="button" onClick={() => pickCategory(c)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50 ${c.id === catId ? "bg-brand-50" : ""}`}>
                   <PlatformIcon platform={c.platform} size={32} />
                   <span className="flex-1 text-sm font-semibold text-slate-800">{c.name}</span>
-                  <span className="text-xs text-slate-400">{td(`${services.filter((s) => s.categoryId === c.id).length} máy chủ`)}</span>
+                  <span className="text-xs text-slate-400">{services.filter((s) => s.categoryId === c.id).length} {t("máy chủ")}</span>
                 </button>
               ))}
               {catsOfPlatform.length === 0 && <p className="px-3 py-4 text-center text-sm text-slate-400">{t("Nền tảng này chưa có dịch vụ.")}</p>}
@@ -447,14 +447,14 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           )}
         </div>
         {pasteMsg && <p className="text-xs text-slate-400">{t(pasteMsg)}</p>}
-        {!multiOn && linkMismatch && <p className="text-xs font-medium text-amber-600">{td(`Link này có vẻ không thuộc ${PLATFORMS[service!.platform] || service!.platform} — kiểm tra lại dịch vụ đã chọn nhé.`)}</p>}
+        {!multiOn && linkMismatch && <p className="text-xs font-medium text-amber-600">{t("Link này có vẻ không thuộc")} {PLATFORMS[service!.platform] || service!.platform}{t(" — kiểm tra lại dịch vụ đã chọn nhé.")}</p>}
         <div>
           <label className="lbl">{t("Số lượng")} {multiOn && <span className="text-brand-600 font-semibold">{t("(cho mỗi link)")}</span>}</label>
           <div className="flex gap-3">
             <input className="inp flex-1 !h-[52px] !rounded-[14px] !text-[15px]" name="quantity" type="number" required min={service?.min} max={service?.max} value={qty || ""} onChange={(e) => setQty(parseInt(e.target.value) || 0)} />
             <div className="flex h-[52px] min-w-[104px] items-center justify-center rounded-[14px] bg-[linear-gradient(120deg,rgb(var(--b700)),rgb(var(--b500)))] px-4 text-base font-bold text-white shadow-md shadow-brand-600/25">{m(shownCharge)}</div>
           </div>
-          {service && <p className="mt-1.5 text-[13px] text-slate-400">{td(`Tối thiểu: ${num(service.min)} - Tối đa: ${num(service.max)}`)}</p>}
+          {service && <p className="mt-1.5 text-[13px] text-slate-400">{t("Tối thiểu:")} {num(service.min)} {t("- Tối đa:")} {num(service.max)}</p>}
           {qtyChips.length > 1 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {qtyChips.map((n) => (
@@ -509,7 +509,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
                 </div>
                 <p className="col-span-2 text-xs text-slate-500 leading-relaxed">
                   {qty > 0 && dripRuns > 0 ? (
-                    <>{t("Mỗi lượt khoảng")} <b>{num(Math.floor(qty / dripRuns))}</b> {t("(lượt đầu cộng phần dư), tổng thời gian thả ≈")} <b>{td(`${num(dripRuns * dripInterval)} phút`)}</b>{td(`. Mỗi lượt phải ≥ ${num(service.min)} theo giới hạn dịch vụ.`)}</>
+                    <>{t("Mỗi lượt khoảng")} <b>{num(Math.floor(qty / dripRuns))}</b> {t("(lượt đầu cộng phần dư), tổng thời gian thả ≈")} <b>{num(dripRuns * dripInterval)} {t("phút")}</b>{t(". Mỗi lượt phải ≥")} {num(service.min)} {t("theo giới hạn dịch vụ.")}</>
                   ) : t("Nhập số lượng và số lượt để xem lịch thả.")}
                 </p>
               </div>
@@ -552,7 +552,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             {discount > 0 && (
               <p className="mt-4 flex items-center justify-center gap-2 text-[15px] text-slate-700">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="#f59e0b"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z" /></svg>
-                {td(`Bạn đang được giảm ${discount}% theo cấp bậc`)}
+                {t("Bạn đang được giảm")} {discount}{t("% theo cấp bậc")}
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="#f59e0b"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z" /></svg>
               </p>
             )}
@@ -568,13 +568,13 @@ export function OrderForm({ services, categories, discount, preselect, action, b
                 {t("Thời gian bắt đầu: Ngay lập tức")}
               </DetailLine>
               <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M12 3v3" /><path d="M5.6 5.6l2.2 2.2" /><path d="M18.4 5.6l-2.2 2.2" /><path d="M8 21h8" /><path d="M12 6a6.5 6.5 0 0 0-4 11.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A6.5 6.5 0 0 0 12 6z" /></svg>}>
-                {td(`Tối thiểu/Tối đa: ${num(service.min)}/${num(service.max)}`)}
+                {t("Tối thiểu/Tối đa:")} {num(service.min)}/{num(service.max)}
               </DetailLine>
               <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6" /><path d="M21 3v5h-5" /></svg>}>
                 {t("Bảo hành:")} {service.refill ? t("Có bảo hành") : t("Không bảo hành")}
               </DetailLine>
               <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="text-slate-400"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z" /><path d="M3 7l9 4.5L21 7" /><path d="M12 11.5v10" /></svg>}>
-                {td(`Số lượng đơn này: ${num(qty || 0)}${multiOn ? ` / link${orderCount > 0 ? ` × ${num(orderCount)} link` : ""}` : ""}`)}
+                {t("Số lượng đơn này:")} {num(qty || 0)}{multiOn ? ` / link${orderCount > 0 ? ` × ${num(orderCount)} link` : ""}` : ""}
               </DetailLine>
               {service.notice && (
                 <div className="pt-1">
@@ -616,9 +616,9 @@ export function BulkOrderForm({ services, discount, balance, action }: {
       const svc = byId.get(sid);
       let error = "";
       if (parts.length < 3 || !sid || !link || !qty) error = t("Sai định dạng");
-      else if (!svc) error = td(`Không có dịch vụ ID ${sid}`);
-      else if (qty < svc.min) error = td(`Số lượng < tối thiểu ${num(svc.min)}`);
-      else if (qty > svc.max) error = td(`Số lượng > tối đa ${num(svc.max)}`);
+      else if (!svc) error = `${t("Không có dịch vụ ID")} ${sid}`;
+      else if (qty < svc.min) error = `${t("Số lượng < tối thiểu")} ${num(svc.min)}`;
+      else if (qty > svc.max) error = `${t("Số lượng > tối đa")} ${num(svc.max)}`;
       const charge = svc && !error ? Math.round(Math.ceil((svc.rate * qty) / 1000) * (1 - discount / 100)) : 0;
       return { n: i + 1, sid, link, qty, svc, error, charge };
     });
@@ -651,7 +651,7 @@ export function BulkOrderForm({ services, discount, balance, action }: {
                         <span className="font-bold">{td(`Dòng · ID ${sv.id}`)}</span>
                         <span className="font-bold text-brand-700">{m(c)}</span>
                       </div>
-                      <div className="text-slate-500 mt-0.5 truncate">{td(`${sv.name} — ${num(q)} lượt`)}</div>
+                      <div className="text-slate-500 mt-0.5 truncate">{sv.name} — {num(q)} {t("lượt")}</div>
                     </div>
                   );
                 })}
@@ -666,7 +666,7 @@ export function BulkOrderForm({ services, discount, balance, action }: {
                   <span className="font-bold">{td(`Dòng ${p.n} · ID ${p.sid || "?"}`)}</span>
                   {p.error ? <span className="font-semibold">{p.error}</span> : <span className="font-bold text-brand-700">{m(p.charge)}</span>}
                 </div>
-                {!p.error && p.svc && <div className="text-slate-500 mt-0.5 truncate">{td(`${p.svc.name} — ${num(p.qty)} lượt`)}</div>}
+                {!p.error && p.svc && <div className="text-slate-500 mt-0.5 truncate">{p.svc.name} — {num(p.qty)} {t("lượt")}</div>}
               </div>
             ))}
           </div>
@@ -678,7 +678,7 @@ export function BulkOrderForm({ services, discount, balance, action }: {
           {notEnough && <p className="text-xs text-rose-600 font-medium">{t("Còn thiếu")} {m(total - balance)} {t("— nạp thêm hoặc bỏ bớt dòng.")}</p>}
         </div>
         <button type="submit" disabled={valid.length === 0 || notEnough} className="btn-primary w-full mt-4 !py-3 disabled:opacity-50">
-          {valid.length === 0 ? t("Nhập ít nhất 1 dòng hợp lệ") : notEnough ? t("Chưa đủ số dư") : td(`Đặt ${valid.length} đơn — tổng ${m(total)}`)}
+          {valid.length === 0 ? t("Nhập ít nhất 1 dòng hợp lệ") : notEnough ? t("Chưa đủ số dư") : <>{t("Đặt")} {valid.length} {t("đơn — tổng")} {m(total)}</>}
         </button>
       </div>
     </form>
@@ -779,7 +779,7 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
                 <div key={s.name} className="rounded-xl bg-white border border-slate-200 p-3.5">
                   <div className="text-sm font-medium text-slate-700 leading-snug">{s.name}</div>
                   <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold">
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500">{td(`Gốc ${m(s.rate)}`)}</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500">{t("Gốc")} {m(s.rate)}</span>
                     <span className="rounded-full bg-brand-50 text-brand-700 px-2 py-1">{td(`Panel ${m(panelPrice(s.rate))}`)}</span>
                     {tiers.filter((t) => (d[t.k] as number) > 0).map((t) => (
                       <span key={t.k} className="rounded-full bg-emerald-50 text-emerald-700 px-2 py-1">{t.label} {m(tierPrice(s.rate, d[t.k] as number))}</span>
@@ -823,7 +823,7 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
             <ul className="mt-2.5 text-sm text-emerald-700 space-y-1.5">
               <li>{t("— Website:")} <b>/cua-hang/{d.slug || "..."}</b>{d.domain ? <> {t("và tên miền")} <b>{d.domain}</b></> : ""}</li>
               <li>{t("— Liên kết web mẹ bằng API key")} <b className="font-mono">{d.apiKey ? `${d.apiKey.slice(0, 6)}••••••` : mode === "edit" ? t("(giữ key hiện tại)") : t("(chưa nhập)")}</b></li>
-              <li>{td(`— Giá bán: giá gốc + ${Number(d.markup) || 0}%, giảm thêm theo bậc: Đại lý −${d.discountReseller}%, Tổng đại lý −${d.discountAgency}%, VIP −${d.discountVip}%`)}</li>
+              <li>{t("— Giá bán: giá gốc +")} {Number(d.markup) || 0}{t("%, giảm thêm theo bậc: Đại lý −")}{d.discountReseller}{t("%, Tổng đại lý −")}{d.discountAgency}{t("%, VIP −")}{d.discountVip}%</li>
               <li>{t("— Khách đăng ký tại website là khách của bạn; hoa hồng vào ví ngay khi có đơn.")}</li>
             </ul>
           </div>
@@ -1013,8 +1013,8 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
                   <span className="min-w-0 flex-1">
                     <span className="block break-words font-bold text-slate-900">{x.name}</span>
                     <span className="mt-0.5 block text-xs text-slate-500">
-                      {x.warrantyDays ? td(`Bảo hành ${x.warrantyDays} ngày`) : t("Không bảo hành")}
-                      {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? td(` · Còn ${x.stock} trong kho`) : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
+                      {x.warrantyDays ? <>{t("Bảo hành")} {x.warrantyDays} {t("ngày")}</> : t("Không bảo hành")}
+                      {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? <>{t(" · Còn ")}{x.stock}{t(" trong kho")}</> : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
                     </span>
                   </span>
                   {fulfillment === "AUTO_STOCK" && x.stock > 0 && (
@@ -1066,7 +1066,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
             <div className="flex items-baseline justify-between border-t border-slate-200/70 pt-2"><span className="font-semibold text-slate-700">{t("Tổng cộng")}</span><span className="text-xl font-extrabold text-rose-600">{m(grandTotal)}</span></div>
           </div>
           <div className="text-xs text-slate-400">
-            {fulfillment === "AUTO_STOCK" ? td(`Kho hàng: ${v?.stock || 0} sản phẩm`) : fulfillment === "API" ? t("Giao tự động qua nhà cung cấp") : t("Nâng cấp thủ công trên tài khoản của bạn")}
+            {fulfillment === "AUTO_STOCK" ? <>{t("Kho hàng:")} {v?.stock || 0} {t("sản phẩm")}</> : fulfillment === "API" ? t("Giao tự động qua nhà cung cấp") : t("Nâng cấp thủ công trên tài khoản của bạn")}
           </div>
           <button className="btn-primary w-full !py-3">{t("Đặt hàng ngay")}</button>
         </div>
@@ -1089,8 +1089,8 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
               </span>
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
-              {x.warrantyDays ? td(`Bảo hành ${x.warrantyDays} ngày`) : t("Không bảo hành")}
-              {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? td(` · Còn ${x.stock} trong kho`) : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
+              {x.warrantyDays ? <>{t("Bảo hành")} {x.warrantyDays} {t("ngày")}</> : t("Không bảo hành")}
+              {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? <>{t(" · Còn ")}{x.stock}{t(" trong kho")}</> : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
             </div>
           </button>
         ))}
@@ -1279,7 +1279,7 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
         <div className="fixed inset-0 z-50 bg-slate-950/60 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSel(null)}>
           <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between sticky top-0">
-              <div className="font-bold">{td(`Chi tiết đơn hàng #${sel.id}`)}</div>
+              <div className="font-bold">{t("Chi tiết đơn hàng")} #{sel.id}</div>
               <button type="button" onClick={() => setSel(null)} className="text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5">{t("Đóng")}</button>
             </div>
             <div className="p-5 space-y-6">

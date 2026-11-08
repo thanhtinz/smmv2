@@ -59,7 +59,7 @@ export default async function AdminPanels({ searchParams }: { searchParams: { ms
           </table>
         </div>
       </div>
-      <p className="text-xs text-slate-400 mt-4">{Ld(`Tạo lúc: ${panels[0] ? dt(panels[0].createdAt) : "—"} · Khoá panel = khách của panel mua theo giá gốc và chủ panel không nhận hoa hồng nữa; website cũng ẩn.`)}</p>
+      <p className="text-xs text-slate-400 mt-4">{L("Tạo lúc:")} {panels[0] ? dt(panels[0].createdAt) : "—"} {L("· Khoá panel = khách của panel mua theo giá gốc và chủ panel không nhận hoa hồng nữa; website cũng ẩn.")}</p>
     </div>
   );
 }

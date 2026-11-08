@@ -17,14 +17,14 @@ export default async function PanelBroadcastPage({ searchParams }: { searchParam
   ]);
   return (
     <div>
-      <PageHead title={L("Thông báo khách panel")} desc={Ld(`Gửi thông báo tới toàn bộ ${num(memberCount)} khách đã đăng ký tại website của bạn.`)} />
+      <PageHead title={L("Thông báo khách panel")} desc={L("Gửi thông báo tới toàn bộ ") + num(memberCount) + L(" khách đã đăng ký tại website của bạn.")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
         <form action={panelBroadcastAction} className="card space-y-4 p-6">
           <div className="font-bold text-slate-900">{L("Soạn thông báo mới")}</div>
           <div><label className="lbl">{L("Tiêu đề")}</label><input name="title" required maxLength={150} className="inp" placeholder={L("VD: Khuyến mãi cuối tuần tại website")} /></div>
           <div><label className="lbl">{L("Nội dung")}</label><textarea name="body" required rows={4} maxLength={500} className="inp" placeholder={L("Nội dung hiển thị trong mục Thông báo của khách...")} /></div>
-          <button className="btn-primary !py-2.5" disabled={memberCount === 0}>{Ld(`Gửi tới ${num(memberCount)} khách`)}</button>
+          <button className="btn-primary !py-2.5" disabled={memberCount === 0}>{L("Gửi tới")} {num(memberCount)} {L("khách")}</button>
           {memberCount === 0 && <p className="text-xs text-slate-400">{L("Panel chưa có khách nào.")}</p>}
         </form>
         <div className="card p-6">

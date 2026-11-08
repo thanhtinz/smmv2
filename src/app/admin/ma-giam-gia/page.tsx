@@ -38,12 +38,12 @@ export default async function AdminDiscountCodes({ searchParams }: { searchParam
                         <span className="rounded-md border border-dashed border-brand-300 bg-brand-50 px-2 py-1 font-mono text-xs font-bold text-brand-700">{c.code}</span>
                         <div className="mt-1.5 text-xs text-slate-400">{L(SCOPE_LABEL[c.scope])}</div>
                       </td>
-                      <td className="td font-semibold">{c.type === "PERCENT" ? `${c.value}%` : M(c.value)}{c.type === "PERCENT" && c.maxDiscount > 0 && <div className="text-xs font-normal text-slate-400">{Ld(`tối đa ${M(c.maxDiscount)}`)}</div>}</td>
+                      <td className="td font-semibold">{c.type === "PERCENT" ? `${c.value}%` : M(c.value)}{c.type === "PERCENT" && c.maxDiscount > 0 && <div className="text-xs font-normal text-slate-400">{L("tối đa")} {M(c.maxDiscount)}</div>}</td>
                       <td className="td">
                         <span className="font-medium">{num(c.usedCount)}{c.usageLimit > 0 ? ` / ${num(c.usageLimit)}` : " / ∞"}</span>
                         {c.usageLimit > 0 && <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} /></div>}
                       </td>
-                      <td className="td text-slate-500">{c.minOrder > 0 ? Ld(`Đơn từ ${M(c.minOrder)}`) : L("Không")}</td>
+                      <td className="td text-slate-500">{c.minOrder > 0 ? L("Đơn từ") + " " + M(c.minOrder) : L("Không")}</td>
                       <td className="td text-xs text-slate-500">{c.startsAt ? dt(c.startsAt) : "—"} → {c.endsAt ? dt(c.endsAt) : "—"}</td>
                       <td className="td">{c.active ? <Badge cls="bg-emerald-100 text-emerald-700">{L("Hoạt động")}</Badge> : <Badge cls="bg-slate-200 text-slate-500">{L("Đã tắt")}</Badge>}</td>
                       <td className="td whitespace-nowrap">
@@ -58,7 +58,7 @@ export default async function AdminDiscountCodes({ searchParams }: { searchParam
           )}
         </div>
         <form action={saveDiscountCodeAction} className="card space-y-4 p-5">
-          <div className="font-bold text-slate-900">{edit ? Ld(`Sửa mã ${edit.code}`) : L("Tạo mã giảm giá")}</div>
+          <div className="font-bold text-slate-900">{edit ? <>{L("Sửa mã")} {edit.code}</> : L("Tạo mã giảm giá")}</div>
           {edit && <input type="hidden" name="id" value={edit.id} />}
           <div><label className="lbl">{L("Mã giảm giá")}</label><input className="inp uppercase" name="code" required defaultValue={edit?.code || ""} placeholder={L("VD: SALE10")} /></div>
           <div className="grid grid-cols-2 gap-3">

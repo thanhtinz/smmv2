@@ -18,24 +18,25 @@ export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => null);
   // Trên tên miền riêng của panel con: tiêu đề/SEO/favicon dùng bản riêng của panel.
   const panel = await panelByHost().catch(() => null);
+  const { L } = await getServerI18n(panel?.langConfig ?? undefined).catch(() => ({ L: (t: string) => t }));
   if (panel) {
     return {
-      title: `${panel.name} — SMM Panel & Tài khoản Premium`,
-      description: panel.metaDescription || panel.tagline || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt",
+      title: `${panel.name} — ${L("SMM Panel & Tài khoản Premium")}`,
+      description: L(panel.metaDescription || panel.tagline || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt"),
       keywords: panel.metaKeywords ? panel.metaKeywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
-      openGraph: { title: panel.name, description: panel.metaDescription || panel.tagline || undefined, type: "website", images: panel.ogImageUrl ? [panel.ogImageUrl] : undefined },
-      twitter: { card: "summary_large_image", title: panel.name, description: panel.metaDescription || panel.tagline || undefined, images: panel.ogImageUrl ? [panel.ogImageUrl] : undefined },
+      openGraph: { title: panel.name, description: panel.metaDescription || panel.tagline ? L(panel.metaDescription || panel.tagline || "") : undefined, type: "website", images: panel.ogImageUrl ? [panel.ogImageUrl] : undefined },
+      twitter: { card: "summary_large_image", title: panel.name, description: panel.metaDescription || panel.tagline ? L(panel.metaDescription || panel.tagline || "") : undefined, images: panel.ogImageUrl ? [panel.ogImageUrl] : undefined },
       manifest: "/manifest.webmanifest",
       appleWebApp: { capable: true, statusBarStyle: "default", title: panel.name },
       icons: { icon: panel.faviconUrl || s?.favicon_url || "/icon.svg", apple: panel.faviconUrl || s?.favicon_url || "/icon.svg" },
     };
   }
   return {
-    title: `${s?.site_name || "SMMv2"} — SMM Panel & Tài khoản Premium`,
-    description: s?.meta_description || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt",
+    title: `${s?.site_name || "SMMv2"} — ${L("SMM Panel & Tài khoản Premium")}`,
+    description: L(s?.meta_description || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt"),
     keywords: s?.meta_keywords ? s.meta_keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
-    openGraph: { title: s?.site_name || "SMMv2", description: s?.meta_description || s?.site_tagline || undefined, type: "website", images: s?.og_image_url ? [s.og_image_url] : ["/icon.svg"] },
-    twitter: { card: "summary_large_image", title: s?.site_name || "SMMv2", description: s?.meta_description || s?.site_tagline || undefined, images: s?.og_image_url ? [s.og_image_url] : ["/icon.svg"] },
+    openGraph: { title: s?.site_name || "SMMv2", description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, type: "website", images: s?.og_image_url ? [s.og_image_url] : ["/icon.svg"] },
+    twitter: { card: "summary_large_image", title: s?.site_name || "SMMv2", description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, images: s?.og_image_url ? [s.og_image_url] : ["/icon.svg"] },
     alternates: { canonical: "/" },
     manifest: "/manifest.webmanifest",
     appleWebApp: { capable: true, statusBarStyle: "default", title: s?.site_name || "SMMv2" },

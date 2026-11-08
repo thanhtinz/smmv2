@@ -32,7 +32,7 @@ export default async function PanelCategories({ searchParams }: { searchParams: 
                 <tr key={c.id} className={isHidden ? "opacity-55" : ""}>
                   <td className="td font-semibold text-slate-800">{c.name}</td>
                   <td className="td"><Badge cls="bg-slate-100 text-slate-600">{c.platform}</Badge></td>
-                  <td className="td">{Ld(`${num(c._count.services)} dịch vụ`)}</td>
+                  <td className="td">{num(c._count.services)} {L("dịch vụ")}</td>
                   <td className="td">{isHidden ? <Badge cls="bg-rose-100 text-rose-700">{L("Đang ẩn")}</Badge> : <Badge cls="bg-emerald-100 text-emerald-700">{L("Đang hiện")}</Badge>}</td>
                   <td className="td text-right">
                     <form action={panelToggleCategoryAction}>

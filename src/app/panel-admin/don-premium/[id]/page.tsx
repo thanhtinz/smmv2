@@ -25,7 +25,7 @@ export default async function PanelPremiumOrderDetail({ params, searchParams }: 
       <div className={`grid grid-cols-1 gap-6 items-start ${own ? "lg:grid-cols-5" : ""}`}>
       <div className={`card p-6 ${own ? "lg:col-span-3" : "max-w-3xl"}`}>
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-slate-900">{Ld(`Đơn ${o.code}`)}</h1>
+          <h1 className="text-xl font-bold text-slate-900">{L("Đơn")} {o.code}</h1>
           <Badge cls={PRE_STATUS[o.status].cls}>{L(PRE_STATUS[o.status].label)}</Badge>
         </div>
         <dl className="divide-y divide-slate-100 text-sm">

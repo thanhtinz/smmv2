@@ -21,7 +21,7 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
   ]);
   return (
     <div>
-      <PageHead title={L("Tổng quan panel")} desc={<>{L("Website của bạn:")} <span>/cua-hang/{panel.slug}</span>{panel.domain ? <>{Ld(` · tên miền ${panel.domain}`)}</> : null}</>}>
+      <PageHead title={L("Tổng quan panel")} desc={<>{L("Website của bạn:")} <span>/cua-hang/{panel.slug}</span>{panel.domain ? <> {L("· tên miền")} {panel.domain}</> : null}</>}>
         <Link href={`/cua-hang/${panel.slug}`} className="btn-primary btn-sm !px-4 !py-2">{L("Xem website")}</Link>
       </PageHead>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
@@ -68,7 +68,7 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
       <div className="card p-6 mt-6">
         <div className="flex items-center justify-between mb-4">
           <div className="font-bold text-slate-900">{L("Nạp tiền gần nhất của khách")}</div>
-          <span className="text-xs text-slate-400">{Ld(`${num(depositAgg._count)} lượt nạp thành công qua SePay`)}</span>
+          <span className="text-xs text-slate-400">{num(depositAgg._count)} {L("lượt nạp thành công qua SePay")}</span>
         </div>
         {deposits.length === 0 ? <p className="text-sm text-slate-400">{L("Chưa có lượt nạp nào.")}</p> : (
           <div className="divide-y divide-slate-100">{deposits.map((d) => (

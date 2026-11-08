@@ -82,7 +82,7 @@ export async function CashflowView({ userId, sp, base }: { userId: number; sp: S
           </label>
           <label className="flex w-28 flex-col gap-1 text-xs font-semibold text-slate-500">{L("Hiển thị")}
             <select className="inp w-full !py-2" name="size" defaultValue={String(size)}>
-              {[10, 20, 30, 50, 100].map((n) => <option key={n} value={n}>{Ld(`${n} mục`)}</option>)}
+              {[10, 20, 30, 50, 100].map((n) => <option key={n} value={n}>{n}{L(" mục")}</option>)}
             </select>
           </label>
           <button className="btn-dark !py-2">{L("Lọc")}</button>
@@ -115,7 +115,7 @@ export async function CashflowView({ userId, sp, base }: { userId: number; sp: S
             <Link key={p} href={href(p)} className={`rounded-lg px-3 py-2 text-sm font-semibold ${p === page ? "bg-slate-900 text-white" : "border border-slate-200 bg-white"}`}>{p}</Link>
           ))}
           <Link href={href(page + 1)} className={`rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold ${page >= pages ? "pointer-events-none opacity-40" : ""}`}>›</Link>
-          <span className="ml-2 text-xs text-slate-400">{Ld(`${num(total)} giao dịch`)}</span>
+          <span className="ml-2 text-xs text-slate-400">{num(total)}{L(" giao dịch")}</span>
         </div>
       )}
     </div>

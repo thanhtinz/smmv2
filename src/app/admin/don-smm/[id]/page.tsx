@@ -24,7 +24,7 @@ export default async function AdminSmmOrderDetail({ params, searchParams }: { pa
     [L("Vốn"), M(o.cost)],
     [L("Lãi dự kiến"), M(o.charge - o.cost - o.refundedAmount)],
     [L("Đã hoàn"), M(o.refundedAmount)],
-    [L("Hình thức"), o.fulfillment === "API" ? Ld(`API — ${o.provider?.name || ""} · đơn provider #${o.providerOrderId || "chưa có"}`) : L("Thủ công")],
+    [L("Hình thức"), o.fulfillment === "API" ? "API — " + (o.provider?.name || "") + " · " + L("đơn provider") + " #" + (o.providerOrderId || L("chưa có")) : L("Thủ công")],
     [L("Đặt qua"), o.viaApi ? L("API đại lý") : "Website"],
     [L("Tạo / Cập nhật"), `${dt(o.createdAt)} / ${dt(o.updatedAt)}`],
   ];
@@ -35,7 +35,7 @@ export default async function AdminSmmOrderDetail({ params, searchParams }: { pa
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         <div className="card p-6 lg:col-span-3">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-slate-900">{Ld(`Đơn ${o.code}`)}</h1>
+            <h1 className="text-xl font-bold text-slate-900">{L("Đơn")} {o.code}</h1>
             <Badge cls={SMM_STATUS[o.status].cls}>{L(SMM_STATUS[o.status].label)}</Badge>
           </div>
           <dl className="divide-y divide-slate-100">

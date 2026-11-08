@@ -31,7 +31,7 @@ export default async function PanelStaffPage({ searchParams }: { searchParams: {
           <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 text-white">{I.users}</span>
             <span className="font-bold text-slate-900">{L("Nhân viên của panel")}</span>
-            <span className="ml-auto rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-bold text-violet-700">{Ld(`${staff.length} người`)}</span>
+            <span className="ml-auto rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-bold text-violet-700">{staff.length} {L("người")}</span>
           </div>
           <div className="divide-y divide-slate-50">
             <div className="flex items-center gap-3 px-5 py-3.5">
@@ -47,7 +47,7 @@ export default async function PanelStaffPage({ searchParams }: { searchParams: {
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">{s.user.username.charAt(0).toUpperCase()}</span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold text-slate-800">{s.user.username}</div>
-                  <div className="truncate text-xs text-slate-400">{s.user.email} {Ld(`· thêm ${dt(s.createdAt)}`)}{s.user.panelId === panel.id ? L(" · là khách của panel") : ""}</div>
+                  <div className="truncate text-xs text-slate-400">{s.user.email} {L("· thêm ")}{dt(s.createdAt)}{s.user.panelId === panel.id ? L(" · là khách của panel") : ""}</div>
                 </div>
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">{L("NHÂN VIÊN")}</span>
                 <form action={panelRemoveStaffAction}>

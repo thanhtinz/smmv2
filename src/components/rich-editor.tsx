@@ -73,7 +73,7 @@ export function ImagesField({ defaults }: { defaults: string[] }) {
     <div className="space-y-2">
       {list.map((v, i) => (
         <div key={i} className="flex items-center gap-2">
-          <input className="inp flex-1" name="images" value={v} onChange={(e) => setList((l) => l.map((x, j) => (j === i ? e.target.value : x)))} placeholder={td(`Link ảnh ${i + 1} (https://...)`)} />
+          <input className="inp flex-1" name="images" value={v} onChange={(e) => setList((l) => l.map((x, j) => (j === i ? e.target.value : x)))} placeholder={t("Link ảnh ") + (i + 1) + " (https://...)"} />
           {v ? <img src={v} alt="" className="h-9 w-9 rounded-lg object-cover" /> : null}
           <button type="button" className="btn-ghost btn-sm !px-2.5 !py-1.5 !text-rose-600" onClick={() => setList((l) => (l.length > 1 ? l.filter((_, j) => j !== i) : [""]))}>{t("Xoá")}</button>
         </div>

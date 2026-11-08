@@ -89,7 +89,7 @@ export function TwoFactorCard({ enabled, backupLeft, required }: { enabled: bool
       ) : null}
       <p className="text-sm text-slate-500">
         {enabled
-          ? td(`Khi đăng nhập, sau mật khẩu bạn phải nhập thêm mã 6 số từ ứng dụng Authenticator. Mã dự phòng còn lại: ${backupLeft}/8.`)
+          ? t("Khi đăng nhập, sau mật khẩu bạn phải nhập thêm mã 6 số từ ứng dụng Authenticator. Mã dự phòng còn lại: ") + backupLeft + "/8."
           : t("Bật 2FA để bảo vệ tài khoản: khi đăng nhập, sau mật khẩu phải nhập thêm mã 6 số từ ứng dụng Authenticator (Google Authenticator, Microsoft Authenticator, Authy...).")}
       </p>
       {msg ? <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{msg}</div> : null}

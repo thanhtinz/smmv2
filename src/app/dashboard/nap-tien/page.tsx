@@ -61,7 +61,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
         />
         {myPanel && myPanel.status === "ACTIVE" && !panelSepayOn && (myPanel.bankAccount || myPanelBanks.length > 0) && (
           <form action={createPanelBankDepositAction} className="card p-5">
-            <div className="font-bold text-slate-900">{Ld(`Chuyển khoản cho shop ${myPanel.name}`)}</div>
+            <div className="font-bold text-slate-900">{`${L("Chuyển khoản cho shop ")}${myPanel.name}`}</div>
             {myPanelBanks.length > 0 ? (
               <div className="mt-2 space-y-2">
                 {myPanelBanks.map((b) => (
@@ -90,7 +90,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
                 {deposits.map((d) => (
                   <tr key={d.id}>
                     <td className="td"><div className="font-mono text-xs">{d.code}</div><div className="text-xs text-slate-400">{dt(d.createdAt)}{d.auto ? L(" · tự động") : ""}</div></td>
-                    <td className="td font-semibold">{M(d.amount)}{d.bonus > 0 && <div className="text-xs text-emerald-600">{Ld(`+${M(d.bonus)} thưởng`)}</div>}</td>
+                    <td className="td font-semibold">{M(d.amount)}{d.bonus > 0 && <div className="text-xs text-emerald-600">{`+${M(d.bonus)} ${L("thưởng")}`}</div>}</td>
                     <td className="td text-right"><Badge cls={DEP_STATUS[d.status].cls}>{L(DEP_STATUS[d.status].label)}</Badge></td>
                   </tr>
                 ))}

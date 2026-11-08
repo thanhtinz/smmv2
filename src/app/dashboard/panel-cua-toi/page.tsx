@@ -124,7 +124,7 @@ function PostCreateSteps({ step, panel, ns1, ns2, adminUsername, L, Ld }: { step
       <div className="mt-6"><WizardStepsBar step={step} /></div>
       {step === 4 ? (
         <div className="mt-7">
-          <h3 className="font-bold text-slate-900">{Ld(`Trỏ NameServer cho tên miền ${domain}`)}</h3>
+          <h3 className="font-bold text-slate-900">{`${L("Trỏ NameServer cho tên miền")} ${domain}`}</h3>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-500">{L("Website con đã được tạo. Vào trang quản lý tên miền nơi bạn đã mua, đổi NameServer của")} <b className="text-slate-700">{domain}</b> {L("thành 2 giá trị dưới đây — website con sẽ hoạt động trên tên miền của bạn ngay khi tên miền cập nhật xong (thường 15 phút – 24 giờ).")}</p>
           <div className="mt-5 max-w-xl space-y-2.5">
             {[["NS1", ns1], ["NS2", ns2]].map(([k, v]) => (

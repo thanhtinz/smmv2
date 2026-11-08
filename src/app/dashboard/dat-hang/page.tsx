@@ -60,7 +60,7 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <FlashBanner panelId={user.panelId ?? null} kind="SMM" />
       {panelActive && (
-        <div className="card px-5 py-3.5 mb-5 text-sm text-slate-600">{L("Bạn đang mua qua panel")} <b className="text-slate-900">{panelActive.name}</b> {Ld(`— giá đã gồm phụ phí ${panelActive.markup}% của panel${panelTierDiscount(panelActive, user.level) > 0 ? `, cấp bậc của bạn được giảm thêm ${panelTierDiscount(panelActive, user.level)}%` : ""}.`)}</div>
+        <div className="card px-5 py-3.5 mb-5 text-sm text-slate-600">{L("Bạn đang mua qua panel")} <b className="text-slate-900">{panelActive.name}</b> {`${L("— giá đã gồm phụ phí ")}${panelActive.markup}${L("% của panel")}${panelTierDiscount(panelActive, user.level) > 0 ? `${L(", cấp bậc của bạn được giảm thêm ")}${panelTierDiscount(panelActive, user.level)}%` : ""}.`}</div>
       )}
       <OrderForm services={dto} categories={cats} discount={panelActive ? panelTierDiscount(panelActive, user.level) : levelDiscountFromSettings(settings, user.level)} preselect={preselect} campaignId={searchParams.campaign ? parseInt(searchParams.campaign) : undefined} action={placeSmmOrderAction}
         balance={user.balance} initialLink={searchParams.link} initialQty={searchParams.qty ? parseInt(searchParams.qty) : undefined} />

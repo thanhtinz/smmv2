@@ -190,7 +190,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">{L("Chính sách nạp tiền")}</div>
         <div><label className="lbl">{L("Nạp tối thiểu (VND)")}</label><input className="inp" name="deposit_min" type="number" defaultValue={s.deposit_min} /></div>
-        <div><label className="lbl">{Ld(`Phí website con theo kỳ (VNĐ / ${s.panel_period_days} ngày) — áp dụng cho khách của web mẹ, tự gia hạn trừ số dư`)}</label><input className="inp" name="panel_fee" type="number" min="0" defaultValue={s.panel_fee} placeholder={L("0 = miễn phí")} /></div>
+        <div><label className="lbl">{L("Phí website con theo kỳ (VNĐ /")} {s.panel_period_days} {L("ngày) — áp dụng cho khách của web mẹ, tự gia hạn trừ số dư")}</label><input className="inp" name="panel_fee" type="number" min="0" defaultValue={s.panel_fee} placeholder={L("0 = miễn phí")} /></div>
         <div><label className="lbl">{L("Markup mặc định cho website con mới (%)")}</label><input className="inp" name="panel_default_markup" type="number" min="0" max="200" defaultValue={s.panel_default_markup} /></div>
         <div><label className="lbl">{L("Độ dài 1 kỳ phí website con (ngày)")}</label><input className="inp" name="panel_period_days" type="number" min="1" defaultValue={s.panel_period_days} /></div>
         <div><label className="lbl">{L("Gia hạn website con: trừ phí trước hạn (giờ)")}</label><input className="inp" name="panel_renew_horizon_hours" type="number" min="1" defaultValue={s.panel_renew_horizon_hours} /></div>

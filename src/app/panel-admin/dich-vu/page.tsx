@@ -72,7 +72,7 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
   });
   return (
     <div>
-      <PageHead title={L("Dịch vụ & Giá")} desc={Ld(`Dịch vụ đồng bộ từ web mẹ — chỉnh giá bán tại đây. Đang có ${num(totalServices)} dịch vụ của web mẹ.`)} />
+      <PageHead title={L("Dịch vụ & Giá")} desc={L("Dịch vụ đồng bộ từ web mẹ — chỉnh giá bán tại đây.") + " " + L("Đang có") + " " + num(totalServices) + " " + L("services của web mẹ.")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
       <div className="card mb-6 p-6">
@@ -93,7 +93,7 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
       <form method="get" className="card mb-4 flex flex-wrap items-center gap-3 p-4">
         <input name="q" defaultValue={q} className="inp min-w-[220px] flex-1" placeholder={L("Tìm dịch vụ...")} />
         <button className="btn-primary btn-sm !px-4 !py-2.5">{L("Tìm kiếm")}</button>
-        {totalServices > services.length && <span className="text-xs text-slate-400">{Ld(`Đang hiển thị ${services.length}/${num(totalServices)} dịch vụ — dùng ô tìm kiếm để thu hẹp.`)}</span>}
+        {totalServices > services.length && <span className="text-xs text-slate-400">{L("Đang hiển thị")} {services.length}/{num(totalServices)}{L(" dịch vụ — dùng ô tìm kiếm để thu hẹp.")}</span>}
       </form>
 
       <PanelServicesClient services={dtos} />

@@ -106,7 +106,7 @@ export default async function PanelReportPage({ searchParams }: { searchParams: 
             <span className="flex items-center gap-2 text-sm text-slate-600">{L("Giờ gửi")}
               <input type="time" name="reportTime" defaultValue={panel.reportTime || "21:00"} className="inp !w-[130px]" />
             </span>
-            {panel.reportLastSent && <span className="text-xs text-slate-400">{Ld(`Đã gửi gần nhất: ${panel.reportLastSent}`)}</span>}
+            {panel.reportLastSent && <span className="text-xs text-slate-400">{L("Đã gửi gần nhất: ")}{panel.reportLastSent}</span>}
           </div>
           <div>
             <label className="lbl">{L("Gửi báo cáo qua kênh")}</label>
@@ -132,7 +132,7 @@ export default async function PanelReportPage({ searchParams }: { searchParams: 
           {CHANNELS.map((c) => (
             <form key={c.key} action={panelTestChannelAction}>
               <input type="hidden" name="channel" value={c.key} />
-              <button className="btn-ghost">{Ld(`Thử ${c.label}`)}</button>
+              <button className="btn-ghost">{L("Thử")} {c.label}</button>
             </form>
           ))}
           <form action={panelSendReportNowAction}>

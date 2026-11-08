@@ -79,7 +79,7 @@ export default async function AdminHome() {
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 to-violet-300" />
           <div className="text-sm font-medium text-slate-400">{L("Tổng đơn hàng")}</div>
           <div className="mt-1 text-3xl font-extrabold text-slate-900">{num(totalOrders)}</div>
-          <div className="mt-2 text-sm text-slate-500">{L("Hôm nay:")} <b className="text-slate-700">{Ld(`${num(ordersToday)} đơn`)}</b> {Ld(`· ${num(smmTotal)} SMM · ${num(preTotal)} Premium`)}</div>
+          <div className="mt-2 text-sm text-slate-500">{L("Hôm nay:")} <b className="text-slate-700">{num(ordersToday)}{L(" đơn")}</b> {Ld(`· ${num(smmTotal)} SMM · ${num(preTotal)} Premium`)}</div>
         </div>
       </div>
 
@@ -117,7 +117,7 @@ export default async function AdminHome() {
                 <div className="mb-1.5 flex items-center gap-2 text-sm">
                   <span className="font-bold text-slate-400">#{i + 1}</span>
                   <span className="font-medium text-slate-700">{p.name}</span>
-                  <span className="ml-auto font-semibold text-slate-900">{Ld(`${num(p.count)} đơn`)}</span>
+                  <span className="ml-auto font-semibold text-slate-900">{num(p.count)}{L(" đơn")}</span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
                   <div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-brand-400" style={{ width: `${Math.round((p.count / maxPlat) * 100)}%` }} />
@@ -191,7 +191,7 @@ export default async function AdminHome() {
           <div className="card overflow-hidden bg-gradient-to-br from-violet-600 to-purple-700 p-6 text-white">
             <div className="text-sm font-medium text-violet-200">{L("Tổng số dư người dùng")}</div>
             <div className="mt-1 text-3xl font-extrabold">{M(userAgg._sum.balance || 0)}</div>
-            <div className="mt-2 text-sm text-violet-200">{Ld(`${num(totalUsers)} tài khoản của web mẹ`)}</div>
+            <div className="mt-2 text-sm text-violet-200">{num(totalUsers) + " " + L("tài khoản của web mẹ")}</div>
           </div>
           <div className="card overflow-hidden">
             <div className="flex justify-between border-b border-slate-100 px-5 py-4"><span className="font-bold text-slate-900">{L("Ticket cần xử lý")}</span><Link href="/admin/ticket" className="text-sm font-medium text-brand-600">{L("Xem tất cả")}</Link></div>

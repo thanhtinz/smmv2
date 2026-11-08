@@ -49,7 +49,7 @@ export async function KiemTienView({ userId, linkBase, sp, tabBase }: { userId: 
 
       <div className="card mt-5 p-6">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white">{Ld(`${pct}% hoa hồng`)}</span>
+          <span className="rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white">{pct}{L("% hoa hồng")}</span>
           <span className="text-sm text-slate-500">{L("cho mỗi giao dịch mua thành công của người được bạn giới thiệu — trọn đời tài khoản đó.")}</span>
         </div>
         <div className="lbl !mb-2 mt-4">{L("Link giới thiệu của bạn")}</div>
@@ -62,8 +62,8 @@ export async function KiemTienView({ userId, linkBase, sp, tabBase }: { userId: 
 
       <KiemTienTabs
         initial={tab}
-        refLabel={Ld(`Người đã giới thiệu (${refCount})`)}
-        histLabel={Ld(`Lịch sử hoa hồng (${history.length})`)}
+        refLabel={`${L("Người đã giới thiệu")} (${refCount})`}
+        histLabel={`${L("Lịch sử hoa hồng")} (${history.length})`}
         refContent={
           referrals.length === 0 ? <div className="mt-4"><Empty text={L("Chưa có người được giới thiệu")} /></div> : (
             <div className="card mt-4 overflow-x-auto">

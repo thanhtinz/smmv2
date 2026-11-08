@@ -144,7 +144,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
           </div>
           <div>
             <label className="lbl">{L("API key liên kết web mẹ")}</label>
-            <input className="inp font-mono !text-[13px]" name="apiKey" defaultValue="" placeholder={panel.apiKey ? Ld(`Đang dùng key ••••${panel.apiKey.slice(-4)} — để trống = giữ nguyên`) : L("Dán API key của tài khoản mẹ")} autoComplete="off" />
+            <input className="inp font-mono !text-[13px]" name="apiKey" defaultValue="" placeholder={panel.apiKey ? L("Đang dùng key ••••") + panel.apiKey.slice(-4) + L(" — để trống = giữ nguyên") : L("Dán API key của tài khoản mẹ")} autoComplete="off" />
             <p className="mt-1.5 text-xs text-slate-400">{L("Đang liên kết bằng key của tài khoản")} <b>{linkedUser ? `${linkedUser.username} (#${panel.apiUserId})` : "—"}</b>{L(". Hệ thống kiểm tra key ngay khi lưu.")}</p>
             <p className="mt-1.5 text-xs text-slate-400">{L("Nếu tài khoản liên kết đã đặt whitelist IP cho API key ở web mẹ, danh sách IP đó cũng áp dụng cho khoá liên kết của website này.")}</p>
           </div>
@@ -303,7 +303,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
       <div className={infoBox}>{L("Chỉ khách của panel được hưởng các mốc này — khách của web mẹ có chính sách riêng, hai bên không tính chung. Để trống cả 3 mốc là không thưởng.")}</div>
       {[1, 2, 3].map((i) => (
         <div key={i} className="grid grid-cols-2 gap-4">
-          <div><label className="lbl">{Ld(`Mốc ${i} — nạp từ (VNĐ)`)}</label><input name={`tierFrom${i}`} type="number" min={0} defaultValue={savedTiers[i - 1]?.from || ""} className="inp" placeholder="VD: 100000" /></div>
+          <div><label className="lbl">{L("Mốc")} {i} {L("— nạp từ (VNĐ)")}</label><input name={`tierFrom${i}`} type="number" min={0} defaultValue={savedTiers[i - 1]?.from || ""} className="inp" placeholder="VD: 100000" /></div>
           <div><label className="lbl">{L("Thưởng (%)")}</label><input name={`tierPct${i}`} type="number" min={0} max={100} defaultValue={savedTiers[i - 1]?.percent || ""} className="inp" placeholder="VD: 10" /></div>
         </div>
       ))}
@@ -442,7 +442,7 @@ export default async function PanelConfigPage({ searchParams }: { searchParams: 
         <p className="text-sm leading-relaxed text-slate-400">{L("Giống web mẹ: khách của panel cũng tạo được website con của riêng họ ngay tại trang Đăng ký website con. Bạn đặt phí ở đây — khi khách đăng ký thành công, phí được trừ vào số dư của khách và")} <b className="text-slate-600">{L("cộng thẳng vào số dư của bạn")}</b>{L(". Đặt 0₫ là miễn phí.")}</p>
         <div><label className="lbl">{L("Phí website con theo tháng (VNĐ / 30 ngày)")}</label><input name="panelFee" type="number" min={0} defaultValue={panel.panelFee || 0} className="inp" placeholder={L("0 = miễn phí")} /></div>
         <div><label className="lbl">{L("Markup mặc định cho website con mới (%)")}</label><input name="panelDefaultMarkup" type="number" min={0} max={200} defaultValue={panel.panelDefaultMarkup || ""} className="inp" placeholder={L("Để trống = theo web mẹ")} /></div>
-        <p className="text-xs text-slate-400">{Ld(`Đang áp dụng: ${panel.panelFee > 0 ? M(panel.panelFee) : L("Miễn phí")} cho mỗi website con khách của bạn tạo, tính theo tháng và tự gia hạn trừ số dư của khách.`)}</p>
+        <p className="text-xs text-slate-400">{L("Đang áp dụng: ")}{panel.panelFee > 0 ? M(panel.panelFee) : L("Miễn phí")} {L("cho mỗi website con khách của bạn tạo, tính theo tháng và tự gia hạn trừ số dư của khách.")}</p>
         <button className="btn-primary !py-2.5">{L("Lưu phí tạo website con")}</button>
       </form>
     </>

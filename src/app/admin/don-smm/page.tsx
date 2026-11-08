@@ -21,7 +21,7 @@ export default async function AdminSmmOrders({ searchParams }: { searchParams: {
   ]);
   return (
     <div>
-      <PageHead title={L("Đơn SMM")} desc={Ld(`${num(total)} đơn · ${manualPending} đơn thủ công đang chờ xử lý`)} />
+      <PageHead title={L("Đơn SMM")} desc={<>{num(total)} {L("đơn")} · {manualPending} {L("đơn thủ công")} {L("đang chờ xử lý")}</>} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form className="flex flex-wrap gap-2 mb-5">
         <input className="inp !w-72" name="q" placeholder={L("Mã đơn / link / username...")} defaultValue={searchParams.q || ""} />
@@ -57,7 +57,7 @@ export default async function AdminSmmOrders({ searchParams }: { searchParams: {
           </table>
         </div>
       )}
-      {Math.ceil(total / PAGE) > 1 && <p className="text-sm text-slate-400 mt-4">{Ld(`Trang ${page}/${Math.ceil(total / PAGE)}`)}</p>}
+      {Math.ceil(total / PAGE) > 1 && <p className="text-sm text-slate-400 mt-4">{L("Trang")} {page}/{Math.ceil(total / PAGE)}</p>}
     </div>
   );
 }

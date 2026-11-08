@@ -32,7 +32,7 @@ export default async function PanelPromotions({ searchParams }: { searchParams: 
           <p className="text-sm text-slate-500">{L("Chỉ khách của panel được hưởng các mốc này. Để trống cả 3 mốc là không thưởng.")}</p>
           {[1, 2, 3].map((i) => (
             <div key={i} className="grid grid-cols-2 gap-4">
-              <div><label className="lbl">{Ld(`Mốc ${i} — nạp từ (VNĐ)`)}</label><input name={`tierFrom${i}`} type="number" min={0} defaultValue={savedTiers[i - 1]?.from || ""} className="inp" placeholder={L("VD: 100000")} /></div>
+              <div><label className="lbl">{L("Mốc")} {i} {L("— nạp từ (VNĐ)")}</label><input name={`tierFrom${i}`} type="number" min={0} defaultValue={savedTiers[i - 1]?.from || ""} className="inp" placeholder={L("VD: 100000")} /></div>
               <div><label className="lbl">{L("Thưởng (%)")}</label><input name={`tierPct${i}`} type="number" min={0} max={100} defaultValue={savedTiers[i - 1]?.percent || ""} className="inp" placeholder={L("VD: 10")} /></div>
             </div>
           ))}

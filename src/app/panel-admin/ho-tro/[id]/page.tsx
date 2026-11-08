@@ -27,7 +27,7 @@ export default async function PanelTicketDetail({ params, searchParams }: { para
   if (!ticket) notFound();
   return (
     <div>
-      <PageHead title={Ld(`Ticket #${ticket.id}: ${ticket.subject}`)} desc={Ld(`Khách ${ticket.user.username} · ${ticket.user.email}`)}>
+      <PageHead title={Ld(`Ticket #${ticket.id}: ${ticket.subject}`)} desc={L("Khách ") + ticket.user.username + " · " + ticket.user.email}>
         <span className="flex items-center gap-2">
           <Badge cls={STATUS[ticket.status].cls}>{L(STATUS[ticket.status].label)}</Badge>
           <Link href="/panel-admin/ho-tro" className="btn-ghost btn-sm !px-4 !py-2">{L("← Danh sách")}</Link>

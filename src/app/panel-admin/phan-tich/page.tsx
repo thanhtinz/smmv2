@@ -50,8 +50,8 @@ export default async function PanelAnalyticsPage({ searchParams }: { searchParam
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label={L("Doanh thu SMM (30 ngày)")} value={M(revenue30)} icon={I.money} tone="amber" />
         <Stat label={L("Hoa hồng (30 ngày)")} value={M(commissionAgg._sum.amount || 0)} icon={I.wallet} tone="emerald" />
-        <Stat label={L("Đơn Premium qua panel")} value={num(premiumAgg._count)} sub={Ld(`Doanh thu ${M(premiumAgg._sum.total || 0)} · hoa hồng ${M(premiumAgg._sum.commission || 0)}`)} icon={I.gem} tone="violet" />
-        <Stat label={L("Khách của panel")} value={num(memberCount)} sub={Ld(`${num(depositedMembers.length)} khách đã nạp · ${num(orderedCount.length)} khách đã đặt đơn`)} icon={I.users} tone="blue" />
+        <Stat label={L("Đơn Premium qua panel")} value={num(premiumAgg._count)} sub={L("Doanh thu ") + M(premiumAgg._sum.total || 0) + L(" · hoa hồng ") + M(premiumAgg._sum.commission || 0)} icon={I.gem} tone="violet" />
+        <Stat label={L("Khách của panel")} value={num(memberCount)} sub={num(depositedMembers.length) + L(" khách đã nạp · ") + num(orderedCount.length) + L(" khách đã đặt đơn")} icon={I.users} tone="blue" />
       </div>
       <div className="card mb-6 p-6">
         <div className="mb-4 font-bold text-slate-900">{L("Doanh thu theo ngày")}</div>
@@ -73,7 +73,7 @@ export default async function PanelAnalyticsPage({ searchParams }: { searchParam
             {topServices.map((t) => (
               <div key={t.serviceId} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                 <span className="min-w-0 truncate font-medium text-slate-700">{svcMap.get(t.serviceId) || `#${t.serviceId}`}</span>
-                <span className="shrink-0 text-slate-500">{Ld(`${num(t._count)} đơn ·`)} <b className="text-slate-800">{M(t._sum.charge || 0)}</b></span>
+                <span className="shrink-0 text-slate-500">{num(t._count)} {L("đơn")} · <b className="text-slate-800">{M(t._sum.charge || 0)}</b></span>
               </div>
             ))}
             {topServices.length === 0 && <p className="py-3 text-sm text-slate-400">{L("Chưa có đơn nào qua panel.")}</p>}
@@ -85,7 +85,7 @@ export default async function PanelAnalyticsPage({ searchParams }: { searchParam
             {topCustomers.map((t) => (
               <div key={t.userId} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                 <span className="font-medium text-slate-700">{custMap.get(t.userId) || `#${t.userId}`}</span>
-                <span className="text-slate-500">{Ld(`${num(t._count)} đơn ·`)} <b className="text-slate-800">{M(t._sum.charge || 0)}</b></span>
+                <span className="text-slate-500">{num(t._count)} {L("đơn")} · <b className="text-slate-800">{M(t._sum.charge || 0)}</b></span>
               </div>
             ))}
             {topCustomers.length === 0 && <p className="py-3 text-sm text-slate-400">{L("Chưa có dữ liệu.")}</p>}
@@ -103,7 +103,7 @@ export default async function PanelAnalyticsPage({ searchParams }: { searchParam
             <div key={b.name} className="flex items-center gap-3 border-b border-slate-50 py-3">
               <RankBadge rank={i + 1} />
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{b.name}</span>
-              <span className="shrink-0 text-sm"><b className="text-slate-900">{M(b.revenue)}</b> <span className="text-slate-400">{Ld(`· ${num(b.quantity)} gói`)}</span></span>
+              <span className="shrink-0 text-sm"><b className="text-slate-900">{M(b.revenue)}</b> <span className="text-slate-400">· {num(b.quantity)} {L("gói")}</span></span>
             </div>
           ))}
           {full.bestPremium.length === 0 && <p className="py-5 text-sm text-slate-400">{L("Chưa có đơn Premium nào qua panel trong 30 ngày.")}</p>}

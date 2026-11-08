@@ -24,14 +24,14 @@ export default async function PanelEmailPage({ searchParams }: { searchParams: {
       <PageHead title={L("Email marketing")} desc={L("Gửi email quảng bá tới khách của website qua hệ thống thư chung.")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       {!globalReady && !panelReady && <div className="card mb-6 border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">{L("Chưa gửi được email: hãy điền SMTP riêng của panel ở mục Cấu hình, hoặc nhờ Admin web chính cấu hình thư hệ thống (Cấu hình → Email).")}</div>}
-      {panelReady && <div className="card mb-6 border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{Ld(`Đang dùng SMTP riêng của panel (${panel.smtpHost}) để gửi.`)}</div>}
+      {panelReady && <div className="card mb-6 border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{L("Đang dùng SMTP riêng của panel (")}{panel.smtpHost}{L(") để gửi.")}</div>}
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
         <form action={panelSendMarketingEmail} className="card space-y-4 p-6">
           <div className="font-bold text-slate-900">{L("Soạn chiến dịch")}</div>
           <div>
             <label className="lbl">{L("Gửi tới nhóm")}</label>
             <select name="segment" className="inp">
-              <option value="all">{Ld(`Tất cả khách của panel (${num(totalMembers)} email)`)}</option>
+              <option value="all">{L("Tất cả khách của panel (")}{num(totalMembers)} email)</option>
               <option value="deposited">{L("Khách đã từng nạp tiền")}</option>
               <option value="ordered">{L("Khách đã từng đặt đơn qua panel")}</option>
             </select>

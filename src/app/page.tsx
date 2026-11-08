@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth";
 import { SiteFooter } from "@/components/site";
+import { getServerI18n } from "@/lib/lang-server";
 import { LandingView } from "@/components/landing";
 import { LandingLight, LandingClassic } from "@/components/landing-variants";
 
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage({ searchParams }: { searchParams: { preview?: string } }) {
   const s = await getSettings();
+  const { L } = await getServerI18n();
   const user = await getCurrentUser().catch(() => null);
   // Đã đăng nhập là về thẳng bảng điều khiển, không quay lại landing (admin xem trước bằng ?preview=1)
   if (user && !(user.role === "ADMIN" && searchParams.preview)) redirect("/dashboard");
@@ -50,7 +52,7 @@ export default async function HomePage({ searchParams }: { searchParams: { previ
       showSmm={s.module_smm !== "0"}
       showPremium={s.module_premium !== "0"}
       brandName={s.site_name}
-      tagline={s.landing_subtitle || s.site_tagline}
+      tagline={L(s.landing_subtitle || s.site_tagline || "")}
       headline={s.landing_headline || null}
       loggedIn={!!user}
       stats={{ services: serviceCount, premium: premiumCount, orders: smmOrderCount + premiumOrderCount, users: userCount, completion }}

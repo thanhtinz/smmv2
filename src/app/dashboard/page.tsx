@@ -73,7 +73,7 @@ export default async function DashboardHome() {
   const noticeDate = (d: Date) => new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" }).format(d);
 
   const name = user.fullName || user.username;
-  const tagline = panelTagline || s.site_tagline || L("Hệ thống cung cấp dịch vụ mạng xã hội chuyên nghiệp, tự động 100%.");
+  const tagline = L(panelTagline || s.site_tagline || "Hệ thống cung cấp dịch vụ mạng xã hội chuyên nghiệp, tự động 100%.");
   const smmOn = s.module_smm !== "0";
   const premiumOn = s.module_premium !== "0";
   const txTime = (d: Date) => new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Ho_Chi_Minh" }).format(d);
@@ -83,7 +83,7 @@ export default async function DashboardHome() {
       <FlashBanner panelId={user.panelId ?? null} />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{Ld(`Chào mừng, ${name}!`)}</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{L("Chào mừng, ")}{name}!</h1>
           <p className="mt-1 text-sm text-slate-500">{tagline}</p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2.5">
@@ -111,7 +111,7 @@ export default async function DashboardHome() {
         </Link>
         <Stat label={L("Tổng nạp")} value={M(user.totalDeposited)} icon={I.db} />
         <Stat label={L("Tổng chi tiêu")} value={M(totalSpent)} icon={I.chart} />
-        <Stat label={L("Giao dịch thành công")} value={Ld(`${num(txCount)} phát sinh`)} icon={I.check} />
+        <Stat label={L("Giao dịch thành công")} value={`${num(txCount)} ${L("phát sinh")}`} icon={I.check} />
       </div>
 
       <div className="mt-6"><SectionLabel>{L("Thống kê đơn hàng")}</SectionLabel></div>
@@ -137,7 +137,7 @@ export default async function DashboardHome() {
                 <div key={o.id} className="flex items-center gap-3 px-5 py-3.5">
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium text-slate-800">{o.service.name}</div>
-                    <div className="mt-0.5 text-xs text-slate-400">{Ld(`Số lượng: ${num(o.quantity)} · ${dt(o.createdAt)}`)}</div>
+                    <div className="mt-0.5 text-xs text-slate-400">{L("Số lượng:")} {num(o.quantity)} · {dt(o.createdAt)}</div>
                   </div>
                   <Badge cls={SMM_STATUS[o.status].cls}>{L(SMM_STATUS[o.status].label)}</Badge>
                   <div className="w-24 text-right font-semibold text-slate-900">{M(o.charge)}</div>

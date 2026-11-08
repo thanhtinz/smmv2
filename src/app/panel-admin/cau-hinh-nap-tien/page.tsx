@@ -38,7 +38,7 @@ export default async function PanelMethodConfig({ searchParams }: { searchParams
               <CopyBtn text={`${base}/api/webhooks/sepay`} />
             </div>
           </div>
-          <p className="text-sm text-slate-500">{Ld(`Đang có ${bankCount} tài khoản nhận tiền đang bật — quản lý ở trang Ngân hàng.`)}</p>
+          <p className="text-sm text-slate-500">{L("Đang có")} {bankCount} {L("tài khoản nhận tiền đang bật — quản lý ở trang Ngân hàng.")}</p>
           <div className="flex gap-2">
             <button className="btn-primary !py-2.5">{L("Lưu SePay")}</button>
             <a href="/panel-admin/ngan-hang" className="btn-ghost !py-2.5">{L("Mở trang Ngân hàng")}</a>

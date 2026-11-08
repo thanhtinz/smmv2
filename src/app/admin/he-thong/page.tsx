@@ -33,7 +33,7 @@ export default async function AdminSystem({ searchParams }: { searchParams: { ms
     prisma.smmOrder.count({ where: { updatedAt: { gte: d24 } } }),
   ]);
   const healthCards = [
-    { label: L("Cơ sở dữ liệu"), value: dbOk ? Ld(`Đang kết nối · ${dbMs}ms`) : L("Mất kết nối") },
+    { label: L("Cơ sở dữ liệu"), value: dbOk ? L("Đang kết nối") + " · " + dbMs + "ms" : L("Mất kết nối") },
     { label: L("Cron đồng bộ gần nhất"), value: lastCron ? dt(lastCron.createdAt) : L("Chưa ghi nhận") },
     { label: L("Đơn đang xử lý (hàng chờ)"), value: num(pendingOrders) },
     { label: L("Gói định kỳ đang chạy"), value: num(activeSubs) },
@@ -46,7 +46,7 @@ export default async function AdminSystem({ searchParams }: { searchParams: { ms
     { label: L("Tổng người dùng"), value: num(users) },
     { label: L("Tổng đơn SMM"), value: num(orders) },
     { label: L("Nhật ký API (tổng)"), value: num(apiLogTotal) },
-    { label: L("Uptime tiến trình"), value: Ld(`${Math.floor(process.uptime() / 60)} phút`) },
+    { label: L("Uptime tiến trình"), value: Math.floor(process.uptime() / 60) + " " + L("phút") },
   ];
   const cleanups = [
     { kind: "apilog", title: L("Nhật ký API cũ"), desc: L("Bản ghi gọi API nhà cung cấp / webhook cũ hơn 30 ngày"), count: apiLogOld },

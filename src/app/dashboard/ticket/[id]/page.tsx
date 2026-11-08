@@ -32,7 +32,7 @@ export default async function TicketDetail({ params }: { params: { id: string } 
           {t.messages.map((m) => (
             <div key={m.id} className={`flex ${m.fromAdmin ? "" : "justify-end"}`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${m.fromAdmin ? "bg-slate-100 text-slate-800" : "bg-brand-600 text-white"}`}>
-                <div className={`text-[11px] mb-1 ${m.fromAdmin ? "text-slate-400" : "text-brand-100"}`}>{Ld(`${m.fromAdmin ? L("Hỗ trợ") : L("Bạn")} · ${dt(m.createdAt)}`)}</div>
+                <div className={`text-[11px] mb-1 ${m.fromAdmin ? "text-slate-400" : "text-brand-100"}`}>{`${m.fromAdmin ? L("Hỗ trợ") : L("Bạn")} · ${dt(m.createdAt)}`}</div>
                 <p className="text-sm whitespace-pre-wrap">{m.body}</p>
                 <TicketAttachments raw={m.attachments} />
               </div>

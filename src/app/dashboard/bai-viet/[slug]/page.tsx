@@ -29,7 +29,7 @@ export default async function DashPostDetail({ params }: { params: { slug: strin
       <Link href="/dashboard/bai-viet" className="text-sm font-medium text-brand-600">{L("← Tất cả bài viết")}</Link>
       <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
         {post.category && <span className="rounded-full bg-brand-50 px-2 py-0.5 font-semibold text-brand-600">{post.category.name}</span>}
-        <span>{dshort(post.createdAt)}</span><span>·</span><span>{Ld(`${post.views + 1} lượt xem`)}</span>
+        <span>{dshort(post.createdAt)}</span><span>·</span><span>{`${post.views + 1} ${L("lượt xem")}`}</span>
       </div>
       <h1 className="mt-3 text-3xl font-extrabold leading-tight text-slate-900">{post.title}</h1>
       {post.excerpt && <p className="mt-3 text-lg text-slate-500">{post.excerpt}</p>}

@@ -60,7 +60,7 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
           {item.reviewCount > 0 && <span className="inline-flex items-center gap-1.5"><Stars value={item.rating} className="h-3.5 w-3.5" /><b className="text-slate-700">{item.rating.toFixed(1)}</b>({item.reviewCount})</span>}
-          {item.sold > 0 && <span>{td(`Đã bán ${item.sold.toLocaleString("vi-VN")}`)}</span>}
+          {item.sold > 0 && <span>{t("Đã bán ")}{item.sold.toLocaleString("vi-VN")}</span>}
           {item.instant && item.hasStock && (
             <span className="inline-flex items-center gap-1 font-bold text-teal-600">
               <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>

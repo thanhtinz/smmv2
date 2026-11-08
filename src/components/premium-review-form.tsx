@@ -22,7 +22,7 @@ export function PremiumReviewForm({ slug, returnTo, action, mine }: {
       <input type="hidden" name="rating" value={rating} />
       <div className="flex items-center gap-1" onMouseLeave={() => setHover(0)}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} type="button" aria-label={td(`${n} sao`)} onClick={() => setRating(n)} onMouseEnter={() => setHover(n)} className="p-0.5">
+          <button key={n} type="button" aria-label={n + t(" sao")} onClick={() => setRating(n)} onMouseEnter={() => setHover(n)} className="p-0.5">
             <svg viewBox="0 0 24 24" className="h-7 w-7" fill={n <= shown ? "#f59e0b" : "none"} stroke="#f59e0b" strokeWidth="1.6">
               <path strokeLinejoin="round" d="M12 3.5l2.55 5.37 5.9.72-4.34 4.06 1.1 5.83L12 16.9l-5.21 2.58 1.1-5.83L3.55 9.59l5.9-.72L12 3.5z" />
             </svg>
@@ -64,7 +64,7 @@ export function HelpfulButton({ reviewId, count, marked, action }: {
       <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill={on ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
         <path strokeLinejoin="round" d="M7 22V11L12.5 2.5c1.6 0 2.7 1.2 2.5 2.8L14.3 9H20a2 2 0 0 1 2 2.4l-1.2 8A2 2 0 0 1 18.8 21H7zm0 0H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3" />
       </svg>
-      {td(`Hữu ích${n > 0 ? ` (${n})` : ""}`)}
+      {t("Hữu ích")}{n > 0 ? ` (${n})` : ""}
     </button>
   );
 }

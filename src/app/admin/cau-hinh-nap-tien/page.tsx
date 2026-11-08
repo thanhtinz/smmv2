@@ -47,7 +47,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
             <input className="inp" name="sepay_secret" type="password" autoComplete="off" placeholder={s.sepay_secret ? L("Để trống = giữ nguyên") : L("Dán API Key từ SePay vào đây")} />
           </div>
           <p className="text-sm text-slate-500">
-            {Ld(`Đang có ${banks.length} tài khoản nhận tiền${banks.length ? `: ${banks.map((b) => b.bankName).join(", ")}` : ""} — quản lý ở trang Ngân hàng.`)}
+            {L("Đang có") + " " + banks.length + " " + L("tài khoản nhận tiền") + (banks.length ? `: ${banks.map((b) => b.bankName).join(", ")}` : "") + " " + L("— quản lý ở trang Ngân hàng.")}
           </p>
           <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">{L("Khách ghi đúng nội dung chứa mã nạp thì hệ thống tự đối soát và cộng tiền trong vài phút; sai nội dung sẽ chờ duyệt tay ở trang Quản lý nạp tiền.")}</p>
           <div className="flex gap-2">

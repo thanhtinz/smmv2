@@ -40,7 +40,7 @@ export default async function PanelMovements({ searchParams }: { searchParams: {
   if (searchParams.type) csvQs.set("type", searchParams.type);
   return (
     <div>
-      <PageHead title={L("Biến động số dư")} desc={Ld(`${total.toLocaleString("vi-VN")} giao dịch của khách panel và hoa hồng của bạn — mọi thay đổi số dư trong panel đều có sổ ở đây.`)}>
+      <PageHead title={L("Biến động số dư")} desc={<>{total.toLocaleString("vi-VN")}{L(" giao dịch của khách panel và hoa hồng của bạn — mọi thay đổi số dư trong panel đều có sổ ở đây.")}</>}>
         <a href={`/panel-admin/bien-dong/csv?${csvQs}`} className="btn-dark">{L("Xuất CSV")}</a>
       </PageHead>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
@@ -64,7 +64,7 @@ export default async function PanelMovements({ searchParams }: { searchParams: {
               {rows.map((t) => (
                 <tr key={t.id}>
                   <td className="td font-mono text-xs text-slate-400">#{t.id}</td>
-                  <td className="td"><span className="font-medium">{t.user.username}</span><div className="text-xs text-slate-400">{t.userId === panel.ownerId ? L("Chủ panel") : Ld(`Khách · ID ${t.userId}`)}</div></td>
+                  <td className="td"><span className="font-medium">{t.user.username}</span><div className="text-xs text-slate-400">{t.userId === panel.ownerId ? L("Chủ panel") : <>{L("Khách")} · ID {t.userId}</>}</div></td>
                   <td className="td"><Badge cls={t.amount >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}>{L(TX_LABEL[t.type] || t.type)}</Badge></td>
                   <td className={`td font-bold ${t.amount >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{t.amount >= 0 ? "+" : "−"}{M(Math.abs(t.amount))}</td>
                   <td className="td text-slate-500">{M(t.balanceAfter - t.amount)}</td>

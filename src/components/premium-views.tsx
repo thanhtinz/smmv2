@@ -266,7 +266,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
       <ul className="space-y-2 text-sm text-slate-600">
         {product.variants.map((v) => (
           <li key={v.id} className="flex flex-wrap items-baseline justify-between gap-2">
-            <span><b className="text-slate-800">{v.name}</b> — {v.warrantyDays ? Ld(`bảo hành ${v.warrantyDays} ngày`) : L("không bảo hành")}{product.fulfillment === "AUTO_STOCK" ? (stockMap.get(v.id) ? Ld(` · còn ${stockMap.get(v.id)} trong kho`) : L(" · hết kho, giao tay")) : ""}</span>
+            <span><b className="text-slate-800">{v.name}</b> — {v.warrantyDays ? <>{L("bảo hành ")}{v.warrantyDays}{L(" ngày")}</> : L("không bảo hành")}{product.fulfillment === "AUTO_STOCK" ? (stockMap.get(v.id) ? <>{L(" · còn ")}{stockMap.get(v.id)}{L(" trong kho")}</> : L(" · hết kho, giao tay")) : ""}</span>
             <span className="font-bold text-rose-600">{M(v.price)}</span>
           </li>
         ))}
@@ -293,13 +293,13 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
       <div className="flex items-center gap-2">
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="#f59e0b"><path d="M12 3.5l2.55 5.37 5.9.72-4.34 4.06 1.1 5.83L12 16.9l-5.21 2.58 1.1-5.83L3.55 9.59l5.9-.72L12 3.5z" /></svg>
         <h2 className="text-base font-extrabold text-slate-900">{L("Đánh giá sản phẩm")}</h2>
-        <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">{Ld(`${reviewCount} đánh giá`)}</span>
+        <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">{reviewCount}{L(" đánh giá")}</span>
       </div>
       <div className="mt-5 grid grid-cols-1 items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,3fr)]">
         <div className="text-center">
           <div className="text-[40px] font-black leading-none text-slate-900">{reviewCount > 0 ? reviewAvg.toFixed(1) : "—"}</div>
           <div className="mt-2.5 flex justify-center"><Stars value={reviewAvg} className="h-5 w-5" /></div>
-          <div className="mt-2 text-[13px] text-slate-500">{Ld(`${reviewCount} đánh giá`)}</div>
+          <div className="mt-2 text-[13px] text-slate-500">{reviewCount}{L(" đánh giá")}</div>
         </div>
         <div className="space-y-2">
         {[5, 4, 3, 2, 1].map((n) => (
@@ -347,7 +347,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
                 ) : (
                   <Link href="/login" className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700">
                     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinejoin="round" d="M7 22V11L12.5 2.5c1.6 0 2.7 1.2 2.5 2.8L14.3 9H20a2 2 0 0 1 2 2.4l-1.2 8A2 2 0 0 1 18.8 21H7zm0 0H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3" /></svg>
-                    {Ld(`Hữu ích${(helpfulMap.get(r.id) || 0) > 0 ? ` (${helpfulMap.get(r.id)})` : ""}`)}
+                    {L("Hữu ích")}{(helpfulMap.get(r.id) || 0) > 0 ? ` (${helpfulMap.get(r.id)})` : ""}
                   </Link>
                 )}
               </li>
@@ -399,8 +399,8 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             <h1 className="mt-3 text-3xl font-extrabold leading-tight">{product.name}</h1>
             {product.tagline && <p className="mt-2 text-sm leading-relaxed text-white/85">{product.tagline}</p>}
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-              {reviewCount > 0 && <span className="inline-flex items-center gap-1.5 font-semibold text-white/95"><Stars value={reviewAvg} /> {Ld(`${reviewAvg.toFixed(1)} (${reviewCount} đánh giá)`)}</span>}
-              {sold > 0 && <span className="font-semibold text-white/90">{Ld(`Đã bán ${sold.toLocaleString("vi-VN")}`)}</span>}
+              {reviewCount > 0 && <span className="inline-flex items-center gap-1.5 font-semibold text-white/95"><Stars value={reviewAvg} /> {reviewAvg.toFixed(1)} ({reviewCount}{L(" đánh giá")})</span>}
+              {sold > 0 && <span className="font-semibold text-white/90">{L("Đã bán ")}{sold.toLocaleString("vi-VN")}</span>}
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{fulfillmentTag}</span>
               {session && <Link href="/dashboard/api-docs" className="rounded-lg border border-white/40 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/10">API</Link>}
             </div>

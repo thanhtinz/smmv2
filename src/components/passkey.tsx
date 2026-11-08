@@ -97,7 +97,7 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${passkeys.length ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
         >
-          {passkeys.length ? td(`${passkeys.length} thiết bị`) : t("Chưa có")}
+          {passkeys.length ? <>{passkeys.length}{t(" thiết bị")}</> : t("Chưa có")}
         </span>
       </div>
       <p className="text-sm text-slate-500">
@@ -118,8 +118,8 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold text-slate-800">{p.deviceName}</div>
                 <div className="mt-0.5 text-xs text-slate-400">
-                  {td(`Tạo ngày ${p.createdAt}`)}
-                  {p.lastUsedAt ? td(` · Dùng gần nhất ${p.lastUsedAt}`) : t(" · Chưa dùng lần nào")}
+                  {t("Tạo ngày ")}{p.createdAt}
+                  {p.lastUsedAt ? <>{t(" · Dùng gần nhất ")}{p.lastUsedAt}</> : t(" · Chưa dùng lần nào")}
                 </div>
               </div>
               <button

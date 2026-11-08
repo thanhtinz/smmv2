@@ -30,10 +30,10 @@ export default async function AdminSmartPricing({ searchParams }: { searchParams
           <div>
             <label className="lbl">{L("Phạm vi áp dụng")}</label>
             <select className="inp" name="scope" defaultValue="all">
-              <option value="all">{Ld(`Tất cả dịch vụ (${num(total)})`)}</option>
+              <option value="all">{L("Tất cả dịch vụ (")}{num(total)}{")"}</option>
               <option value="manual">{L("Chỉ dịch vụ thủ công")}</option>
-              {providers.map((p) => <option key={p.id} value={`provider:${p.id}`}>{Ld(`Nguồn: ${p.name}`)}</option>)}
-              {categories.map((c) => <option key={c.id} value={`category:${c.id}`}>{Ld(`Danh mục: ${c.name}`)}</option>)}
+              {providers.map((p) => <option key={p.id} value={`provider:${p.id}`}>{L("Nguồn: ")}{p.name}</option>)}
+              {categories.map((c) => <option key={c.id} value={`category:${c.id}`}>{L("Danh mục: ")}{c.name}</option>)}
             </select>
           </div>
           <div>

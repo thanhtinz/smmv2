@@ -105,7 +105,7 @@ export async function LandingView(props: {
             <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#0c0f16] shadow-2xl shadow-black/60">
               <div className="flex items-center gap-2 border-b border-white/5 px-5 py-3.5">
                 <span className="h-3 w-3 rounded-full bg-rose-500/80" /><span className="h-3 w-3 rounded-full bg-amber-400/80" /><span className="h-3 w-3 rounded-full bg-emerald-400/80" />
-                <span className="ml-3 text-xs font-semibold tracking-wide text-slate-400">{Ld(`${brandName} Console · Điều phối đơn hàng`)}</span>
+                <span className="ml-3 text-xs font-semibold tracking-wide text-slate-400">{brandName}{L(" Console · Điều phối đơn hàng")}</span>
                 <span className="ml-auto rounded-full bg-emerald-400/10 px-2.5 py-1 text-[11px] font-bold text-emerald-400">ONLINE</span>
               </div>
               <div className="grid gap-4 p-5 sm:grid-cols-[1fr_220px]">
@@ -191,7 +191,7 @@ export async function LandingView(props: {
                   <span className="text-lg font-extrabold text-white">{(PLATFORMS as any)[p.platform] || p.platform}</span>
                   <span className="rounded-full bg-rose-600/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-rose-300">{badgeFor(p.platform, i)}</span>
                 </div>
-                <div className="mt-1 text-sm text-slate-500">{Ld(`${num(p.count)} dịch vụ đang bán`)}</div>
+                <div className="mt-1 text-sm text-slate-500">{num(p.count)}{L(" dịch vụ đang bán")}</div>
                 <ul className="mt-4 flex-1 space-y-2 text-sm text-slate-300">
                   {p.points.slice(0, 3).map((pt) => (
                     <li key={pt} className="flex items-start gap-2"><span className="mt-0.5 text-emerald-400">{I.check}</span><span className="line-clamp-1">{pt}</span></li>

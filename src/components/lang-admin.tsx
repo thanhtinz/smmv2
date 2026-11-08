@@ -99,7 +99,7 @@ export async function LangAdminView(props: {
         <div className="flex flex-wrap items-center gap-3">
           <div className="font-bold text-slate-900">{L("Sửa bản dịch")}</div>
           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">
-            {Ld(`${props.totalDict} chuỗi · đã tuỳ chỉnh ${props.totalOwn}`)}
+            {props.totalDict}{L(" chuỗi · đã tuỳ chỉnh ")}{props.totalOwn}
           </span>
           {props.inheritedNote && <span className="text-xs text-slate-400">{props.inheritedNote}</span>}
         </div>
@@ -120,7 +120,7 @@ export async function LangAdminView(props: {
           </form>
         </div>
         <p className="mt-3 text-xs leading-relaxed text-slate-400">
-          {Ld(`Đang sửa bản dịch sang `)}<b className="text-slate-600">{langName(lang)}</b>{Ld(` · đã tuỳ chỉnh ${props.ownCount} chuỗi ở ngôn ngữ này. Ô để trống hoặc gõ giống hệt bản gốc = dùng bản dịch gốc. Chuỗi tiếng Việt là gốc của hệ thống, không sửa tại đây.`)}
+          {L("Đang sửa bản dịch sang ")}<b className="text-slate-600">{langName(lang)}</b>{L(" · đã tuỳ chỉnh ")}{props.ownCount}{L(" chuỗi ở ngôn ngữ này. Ô để trống hoặc gõ giống hệt bản gốc = dùng bản dịch gốc. Chuỗi tiếng Việt là gốc của hệ thống, không sửa tại đây.")}
         </p>
 
         <form action={props.saveAction} className="mt-4">
@@ -169,7 +169,7 @@ export async function LangAdminView(props: {
           </div>
           {props.totalMatches > props.rows.length && (
             <p className="mt-3 text-xs text-amber-600">
-              {Ld(`Đang hiển thị ${props.rows.length}/${props.totalMatches} chuỗi khớp — hãy thu hẹp ô tìm kiếm để sửa các chuỗi còn lại.`)}
+              {L("Đang hiển thị ")}{props.rows.length}/{props.totalMatches}{L(" chuỗi khớp — hãy thu hẹp ô tìm kiếm để sửa các chuỗi còn lại.")}
             </p>
           )}
           <div className="mt-4 flex items-center gap-3">

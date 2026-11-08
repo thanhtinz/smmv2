@@ -33,7 +33,7 @@ export default async function AdminLevels({ searchParams }: { searchParams: { ms
                 <tr key={lv}>
                   <td className="td"><Badge cls={LEVEL_CLS[lv]}>{L(LEVEL_NAME[lv])}</Badge></td>
                   <td className="td font-bold">{s["level_discount_" + lv]}%</td>
-                  <td className="td">{Ld(`${num(countOf(lv))} người dùng`)}</td>
+                  <td className="td">{num(countOf(lv))} {L("người dùng")}</td>
                   <td className="td text-slate-500">{lv === "MEMBER" ? L("Khách thường, không giảm") : lv === "RESELLER" ? L("Cộng tác viên bán lại") : lv === "AGENCY" ? L("Đại lý") : L("Khách VIP, ưu đãi cao nhất")}</td>
                 </tr>
               ))}

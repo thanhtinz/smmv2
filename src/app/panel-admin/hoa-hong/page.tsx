@@ -47,7 +47,7 @@ export default async function PanelCommissionPage({ searchParams }: { searchPara
         </div>
       </form>
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
-        <Stat label={Ld(`Hoa hồng đã nhận (${days} ngày)`)} value={M(earned._sum.amount || 0)} icon={I.wallet} tone="emerald" />
+        <Stat label={L("Hoa hồng đã nhận") + " (" + days + " " + L("ngày") + ")"} value={M(earned._sum.amount || 0)} icon={I.wallet} tone="emerald" />
         <Stat label={L("Hoa hồng bị thu hồi (đơn hoàn/huỷ)")} value={M(Math.abs(clawed._sum.amount || 0))} icon={I.money} tone="rose" />
         <Stat label={L("Tổng số biến động")} value={num(total)} icon={I.list} tone="blue" />
       </div>

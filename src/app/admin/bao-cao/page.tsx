@@ -108,7 +108,7 @@ export default async function AdminReportPage({ searchParams }: { searchParams: 
             <span className="flex items-center gap-2 text-sm text-slate-600">{L("Giờ gửi")}
               <input type="time" name="report_time" defaultValue={s.report_time || "21:00"} className="inp !w-[130px]" />
             </span>
-            {s.report_last_sent && <span className="text-xs text-slate-400">{Ld(`Đã gửi gần nhất: ${s.report_last_sent}`)}</span>}
+            {s.report_last_sent && <span className="text-xs text-slate-400">{L("Đã gửi gần nhất: ")}{s.report_last_sent}</span>}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -137,7 +137,7 @@ export default async function AdminReportPage({ searchParams }: { searchParams: 
           {CHANNELS.map((c) => (
             <form key={c.key} action={testMotherChannelAction}>
               <input type="hidden" name="channel" value={c.key} />
-              <button className="btn-ghost">{Ld(`Thử ${c.label}`)}</button>
+              <button className="btn-ghost">{L("Thử ")}{c.label}</button>
             </form>
           ))}
           <form action={sendMotherReportNowAction}>

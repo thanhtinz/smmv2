@@ -80,7 +80,7 @@ export function LiveChat({ panelSlug }: { panelSlug?: string }) {
                       {msg.picks.map((p) => (
                         <div key={p.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                           <div className="text-[13px] font-bold leading-snug text-slate-800">{p.name}</div>
-                          <div className="mt-0.5 text-xs text-slate-400">{p.platformLabel} · {p.categoryName} · {td(`tối thiểu ${num(p.min)}`)}</div>
+                          <div className="mt-0.5 text-xs text-slate-400">{p.platformLabel} · {p.categoryName} · {t("tối thiểu ")}{num(p.min)}</div>
                           <div className="mt-1 text-xs font-medium text-brand-700">{p.reason}</div>
                           <div className="mt-2 flex items-center justify-between gap-2">
                             <span className="text-sm font-extrabold text-slate-900">{m(p.price)}<span className="text-[11px] font-medium text-slate-400"> /1000</span></span>

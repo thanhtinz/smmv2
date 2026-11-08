@@ -47,8 +47,8 @@ export default async function AdminUserDetail({ params, searchParams }: { params
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={L("Số dư hiện tại")} value={M(u.balance)} icon={I.wallet} tone="blue" />
         <Stat label={L("Tổng đã nạp")} value={M(u.totalDeposited)} icon={I.db} tone="emerald" />
-        <Stat label={L("Tổng chi SMM")} value={M(smmAgg._sum.charge || 0)} icon={I.cart} tone="violet" sub={Ld(`${num(smmAgg._count)} đơn`)} />
-        <Stat label={L("Tổng chi Premium")} value={M(preAgg._sum.total || 0)} icon={I.gem} tone="rose" sub={Ld(`${num(preAgg._count)} đơn`)} />
+        <Stat label={L("Tổng chi SMM")} value={M(smmAgg._sum.charge || 0)} icon={I.cart} tone="violet" sub={<>{num(smmAgg._count)} {L("đơn")}</>} />
+        <Stat label={L("Tổng chi Premium")} value={M(preAgg._sum.total || 0)} icon={I.gem} tone="rose" sub={<>{num(preAgg._count)} {L("đơn")}</>} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         <div className="lg:col-span-2 space-y-6">
@@ -58,7 +58,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
               <Badge cls={u.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}>{u.status === "ACTIVE" ? L("Hoạt động") : L("Đã khoá")}</Badge>
             </div>
             <dl className="mt-4 space-y-2 text-sm">
-              {[["Email", u.email], ["Họ tên", u.fullName || "—"], ["SĐT", u.phone || "—"], ["Cấp bậc", L(LEVEL_NAME[u.level])], ["Panel", u.panel?.name || L("Web chính")], ["Được giới thiệu bởi", u.referredBy?.username || "—"], ["Đã giới thiệu", Ld(`${u._count.referrals} người`)], ["Mã nạp tiền", `SMM ${u.depositCode}`], ["API key", u.apiKey], ["Đăng ký", dt(u.createdAt)], ["Đăng nhập gần nhất", u.lastLoginAt ? dt(u.lastLoginAt) : "—"]].map(([k, v]) => (
+              {[["Email", u.email], ["Họ tên", u.fullName || "—"], ["SĐT", u.phone || "—"], ["Cấp bậc", L(LEVEL_NAME[u.level])], ["Panel", u.panel?.name || L("Web chính")], ["Được giới thiệu bởi", u.referredBy?.username || "—"], ["Đã giới thiệu", u._count.referrals + " " + L("người")], ["Mã nạp tiền", `SMM ${u.depositCode}`], ["API key", u.apiKey], ["Đăng ký", dt(u.createdAt)], ["Đăng nhập gần nhất", u.lastLoginAt ? dt(u.lastLoginAt) : "—"]].map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-4"><dt className="text-slate-500">{L(k)}</dt><dd className="font-medium text-right break-all">{v}</dd></div>
               ))}
             </dl>
@@ -102,7 +102,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
               ))}
               {deposits.map((d) => (
                 <tr key={"d" + d.id}>
-                  <td className="td"><span className="font-medium">{Ld(`Nạp ${d.code}`)}</span><div className="text-xs text-slate-400">{d.method} · {dt(d.createdAt)}</div></td>
+                  <td className="td"><span className="font-medium">{L("Nạp")} {d.code}</span><div className="text-xs text-slate-400">{d.method} · {dt(d.createdAt)}</div></td>
                   <td className="td text-right font-semibold">{M(d.amount)}</td>
                 </tr>
               ))}
@@ -118,11 +118,11 @@ export default async function AdminUserDetail({ params, searchParams }: { params
               <RiskBar score={u.riskScore} watch={riskTh.watch} restrict={riskTh.restrict} critical={riskTh.critical} className="flex-1" />
               <span className="text-xl font-black text-slate-900">{u.riskScore}<span className="text-sm font-semibold text-slate-400">/100</span></span>
             </div>
-            {riskRestrictedNow ? <p className="text-sm font-semibold text-rose-600">{L("Tài khoản đang bị hạn chế tạo đơn/nạp mới.")}</p> : u.riskReviewedAt ? <p className="text-sm text-emerald-600">{Ld(`Đã được duyệt lúc ${dt(u.riskReviewedAt)} — chỉ hạn chế lại khi có tín hiệu mới.`)}</p> : null}
+            {riskRestrictedNow ? <p className="text-sm font-semibold text-rose-600">{L("Tài khoản đang bị hạn chế tạo đơn/nạp mới.")}</p> : u.riskReviewedAt ? <p className="text-sm text-emerald-600">{L("Đã được duyệt lúc")} {dt(u.riskReviewedAt)} {L("— chỉ hạn chế lại khi có tín hiệu mới.")}</p> : null}
             {riskFactors.length === 0 ? <p className="text-sm text-slate-400">{L("Chưa ghi nhận yếu tố rủi ro nào.")}</p> : (
               <ul className="space-y-1.5">
                 {riskFactors.map((f) => (
-                  <li key={f.key} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm"><span className="text-slate-600">{riskFactorText(f, Ld)}</span><Badge cls={f.points >= 20 ? "bg-rose-100 text-rose-700 font-mono" : f.points >= 10 ? "bg-amber-100 text-amber-700 font-mono" : "bg-slate-100 text-slate-600 font-mono"}>{Ld(`+${f.points} điểm`)}</Badge></li>
+                  <li key={f.key} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm"><span className="text-slate-600">{riskFactorText(f, Ld)}</span><Badge cls={f.points >= 20 ? "bg-rose-100 text-rose-700 font-mono" : f.points >= 10 ? "bg-amber-100 text-amber-700 font-mono" : "bg-slate-100 text-slate-600 font-mono"}>+{f.points} {L("điểm")}</Badge></li>
                 ))}
               </ul>
             )}
@@ -133,7 +133,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
                 ))}
               </div>
             )}
-            <p className="text-xs text-slate-400">{Ld(`Cập nhật: ${u.riskUpdatedAt ? dt(u.riskUpdatedAt) : "chưa tính"} · Điểm tự tính lại khi đăng nhập, duyệt nạp, tạo đơn và mỗi vòng cron.`)}</p>
+            <p className="text-xs text-slate-400">{L("Cập nhật:")} {u.riskUpdatedAt ? dt(u.riskUpdatedAt) : L("chưa tính")} {L("· Điểm tự tính lại khi đăng nhập, duyệt nạp, tạo đơn và mỗi vòng cron.")}</p>
             <div className="flex gap-2">
               <form action={riskRecalcAction} className="flex-1"><input type="hidden" name="userId" value={u.id} /><input type="hidden" name="next" value={`/admin/nguoi-dung/${u.id}`} /><button className="btn-ghost w-full">{L("Tính lại điểm")}</button></form>
               <form action={riskReviewAction} className="flex-1"><input type="hidden" name="userId" value={u.id} /><input type="hidden" name="next" value={`/admin/nguoi-dung/${u.id}`} /><button className="btn-primary w-full">{L("Đánh dấu đã duyệt")}</button></form>

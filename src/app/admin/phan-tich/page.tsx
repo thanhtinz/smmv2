@@ -49,15 +49,15 @@ export default async function AdminAnalytics() {
     <div>
       <PageHead title={L("Phân tích")} desc={L("Thu nhập tổng (SMM + Premium), mặt hàng bán chạy, top khách và hành vi khách hàng.")} />
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label={L("Thu nhập hôm nay")} value={M(full.today.revenue)} sub={Ld(`Lãi ${M(full.today.profit)} · ${num(full.today.orders)} đơn`)} icon={I.money} tone="blue" />
-        <Stat label={L("Thu nhập 7 ngày")} value={M(full.last7.revenue)} sub={Ld(`Lãi ${M(full.last7.profit)} · ${num(full.last7.orders)} đơn`)} icon={I.chart} tone="cyan" />
-        <Stat label={L("Thu nhập 30 ngày")} value={M(full.last30.revenue)} sub={Ld(`Lãi ${M(full.last30.profit)} · ${num(full.last30.orders)} đơn`)} icon={I.chart} tone="violet" />
-        <Stat label={L("Thu nhập tháng này")} value={M(full.month.revenue)} sub={Ld(`Lãi ${M(full.month.profit)} · Nạp ${M(full.month.deposits)}`)} icon={I.wallet} tone="emerald" />
+        <Stat label={L("Thu nhập hôm nay")} value={M(full.today.revenue)} sub={L("Lãi ") + M(full.today.profit) + L(" · ") + num(full.today.orders) + L(" đơn")} icon={I.money} tone="blue" />
+        <Stat label={L("Thu nhập 7 ngày")} value={M(full.last7.revenue)} sub={L("Lãi ") + M(full.last7.profit) + L(" · ") + num(full.last7.orders) + L(" đơn")} icon={I.chart} tone="cyan" />
+        <Stat label={L("Thu nhập 30 ngày")} value={M(full.last30.revenue)} sub={L("Lãi ") + M(full.last30.profit) + L(" · ") + num(full.last30.orders) + L(" đơn")} icon={I.chart} tone="violet" />
+        <Stat label={L("Thu nhập tháng này")} value={M(full.month.revenue)} sub={L("Lãi ") + M(full.month.profit) + L(" · Nạp ") + M(full.month.deposits)} icon={I.wallet} tone="emerald" />
       </div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat label={L("Doanh thu SMM 30 ngày")} value={M(monthRev)} icon={I.chart} tone="blue" />
-        <Stat label={L("Lợi nhuận SMM 30 ngày")} value={M(monthProfit)} icon={I.money} tone="emerald" sub={monthRev > 0 ? Ld(`Biên lợi nhuận ${Math.round((monthProfit / monthRev) * 100)}%`) : undefined} />
-        <Stat label={L("Tỉ lệ khách nạp tiền / đăng ký")} value={totalUsers ? `${Math.round((depositedUsers / totalUsers) * 100)}%` : "0%"} icon={I.users} tone="violet" sub={Ld(`${num(depositedUsers)} / ${num(totalUsers)} tài khoản`)} />
+        <Stat label={L("Lợi nhuận SMM 30 ngày")} value={M(monthProfit)} icon={I.money} tone="emerald" sub={monthRev > 0 ? L("Biên lợi nhuận ") + Math.round((monthProfit / monthRev) * 100) + "%" : undefined} />
+        <Stat label={L("Tỉ lệ khách nạp tiền / đăng ký")} value={totalUsers ? `${Math.round((depositedUsers / totalUsers) * 100)}%` : "0%"} icon={I.users} tone="violet" sub={num(depositedUsers) + " / " + num(totalUsers) + L(" tài khoản")} />
       </div>
 
       <div className="card p-6">
@@ -78,8 +78,8 @@ export default async function AdminAnalytics() {
           <table className="w-full"><tbody className="divide-y divide-slate-100">
             {topServices.map((t) => (
               <tr key={t.serviceId}>
-                <td className="td"><div className="max-w-[220px] truncate font-medium">{serviceName.get(t.serviceId) || `#${t.serviceId}`}</div><div className="text-xs text-slate-400">{Ld(`${num(t._count)} đơn`)}</div></td>
-                <td className="td text-right"><div className="font-bold">{M(t._sum.charge || 0)}</div><div className="text-xs text-emerald-600">{Ld(`lãi ${M((t._sum.charge || 0) - (t._sum.cost || 0))}`)}</div></td>
+                <td className="td"><div className="max-w-[220px] truncate font-medium">{serviceName.get(t.serviceId) || `#${t.serviceId}`}</div><div className="text-xs text-slate-400">{num(t._count)}{L(" đơn")}</div></td>
+                <td className="td text-right"><div className="font-bold">{M(t._sum.charge || 0)}</div><div className="text-xs text-emerald-600">{L("lãi ")}{M((t._sum.charge || 0) - (t._sum.cost || 0))}</div></td>
               </tr>
             ))}
             {topServices.length === 0 && <tr><td className="td text-slate-400">{L("Chưa có dữ liệu")}</td></tr>}
@@ -90,7 +90,7 @@ export default async function AdminAnalytics() {
           <table className="w-full"><tbody className="divide-y divide-slate-100">
             {topCustomers.map((t) => (
               <tr key={t.userId}>
-                <td className="td"><Link href={`/admin/nguoi-dung/${t.userId}`} className="font-medium text-brand-700">{userName.get(t.userId) || `#${t.userId}`}</Link><div className="text-xs text-slate-400">{Ld(`${num(t._count)} đơn`)}</div></td>
+                <td className="td"><Link href={`/admin/nguoi-dung/${t.userId}`} className="font-medium text-brand-700">{userName.get(t.userId) || `#${t.userId}`}</Link><div className="text-xs text-slate-400">{num(t._count)}{L(" đơn")}</div></td>
                 <td className="td text-right font-bold">{M(t._sum.charge || 0)}</td>
               </tr>
             ))}
@@ -103,8 +103,8 @@ export default async function AdminAnalytics() {
             <table className="w-full"><tbody className="divide-y divide-slate-100">
               {byProvider.map((t) => (
                 <tr key={String(t.providerId)}>
-                  <td className="td"><span className="font-medium">{providerName.get(t.providerId!) || L("Thủ công")}</span><div className="text-xs text-slate-400">{Ld(`${num(t._count)} đơn`)}</div></td>
-                  <td className="td text-right"><div className="font-bold">{M(t._sum.charge || 0)}</div><div className="text-xs text-emerald-600">{Ld(`lãi ${M((t._sum.charge || 0) - (t._sum.cost || 0))}`)}</div></td>
+                  <td className="td"><span className="font-medium">{providerName.get(t.providerId!) || L("Thủ công")}</span><div className="text-xs text-slate-400">{num(t._count)}{L(" đơn")}</div></td>
+                  <td className="td text-right"><div className="font-bold">{M(t._sum.charge || 0)}</div><div className="text-xs text-emerald-600">{L("lãi ")}{M((t._sum.charge || 0) - (t._sum.cost || 0))}</div></td>
                 </tr>
               ))}
               {byProvider.length === 0 && <tr><td className="td text-slate-400">{L("Chưa có đơn qua API")}</td></tr>}
@@ -139,7 +139,7 @@ export default async function AdminAnalytics() {
               <div key={b.name} className="flex items-center gap-3 py-3">
                 <RankBadge rank={i + 1} />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{b.name}</span>
-                <span className="shrink-0 text-sm"><b className="text-slate-900">{M(b.revenue)}</b> <span className="text-slate-400">{Ld(`· ${num(b.quantity)} gói`)}</span></span>
+                <span className="shrink-0 text-sm"><b className="text-slate-900">{M(b.revenue)}</b> <span className="text-slate-400">{"· " + num(b.quantity) + L(" gói")}</span></span>
               </div>
             ))}
             {full.bestPremium.length === 0 && <p className="py-5 text-sm text-slate-400">{L("Chưa có đơn Premium nào trong 30 ngày.")}</p>}
@@ -158,7 +158,7 @@ export default async function AdminAnalytics() {
                   <Link href={`/admin/nguoi-dung/${u.id}`} className="truncate text-sm font-semibold text-slate-800 hover:text-brand-700">{u.username}</Link>
                   <Badge cls={u.level === "VIP" ? "bg-amber-100 text-amber-800" : u.level === "AGENCY" ? "bg-violet-100 text-violet-800" : u.level === "RESELLER" ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-600"}>{L(LEVEL_NAME[u.level] || u.level)}</Badge>
                 </span>
-                <span className="shrink-0 text-sm"><b className="text-slate-900">{M(u.spend)}</b> <span className="text-slate-400">{Ld(`· ${num(u.orders)} đơn`)}</span></span>
+                <span className="shrink-0 text-sm"><b className="text-slate-900">{M(u.spend)}</b> <span className="text-slate-400">{"· " + num(u.orders) + L(" đơn")}</span></span>
               </div>
             ))}
             {full.topUsers.length === 0 && <p className="py-5 text-sm text-slate-400">{L("Chưa có dữ liệu khách.")}</p>}

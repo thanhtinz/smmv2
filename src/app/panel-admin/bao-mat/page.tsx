@@ -64,7 +64,7 @@ export default async function PanelSecurity({ searchParams }: { searchParams: { 
                 </tbody>
               </table>
             )}
-            <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">{Ld(`Ngoài ra hệ thống đang áp ${globalCount} IP cấm toàn hệ thống do web mẹ đặt — các IP đó cũng bị chặn ở website của bạn.`)}</p>
+            <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">{L("Ngoài ra hệ thống đang áp")} {globalCount} {L("IP cấm toàn hệ thống do web mẹ đặt — các IP đó cũng bị chặn ở website của bạn.")}</p>
           </div>
 
           <div className="card overflow-hidden">

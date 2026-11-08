@@ -43,7 +43,7 @@ export function TicketAttachInput() {
             <button type="button" onClick={() => setImgs(imgs.filter((_, j) => j !== i))} className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[11px] text-white">×</button>
           </span>
         ))}
-        <span className="text-xs text-slate-400">{td(`${imgs.length}/3 ảnh`)}</span>
+        <span className="text-xs text-slate-400">{imgs.length}/3{t(" ảnh")}</span>
       </div>
       {err && <p className="mt-1 text-xs text-rose-600">{err}</p>}
     </div>

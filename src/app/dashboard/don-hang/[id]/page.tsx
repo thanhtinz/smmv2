@@ -36,8 +36,8 @@ export default async function SmmOrderDetail({ params }: { params: { id: string 
     ...(drip ? [[
       "Drip-feed",
       drip.cancelled
-        ? Ld(`Đã dừng ở lượt ${drip.doneRuns}/${drip.runs}`)
-        : Ld(`Đã thả ${drip.doneRuns}/${drip.runs} lượt · mỗi lượt ${num(drip.perRun)} · cách nhau ${drip.intervalMinutes} phút${drip.doneRuns < drip.runs ? ` · lượt tiếp theo: ${dt(new Date(drip.nextRunAt))}` : ""}`),
+        ? `${L("Đã dừng ở lượt ")}${drip.doneRuns}/${drip.runs}`
+        : `${L("Đã thả ")}${drip.doneRuns}/${drip.runs}${L(" lượt · mỗi lượt ")}${num(drip.perRun)}${L(" · cách nhau ")}${drip.intervalMinutes}${L(" phút")}${drip.doneRuns < drip.runs ? `${L(" · lượt tiếp theo: ")}${dt(new Date(drip.nextRunAt))}` : ""}`,
     ] as [string, string]] : []),
   ];
   return (
@@ -45,13 +45,13 @@ export default async function SmmOrderDetail({ params }: { params: { id: string 
       <BackLink href="/dashboard/don-hang">{L("Danh sách đơn SMM")}</BackLink>
       <div className="card p-6 max-w-3xl">
         <div className="flex items-center justify-between mb-5">
-          <h1 className="text-xl font-bold text-slate-900">{Ld(`Chi tiết đơn ${o.code}`)}</h1>
+          <h1 className="text-xl font-bold text-slate-900">{`${L("Chi tiết đơn ")}${o.code}`}</h1>
           <Badge cls={SMM_STATUS[o.status].cls}>{L(SMM_STATUS[o.status].label)}</Badge>
         </div>
         <div className="mb-6">
           <div className="flex justify-between text-xs text-slate-500 mb-1.5">
             <span>{L("Tiến độ đã chạy")}</span>
-            <span><b className="text-slate-800">{progress}%</b>{o.remains !== null ? Ld(` · còn lại ${num(o.remains)}/${num(o.quantity)}`) : ""}</span>
+            <span><b className="text-slate-800">{progress}%</b>{o.remains !== null ? `${L(" · còn lại ")}${num(o.remains)}/${num(o.quantity)}` : ""}</span>
           </div>
           <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
             <div className={`h-full rounded-full transition-all ${o.status === "CANCELED" || o.status === "REFUNDED" ? "bg-rose-400" : "bg-brand-500"}`} style={{ width: `${progress}%` }} />

@@ -92,7 +92,7 @@ export function PremiumCategoriesClient({ categories }: { categories: PremiumCat
                 <td className="td">
                   <div className="flex items-center justify-end gap-1.5">
                     <button className={iconBtn} title={t("Sửa")} onClick={() => { setEditing(c); setOpen(true); }}><Pencil /></button>
-                    <form action={adminDeletePremiumCategory} onSubmit={(e) => { if (!confirm(td(`Xoá danh mục "${c.name}"?`))) e.preventDefault(); }}>
+                    <form action={adminDeletePremiumCategory} onSubmit={(e) => { if (!confirm(`${t("Xoá danh mục")} "${c.name}"?`)) e.preventDefault(); }}>
                       <input type="hidden" name="id" value={c.id} />
                       <button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><Trash /></button>
                     </form>
@@ -203,7 +203,7 @@ export function VariantsModal({ product, onClose }: { product: PremiumProductDTO
   const { t, td } = useLang();
   const small = "rounded-lg border border-slate-300 px-2 py-1.5 text-sm w-full";
   return (
-    <Modal title={td(`Gói bán — ${product.name}`)} onClose={onClose} wide>
+    <Modal title={`${t("Gói bán")} — ${product.name}`} onClose={onClose} wide>
       <div className="max-h-[66vh] overflow-y-auto px-6 py-5">
         <div className="space-y-3">
           {product.variants.map((v) => (
@@ -220,7 +220,7 @@ export function VariantsModal({ product, onClose }: { product: PremiumProductDTO
                 <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="active" defaultChecked={v.active} className="h-4 w-4" /> {t("Đang bán")}</label>
                 <div className="flex items-center gap-2">
                   <button className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">{t("Lưu")}</button>
-                  <span className="text-xs text-slate-400">{td(`Kho: ${v.stockAvailable}/${v.stockTotal}`)}</span>
+                  <span className="text-xs text-slate-400">{`${t("Kho:")} ${v.stockAvailable}/${v.stockTotal}`}</span>
                 </div>
               </div>
             </form>
@@ -283,7 +283,7 @@ export function ProductsClient({ products, categories, providers }: { products: 
                   </div>
                 </td>
                 <td className="td text-slate-600">{p.categoryName}</td>
-                <td className="td"><button onClick={() => setVariantFor(p)} className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-100">{td(`${p.variants.length} gói`)}</button></td>
+                <td className="td"><button onClick={() => setVariantFor(p)} className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-100">{`${p.variants.length} ${t("gói")}`}</button></td>
                 <td className="td text-slate-600">{num(p.orderCount)}</td>
                 <td className="td text-slate-600">{p.sort}</td>
                 <td className="td">
@@ -296,7 +296,7 @@ export function ProductsClient({ products, categories, providers }: { products: 
                   <div className="flex items-center justify-end gap-1.5">
                     <button className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50" onClick={() => setVariantFor(p)}>{t("Gói")}</button>
                     <button className={iconBtn} title={t("Sửa")} onClick={() => { setEditing(p); setOpen(true); }}><Pencil /></button>
-                    <form action={adminDeleteProduct} onSubmit={(e) => { if (!confirm(td(`Xoá sản phẩm "${p.name}"?`))) e.preventDefault(); }}>
+                    <form action={adminDeleteProduct} onSubmit={(e) => { if (!confirm(`${t("Xoá sản phẩm")} "${p.name}"?`)) e.preventDefault(); }}>
                       <input type="hidden" name="id" value={p.id} />
                       <button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><Trash /></button>
                     </form>

@@ -94,7 +94,7 @@ export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: Ba
 
       {isIntl && intl && (
         <form action={method === "paypal" ? startPaypalCheckoutAction : startStripeCheckoutAction}>
-          <p className="text-sm text-slate-500 mb-4">{t("Tỉ giá:")} <b className="text-slate-700">{`$1 = ${rate.toLocaleString("vi-VN")}đ`}</b>{td(` · Tối thiểu $${intl.minUsd || 5} · Tiền cộng tự động ngay khi thanh toán thành công.`)}</p>
+          <p className="text-sm text-slate-500 mb-4">{t("Tỉ giá:")} <b className="text-slate-700">{`$1 = ${rate.toLocaleString("vi-VN")}đ`}</b>{t(" · Tối thiểu ") + "$" + (intl.minUsd || 5) + t(" · Tiền cộng tự động ngay khi thanh toán thành công.")}</p>
           <div className="max-w-xs mb-5">
             <label className="lbl">{t("Số tiền (USD)")}</label>
             <div className="relative">
@@ -103,15 +103,15 @@ export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: Ba
             </div>
             <div className="text-sm mt-2 text-slate-500">{t("Nhận được ≈")} <b className="text-emerald-700">{m(vndVal)}</b></div>
           </div>
-          <button className="btn-primary w-full sm:w-auto !px-8">{td(`Thanh toán qua ${method === "paypal" ? "PayPal" : "Stripe"}`)}</button>
+          <button className="btn-primary w-full sm:w-auto !px-8">{t("Thanh toán qua ") + (method === "paypal" ? "PayPal" : "Stripe")}</button>
         </form>
       )}
 
       {isUsdt && usdt && (
         <form action={createUsdtDepositAction}>
-          <p className="text-sm text-slate-500 mb-4">{t("Chuyển USDT tới địa chỉ ví bên dưới (mạng ")}<b className="text-slate-700">{usdt.network}</b>{t("), sau đó khai số USDT và mã giao dịch — admin đối chiếu và cộng tiền. Tỉ giá: ")}<b className="text-slate-700">{`1 USDT = ${usdt.rate.toLocaleString("vi-VN")}đ`}</b>{td(` · Tối thiểu ${usdt.min ?? 5} USDT.`)}</p>
+          <p className="text-sm text-slate-500 mb-4">{t("Chuyển USDT tới địa chỉ ví bên dưới (mạng ")}<b className="text-slate-700">{usdt.network}</b>{t("), sau đó khai số USDT và mã giao dịch — admin đối chiếu và cộng tiền. Tỉ giá: ")}<b className="text-slate-700">{`1 USDT = ${usdt.rate.toLocaleString("vi-VN")}đ`}</b>{t(" · Tối thiểu ")}{usdt.min ?? 5} USDT.</p>
           <div className="mb-4 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-            <div className="min-w-0"><div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{td(`Địa chỉ ví ${usdt.network}`)}</div><div className="truncate font-mono text-sm font-semibold">{usdt.address}</div></div>
+            <div className="min-w-0"><div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{t("Địa chỉ ví ")}{usdt.network}</div><div className="truncate font-mono text-sm font-semibold">{usdt.address}</div></div>
             <CopyBtn text={usdt.address} label={t("Sao chép địa chỉ ví")} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
@@ -125,7 +125,7 @@ export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: Ba
       {!isIntl && !isUsdt && tiers.length > 0 && (
         <div className="mt-6 bg-brand-50 border border-brand-100 rounded-2xl p-4 text-sm">
           <div className="font-semibold text-brand-800 mb-1.5">{t("Thưởng nạp hiện tại")}</div>
-          {tiers.map((tier) => <div key={tier.from} className="text-brand-700">{td(`Nạp từ ${m(tier.from)}:`)} <b>{`+${tier.percent}%`}</b></div>)}
+          {tiers.map((tier) => <div key={tier.from} className="text-brand-700">{t("Nạp từ ")}{m(tier.from)}: <b>{`+${tier.percent}%`}</b></div>)}
         </div>
       )}
 

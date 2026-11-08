@@ -57,7 +57,7 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
 
   return (
     <div>
-      <PageHead title={L("Quản lý Dịch vụ")} desc={Ld(`Tổng: ${num(total)} dịch vụ`)} />
+      <PageHead title={L("Quản lý Dịch vụ")} desc={<>{L("Tổng:")} {num(total)} {L("dịch vụ")}</>} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -146,7 +146,7 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
               <Link href={qs({ page: String(n) })} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${n === page ? "bg-blue-600 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{n}</Link>
             </span>
           ))}
-          <span className="ml-2 text-sm text-slate-400">{Ld(`Trang ${page} / ${pages}`)}</span>
+          <span className="ml-2 text-sm text-slate-400">{L("Trang")} {page} / {pages}</span>
         </div>
       )}
     </div>

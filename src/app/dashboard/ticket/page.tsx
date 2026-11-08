@@ -63,7 +63,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
       <div className="mt-5 flex flex-wrap items-center gap-2">
         {pills.map((p) => (
           <Link key={p.st} href={`/dashboard/ticket${p.st ? `?st=${p.st}` : ""}`} className={`rounded-full px-4 py-2 text-sm font-semibold ${st === p.st ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600"}`}>
-            {Ld(`${L(p.label)} (${p.n})`)}
+            {`${L(p.label)} (${p.n})`}
           </Link>
         ))}
         <form className="ml-auto flex gap-2">
@@ -85,7 +85,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
                   <td className="td font-mono text-xs text-slate-400">#{t.id}</td>
                   <td className="td">
                     <div className="max-w-[420px] truncate font-semibold text-slate-800">{t.subject}</div>
-                    <div className="text-xs text-slate-400">{Ld(`${L(T_CAT[t.category] || t.category)} · ${t._count.messages} tin nhắn`)}</div>
+                    <div className="text-xs text-slate-400">{`${L(T_CAT[t.category] || t.category)} · ${t._count.messages} ${L("tin nhắn")}`}</div>
                   </td>
                   <td className="td"><Badge cls={T_STATUS[t.status].cls}>{L(T_STATUS[t.status].label)}</Badge></td>
                   <td className="td whitespace-nowrap text-xs text-slate-500">{dt(t.updatedAt)}</td>

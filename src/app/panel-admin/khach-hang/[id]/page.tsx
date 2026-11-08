@@ -31,15 +31,15 @@ export default async function PanelMemberDetail({ params, searchParams }: { para
   ]);
   return (
     <div>
-      <PageHead title={Ld(`Khách: ${member.username}`)} desc={Ld(`${member.email} · đăng ký ${dt(member.createdAt)}`)}>
+      <PageHead title={L("Khách: ") + member.username} desc={member.email + L(" · đăng ký ") + dt(member.createdAt)}>
         <Link href="/panel-admin/khach-hang" className="btn-ghost btn-sm !px-4 !py-2">{L("← Danh sách khách")}</Link>
       </PageHead>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label={L("Số dư hiện tại")} value={M(member.balance)} icon={I.wallet} tone="blue" />
-        <Stat label={L("Đơn SMM qua panel")} value={num(smmAgg._count)} sub={Ld(`Đã chi ${M(smmAgg._sum.charge || 0)}`)} icon={I.cart} tone="violet" />
+        <Stat label={L("Đơn SMM qua panel")} value={num(smmAgg._count)} sub={<>{L("Đã chi")} {M(smmAgg._sum.charge || 0)}</>} icon={I.cart} tone="violet" />
         <Stat label={L("Hoa hồng từ khách này")} value={M((smmAgg._sum.commission || 0) + preOrders.reduce((a, o) => a + o.commission, 0))} icon={I.money} tone="emerald" />
-        <Stat label={L("Đã nạp thành công")} value={M((depAgg._sum.amount || 0) + (depAgg._sum.bonus || 0))} sub={Ld(`${num(depAgg._count)} lượt`)} icon={I.money} tone="amber" />
+        <Stat label={L("Đã nạp thành công")} value={M((depAgg._sum.amount || 0) + (depAgg._sum.bonus || 0))} sub={<>{num(depAgg._count)} {L("lượt")}</>} icon={I.money} tone="amber" />
       </div>
       {isOwner && (
         <div className="card mb-6 flex flex-wrap items-end gap-4 p-6">

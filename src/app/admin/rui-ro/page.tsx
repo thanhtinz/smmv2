@@ -76,7 +76,7 @@ export default async function AdminRisk() {
             {rapidUsers.length === 0 ? <Empty text={L("Không có khách nào đặt dày bất thường")} /> : (
               <table className="w-full"><tbody className="divide-y divide-slate-100">
                 {rapidUsers.map((r) => (
-                  <tr key={r.userId}><td className="td"><Link href={`/admin/nguoi-dung/${r.userId}`} className="font-medium text-brand-700">{r.username}</Link></td><td className="td text-right font-bold text-orange-600">{Ld(`${num(r.count)} đơn/giờ`)}</td></tr>
+                  <tr key={r.userId}><td className="td"><Link href={`/admin/nguoi-dung/${r.userId}`} className="font-medium text-brand-700">{r.username}</Link></td><td className="td text-right font-bold text-orange-600">{num(r.count)}{L(" đơn/giờ")}</td></tr>
                 ))}
               </tbody></table>
             )}
@@ -86,7 +86,7 @@ export default async function AdminRisk() {
             {refundHeavy.length === 0 ? <Empty text={L("Không có khách nào bị hoàn nhiều bất thường")} /> : (
               <table className="w-full"><tbody className="divide-y divide-slate-100">
                 {refundHeavy.map((r) => (
-                  <tr key={r.userId}><td className="td"><Link href={`/admin/nguoi-dung/${r.userId}`} className="font-medium text-brand-700">{r.username}</Link></td><td className="td text-right font-bold text-rose-600">{Ld(`${num(r.count)} đơn bị hoàn`)}</td></tr>
+                  <tr key={r.userId}><td className="td"><Link href={`/admin/nguoi-dung/${r.userId}`} className="font-medium text-brand-700">{r.username}</Link></td><td className="td text-right font-bold text-rose-600">{num(r.count)}{L(" đơn bị hoàn")}</td></tr>
                 ))}
               </tbody></table>
             )}
@@ -98,7 +98,7 @@ export default async function AdminRisk() {
             {sharedLinks.length === 0 ? <Empty text={L("Không có link nào dùng chung bất thường")} /> : (
               <table className="w-full"><tbody className="divide-y divide-slate-100">
                 {sharedLinks.map((r) => (
-                  <tr key={r.link}><td className="td"><div className="max-w-[300px] truncate font-mono text-xs">{r.link}</div></td><td className="td text-right"><b>{num(r.users)}</b> {Ld(`tài khoản · ${num(r.orders)} đơn`)}</td></tr>
+                  <tr key={r.link}><td className="td"><div className="max-w-[300px] truncate font-mono text-xs">{r.link}</div></td><td className="td text-right"><b>{num(r.users)}</b> {L("tài khoản · ")}{num(r.orders)}{L(" đơn")}</td></tr>
                 ))}
               </tbody></table>
             )}

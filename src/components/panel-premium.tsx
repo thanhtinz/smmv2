@@ -25,7 +25,7 @@ export type PanelCategoryOpt = { id: number; name: string };
 function ProductModal({ product, categories, onClose }: { product?: PanelProductDTO; categories: PanelCategoryOpt[]; onClose: () => void }) {
   const { t, td } = useLang();
   return (
-    <Modal title={product ? td(`Sửa sản phẩm — ${product.name}`) : t("Thêm sản phẩm Premium")} onClose={onClose} wide>
+    <Modal title={product ? t("Sửa sản phẩm — ") + product.name : t("Thêm sản phẩm Premium")} onClose={onClose} wide>
       <form action={panelSavePremiumProductAction}>
         <div className="space-y-4 px-6 py-5">
           {product && <input type="hidden" name="id" value={product.id} />}
@@ -67,7 +67,7 @@ function ProductModal({ product, categories, onClose }: { product?: PanelProduct
 function VariantsModal({ product, onClose }: { product: PanelProductDTO; onClose: () => void }) {
   const { t, td } = useLang();
   return (
-    <Modal title={td(`Gói bán — ${product.name}`)} onClose={onClose} wide>
+    <Modal title={t("Gói bán — ") + product.name} onClose={onClose} wide>
       <div className="space-y-4 px-6 py-5">
         {product.variants.length === 0 && <p className="text-sm text-slate-400">{t("Chưa có gói nào — thêm gói đầu tiên ở dưới.")}</p>}
         {product.variants.map((v) => (

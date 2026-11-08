@@ -46,10 +46,10 @@ export function DepositTable({ rows, depositAction, deleteAction, sort, dir, bas
   return (
     <div>
       {sel.length > 0 && (
-        <form action={deleteAction} onSubmit={(e) => { if (!window.confirm(td(`Xoá ${sel.length} giao dịch đã chọn?`))) e.preventDefault(); }} className="flex items-center gap-3 border-b border-rose-100 bg-rose-50 px-4 py-2.5">
+        <form action={deleteAction} onSubmit={(e) => { if (!window.confirm(t("Xoá ") + sel.length + t(" giao dịch đã chọn?"))) e.preventDefault(); }} className="flex items-center gap-3 border-b border-rose-100 bg-rose-50 px-4 py-2.5">
           {sel.map((id) => <input key={id} type="hidden" name="ids" value={id} />)}
-          <span className="text-sm font-medium text-rose-700">{td(`Đã chọn ${sel.length} giao dịch`)}</span>
-          <button className="btn-ghost btn-sm !border-rose-300 !text-rose-600 hover:!bg-white">{td(`Xoá ${sel.length} mục đã chọn`)}</button>
+          <span className="text-sm font-medium text-rose-700">{t("Đã chọn ")}{sel.length}{t(" giao dịch")}</span>
+          <button className="btn-ghost btn-sm !border-rose-300 !text-rose-600 hover:!bg-white">{t("Xoá ")}{sel.length}{t(" mục đã chọn")}</button>
           <button type="button" className="text-sm text-slate-500 hover:text-slate-700" onClick={() => setSel([])}>{t("Bỏ chọn")}</button>
         </form>
       )}
@@ -79,7 +79,7 @@ export function DepositTable({ rows, depositAction, deleteAction, sort, dir, bas
                 </td>
                 <td className="td">
                   <div className="font-bold text-brand-600">{m(d.amount)}</div>
-                  <div className="text-xs text-slate-400">{t(DEP_METHOD[d.method] || d.method)}{d.bonus > 0 ? td(` · +${m(d.bonus)} thưởng`) : ""}</div>
+                  <div className="text-xs text-slate-400">{t(DEP_METHOD[d.method] || d.method)}{d.bonus > 0 ? <> · +{m(d.bonus)}{t(" thưởng")}</> : ""}</div>
                 </td>
                 <td className="td"><Badge cls={DEP_STATUS[d.status]?.cls || ""}>{DEP_STATUS[d.status]?.label ? t(DEP_STATUS[d.status].label) : d.status}</Badge></td>
                 <td className="td whitespace-nowrap">

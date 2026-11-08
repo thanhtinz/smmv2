@@ -19,7 +19,7 @@ export default async function AdminUsers({ searchParams }: { searchParams: { q?:
   const totalBalance = await prisma.user.aggregate({ where: { panelId: null }, _sum: { balance: true } });
   return (
     <div>
-      <PageHead title={L("Người dùng")} desc={Ld(`${num(users.length)} tài khoản hiển thị · Tổng số dư khách đang giữ: ${M(totalBalance._sum.balance || 0)} (nợ phải trả của hệ thống)`)} />
+      <PageHead title={L("Người dùng")} desc={<>{num(users.length)} {L("tài khoản hiển thị")} · {L("Tổng số dư khách đang giữ:")} {M(totalBalance._sum.balance || 0)} {L("(nợ phải trả của hệ thống)")}</>} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form className="flex gap-2 mb-5">
         <input className="inp !w-80" name="q" placeholder={L("Tìm username / email / SĐT...")} defaultValue={searchParams.q || ""} />

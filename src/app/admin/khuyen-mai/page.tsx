@@ -44,7 +44,7 @@ export default async function AdminPromotions({ searchParams }: { searchParams: 
           <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500 md:mt-[26px]">
             {bonusTiers.length === 0
               ? L("Chưa có mốc thưởng nào — thêm mốc để khách nạp nhiều được thưởng thêm.")
-              : <>{L("Đang áp dụng")} <b className="text-slate-700">{Ld(`${bonusTiers.length} mốc thưởng`)}</b>{topTier ? <> {L("— mốc cao nhất")} <b className="text-slate-700">+{topTier.percent}%</b> {L("cho lần nạp từ")} <b className="text-slate-700">{M(topTier.from)}</b></> : null}. {L("Mốc áp theo từng lần nạp, không cộng dồn nhiều lần nạp nhỏ.")}</>}
+              : <>{L("Đang áp dụng")} <b className="text-slate-700">{bonusTiers.length}{L(" mốc thưởng")}</b>{topTier ? <> {L("— mốc cao nhất")} <b className="text-slate-700">+{topTier.percent}%</b> {L("cho lần nạp từ")} <b className="text-slate-700">{M(topTier.from)}</b></> : null}. {L("Mốc áp theo từng lần nạp, không cộng dồn nhiều lần nạp nhỏ.")}</>}
           </p>
         </div>
         <button className="btn-primary !py-2.5">{L("Lưu thưởng nạp")}</button>

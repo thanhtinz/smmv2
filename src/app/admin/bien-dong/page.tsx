@@ -38,7 +38,7 @@ export default async function AdminMovements({ searchParams }: { searchParams: {
   if (searchParams.type) csvQs.set("type", searchParams.type);
   return (
     <div>
-      <PageHead title={L("Biến động số dư")} desc={Ld(`${total.toLocaleString("vi-VN")} giao dịch trên toàn hệ thống — mọi thay đổi số dư đều có sổ ở đây.`)}>
+      <PageHead title={L("Biến động số dư")} desc={<>{total.toLocaleString("vi-VN")} {L("giao dịch trên toàn hệ thống — mọi thay đổi số dư đều có sổ ở đây.")}</>}>
         <a href={`/admin/bien-dong/csv?${csvQs}`} className="btn-dark">{L("Xuất CSV")}</a>
       </PageHead>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />

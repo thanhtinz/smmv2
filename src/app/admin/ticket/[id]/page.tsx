@@ -25,7 +25,7 @@ export default async function AdminTicketDetail({ params }: { params: { id: stri
           <h1 className="text-xl font-bold text-slate-900">{t.subject}</h1>
           <Badge cls={t.status === "CLOSED" ? "bg-slate-200 text-slate-600" : "bg-amber-100 text-amber-800"}>{t.status}</Badge>
         </div>
-        <p className="text-sm text-slate-500 mb-6">{Ld(`Khách: ${t.user.username} (${t.user.email}) · Chủ đề: ${t.category}`)}</p>
+        <p className="text-sm text-slate-500 mb-6">{L("Khách:")} {t.user.username} ({t.user.email}) · {L("Chủ đề:")} {t.category}</p>
         {t.rating ? <p className="mb-6 -mt-4 text-sm text-slate-500">{L("Khách đánh giá hỗ trợ:")} <b className="text-amber-500">{"★".repeat(t.rating)}{"☆".repeat(5 - t.rating)}</b>{t.ratingNote ? ` — ${t.ratingNote}` : ""}</p> : null}
         <div className="space-y-4">
           {t.messages.map((m) => (

@@ -37,7 +37,7 @@ export default async function PanelRiskPage({ searchParams }: { searchParams: { 
                 <td className="td whitespace-nowrap text-slate-500">{dt(o.createdAt)}</td>
               </tr>
             ))}
-            {orders.length === 0 && <tr><td colSpan={7} className="td py-10 text-center text-slate-400">{Ld(`Không có đơn nào bị gắn cờ. Tổng số đơn qua panel: ${num(await prisma.smmOrder.count({ where: { panelId: panel.id } }))}.`)}</td></tr>}
+            {orders.length === 0 && <tr><td colSpan={7} className="td py-10 text-center text-slate-400">{L("Không có đơn nào bị gắn cờ. Tổng số đơn qua panel:")} {num(await prisma.smmOrder.count({ where: { panelId: panel.id } }))}.</td></tr>}
           </tbody>
         </table>
       </div>

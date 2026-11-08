@@ -74,10 +74,10 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
   const lockdownOn = s.emergency_lockdown === "1";
   const totalPages = Math.max(1, Math.ceil(auditTotal / PAGE_SIZE));
   const warnings: string[] = [];
-  if (lockdownOn) warnings.push(Ld(`Khoá khẩn cấp đang BẬT — khách không đăng nhập/giao dịch được. Lý do: ${s.lockdown_reason || Ld("(không ghi)")}`));
-  if (adminsNo2fa.length) warnings.push(Ld(`${adminsNo2fa.length} tài khoản quản trị chưa bật 2FA: ${adminsNo2fa.map((u) => u.username).join(", ")}`));
-  if (panelsPlain.length) warnings.push(Ld(`${panelsPlain.length} website con còn secret lưu dạng rõ trong cơ sở dữ liệu — bấm "Mã hoá toàn bộ secret panel" bên dưới.`));
-  if (!chain.ok) warnings.push(Ld(`CẢNH BÁO: chuỗi hash của AuditLog bị gãy tại bản ghi #${chain.brokenAt} — nhật ký có thể đã bị can thiệp!`));
+  if (lockdownOn) warnings.push(L("Khoá khẩn cấp đang BẬT — khách không đăng nhập/giao dịch được. Lý do: ") + (s.lockdown_reason || L("(không ghi)")));
+  if (adminsNo2fa.length) warnings.push(adminsNo2fa.length + L(" tài khoản quản trị chưa bật 2FA: ") + adminsNo2fa.map((u) => u.username).join(", "));
+  if (panelsPlain.length) warnings.push(panelsPlain.length + L(" website con còn secret lưu dạng rõ trong cơ sở dữ liệu — bấm \"Mã hoá toàn bộ secret panel\" bên dưới."));
+  if (!chain.ok) warnings.push(L("CẢNH BÁO: chuỗi hash của AuditLog bị gãy tại bản ghi #") + chain.brokenAt + L(" — nhật ký có thể đã bị can thiệp!"));
 
   return (
     <div>
@@ -89,7 +89,7 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
         <Stat label={L("Đăng nhập thất bại 7 ngày")} value={String(fail7)} icon={I.shield} tone="amber" />
         <Stat label={L("Thiết bị mới 7 ngày")} value={String(newDevices7)} icon={I.server} tone="brand" />
         <Stat label={L("IP đang bị chặn")} value={String(ipBans)} icon={I.list} tone="slate" />
-        <Stat label={L("Tài khoản đã bật 2FA")} value={`${pct2fa}%`} sub={Ld(`${users2fa}/${totalUsers} tài khoản`)} icon={I.check} tone="emerald" />
+        <Stat label={L("Tài khoản đã bật 2FA")} value={`${pct2fa}%`} sub={users2fa + "/" + totalUsers + L(" tài khoản")} icon={I.check} tone="emerald" />
         <Stat label={L("Quản trị chưa bật 2FA")} value={String(adminsNo2fa.length)} sub={adminsNo2fa.length ? adminsNo2fa.map((u) => u.username).join(", ") : L("Tất cả quản trị đã bật 2FA")} icon={I.users} tone={adminsNo2fa.length ? "rose" : "emerald"} />
       </div>
 
@@ -112,7 +112,7 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
           </CardHead>
           <div className="p-5 pt-4">
           <p className="text-sm text-slate-500">{L("Khi bật: khách không đăng nhập mới và không đặt đơn/nạp tiền/mua gói được; tài khoản quản trị và chủ panel vẫn vào quản trị bình thường để xử lý sự cố.")}</p>
-          {lockdownOn && s.lockdown_reason ? <div className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{Ld(`Trạng thái hiện tại: Đang bật — ${s.lockdown_reason}`)}</div> : null}
+          {lockdownOn && s.lockdown_reason ? <div className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{L("Trạng thái hiện tại: Đang bật — ")}{s.lockdown_reason}</div> : null}
           {lockdownOn ? (
             <form action={toggleLockdownAction} className="mt-4">
               <input type="hidden" name="enable" value="0" />
@@ -140,7 +140,7 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
           <div className="mt-3 rounded-xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
             {Ld("Website con còn secret dạng rõ:")} <b className="text-slate-900">{panelsPlain.length}</b>
             {panelsPlain.length > 0 && <span className="block truncate text-xs text-slate-400">{panelsPlain.map((p) => p.name).join(", ")}</span>}
-            <span className="mt-1.5 block text-xs text-slate-400">{Ld(`Tổng số website con: ${panelsRaw.length} · Đã mã hoá toàn bộ: ${panelsRaw.length - panelsPlain.length}`)}<br />{Ld("Khoá mã hoá APP_ENC_KEY trên máy chủ này:")} <b className="text-slate-600">{process.env.APP_ENC_KEY ? Ld("Đã đặt") : Ld("Chưa đặt")}</b></span>
+            <span className="mt-1.5 block text-xs text-slate-400">{L("Tổng số website con: ")}{panelsRaw.length}{L(" · Đã mã hoá toàn bộ: ")}{panelsRaw.length - panelsPlain.length}<br />{Ld("Khoá mã hoá APP_ENC_KEY trên máy chủ này:")} <b className="text-slate-600">{process.env.APP_ENC_KEY ? Ld("Đã đặt") : Ld("Chưa đặt")}</b></span>
           </div>
           <form action={encryptAllPanelSecretsAction} className="mt-4">
             <button className="btn-primary w-full" disabled={panelsPlain.length === 0}>{L("Mã hoá toàn bộ secret panel")}</button>
@@ -152,10 +152,10 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
 
       <div className="card mt-6 overflow-x-auto">
         <CardHead icon={I.chart} tone="amber" title={Ld("Rủi ro & gian lận")}>
-          <Badge cls="bg-amber-100 text-amber-700">{Ld(`${riskWatchCount} tài khoản cần theo dõi`)}</Badge>
-          <Badge cls="bg-rose-100 text-rose-700">{Ld(`${riskRestrictedCount} tài khoản điểm cao`)}</Badge>
+          <Badge cls="bg-amber-100 text-amber-700">{riskWatchCount}{L(" tài khoản cần theo dõi")}</Badge>
+          <Badge cls="bg-rose-100 text-rose-700">{riskRestrictedCount}{L(" tài khoản điểm cao")}</Badge>
         </CardHead>
-        <p className="border-b border-slate-100 px-5 py-3 text-sm text-slate-500">{Ld(`Điểm rủi ro 0–100 tự tính từ hành vi đăng nhập, nạp tiền, đơn hàng và API. Từ ${riskTh.restrict} điểm hệ thống tự chặn tạo đơn/nạp mới cho tới khi được duyệt; từ ${riskTh.critical} điểm là cấp nghiêm trọng chờ duyệt — hệ thống không tự khoá tiền hay khoá tài khoản.`)}</p>
+        <p className="border-b border-slate-100 px-5 py-3 text-sm text-slate-500">{L("Điểm rủi ro 0–100 tự tính từ hành vi đăng nhập, nạp tiền, đơn hàng và API. Từ ")}{riskTh.restrict}{L(" điểm hệ thống tự chặn tạo đơn/nạp mới cho tới khi được duyệt; từ ")}{riskTh.critical}{L(" điểm là cấp nghiêm trọng chờ duyệt — hệ thống không tự khoá tiền hay khoá tài khoản.")}</p>
         {topRisk.length === 0 ? <Empty text={L("Chưa có tài khoản nào có điểm rủi ro")} /> : (
           <table className="w-full min-w-[820px]">
             <thead><tr><th className="th">{L("Tài khoản")}</th><th className="th">{L("Điểm rủi ro")}</th><th className="th">{L("Yếu tố chính")}</th><th className="th">{L("Trạng thái")}</th><th className="th"></th></tr></thead>
@@ -164,7 +164,7 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
                 const fs = ((u.riskFactors as RiskFactor[] | null) || []).slice(0, 3);
                 return (
                   <tr key={u.id} className={i % 2 ? "bg-slate-50/60" : undefined}>
-                    <td className="td"><Link className="font-semibold text-sky-600" href={`/admin/nguoi-dung/${u.id}`}>{u.username}</Link><span className="block text-xs text-slate-400">{u.panelId ? Ld(`Khách website con #${u.panelId}`) : L("Khách web mẹ")}{u.riskUpdatedAt ? Ld(` · tính lúc ${dt(u.riskUpdatedAt)}`) : ""}</span></td>
+                    <td className="td"><Link className="font-semibold text-sky-600" href={`/admin/nguoi-dung/${u.id}`}>{u.username}</Link><span className="block text-xs text-slate-400">{u.panelId ? L("Khách website con #") + u.panelId : L("Khách web mẹ")}{u.riskUpdatedAt ? L(" · tính lúc ") + dt(u.riskUpdatedAt) : ""}</span></td>
                     <td className="td">
                       <div className="flex items-center gap-2">
                         <RiskBar score={u.riskScore} watch={riskTh.watch} restrict={riskTh.restrict} critical={riskTh.critical} className="w-28" />
@@ -275,7 +275,7 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
 
       <div className="card mt-6 overflow-x-auto">
         <CardHead icon={I.file} tone="violet" title={<>{Ld("Nhật ký thao tác bất biến (Audit Log)")} — {auditTotal} {Ld("dòng")}</>}>
-          {chain.ok ? <Badge cls="bg-emerald-100 text-emerald-700">{Ld(`Chuỗi hash nguyên vẹn (${chain.count} dòng)`)}</Badge> : <Badge cls="bg-rose-100 text-rose-700">{Ld(`CHUỖI HASH GÃY tại #${chain.brokenAt}`)}</Badge>}
+          {chain.ok ? <Badge cls="bg-emerald-100 text-emerald-700">{L("Chuỗi hash nguyên vẹn (") + chain.count + L(" dòng)")}</Badge> : <Badge cls="bg-rose-100 text-rose-700">{L("CHUỖI HASH GÃY tại #") + chain.brokenAt}</Badge>}
         </CardHead>
         <form className="flex flex-wrap items-end gap-3 border-b border-slate-100 px-5 py-4" method="get">
           <div><label className="lbl">{L("Lọc theo thao tác")}</label><input className="inp" name="action" defaultValue={actionFilter} placeholder="VD: deposit" /></div>
@@ -303,7 +303,7 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
         )}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-3 text-sm">
-            <span className="text-slate-400">{Ld(`Trang ${page}/${totalPages}`)}</span>
+            <span className="text-slate-400">{L("Trang ") + page + "/" + totalPages}</span>
             <span className="space-x-2">
               {page > 1 && <Link className="btn-ghost" href={`/admin/trung-tam-bao-mat?page=${page - 1}${actionFilter ? `&action=${encodeURIComponent(actionFilter)}` : ""}${actorFilter ? `&actor=${encodeURIComponent(actorFilter)}` : ""}`}>{L("Trước")}</Link>}
               {page < totalPages && <Link className="btn-ghost" href={`/admin/trung-tam-bao-mat?page=${page + 1}${actionFilter ? `&action=${encodeURIComponent(actionFilter)}` : ""}${actorFilter ? `&actor=${encodeURIComponent(actorFilter)}` : ""}`}>{L("Sau")}</Link>}

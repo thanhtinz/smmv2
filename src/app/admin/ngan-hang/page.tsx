@@ -36,7 +36,7 @@ export default async function AdminBanks({ searchParams }: { searchParams: { edi
                       <span className="ml-auto">{b.active ? <Badge cls="bg-emerald-100 text-emerald-700">{L("Đang hoạt động")}</Badge> : <Badge cls="bg-slate-200 text-slate-500">{L("Đã tắt")}</Badge>}</span>
                     </div>
                     <div className="mt-3 font-mono text-lg font-bold tracking-wide text-slate-800">{b.accountNumber}</div>
-                    {b.branch && <div className="text-sm text-slate-400">{Ld(`Chi nhánh: ${b.branch}`)}</div>}
+                    {b.branch && <div className="text-sm text-slate-400">{L("Chi nhánh:")} {b.branch}</div>}
                     {b.note && <div className="mt-1 text-sm text-slate-400">{b.note}</div>}
                     {qr && <img src={qr} alt="QR" className="mt-3 h-36 w-36 rounded-xl border border-slate-100 object-contain" />}
                     <div className="mt-4 flex gap-2">
@@ -50,7 +50,7 @@ export default async function AdminBanks({ searchParams }: { searchParams: { edi
           )}
         </div>
         <form action={saveBankAction} className="card mt-6 p-5">
-          <div className="font-bold text-slate-900">{edit ? Ld(`Sửa: ${edit.bankName}`) : L("Thêm ngân hàng")}</div>
+          <div className="font-bold text-slate-900">{edit ? <>{L("Sửa:")} {edit.bankName}</> : L("Thêm ngân hàng")}</div>
           {edit && <input type="hidden" name="id" value={edit.id} />}
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div><label className="lbl">{L("Tên ngân hàng")}</label><input className="inp" name="bankName" required defaultValue={edit?.bankName || ""} placeholder={L("VD: Vietcombank")} /></div>

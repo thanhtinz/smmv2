@@ -158,7 +158,7 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm">
         <div>
           <div className="text-white font-extrabold text-lg mb-3">{brand?.name || s.site_name}</div>
-          <p className="leading-relaxed">{brand?.tagline || s.site_tagline}</p>
+          <p className="leading-relaxed">{L(brand?.tagline || s.site_tagline)}</p>
         </div>
         <div>
           <div className="text-white font-semibold mb-3">{L("Dịch vụ")}</div>
@@ -185,7 +185,7 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
           </ul>
         </div>
       </div>
-      <div className="border-t border-slate-800 py-5 text-center text-xs">{Ld(`© ${new Date().getFullYear()} ${brand?.name || s.site_name}. Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.`)}</div>
+      <div className="border-t border-slate-800 py-5 text-center text-xs">© {new Date().getFullYear()} {brand?.name || s.site_name}. {L("Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.")}</div>
     </footer>
     </>
   );
@@ -246,7 +246,7 @@ export async function PremiumInfoSections({ product }: {
         : (
           <ul className="text-sm text-slate-600 space-y-1.5">
             {product.variants.map((v) => (
-              <li key={v.name}>{Ld(`Gói ${v.name}: ${v.warrantyDays ? `bảo hành ${v.warrantyDays} ngày` : "không bảo hành"}`)}</li>
+              <li key={v.name}>{L("Gói ")}{v.name}: {v.warrantyDays ? <>{L("bảo hành ")}{v.warrantyDays}{L(" ngày")}</> : L("không bảo hành")}</li>
             ))}
           </ul>
         )}
@@ -266,7 +266,7 @@ export async function PremiumInfoSections({ product }: {
         <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">{L("Danh mục")}</dt><dd className="font-semibold text-slate-800 mt-1">{product.categoryName}</dd></div>
           <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">{L("Hình thức giao")}</dt><dd className="font-semibold text-slate-800 mt-1">{fulfillmentLabel}</dd></div>
-          <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">{L("Bảo hành tối đa")}</dt><dd className="font-semibold text-slate-800 mt-1">{maxWarranty ? Ld(`${maxWarranty} ngày`) : L("Không bảo hành")}</dd></div>
+          <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">{L("Bảo hành tối đa")}</dt><dd className="font-semibold text-slate-800 mt-1">{maxWarranty ? <>{maxWarranty}{L(" ngày")}</> : L("Không bảo hành")}</dd></div>
         </dl>
       </section>
       {warrantySection}

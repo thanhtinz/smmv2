@@ -68,7 +68,7 @@ export default async function PanelSystem({ searchParams }: { searchParams: { ms
                 <input type="hidden" name="kind" value={j.kind} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium text-slate-700">{L(j.label)}</div>
-                  <div className="text-xs text-slate-400">{Ld(`${num(j.count)} bản ghi có thể dọn`)}</div>
+                  <div className="text-xs text-slate-400">{num(j.count)} {L("bản ghi có thể dọn")}</div>
                 </div>
                 <button className="btn-ghost btn-sm shrink-0" disabled={j.count === 0}>{L("Dọn ngay")}</button>
               </form>

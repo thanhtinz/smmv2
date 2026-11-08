@@ -21,14 +21,14 @@ export default async function AdminPremiumOrderDetail({ params, searchParams }: 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         <div className="card p-6 lg:col-span-3">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-slate-900">{Ld(`Đơn ${o.code}`)}</h1>
+            <h1 className="text-xl font-bold text-slate-900">{L("Đơn")} {o.code}</h1>
             <Badge cls={PRE_STATUS[o.status].cls}>{L(PRE_STATUS[o.status].label)}</Badge>
           </div>
           <dl className="divide-y divide-slate-100 text-sm">
             {[
               [L("Khách"), `${o.user.username} (${o.user.email})`],
               [L("Sản phẩm"), `${o.variant.product.name} — ${o.variant.name}`],
-              [L("Hình thức gốc"), o.variant.product.fulfillment === "AUTO_STOCK" ? L("Kho tự động") : o.variant.product.fulfillment === "API" ? Ld(`Đấu API — order_code phía nguồn: ${o.providerOrderId || "chưa có"}`) : L("Thủ công")],
+              [L("Hình thức gốc"), o.variant.product.fulfillment === "AUTO_STOCK" ? L("Kho tự động") : o.variant.product.fulfillment === "API" ? L("Đấu API — order_code phía nguồn:") + " " + (o.providerOrderId || L("chưa có")) : L("Thủ công")],
               [L("Số lượng"), String(o.quantity)],
               [L("Thu / Vốn / Lãi"), `${M(o.total)} / ${M(o.cost)} / ${M(o.total - o.cost)}`],
               [L("Thông tin khách cung cấp"), o.buyerInfo || "—"],

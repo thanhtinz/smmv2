@@ -33,7 +33,7 @@ export async function AuthShell(props: {
             <span className="text-lg font-extrabold tracking-tight">{props.brandName}</span>
           </Link>
           <div className="relative">
-            <h2 className="max-w-md text-3xl font-extrabold leading-tight">{props.tagline || L("Tăng trưởng mạng xã hội, nhanh và gọn hơn.")}</h2>
+            <h2 className="max-w-md text-3xl font-extrabold leading-tight">{props.tagline ? L(props.tagline) : L("Tăng trưởng mạng xã hội, nhanh và gọn hơn.")}</h2>
             <ul className="mt-8 space-y-3.5 text-[15px] text-white/85">
               {[L("Đặt đơn tự động 24/7, theo dõi tiến độ theo thời gian thực"), L("Nạp tiền tự động qua QR ngân hàng và ví điện tử"), L("API đầy đủ cho đại lý, hỗ trợ qua ticket")].map((t) => (
                 <li key={t} className="flex items-start gap-3">

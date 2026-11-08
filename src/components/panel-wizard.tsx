@@ -245,7 +245,7 @@ export function PanelWizard({ fee, balance, action, defaults }: {
               <div className="flex justify-between gap-4"><span className="text-slate-500">{t("Số dư sau khi tạo")}</span><span className={`font-bold ${balanceOk ? "text-slate-900" : "text-rose-500"}`}>{m(balance - fee)}</span></div>
             </div>
           </div>
-          {!balanceOk && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">{td(`Số dư không đủ — phí tạo là ${m(fee)}, số dư hiện tại ${m(balance)}. Hãy nạp thêm rồi quay lại.`)}</div>}
+          {!balanceOk && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">{t("Số dư không đủ — phí tạo là ")}{m(fee)}{t(", số dư hiện tại ")}{m(balance)}{t(". Hãy nạp thêm rồi quay lại.")}</div>}
           <ul className="mt-5 space-y-2 text-sm text-slate-500">
             <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-slate-400">{InfoIcon}</span>{t("Domain không thể thay đổi sau khi tạo")}</li>
             <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-slate-400">{InfoIcon}</span>{t("Tên đăng nhập của tài khoản admin không thể chỉnh sửa sau này")}</li>
@@ -256,7 +256,7 @@ export function PanelWizard({ fee, balance, action, defaults }: {
             {t("Tôi đã kiểm tra kỹ thông tin và xác nhận tạo Child Panel")}
           </label>
           <button type="submit" disabled={!confirm || !balanceOk} className="btn-primary mt-4 w-full !py-3.5 disabled:cursor-not-allowed disabled:opacity-50">
-            {td(`Xác nhận & Tạo${fee > 0 ? ` — ${m(fee)}` : " — Miễn phí"}`)}
+            {t("Xác nhận & Tạo")}{fee > 0 ? ` — ${m(fee)}` : t(" — Miễn phí")}
           </button>
         </div>
 

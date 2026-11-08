@@ -139,10 +139,10 @@ export default function AdminRealtime({ endpoint, suffix }: { endpoint: string; 
             </div>
             {feed && (
               <div className="flex flex-wrap gap-1.5 border-b border-slate-100 px-4 py-2.5 text-[11px] font-semibold">
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">{td(`${feed.counts.depPending} nạp chờ duyệt`)}</span>
-                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">{td(`${feed.counts.smmManual} đơn thủ công`)}</span>
-                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-violet-800">{td(`${feed.counts.prePending} Premium chờ`)}</span>
-                <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-800">{td(`${feed.counts.ticketOpen} ticket mở`)}</span>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">{`${feed.counts.depPending} ${t("nạp chờ duyệt")}`}</span>
+                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">{`${feed.counts.smmManual} ${t("đơn thủ công")}`}</span>
+                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-violet-800">{`${feed.counts.prePending} ${t("Premium chờ")}`}</span>
+                <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-800">{`${feed.counts.ticketOpen} ${t("ticket mở")}`}</span>
               </div>
             )}
             <div className="max-h-[380px] overflow-y-auto">

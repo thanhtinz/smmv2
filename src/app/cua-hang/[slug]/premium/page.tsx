@@ -68,7 +68,7 @@ export default async function PanelPremiumPage({ params, searchParams }: { param
                 <div className="flex items-start justify-between">
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl" style={{ background: p.color }}>{p.name.charAt(0)}</div>
                   <span className={`text-xs font-semibold rounded-full px-2.5 py-1 ${p.fulfillment === "AUTO_STOCK" ? "bg-emerald-50 text-emerald-700" : p.fulfillment === "API" ? "bg-indigo-50 text-indigo-700" : "bg-amber-50 text-amber-700"}`}>
-                    {p.fulfillment === "AUTO_STOCK" ? (totalStock > 0 ? Ld(`Giao ngay · còn ${totalStock}`) : L("Giao tay (hết kho)")) : p.fulfillment === "API" ? L("Giao tự động qua đối tác") : L("Nâng cấp chính chủ")}
+                    {p.fulfillment === "AUTO_STOCK" ? (totalStock > 0 ? L("Giao ngay · còn ") + totalStock : L("Giao tay (hết kho)")) : p.fulfillment === "API" ? L("Giao tự động qua đối tác") : L("Nâng cấp chính chủ")}
                   </span>
                 </div>
                 <div className="font-bold text-lg text-slate-900 group-hover:text-brand-700 mt-4">{p.name}</div>

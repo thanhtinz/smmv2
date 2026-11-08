@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  *  web mẹ hoặc tự chọn; bản dịch tuỳ chỉnh của panel đè lên của web mẹ theo từng chuỗi. */
 export default async function PanelLangPage({ searchParams }: { searchParams: { msg?: string; err?: string; lang?: string; q?: string } }) {
   const { panel } = await requirePanelOwnerPage();
-  const { Ld } = await getServerI18n((panel as { langConfig?: string | null }).langConfig ?? null);
+  const { L, Ld } = await getServerI18n((panel as { langConfig?: string | null }).langConfig ?? null);
   const s = await getSettings();
   const motherCfg = resolveLangConfig(s, null);
   const mine = parsePanelLangConfig(panel.langConfig);
@@ -43,7 +43,7 @@ export default async function PanelLangPage({ searchParams }: { searchParams: { 
       totalDict={totalDict}
       ownCount={Object.keys(ownOv).length}
       totalOwn={countOverrides(mine.overrides || {})}
-      inheritedNote={inherited ? Ld(`Đang kế thừa ${inherited} bản dịch tuỳ chỉnh từ web mẹ (hiện ở cột Bản dịch gốc).`) : undefined}
+      inheritedNote={inherited ? L("Đang kế thừa ") + inherited + L(" bản dịch tuỳ chỉnh từ web mẹ (hiện ở cột Bản dịch gốc).") : undefined}
     />
   );
 }

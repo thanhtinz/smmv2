@@ -122,7 +122,7 @@ export default async function AdminDeposits({ searchParams }: {
       <div className="card overflow-hidden">
         <DepositTable rows={rows} depositAction={adminDepositAction} deleteAction={adminDeleteDepositsAction} sort={sort} dir={dir} basePath="/admin/nap-tien" />
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
-          <span className="text-sm text-slate-500">{Ld(`Tổng cộng ${total} giao dịch`)}</span>
+          <span className="text-sm text-slate-500">{L("Tổng cộng")} {total} {L("giao dịch")}</span>
           <div className="flex items-center gap-1.5">
             {page > 1 ? <a className="btn-ghost btn-sm" href={pageHref(page - 1)}>{L("Trước")}</a> : <span className="btn-ghost btn-sm pointer-events-none opacity-40">{L("Trước")}</span>}
             {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (

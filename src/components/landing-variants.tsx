@@ -105,7 +105,7 @@ export async function LandingLight(props: P) {
               <div key={p.platform} className="flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <div className="text-lg font-extrabold text-slate-900">{platName(p.platform)}</div>
-                  <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700">{Ld(`${p.count} dịch vụ`)}</span>
+                  <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700">{p.count}{L(" dịch vụ")}</span>
                 </div>
                 <div className="mt-2 text-sm text-slate-500">{L("Từ")} <b className="text-base text-slate-900">{M(p.from)}</b> {L("/ 1.000 lượt")}</div>
                 <ul className="mt-4 flex-1 space-y-2 text-sm">
@@ -143,7 +143,7 @@ export async function LandingLight(props: P) {
 
       <section id="tinh-nang" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-16 lg:py-20">
         <div className="mb-10 text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">{Ld(`Vì sao chọn ${brandName}?`)}</h2>
+          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">{L("Vì sao chọn ")}{brandName}?</h2>
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[
@@ -193,7 +193,7 @@ export async function LandingLight(props: P) {
           ))}
         </div>
         <div className="mt-14 rounded-3xl bg-gradient-to-r from-brand-600 to-brand-800 px-6 py-10 text-center text-white">
-          <div className="text-2xl font-extrabold">{Ld(`Sẵn sàng tăng trưởng cùng ${brandName}?`)}</div>
+          <div className="text-2xl font-extrabold">{L("Sẵn sàng tăng trưởng cùng ")}{brandName}?</div>
           <Link href={props.loggedIn ? links.dashboard : links.register} className="mt-5 inline-block rounded-full bg-white px-7 py-3 text-sm font-bold text-brand-700 transition hover:bg-brand-50">{L("Tạo tài khoản miễn phí")}</Link>
         </div>
       </section>

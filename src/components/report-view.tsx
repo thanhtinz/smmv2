@@ -21,7 +21,7 @@ export async function ReportPreview({ st, profitLabel = "Lãi" }: { st: StatsBun
   const maxSmm = Math.max(1, ...st.bestSmm.map((b) => b.revenue));
   const maxPre = Math.max(1, ...st.bestPremium.map((b) => b.revenue));
   const maxSpend = Math.max(1, ...st.topUsers.map((u) => u.spend));
-  const per = (p: StatsBundle["today"]) => Ld(`${L(profitLabel)} ${M(p.profit)} · ${num(p.orders)} đơn · Nạp ${M(p.deposits)}`);
+  const per = (p: StatsBundle["today"]) => `${L(profitLabel)} ${M(p.profit)}${L(" · ")}${num(p.orders)}${L(" đơn · ")}${L("Nạp ")}${M(p.deposits)}`;
   return (
     <div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -32,10 +32,10 @@ export async function ReportPreview({ st, profitLabel = "Lãi" }: { st: StatsBun
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2 text-xs font-semibold">
-        <span className="rounded-full bg-amber-100 px-3 py-1.5 text-amber-800">{Ld(`${num(st.pending.deposits)} yêu cầu nạp chờ duyệt`)}</span>
-        <span className="rounded-full bg-sky-100 px-3 py-1.5 text-sky-800">{Ld(`${num(st.pending.smmManual)} đơn SMM thủ công chờ xử lý`)}</span>
-        <span className="rounded-full bg-violet-100 px-3 py-1.5 text-violet-800">{Ld(`${num(st.pending.premium)} đơn Premium chờ giao`)}</span>
-        <span className="rounded-full bg-rose-100 px-3 py-1.5 text-rose-800">{Ld(`${num(st.pending.tickets)} ticket đang mở`)}</span>
+        <span className="rounded-full bg-amber-100 px-3 py-1.5 text-amber-800">{`${num(st.pending.deposits)} ${L("yêu cầu nạp chờ duyệt")}`}</span>
+        <span className="rounded-full bg-sky-100 px-3 py-1.5 text-sky-800">{`${num(st.pending.smmManual)} ${L("đơn SMM thủ công chờ xử lý")}`}</span>
+        <span className="rounded-full bg-violet-100 px-3 py-1.5 text-violet-800">{`${num(st.pending.premium)} ${L("đơn Premium chờ giao")}`}</span>
+        <span className="rounded-full bg-rose-100 px-3 py-1.5 text-rose-800">{`${num(st.pending.tickets)} ${L("ticket đang mở")}`}</span>
       </div>
 
       <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
@@ -51,7 +51,7 @@ export async function ReportPreview({ st, profitLabel = "Lãi" }: { st: StatsBun
                 <div className="flex items-center gap-3">
                   <RankBadge rank={i + 1} />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{b.name}</span>
-                  <span className="shrink-0 text-sm"><b className="text-slate-900">{M(b.revenue)}</b> <span className="text-slate-400">{Ld(`· ${num(b.orders)} đơn`)}</span></span>
+                  <span className="shrink-0 text-sm"><b className="text-slate-900">{M(b.revenue)}</b> <span className="text-slate-400">{`· ${num(b.orders)} ${L("đơn")}`}</span></span>
                 </div>
                 <div className="ml-10 mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
                   <div className={`h-full rounded-full ${BAR_COLORS[i % BAR_COLORS.length]}`} style={{ width: `${Math.max(4, Math.round((b.revenue / maxSmm) * 100))}%` }} />
@@ -74,7 +74,7 @@ export async function ReportPreview({ st, profitLabel = "Lãi" }: { st: StatsBun
                 <div className="flex items-center gap-3">
                   <RankBadge rank={i + 1} />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{b.name}</span>
-                  <span className="shrink-0 text-sm"><b className="text-slate-900">{M(b.revenue)}</b> <span className="text-slate-400">{Ld(`· ${num(b.quantity)} gói`)}</span></span>
+                  <span className="shrink-0 text-sm"><b className="text-slate-900">{M(b.revenue)}</b> <span className="text-slate-400">{`· ${num(b.quantity)} ${L("gói")}`}</span></span>
                 </div>
                 <div className="ml-10 mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
                   <div className={`h-full rounded-full ${BAR_COLORS[(i + 3) % BAR_COLORS.length]}`} style={{ width: `${Math.max(4, Math.round((b.revenue / maxPre) * 100))}%` }} />
@@ -107,7 +107,7 @@ export async function ReportPreview({ st, profitLabel = "Lãi" }: { st: StatsBun
               </div>
               <div className="shrink-0 text-right">
                 <div className="text-sm font-bold text-slate-900">{M(u.spend)}</div>
-                <div className="text-[11px] text-slate-400">{Ld(`${num(u.orders)} đơn · đã nạp ${M(u.deposited)}`)}</div>
+                <div className="text-[11px] text-slate-400">{`${num(u.orders)} ${L("đơn")} · ${L("đã nạp")} ${M(u.deposited)}`}</div>
               </div>
             </div>
           ))}

@@ -84,8 +84,8 @@ export function PanelCodesClient({ codes }: { codes: PanelCodeDTO[] }) {
             {codes.map((c) => (
               <tr key={c.id} className="hover:bg-slate-50/60">
                 <td className="td"><span className="rounded-lg bg-slate-900 px-2.5 py-1 font-mono text-xs font-bold text-white">{c.code}</span></td>
-                <td className="td font-bold text-slate-800">{c.type === "PERCENT" ? `${c.value}%` : m(c.value)}{c.type === "PERCENT" && c.maxDiscount > 0 ? <span className="block text-xs font-normal text-slate-400">{td(`tối đa ${m(c.maxDiscount)}`)}</span> : null}</td>
-                <td className="td text-slate-600">{td(`Đơn từ ${m(c.minOrder)} · ${c.scope === "ALL" ? t("Mọi đơn") : c.scope}`)}</td>
+                <td className="td font-bold text-slate-800">{c.type === "PERCENT" ? `${c.value}%` : m(c.value)}{c.type === "PERCENT" && c.maxDiscount > 0 ? <span className="block text-xs font-normal text-slate-400">{`${t("tối đa")} ${m(c.maxDiscount)}`}</span> : null}</td>
+                <td className="td text-slate-600">{`${t("Đơn từ")} ${m(c.minOrder)} · ${c.scope === "ALL" ? t("Mọi đơn") : c.scope}`}</td>
                 <td className="td text-slate-600">{num(c.usedCount)}{c.usageLimit > 0 ? `/${num(c.usageLimit)}` : ""}</td>
                 <td className="td">
                   <form action={panelToggleDiscountCode}>
@@ -96,7 +96,7 @@ export function PanelCodesClient({ codes }: { codes: PanelCodeDTO[] }) {
                 <td className="td">
                   <div className="flex items-center justify-end gap-1.5">
                     <button className={iconBtn} title={t("Sửa")} onClick={() => { setEditing(c); setOpen(true); }}><Pencil /></button>
-                    <form action={panelDeleteDiscountCode} onSubmit={(e) => { if (!confirm(td(`Xoá mã "${c.code}"?`))) e.preventDefault(); }}>
+                    <form action={panelDeleteDiscountCode} onSubmit={(e) => { if (!confirm(`${t("Xoá mã")} "${c.code}"?`)) e.preventDefault(); }}>
                       <input type="hidden" name="id" value={c.id} />
                       <button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><Trash /></button>
                     </form>
@@ -236,7 +236,7 @@ export function PanelPostsClient({ posts, categories }: { posts: PanelPostDTO[];
                 <td className="td">
                   <div className="flex items-center justify-end gap-1.5">
                     <button className={iconBtn} title={t("Sửa")} onClick={() => { setEditing(p); setOpen(true); }}><Pencil /></button>
-                    <form action={panelDeletePost} onSubmit={(e) => { if (!confirm(td(`Xoá bài "${p.title}"?`))) e.preventDefault(); }}>
+                    <form action={panelDeletePost} onSubmit={(e) => { if (!confirm(`${t("Xoá bài")} "${p.title}"?`)) e.preventDefault(); }}>
                       <input type="hidden" name="id" value={p.id} />
                       <button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><Trash /></button>
                     </form>
@@ -275,12 +275,12 @@ export function PanelAddServiceModal({ service, sources, categories, onClose }: 
             <div><label className={lbl}>{t("Nguồn dịch vụ *")}</label>
               <select name="sourceServiceId" value={srcId} onChange={(e) => setSrcId(parseInt(e.target.value))} className={inp}>
                 <option value={0}>{t("Thủ công — tự xử lý đơn")}</option>
-                {sources.map((sv) => <option key={sv.id} value={sv.id}>{td(`${sv.name} · ${sv.categoryName} · giá web mẹ ${m(sv.rate)}/1k`)}</option>)}
+                {sources.map((sv) => <option key={sv.id} value={sv.id}>{`${sv.name} · ${sv.categoryName} · ${t("giá web mẹ")} ${m(sv.rate)}/1k`}</option>)}
               </select>
               <p className="mt-1 text-xs text-slate-400">{srcId === 0 ? t("Đơn vào trạng thái chờ, bạn tự xử lý ở mục Đơn hàng.") : t("Đơn sẽ chạy qua web chính, đúng dịch vụ đã chọn; bạn hưởng phần chênh giữa giá bán của bạn và giá web chính.")}</p>
             </div>
           )}
-          {c && <div><label className={lbl}>{t("Nguồn dịch vụ")}</label><input disabled value={c.sourceName ? td(`${c.sourceName} (giá web mẹ ${m(c.sourceRate || 0)}/1k)`) : t("Thủ công — tự xử lý đơn")} className={inp} /></div>}
+          {c && <div><label className={lbl}>{t("Nguồn dịch vụ")}</label><input disabled value={c.sourceName ? `${c.sourceName} (${t("giá web mẹ")} ${m(c.sourceRate || 0)}/1k)` : t("Thủ công — tự xử lý đơn")} className={inp} /></div>}
           <div><label className={lbl}>{t("Tên dịch vụ *")}</label><input name="name" required defaultValue={c?.name || (src ? src.name : "")} key={c ? "edit" : srcId} placeholder={t("Nhập tên dịch vụ")} className={inp} /></div>
           <div className="grid grid-cols-3 gap-4">
             <div><label className={lbl}>{t("Giá bán (VNĐ/1k) *")}</label><input name="rate" type="number" min={1} required defaultValue={c?.rate || (src ? src.rate : 50000)} key={c ? "edit-r" : "r" + srcId} className={inp} /><p className="mt-1 text-xs text-blue-600">{t("Giá bán tính cho 1000 đơn vị.")}</p></div>
@@ -325,7 +325,7 @@ export function PanelAddedServicesClient({ services, sources, categories }: { se
               {services.map((sv) => (
                 <tr key={sv.id} className="hover:bg-slate-50/60">
                   <td className="td"><div className="font-semibold text-slate-800 max-w-[300px] truncate" title={sv.name}>{sv.name}</div><div className="text-xs text-slate-400">{sv.categoryName}</div></td>
-                  <td className="td text-slate-500"><div className="max-w-[240px] truncate" title={sv.sourceName || ""}>{sv.sourceName || t("Thủ công")}</div>{sv.sourceRate != null && <div className="text-xs text-slate-400">{td(`giá mẹ ${m(sv.sourceRate)}/1k`)}</div>}</td>
+                  <td className="td text-slate-500"><div className="max-w-[240px] truncate" title={sv.sourceName || ""}>{sv.sourceName || t("Thủ công")}</div>{sv.sourceRate != null && <div className="text-xs text-slate-400">{`${t("giá mẹ")} ${m(sv.sourceRate)}/1k`}</div>}</td>
                   <td className="td font-semibold">{m(sv.rate)}</td>
                   <td className="td text-slate-500">{num(sv.min)} – {num(sv.max)}</td>
                   <td className="td">{num(sv.orderCount)}</td>

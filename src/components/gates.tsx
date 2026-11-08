@@ -6,13 +6,13 @@ import { useLang } from "@/components/lang";
 
 /** Cổng điều khoản bắt buộc: hiện khi admin bật điều khoản và khách chưa xác nhận phiên bản hiện tại. */
 export function TermsGate({ title, content, checkboxText, buttonText, version }: { title: string; content: string; checkboxText: string; buttonText: string; version: number }) {
-  const { td } = useLang();
+  const { t } = useLang();
   const [agreed, setAgreed] = useState(false);
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
         <div className="text-lg font-black text-slate-900">{title}</div>
-        <div className="mt-1 text-xs font-semibold text-slate-400">{td(`Phiên bản: ${version}`)}</div>
+        <div className="mt-1 text-xs font-semibold text-slate-400">{t("Phiên bản:") + " " + version}</div>
         <div className="mt-4 max-h-[45vh] overflow-y-auto whitespace-pre-line rounded-2xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-600">{content}</div>
         <form action={acceptTermsAction} className="mt-4">
           <label className="flex cursor-pointer items-start gap-2.5 text-sm font-medium text-slate-700">

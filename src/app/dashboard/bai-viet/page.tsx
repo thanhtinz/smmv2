@@ -43,7 +43,7 @@ export default async function DashPostsPage({ searchParams }: { searchParams: { 
         <div className="flex items-center gap-2 text-xs text-slate-400">
           {p.category && <span className="rounded-full bg-brand-50 px-2 py-0.5 font-semibold text-brand-600">{p.category.name}</span>}
           <span>{dshort(p.createdAt)}</span>
-          <span className="ml-auto">{Ld(`${p.views} lượt xem`)}</span>
+          <span className="ml-auto">{`${p.views} ${L("lượt xem")}`}</span>
         </div>
         <h2 className="mt-2 line-clamp-2 font-bold text-slate-900 group-hover:text-brand-700">{p.title}</h2>
         {p.excerpt && <p className="mt-1.5 line-clamp-3 text-sm text-slate-500">{p.excerpt}</p>}

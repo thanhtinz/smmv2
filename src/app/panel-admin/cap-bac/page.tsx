@@ -33,7 +33,7 @@ export default async function PanelLevels({ searchParams }: { searchParams: { ms
                 <tr key={lv.v}>
                   <td className="td"><Badge cls={lv.cls}>{L(lv.label)}</Badge></td>
                   <td className="td font-bold">{panel[lv.field]}%</td>
-                  <td className="td">{Ld(`${num(countOf(lv.v))} khách`)}</td>
+                  <td className="td">{num(countOf(lv.v))} {L("khách")}</td>
                   <td className="td text-slate-500">{L(lv.desc)}</td>
                 </tr>
               ))}
@@ -45,7 +45,7 @@ export default async function PanelLevels({ searchParams }: { searchParams: { ms
           <div className="font-bold text-slate-900">{L("Chỉnh % giảm theo cấp bậc")}</div>
           {LEVELS.map((lv) => (
             <div key={lv.v}>
-              <label className="lbl">{Ld(`Giảm — ${lv.label} (%)`)}</label>
+              <label className="lbl">{L("Giảm —")} {L(lv.label)} (%)</label>
               <input className="inp" name={lv.field} type="number" min={0} max={90} defaultValue={panel[lv.field]} />
             </div>
           ))}

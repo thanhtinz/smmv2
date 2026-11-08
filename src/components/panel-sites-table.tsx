@@ -48,7 +48,7 @@ export function PanelSitesTable({ panels, ns1, ns2, fee, renewAction }: {
     <div className="mt-8">
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h2 className="text-base font-extrabold text-slate-900">{t("Website con của tôi")}</h2>
-        <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700">{td(`${panels.length} website`)}</span>
+        <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700">{panels.length}{t(" website")}</span>
       </div>
       <div className="mb-3 flex gap-2">
         <input
@@ -81,7 +81,7 @@ export function PanelSitesTable({ panels, ns1, ns2, fee, renewAction }: {
                     ) : (
                       <span className="font-bold text-slate-800">{p.name}</span>
                     )}
-                    {p.expiresAt && <div className="mt-0.5 text-xs text-slate-400">{td("Hết hạn: " + dstr(p.expiresAt))}</div>}
+                    {p.expiresAt && <div className="mt-0.5 text-xs text-slate-400">{t("Hết hạn:")} {dstr(p.expiresAt)}</div>}
                   </td>
                   <td className="px-5 py-4 text-[13px] leading-relaxed text-slate-600">
                     {ns1 || ns2 ? (<>{ns1 && <div>{ns1}</div>}{ns2 && <div>{ns2}</div>}</>) : "—"}
@@ -96,7 +96,7 @@ export function PanelSitesTable({ panels, ns1, ns2, fee, renewAction }: {
                       {fee > 0 && p.expiresAt && (
                         <form action={renewAction}>
                           <input type="hidden" name="panelId" value={p.id} />
-                          <button type="submit" className="btn-ghost btn-sm whitespace-nowrap" title={td(`Gia hạn 30 ngày — ${m(fee)}`)}>{t("Gia hạn")}</button>
+                          <button type="submit" className="btn-ghost btn-sm whitespace-nowrap" title={t("Gia hạn 30 ngày — ") + m(fee)}>{t("Gia hạn")}</button>
                         </form>
                       )}
                       <a href={`/api/panels/select?id=${p.id}`} className="btn-primary btn-sm whitespace-nowrap">{t("Quản trị")}</a>
@@ -120,7 +120,7 @@ export function PanelSitesTable({ panels, ns1, ns2, fee, renewAction }: {
         <div className="flex items-center gap-2">
           <button type="button" disabled={cur <= 1} onClick={() => setPage(cur - 1)} className="btn-ghost btn-sm !px-3 disabled:opacity-40">‹</button>
           <button type="button" disabled={cur >= pages} onClick={() => setPage(cur + 1)} className="btn-ghost btn-sm !px-3 disabled:opacity-40">›</button>
-          <span className="ml-1 text-sm font-medium text-slate-600">{td("Trang " + cur + "/" + pages)}</span>
+          <span className="ml-1 text-sm font-medium text-slate-600">{t("Trang")} {cur}/{pages}</span>
         </div>
         <label className="flex items-center gap-2 text-sm text-slate-500">
           {t("Số hàng/trang")}

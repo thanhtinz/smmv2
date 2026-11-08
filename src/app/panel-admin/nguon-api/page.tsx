@@ -34,7 +34,7 @@ export default async function PanelSourcesPage({ searchParams }: { searchParams:
                 <td className="td"><div className="font-semibold text-slate-800">{s.site_name} {L("(web chính)")}</div><div className="text-xs text-slate-400">{L("API của hệ thống — không qua nguồn ngoài")}</div></td>
                 <td className="td text-slate-500">API SMM v2 · /api/v2</td>
                 <td className="td text-slate-500">{linkedUser ? `@${linkedUser.username}` : linked ? L("Đã có API key") : "—"}</td>
-                <td className="td">{Ld(`${num(serviceCount)} dịch vụ`)}</td>
+                <td className="td">{num(serviceCount)} {L("dịch vụ")}</td>
                 <td className="td"><Badge cls={linked ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}>{linked ? L("Đã liên kết") : L("Chưa liên kết")}</Badge></td>
               </tr>
             </tbody>

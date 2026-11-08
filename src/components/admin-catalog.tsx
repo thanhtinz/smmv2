@@ -171,7 +171,7 @@ export function ImportServicesModal({ provider, onClose }: { provider: ProviderD
       const r = await fetch("/api/admin/provider-services", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ providerId: provider.id, markup, ids: Array.from(selected) }) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || t("Import thất bại"));
-      setResult(td(`Đã import ${j.created} dịch vụ mới${j.skipped ? `, bỏ qua ${j.skipped} dịch vụ đã có` : ""}.`));
+      setResult(`${t("Đã import")} ${j.created} ${t("dịch vụ mới")}${j.skipped ? `, ${t("bỏ qua")} ${j.skipped} ${t("dịch vụ đã có")}` : ""}.`);
       setServices((prev) => prev.map((s) => (selected.has(s.id) ? { ...s, imported: true } : s)));
       setSelected(new Set());
     } catch (e: any) {
@@ -182,12 +182,12 @@ export function ImportServicesModal({ provider, onClose }: { provider: ProviderD
   }
 
   return (
-    <Modal title={td(`Import dịch vụ — ${provider.name}`)} onClose={onClose} wide>
+    <Modal title={`${t("Import dịch vụ")} — ${provider.name}`} onClose={onClose} wide>
       <div className="flex flex-col" style={{ maxHeight: "78vh" }}>
         <div className="flex flex-wrap items-center gap-2 px-6 pt-4">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Tìm dịch vụ / danh mục phía nhà cung cấp…")} className="inp min-w-[220px] flex-1" />
           <label className="flex items-center gap-1.5 text-sm text-slate-600">Markup <input type="number" min={0} max={500} value={markup} onChange={(e) => setMarkup(parseInt(e.target.value) || 0)} className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm" /> %</label>
-          <span className="text-sm text-slate-500">{td(`Đã chọn `)}<b className="text-slate-800">{selected.size}</b>{td(` / ${services.filter((s) => !s.imported).length} dịch vụ mới`)}</span>
+          <span className="text-sm text-slate-500">{t("Đã chọn")} <b className="text-slate-800">{selected.size}</b>{` / ${services.filter((s) => !s.imported).length} `}{t("dịch vụ mới")}</span>
         </div>
         {error && <div className="mx-6 mt-3 rounded-xl bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-600">{error}</div>}
         {result && <div className="mx-6 mt-3 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">{result}</div>}
@@ -215,7 +215,7 @@ export function ImportServicesModal({ provider, onClose }: { provider: ProviderD
         </div>
         <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
           <button type="button" onClick={() => (result ? window.location.reload() : onClose())} className="btn-ghost btn-sm !px-5 !py-2.5">{result ? t("Đóng & tải lại") : t("Hủy")}</button>
-          <button disabled={busy || selected.size === 0} onClick={doImport} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50">{busy ? t("Đang import…") : td(`Import ${selected.size} dịch vụ`)}</button>
+          <button disabled={busy || selected.size === 0} onClick={doImport} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50">{busy ? t("Đang import…") : `${t("Import")} ${selected.size} ${t("dịch vụ")}`}</button>
         </div>
       </div>
     </Modal>
@@ -245,8 +245,8 @@ export function ProvidersClient({ providers }: { providers: ProviderDTO[] }) {
             {providers.map((p) => (
               <tr key={p.id} className="hover:bg-slate-50/60">
                 <td className="td"><div className="font-bold text-slate-800">{p.name}</div><div className="max-w-[220px] truncate text-xs text-slate-400">{p.apiUrl}</div></td>
-                <td className="td text-slate-600">{td(`${num(p.serviceCount)} dịch vụ`)}</td>
-                <td className="td"><span className="text-xs font-semibold text-slate-500">{p.kind === "BOTH" ? "Standard API" : p.kind === "SMM" ? "SMM v2" : t("API sản phẩm")}</span><div className="text-xs text-slate-400">{p.lastSyncAt ? td(`Đồng bộ: ${p.lastSyncAt}`) : t("Chưa đồng bộ")}</div></td>
+                <td className="td text-slate-600">{`${num(p.serviceCount)} ${t("dịch vụ")}`}</td>
+                <td className="td"><span className="text-xs font-semibold text-slate-500">{p.kind === "BOTH" ? "Standard API" : p.kind === "SMM" ? "SMM v2" : t("API sản phẩm")}</span><div className="text-xs text-slate-400">{p.lastSyncAt ? `${t("Đồng bộ")}: ${p.lastSyncAt}` : t("Chưa đồng bộ")}</div></td>
                 <td className="td">
                   <form action={adminProviderMarkup} className="flex items-center gap-1.5">
                     <input type="hidden" name="id" value={p.id} />
@@ -264,7 +264,7 @@ export function ProvidersClient({ providers }: { providers: ProviderDTO[] }) {
                     {p.kind !== "PREMIUM" && <button className={iconBtn} title={t("Import dịch vụ (chọn lọc)")} onClick={() => setImporting(p)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg></button>}
                     <form action={adminProviderAction}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="kind" value="sync" /><button className={iconBtn} title={t("Đồng bộ")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6" /></svg></button></form>
                     <form action={adminProviderAction}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="kind" value="balance" /><button className={iconBtn} title={t("Kiểm tra số dư")}><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.5v15l13-7.5-13-7.5Z" /></svg></button></form>
-                    <form action={adminDeleteProvider} onSubmit={(e) => { if (!confirm(td(`Xoá nhà cung cấp ${p.name}? Dịch vụ liên kết sẽ chuyển về thủ công.`))) e.preventDefault(); }}><input type="hidden" name="id" value={p.id} /><button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6" /></svg></button></form>
+                    <form action={adminDeleteProvider} onSubmit={(e) => { if (!confirm(`${t("Xoá nhà cung cấp")} ${p.name}? ${t("Dịch vụ liên kết sẽ chuyển về thủ công.")}`)) e.preventDefault(); }}><input type="hidden" name="id" value={p.id} /><button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6" /></svg></button></form>
                   </div>
                 </td>
               </tr>
@@ -352,8 +352,8 @@ export function ServiceModal({ service, categories, providers, bots, onClose }: 
           </div>
           {cost > 0 && (
             <div className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
-              <span className={rate - cost >= 0 ? "font-bold text-emerald-600" : "font-bold text-rose-600"}>{td(`Lãi: ${rate - cost >= 0 ? "+" : ""}${m(rate - cost)} (${cost > 0 ? (((rate - cost) / cost) * 100).toFixed(2) : "0"}%)`)}</span>
-              <span className="text-slate-500">{td(` · So sánh với NCC: Giá gốc ${m(cost)} — Giá bán ${m(rate)}`)}</span>
+              <span className={rate - cost >= 0 ? "font-bold text-emerald-600" : "font-bold text-rose-600"}>{`${t("Lãi:")} ${rate - cost >= 0 ? "+" : ""}${m(rate - cost)} (${cost > 0 ? (((rate - cost) / cost) * 100).toFixed(2) : "0"}%)`}</span>
+              <span className="text-slate-500">{` · ${t("So sánh với NCC:")} ${t("Giá gốc")} ${m(cost)} — ${t("Giá bán")} ${m(rate)}`}</span>
             </div>
           )}
           <div className="grid grid-cols-2 gap-4">
@@ -420,7 +420,7 @@ export function ServiceRowActions({ service, categories, providers, bots }: { se
   return (
     <div className="flex items-center justify-end gap-1.5">
       <button onClick={() => setOpen(true)} title={t("Sửa")} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg></button>
-      <form action={adminDeleteService} onSubmit={(e) => { if (!confirm(td(`Xoá dịch vụ "${service.name}"?`))) e.preventDefault(); }}>
+      <form action={adminDeleteService} onSubmit={(e) => { if (!confirm(`${t("Xoá dịch vụ")} "${service.name}"?`)) e.preventDefault(); }}>
         <input type="hidden" name="id" value={service.id} />
         <button title={t("Xoá")} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6" /></svg></button>
       </form>
@@ -515,7 +515,7 @@ export function CategoriesClient({ categories }: { categories: CategoryDTO[] }) 
     <div className="card p-4 sm:p-5">
       <form ref={reorderRef} action={adminReorderCategories} className="hidden"><input type="hidden" name="ids" value={dragOrderIds} /></form>
       <div className="mb-3 flex items-center justify-between px-1">
-        <div className="text-sm text-slate-500">{td(`Tổng ${order.length} danh mục · kéo thả để sắp xếp`)}</div>
+        <div className="text-sm text-slate-500">{`${t("Tổng")} ${order.length} ${t("danh mục · kéo thả để sắp xếp")}`}</div>
         <button onClick={() => setModal({})} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm nền tảng")}</button>
       </div>
       <div className="space-y-3">
@@ -530,7 +530,7 @@ export function CategoriesClient({ categories }: { categories: CategoryDTO[] }) 
                 <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-black text-white ${avatarColor(pf)}`}>{((PLATFORMS as any)[pf] || pf).charAt(0)}</span>
                 <div className="min-w-0 flex-1">
                   <div className="font-extrabold text-slate-800">{t((PLATFORMS as any)[pf] || pf)}</div>
-                  <div className="text-xs text-slate-400">{td(`${group.length} danh mục con · ${num(totalServices)} dịch vụ`)}</div>
+                  <div className="text-xs text-slate-400">{`${group.length} ${t("danh mục con ·")} ${num(totalServices)} ${t("dịch vụ")}`}</div>
                 </div>
                 <form action={adminTogglePlatform}>
                   <input type="hidden" name="platform" value={pf} />
@@ -556,7 +556,7 @@ export function CategoriesClient({ categories }: { categories: CategoryDTO[] }) 
                         </button>
                       </form>
                       <button className={iconBtn} title={t("Sửa")} onClick={() => setModal({ category: c })}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg></button>
-                      <form action={adminDeleteCategory} onSubmit={(e) => { if (!confirm(td(`Xoá danh mục "${c.name}"?`))) e.preventDefault(); }}>
+                      <form action={adminDeleteCategory} onSubmit={(e) => { if (!confirm(`${t("Xoá danh mục")} "${c.name}"?`)) e.preventDefault(); }}>
                         <input type="hidden" name="id" value={c.id} />
                         <button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6" /></svg></button>
                       </form>

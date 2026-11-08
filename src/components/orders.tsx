@@ -78,7 +78,7 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
         <div className="flex flex-wrap gap-2">
           <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">{L("Hiển thị")}
             <select className="inp !w-28 !py-2" name="size" defaultValue={String(size)}>
-              {[10, 20, 30, 50, 100].map((n) => <option key={n} value={n}>{Ld(`${n} mục`)}</option>)}
+              {[10, 20, 30, 50, 100].map((n) => <option key={n} value={n}>{n}{L(" mục")}</option>)}
             </select>
           </label>
           <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">{L("Sắp xếp")}
@@ -116,15 +116,15 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
                     <td className="td">
                       <div className="font-medium max-w-[280px] truncate">{o.service.name}</div>
                       <div className="text-xs text-slate-400 max-w-[280px] truncate">{o.link}</div>
-                      <div className="text-xs text-slate-500 mt-1">{Ld(`Số lượng ${num(o.quantity)} · Bắt đầu ${o.startCount !== null ? num(o.startCount) : "—"} · Còn lại ${o.remains !== null ? num(o.remains) : "—"}`)}</div>
+                      <div className="text-xs text-slate-500 mt-1">{L("Số lượng ")}{num(o.quantity)}{L(" · Bắt đầu ")}{o.startCount !== null ? num(o.startCount) : "—"}{L(" · Còn lại ")}{o.remains !== null ? num(o.remains) : "—"}</div>
                     </td>
                     <td className="td">
                       <div className="font-bold">{M(o.charge)}</div>
-                      <div className="text-xs text-slate-400">{Ld(`Đơn giá ${M(o.service.rate)}/1000`)}</div>
-                      {o.refundedAmount > 0 && <div className="text-xs text-emerald-600">{Ld(`đã hoàn ${M(o.refundedAmount)}`)}</div>}
-                      {drip && <div className="text-xs text-slate-500">{Ld(`Drip-feed: ${drip.runs} lượt × ${drip.interval} phút`)}</div>}
+                      <div className="text-xs text-slate-400">{L("Đơn giá ")}{M(o.service.rate)}/1000</div>
+                      {o.refundedAmount > 0 && <div className="text-xs text-emerald-600">{L("đã hoàn ")}{M(o.refundedAmount)}</div>}
+                      {drip && <div className="text-xs text-slate-500">{L("Drip-feed: ")}{drip.runs}{L(" lượt × ")}{drip.interval}{L(" phút")}</div>}
                     </td>
-                    <td className="td text-xs text-slate-500 whitespace-nowrap">{dt(o.createdAt)}<div className="text-slate-400 mt-0.5">{Ld(`Cập nhật ${dt(o.updatedAt)}`)}</div></td>
+                    <td className="td text-xs text-slate-500 whitespace-nowrap">{dt(o.createdAt)}<div className="text-slate-400 mt-0.5">{L("Cập nhật ")}{dt(o.updatedAt)}</div></td>
                     <td className="td"><Link href={`/dashboard/don-hang/${o.id}`} className="btn-dark btn-sm">{L("Chi tiết")}</Link></td>
                   </tr>
                 );
@@ -140,7 +140,7 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
             <Link key={p} href={href(p)} className={`px-3 py-2 rounded-lg text-sm font-semibold ${p === page ? "bg-slate-900 text-white" : "bg-white border border-slate-200"}`}>{p}</Link>
           ))}
           <Link href={href(page + 1)} className={`px-3 py-2 rounded-lg text-sm font-semibold ${page >= pages ? "pointer-events-none opacity-40 bg-white border border-slate-200" : "bg-white border border-slate-200"}`}>›</Link>
-          <span className="text-xs text-slate-400 ml-2">{Ld(`${num(total)} đơn`)}</span>
+          <span className="text-xs text-slate-400 ml-2">{num(total)}{L(" đơn")}</span>
         </div>
       )}
     </div>

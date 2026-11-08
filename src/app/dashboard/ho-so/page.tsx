@@ -60,7 +60,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
       <div className="border-t border-slate-100 pt-4">
         <div className="text-sm font-bold text-slate-800">{L("Yêu cầu mật khẩu mới")}</div>
         <ul className="mt-2 space-y-1.5 text-sm text-slate-500">
-          <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{Ld(`Ít nhất ${s.password_min_length || 8} ký tự`)}</li>
+          <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{`${L("Ít nhất ")}${s.password_min_length || 8}${L(" ký tự")}`}</li>
           {s.pw_require_upper === "1" && <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{L("Có ít nhất 1 chữ hoa (A–Z)")}</li>}
           {s.pw_require_number === "1" && <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{L("Có ít nhất 1 chữ số (0–9)")}</li>}
           {s.pw_require_special === "1" && <li className="flex gap-2"><span className="shrink-0 text-emerald-500 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{L("Có ít nhất 1 ký tự đặc biệt (vd: !@#$%)")}</li>}
@@ -143,12 +143,12 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
             <div className="card p-6">
               <div className="font-bold text-slate-900">{L("Điểm tích luỹ")}</div>
               <div className="mt-3 space-y-1.5 text-sm text-slate-500">
-                <div className="flex justify-between"><span>{L("Điểm hiện có")}</span><b className="text-slate-800">{Ld(`${num(user.points)} điểm`)}</b></div>
+                <div className="flex justify-between"><span>{L("Điểm hiện có")}</span><b className="text-slate-800">{`${num(user.points)} ${L("điểm")}`}</b></div>
                 <div className="flex justify-between"><span>{L("Giá trị quy đổi")}</span><b className="text-slate-800">{M(user.points * (parseInt(s.points_value_vnd || "100") || 100))}</b></div>
-                <div className="flex justify-between"><span>{L("Nhận điểm")}</span><b className="text-slate-800">{Ld(`${s.points_per_100k} điểm / 100.000đ đơn hoàn thành`)}</b></div>
+                <div className="flex justify-between"><span>{L("Nhận điểm")}</span><b className="text-slate-800">{`${s.points_per_100k} ${L("điểm / 100.000đ đơn hoàn thành")}`}</b></div>
               </div>
               <form action={redeemPointsAction} className="mt-4 flex gap-2">
-                <input className="inp" name="points" type="number" min={parseInt(s.points_min_redeem || "10") || 10} placeholder={Ld(`Từ ${s.points_min_redeem} điểm`)} />
+                <input className="inp" name="points" type="number" min={parseInt(s.points_min_redeem || "10") || 10} placeholder={`${L("Từ")} ${s.points_min_redeem} ${L("điểm")}`} />
                 <button className="btn-primary whitespace-nowrap">{L("Đổi ra số dư")}</button>
               </form>
               <p className="mt-2 text-xs text-slate-400">{L("Điểm cộng tự động khi đơn hoàn thành, đổi ra số dư ví ngay tại đây.")}</p>
@@ -224,11 +224,11 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
               </div>
               <div>
                 <div className="text-xs font-semibold text-slate-400">Passkey</div>
-                <div className="mt-1.5 text-sm font-semibold text-slate-800">{myPasskeys.length > 0 ? Ld(`${myPasskeys.length} thiết bị`) : L("Chưa có")}</div>
+                <div className="mt-1.5 text-sm font-semibold text-slate-800">{myPasskeys.length > 0 ? `${myPasskeys.length} ${L("thiết bị")}` : L("Chưa có")}</div>
               </div>
               <div>
                 <div className="text-xs font-semibold text-slate-400">{L("Phiên đang hoạt động")}</div>
-                <div className="mt-1.5 text-sm font-semibold text-slate-800">{Ld(`${mySessions.filter((x) => !x.revokedAt).length} phiên`)}</div>
+                <div className="mt-1.5 text-sm font-semibold text-slate-800">{`${mySessions.filter((x) => !x.revokedAt).length} ${L("phiên")}`}</div>
               </div>
               <div>
                 <div className="text-xs font-semibold text-slate-400">Email</div>
@@ -253,7 +253,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
                       <DeviceTile ua={sess.userAgent} />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-semibold text-slate-800" title={sess.userAgent || undefined}>{parseUaLabel(sess.userAgent) || sess.userAgent || L("Thiết bị không rõ")}</div>
-                        <div className="text-xs text-slate-400">{Ld(`IP ${sess.ip} · Đăng nhập ${dt(sess.createdAt)} · Hoạt động gần nhất ${relTime(sess.lastSeenAt)}`)}</div>
+                        <div className="text-xs text-slate-400">{`IP ${sess.ip}${L(" · Đăng nhập ")}${dt(sess.createdAt)}${L(" · Hoạt động gần nhất ")}${relTime(sess.lastSeenAt)}`}</div>
                       </div>
                       {sess.revokedAt ? <Badge cls="bg-slate-200 text-slate-500">{L("Đã đăng xuất")}</Badge> : isCurrent ? <Badge cls="bg-emerald-100 text-emerald-700">{L("Thiết bị này")}</Badge> : (
                         <form action={revokeSessionAction}><input type="hidden" name="id" value={sess.id} /><button className="btn-ghost btn-sm !text-rose-600">{L("Đăng xuất")}</button></form>

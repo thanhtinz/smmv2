@@ -39,7 +39,7 @@ export default async function PanelPremiumOrders({ searchParams }: { searchParam
                   <td className="td"><Link href={`/panel-admin/don-premium/${o.id}`} className="font-mono text-xs font-semibold text-brand-700">{o.code}</Link></td>
                   <td className="td font-medium">{o.user.username}</td>
                   <td className="td"><div className="font-medium">{o.variant.product.name} — {o.variant.name} × {o.quantity}</div><div className="text-xs text-slate-400 max-w-[280px] truncate">{o.buyerInfo || ""}</div></td>
-                  <td className="td"><div className="font-semibold">{M(o.total)}</div><div className="text-xs text-emerald-600">{Ld(`hoa hồng ${M(o.commission)}`)}</div></td>
+                  <td className="td"><div className="font-semibold">{M(o.total)}</div><div className="text-xs text-emerald-600">{L("hoa hồng ")}{M(o.commission)}</div></td>
                   <td className="td"><Badge cls={PRE_STATUS[o.status].cls}>{L(PRE_STATUS[o.status].label)}</Badge></td>
                   <td className="td text-xs text-slate-500">{dt(o.createdAt)}</td>
                 </tr>

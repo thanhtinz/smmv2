@@ -64,7 +64,7 @@ export default async function AdminStock({ searchParams }: { searchParams: { msg
                     <td className="td font-mono text-xs text-slate-400">{st.id}</td>
                     <td className="td font-medium whitespace-nowrap">{st.variant.product.name} — {st.variant.name}</td>
                     <td className="td"><span className="block max-w-[300px] truncate font-mono text-xs">{st.payload}</span></td>
-                    <td className="td"><Badge cls={st.status === "AVAILABLE" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}>{st.status === "AVAILABLE" ? L("Còn kho") : Ld(`Đã bán${st.orderId ? ` (đơn #${st.orderId})` : ""}`)}</Badge></td>
+                    <td className="td"><Badge cls={st.status === "AVAILABLE" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}>{st.status === "AVAILABLE" ? L("Còn kho") : <>{L("Đã bán")}{st.orderId ? <> ({L("đơn")} #{st.orderId})</> : ""}</>}</Badge></td>
                     <td className="td text-xs text-slate-500">{dt(st.createdAt)}</td>
                     <td className="td text-right">{st.status === "AVAILABLE" && <form action={adminDeleteStock}><input type="hidden" name="id" value={st.id} /><button className="btn-ghost btn-sm !text-rose-600">{L("Xoá")}</button></form>}</td>
                   </tr>
@@ -80,7 +80,7 @@ export default async function AdminStock({ searchParams }: { searchParams: { msg
             <label className="lbl">{L("Gói áp dụng")}</label>
             <select className="inp" name="variantId" required>
               <option value="" disabled selected>{L("— Chọn gói —")}</option>
-              {variants.map((v) => <option key={v.id} value={v.id}>{v.product.name} — {v.name} {Ld(`(còn ${avail.get(v.id) || 0})`)}</option>)}
+              {variants.map((v) => <option key={v.id} value={v.id}>{v.product.name} — {v.name} ({L("còn")} {avail.get(v.id) || 0})</option>)}
             </select>
           </div>
           <div>

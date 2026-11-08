@@ -67,7 +67,7 @@ export default async function PanelOrdersPage({ searchParams }: { searchParams: 
             </tbody>
           </table>
         </div>
-        {orders.length > 0 && <p className="px-6 py-3 text-xs text-slate-400 border-t border-slate-100">{Ld(`50 đơn gần nhất · tổng hoa hồng trong danh sách: ${M(totalCommission)}. Hoa hồng bị thu hồi theo tỉ lệ nếu đơn được hoàn tiền.`)}</p>}
+        {orders.length > 0 && <p className="px-6 py-3 text-xs text-slate-400 border-t border-slate-100">{L("50 đơn gần nhất · tổng hoa hồng trong danh sách: ")}{M(totalCommission)}{L(". Hoa hồng bị thu hồi theo tỉ lệ nếu đơn được hoàn tiền.")}</p>}
       </div>
 
     </div>

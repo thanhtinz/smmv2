@@ -13,17 +13,17 @@ export function FlashCountdown({ name, percent, endsAt }: { name: string; percen
       const h = Math.floor(ms / 3600000);
       const m = Math.floor((ms % 3600000) / 60000);
       const sec = Math.floor((ms % 60000) / 1000);
-      setLeft(td(`${h > 0 ? `${h} giờ ` : ""}${m} phút ${sec} giây`));
+      setLeft((h > 0 ? h + t(" giờ ") : "") + m + t(" phút ") + sec + t(" giây"));
     };
     tick();
-    const t = setInterval(tick, 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
   }, [endsAt]);
   return (
     <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl bg-gradient-to-r from-rose-600 to-orange-500 px-5 py-3.5 text-white shadow-sm">
       <span className="font-black uppercase tracking-wide">{t("Giảm giá chớp nhoáng")}</span>
-      <span className="font-semibold">{td(`${name} — giảm thêm ${percent}% giá dịch vụ`)}</span>
-      {left && <span className="ml-auto text-sm font-semibold text-white/90">{td(`Kết thúc sau ${left}`)}</span>}
+      <span className="font-semibold">{name}{t(" — giảm thêm ")}{percent}{t("% giá dịch vụ")}</span>
+      {left && <span className="ml-auto text-sm font-semibold text-white/90">{t("Kết thúc sau ")}{left}</span>}
     </div>
   );
 }

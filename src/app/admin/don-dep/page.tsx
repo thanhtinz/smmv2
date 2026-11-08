@@ -30,7 +30,7 @@ export default async function AdminCleanupPage({ searchParams }: { searchParams:
   const caches = [
     { kind: "pages", title: L("Cache trang"), desc: L("Xoá cache dựng sẵn của các trang công khai (trang chủ, dịch vụ, premium, bài viết, website) để khách thấy dữ liệu mới nhất") },
     { kind: "routes", title: L("Cache route"), desc: L("Xoá toàn bộ cache route/layout của Next.js trên toàn hệ thống — mọi trang dựng lại từ đầu ở lần mở kế tiếp") },
-    { kind: "providers", title: L("Cache số dư nhà cung cấp"), desc: Ld(`Đặt lại số dư nhà cung cấp đang lưu đệm (${num(providersCached)} nguồn) — lần kiểm tra kế tiếp sẽ lấy số dư thật từ nguồn`) },
+    { kind: "providers", title: L("Cache số dư nhà cung cấp"), desc: L("Đặt lại số dư nhà cung cấp đang lưu đệm (") + num(providersCached) + L(" nguồn) — lần kiểm tra kế tiếp sẽ lấy số dư thật từ nguồn") },
   ];
   const jobs = [
     { kind: "apilog", title: L("Nhật ký API cũ"), desc: L("Bản ghi gọi API nhà cung cấp / webhook cũ hơn 30 ngày"), count: apiLogOld },
