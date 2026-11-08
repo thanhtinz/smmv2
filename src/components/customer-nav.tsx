@@ -27,9 +27,9 @@ export async function buildCustomerNav(
   const telegramOn = s.telegram_enabled !== "0";
   // Menu gom nhóm dropdown cho gọn: nhóm nào đang chứa trang hiện tại thì tự mở
   const smmChildren = [
-    ...(smmOn ? [{ href: "/dashboard/dat-hang", label: L("Đặt đơn SMM") }] : []),
+    ...(smmOn ? [{ href: "/dashboard/dat-hang", label: L("Đặt đơn") }] : []),
     ...(smmOn && bulkOn ? [{ href: "/dashboard/dat-hang-loat", label: L("Đặt hàng loạt") }] : []),
-    { href: "/dashboard/don-hang", label: L("Đơn hàng SMM") },
+    { href: "/dashboard/don-hang", label: L("Đơn hàng") },
     ...(smmOn ? [{ href: "/dashboard/dich-vu", label: L("Bảng giá") }] : []),
   ];
   // Premium KHÔNG còn là nhóm dropdown (lệnh Tín 2026-11-07 23:36): nó là mặt
@@ -51,20 +51,20 @@ export async function buildCustomerNav(
   ];
   // Steam (lệnh Tín 2026-11-08 02:02): dropdown LUÔN hiện (kể cả khi chưa
   // đồng bộ sản phẩm Steam nào — trang đích tự hiện trạng thái chưa có dữ
-  // liệu), nằm ngay sau "Đơn Premium của tôi", trước nhóm Đơn SMM.
+  // liệu), nằm ngay sau "Đơn Premium của tôi", trước nhóm Dịch vụ mạng xã hội.
   const steamChildren = [
     { href: "/dashboard/steam/top-up", label: L("Steam Top-Up (CIS)") },
     { href: "/dashboard/steam/gift-games", label: L("Steam Gift Games") },
     { href: "/dashboard/steam/lich-su", label: L("Đơn hàng Steam") },
   ];
   // (Đã bỏ phân đoạn nền tảng SMM riêng trong menu theo lệnh Tín 2026-11-07 20:33 —
-  // khách đặt đơn qua mục Đặt đơn SMM và tự chọn nền tảng/phân loại trong form.)
+  // khách đặt đơn qua mục Đặt đơn và tự chọn nền tảng/phân loại trong form.)
   const items: NavEntry[] = [
     { href: "/", label: L("Trang chủ"), icon: I.home },
     ...(premiumOn ? [{ href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem }] : []),
     { href: "/dashboard/don-premium", label: L("Đơn Premium của tôi"), icon: I.box },
     { label: "Steam", icon: I.gamepad, children: steamChildren },
-    ...(smmChildren.length ? [{ label: L("Đơn SMM"), icon: I.cart, children: smmChildren }] : []),
+    ...(smmChildren.length ? [{ label: L("Dịch vụ mạng xã hội"), icon: I.cart, children: smmChildren }] : []),
     ...(telegramOn ? [{ label: "Telegram Premium", icon: I.send, children: telegramChildren }] : []),
     ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),
     ...(apiOn ? [{ href: "/dashboard/api-docs", label: L("Tài liệu API"), icon: I.key }] : []),

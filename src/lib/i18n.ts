@@ -180,6 +180,7 @@ export const DICT: Record<string, Tr> = {
   "Mật khẩu *": e("Password *", "密码 *", "รหัสผ่าน *", "パスワード *", "비밀번호 *"),
   "Bảng giá": e("Price list", "价格表", "รายการราคา", "料金表", "가격표"),
   "Đơn SMM": e("SMM orders", "SMM 订单", "คำสั่งซื้อ SMM", "SMM注文", "SMM 주문"),
+  "Dịch vụ mạng xã hội": e("Social Media Marketing", "社交媒体营销", "การตลาดโซเชียลมีเดีย", "ソーシャルメディアマーケティング", "소셜 미디어 마케팅"),
   "Đơn Premium": e("Premium orders", "Premium 订单", "คำสั่งซื้อ Premium", "Premium注文", "Premium 주문"),
   "Duyệt nạp": e("Approve deposits", "审核充值", "อนุมัติการเติมเงิน", "入金承認", "충전 승인"),
   "Người dùng": e("Users", "用户", "ผู้ใช้", "ユーザー", "사용자"),
