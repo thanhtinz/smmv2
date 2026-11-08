@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { moduleOn } from "@/lib/modules";
-import { PageHead, Flash } from "@/components/ui";
+import { Flash } from "@/components/ui";
 import { BulkOrderForm, type ServiceDTO } from "@/components/client";
 import { bulkPlaceOrdersAction } from "@/app/actions/user";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
@@ -21,8 +21,12 @@ export default async function BulkOrderPage({ searchParams }: { searchParams: { 
   }));
   return (
     <div>
-      <PageHead title={L("Đặt hàng loạt")} desc={L("Dán danh sách đơn theo định dạng sẵn — hệ thống kiểm tra từng dòng, tính tổng tiền trước, dòng nào lỗi bỏ qua dòng đó.")} />
-      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
+      {/* Thẻ header kiểu Telegram như các trang đơn khác (fix6 task 3) */}
+      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
+        <h1 className="text-[22px] font-black leading-tight text-slate-900">{L("Đặt hàng loạt")}</h1>
+        <p className="mt-1 text-sm text-slate-500">{L("Dán danh sách đơn theo định dạng sẵn — hệ thống kiểm tra từng dòng, tính tổng tiền trước, dòng nào lỗi bỏ qua dòng đó.")}</p>
+      </div>
+      <div className="mt-5"><Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} /></div>
       <BulkOrderForm services={dto} discount={levelDiscountFromSettings(settings, user.level)} balance={user.balance} action={bulkPlaceOrdersAction} />
     </div>
   );

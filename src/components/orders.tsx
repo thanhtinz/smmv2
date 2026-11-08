@@ -55,12 +55,22 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
     return `?${u.toString()}`;
   };
   return (
-    <div>
-      <div className="mb-5">
-        <h1 className="text-[22px] font-black tracking-tight text-slate-900 uppercase">{L("Đơn hàng đã tạo")}</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{L("Theo dõi chi tiết lịch sử đơn hàng đã tạo")}</p>
+    <div className="mx-auto w-full max-w-[860px]">
+      {/* Thẻ header kiểu Telegram như các trang đơn khác (fix6 task 3: trang này
+          còn h1 + bảng cũ trong khi đặt đơn/chi tiết đã đổi ở fix5) */}
+      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-[22px] font-black leading-tight text-slate-900">{L("Đơn hàng đã tạo")}</h1>
+            <p className="mt-1 text-sm text-slate-500">{L("Theo dõi chi tiết lịch sử đơn hàng đã tạo")}</p>
+          </div>
+          <div className="text-right">
+            <div className="text-[22px] font-black leading-tight text-slate-900">{num(total)}</div>
+            <div className="text-xs text-slate-500">{L("đơn")}</div>
+          </div>
+        </div>
       </div>
-      <Flash msg={one(sp.msg)} err={one(sp.err)} />
+      <div className="mt-5"><Flash msg={one(sp.msg)} err={one(sp.err)} /></div>
       <form className="card p-4 mb-5 space-y-3">
         <input type="hidden" name="f" value="1" />
         <div className="flex flex-wrap items-center gap-1.5">
@@ -99,39 +109,38 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
         </div>
       </form>
       {orders.length === 0 ? <Empty text={L("Không có đơn hàng nào")} /> : (
-        <div className="card overflow-x-auto">
-          <table className="w-full min-w-[900px]">
-            <thead className="bg-slate-50 border-b border-slate-200"><tr>
-              <th className="th">{L("Thông tin")}</th><th className="th">{L("Chi tiết")}</th><th className="th">{L("Cấu hình")}</th><th className="th">{L("Thời gian")}</th><th className="th">{L("Thao tác")}</th>
-            </tr></thead>
-            <tbody className="divide-y divide-slate-100">
-              {orders.map((o) => {
-                const drip = (() => { try { const p = JSON.parse(o.params || "{}"); return p.dripfeed as { runs: number; interval: number } | undefined; } catch { return undefined; } })();
-                return (
-                  <tr key={o.id} className="hover:bg-slate-50/60 align-top">
-                    <td className="td">
-                      <Link href={`/dashboard/don-hang/${o.id}`} className="font-mono text-xs font-bold text-brand-700">{o.code}</Link>
-                      <div className="mt-1.5"><Badge cls={SMM_STATUS[o.status].cls}>{L(SMM_STATUS[o.status].label)}</Badge></div>
-                      {o.viaApi && <div className="text-[11px] text-slate-400 mt-1">{L("qua API")}</div>}
-                    </td>
-                    <td className="td">
-                      <div className="font-medium max-w-[280px] truncate">{o.service.name}</div>
-                      <div className="text-xs text-slate-400 max-w-[280px] truncate">{o.link}</div>
-                      <div className="text-xs text-slate-500 mt-1">{L("Số lượng ")}{num(o.quantity)}{L(" · Bắt đầu ")}{o.startCount !== null ? num(o.startCount) : "—"}{L(" · Còn lại ")}{o.remains !== null ? num(o.remains) : "—"}</div>
-                    </td>
-                    <td className="td">
-                      <div className="font-bold">{M(o.charge)}</div>
-                      <div className="text-xs text-slate-400">{L("Đơn giá ")}{M(o.service.rate)}/1000</div>
-                      {o.refundedAmount > 0 && <div className="text-xs text-emerald-600">{L("đã hoàn ")}{M(o.refundedAmount)}</div>}
-                      {drip && <div className="text-xs text-slate-500">{L("Drip-feed: ")}{drip.runs}{L(" lượt × ")}{drip.interval}{L(" phút")}</div>}
-                    </td>
-                    <td className="td text-xs text-slate-500 whitespace-nowrap">{dt(o.createdAt)}<div className="text-slate-400 mt-0.5">{L("Cập nhật ")}{dt(o.updatedAt)}</div></td>
-                    <td className="td"><Link href={`/dashboard/don-hang/${o.id}`} className="btn-dark btn-sm">{L("Chi tiết")}</Link></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="space-y-3.5">
+          {orders.map((o) => {
+            const drip = (() => { try { const p = JSON.parse(o.params || "{}"); return p.dripfeed as { runs: number; interval: number } | undefined; } catch { return undefined; } })();
+            return (
+              <div key={o.id} className="card p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <Link href={`/dashboard/don-hang/${o.id}`} className="font-mono text-sm font-black text-slate-900">{o.code}</Link>
+                    <Badge cls={SMM_STATUS[o.status].cls}>{L(SMM_STATUS[o.status].label)}</Badge>
+                    {o.viaApi && <span className="text-[11px] font-semibold text-slate-400">{L("qua API")}</span>}
+                  </div>
+                  <div className="text-right">
+                    <div className="font-black text-slate-900">{M(o.charge)}</div>
+                    <div className="text-xs text-slate-400">{L("Đơn giá ")}{M(o.service.rate)}/1000</div>
+                    {o.refundedAmount > 0 && <div className="text-xs font-semibold text-emerald-600">{L("đã hoàn ")}{M(o.refundedAmount)}</div>}
+                  </div>
+                </div>
+                <div className="mt-3.5 border-t border-slate-100 pt-3.5">
+                  <div className="font-bold break-words text-slate-900">{o.service.name}</div>
+                  <div className="mt-0.5 break-all text-xs text-slate-400">{o.link}</div>
+                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                    <span>{L("Số lượng ")}{num(o.quantity)}{L(" · Bắt đầu ")}{o.startCount !== null ? num(o.startCount) : "—"}{L(" · Còn lại ")}{o.remains !== null ? num(o.remains) : "—"}</span>
+                    {drip && <span>{L("Drip-feed: ")}{drip.runs}{L(" lượt × ")}{drip.interval}{L(" phút")}</span>}
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs text-slate-400">{dt(o.createdAt)} · {L("Cập nhật ")}{dt(o.updatedAt)}</span>
+                    <Link href={`/dashboard/don-hang/${o.id}`} className="btn-dark btn-sm">{L("Chi tiết")}</Link>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
       {pages > 1 && (
@@ -195,12 +204,13 @@ export async function PremiumOrdersView({ userId, sp, base }: { userId: number; 
     };
   }));
   return (
-    <div>
-      <div className="mb-5">
-        <h1 className="text-[22px] font-black tracking-tight text-slate-900 uppercase">{L("Sản phẩm đã mua")}</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{L("Danh sách sản phẩm đã mua của bạn")}</p>
+    <div className="mx-auto w-full max-w-[860px]">
+      {/* Thẻ header kiểu Telegram như các trang đơn khác (fix6 task 3) */}
+      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
+        <h1 className="text-[22px] font-black leading-tight text-slate-900">{L("Sản phẩm đã mua")}</h1>
+        <p className="mt-1 text-sm text-slate-500">{L("Danh sách sản phẩm đã mua của bạn")}</p>
       </div>
-      <Flash msg={one(sp.msg)} err={one(sp.err)} />
+      <div className="mt-5"><Flash msg={one(sp.msg)} err={one(sp.err)} /></div>
       <PremiumOrderTabs initial={initial} tabs={tabs} />
     </div>
   );

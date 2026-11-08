@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { I, PageHead, Flash, Badge, Empty, Stat } from "@/components/ui";
+import { I, Flash, Badge, Empty, Stat } from "@/components/ui";
 import { PRE_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { telegramEnabled, telegramOrderWhere, telegramRecipient } from "@/lib/tg";
@@ -56,8 +56,12 @@ export default async function TelegramHistoryPage({ searchParams }: {
 
   return (
     <div>
-      <PageHead title={L("Lịch sử đơn Telegram")} desc={L("Mọi đơn Stars và Premium bạn đã đặt.")} />
-      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
+      {/* Thẻ header kiểu Telegram như các trang đơn khác (fix6 task 3) */}
+      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
+        <h1 className="text-[22px] font-black leading-tight text-slate-900">{L("Lịch sử đơn Telegram")}</h1>
+        <p className="mt-1 text-sm text-slate-500">{L("Mọi đơn Stars và Premium bạn đã đặt.")}</p>
+      </div>
+      <div className="mt-5"><Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} /></div>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Stat icon={I.list} label={L("Tổng số đơn")} value={String(totalOrders)} />
         <Stat icon={I.check} label={L("Đã hoàn thành")} value={String(doneAgg)} />
@@ -86,31 +90,39 @@ export default async function TelegramHistoryPage({ searchParams }: {
         </div>
       </form>
 
-      <div className="card mt-5 overflow-x-auto">
+      <div className="mt-5">
         {orders.length === 0 ? (
-          <Empty text={hasFilter ? L("Không có đơn nào khớp bộ lọc") : L("Chưa có đơn Telegram nào — đặt đơn đầu tiên ở mục Đặt đơn")} />
+          <div className="card"><Empty text={hasFilter ? L("Không có đơn nào khớp bộ lọc") : L("Chưa có đơn Telegram nào — đặt đơn đầu tiên ở mục Đặt đơn")} /></div>
         ) : (
-          <table className="w-full min-w-[820px]">
-            <thead><tr><th className="th">{L("Mã đơn")}</th><th className="th">{L("Loại")}</th><th className="th">{L("Người nhận")}</th><th className="th">{L("Số lượng / Gói")}</th><th className="th">{L("Tổng tiền")}</th><th className="th">{L("Trạng thái")}</th><th className="th">{L("Ngày tạo")}</th><th className="th"></th></tr></thead>
-            <tbody className="divide-y divide-slate-100">
-              {orders.map((o) => {
-                const r = telegramRecipient(o.buyerInfo);
-                const isStars = o.variant.providerGroup === "telegram_stars";
-                return (
-                  <tr key={o.id}>
-                    <td className="td font-mono text-xs font-semibold">{o.code}</td>
-                    <td className="td"><Badge cls={isStars ? "bg-amber-100 text-amber-700" : "bg-violet-100 text-violet-700"}>{isStars ? "Stars" : "Premium"}</Badge></td>
-                    <td className="td"><div className="font-medium text-slate-800">{r.username || "—"}</div><div className="text-xs text-slate-400">ID: {r.id || "—"}</div></td>
-                    <td className="td">{isStars ? `${o.quantity.toLocaleString("vi-VN")} Stars` : o.variant.name}</td>
-                    <td className="td font-bold text-slate-900">{M(o.total)}</td>
-                    <td className="td"><Badge cls={PRE_STATUS[o.status]?.cls || "bg-slate-100 text-slate-600"}>{L(PRE_STATUS[o.status]?.label || o.status)}</Badge></td>
-                    <td className="td whitespace-nowrap text-slate-500">{dt(o.createdAt)}</td>
-                    <td className="td">{o.deliveryData ? <details className="max-w-[220px]"><summary className="cursor-pointer text-xs font-bold text-brand-600">{L("Chi tiết giao")}</summary><div className="mt-1 break-all rounded-lg bg-slate-50 p-2 text-xs text-slate-600">{o.deliveryData}</div></details> : null}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="space-y-3.5">
+            {orders.map((o) => {
+              const r = telegramRecipient(o.buyerInfo);
+              const isStars = o.variant.providerGroup === "telegram_stars";
+              return (
+                <div key={o.id} className="card p-4 sm:p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="font-mono text-sm font-black text-slate-900">{o.code}</span>
+                      <Badge cls={isStars ? "bg-amber-100 text-amber-700" : "bg-violet-100 text-violet-700"}>{isStars ? "Stars" : "Premium"}</Badge>
+                      <Badge cls={PRE_STATUS[o.status]?.cls || "bg-slate-100 text-slate-600"}>{L(PRE_STATUS[o.status]?.label || o.status)}</Badge>
+                    </div>
+                    <div className="font-black text-slate-900">{M(o.total)}</div>
+                  </div>
+                  <div className="mt-3.5 border-t border-slate-100 pt-3.5">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="font-bold text-slate-900">{r.username || "—"}</span>
+                      <span className="text-xs text-slate-400">ID: {r.id || "—"}</span>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs text-slate-500">{isStars ? `${o.quantity.toLocaleString("vi-VN")} Stars` : o.variant.name}</span>
+                      <span className="text-xs text-slate-400">{dt(o.createdAt)}</span>
+                    </div>
+                    {o.deliveryData ? <details className="mt-2"><summary className="cursor-pointer text-xs font-bold text-brand-600">{L("Chi tiết giao")}</summary><div className="mt-1 break-all rounded-lg bg-slate-50 p-2 text-xs text-slate-600">{o.deliveryData}</div></details> : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
       {pages > 1 && (

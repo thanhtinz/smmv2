@@ -1104,8 +1104,9 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
         <div key={o.id} className="card p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="font-black text-slate-900">#{o.id}</span>
+              <span className="font-mono text-sm font-black text-slate-900">{o.code}</span>
               <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${o.statusCls}`}>{t(o.statusLabel)}</span>
+              <DeliveryBadge type={o.deliveryType} t={t} />
               <span className="text-xs text-slate-400">{dtf(o.created)}</span>
             </div>
             <div className="text-sm text-slate-500">{t("Tổng tiền")} <b className="text-brand-600 text-base">{m(o.total)}</b></div>
@@ -1115,6 +1116,7 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
             <div className="flex-1 min-w-0">
               <div className="font-bold text-slate-900 truncate">{o.name} ({o.variant})</div>
               {o.desc && <div className="text-[13px] text-slate-500 truncate">{o.desc}</div>}
+              <div className="mt-0.5 text-xs text-slate-400">{t("Số lượng")}: {o.quantity}</div>
             </div>
             <button type="button" onClick={() => setSel(o)} className="btn-dark shrink-0">{t("Chi tiết")}</button>
           </div>
