@@ -10,6 +10,7 @@ import { prisma } from "@/lib/db";
 import { getServerI18n } from "@/lib/lang-server";
 import { LangProvider } from "@/components/lang";
 import { vnd } from "@/lib/format";
+import { regularPremiumWhere } from "@/lib/order-scope";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -19,7 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const s = await getSettings();
   const [manualPending, prePending, depPending, ticketOpen] = await Promise.all([
     prisma.smmOrder.count({ where: { fulfillment: "MANUAL", status: { in: ["PENDING", "PROCESSING"] } } }),
-    prisma.premiumOrder.count({ where: { status: { in: ["PENDING", "WARRANTY"] } } }),
+    prisma.premiumOrder.count({ where: { ...regularPremiumWhere(), status: { in: ["PENDING", "WARRANTY"] } } }),
     prisma.deposit.count({ where: { status: "PENDING" } }),
     prisma.ticket.count({ where: { status: "OPEN" } }),
   ]);

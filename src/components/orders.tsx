@@ -5,6 +5,7 @@ import { PremiumOrderCards, type PremiumOrderCard } from "@/components/client";
 import { num, SMM_STATUS, PRE_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { resolveDeliveryType } from "@/lib/variant-stock";
+import { regularPremiumWhere } from "@/lib/order-scope";
 
 type SP = Record<string, string | string[] | undefined>;
 const arr = (v: string | string[] | undefined): string[] => (v === undefined ? [] : Array.isArray(v) ? v : [v]);
@@ -164,11 +165,15 @@ export async function PremiumOrdersView({ userId, sp, base }: { userId: number; 
   // tương đương để các liên kết cũ không gãy. Bấm Chi tiết vẫn mở modal tại
   // chỗ qua PremiumOrderCards như trước.
   const PAGE_SIZE = 15;
+  // Tách khu (lệnh chủ site): trang này CHỈ chứa đơn Premium thường — đơn
+  // Telegram/Steam (variant thuộc nhóm riêng) nằm ở trang lịch sử riêng của
+  // từng khu. Cả 4 thẻ thống kê + danh sách + đếm phân trang dùng CHUNG một
+  // điều kiện regularPremiumWhere để không lệch nhau.
   const [statTotal, statDelivered, statPending, spentAgg] = await Promise.all([
-    prisma.premiumOrder.count({ where: { userId } }),
-    prisma.premiumOrder.count({ where: { userId, status: { in: ["DELIVERED", "COMPLETED"] } } }),
-    prisma.premiumOrder.count({ where: { userId, status: "PENDING" } }),
-    prisma.premiumOrder.aggregate({ where: { userId, status: { notIn: ["CANCELED", "REFUNDED"] } }, _sum: { total: true } }),
+    prisma.premiumOrder.count({ where: regularPremiumWhere(userId) }),
+    prisma.premiumOrder.count({ where: { ...regularPremiumWhere(userId), status: { in: ["DELIVERED", "COMPLETED"] } } }),
+    prisma.premiumOrder.count({ where: { ...regularPremiumWhere(userId), status: "PENDING" } }),
+    prisma.premiumOrder.aggregate({ where: { ...regularPremiumWhere(userId), status: { notIn: ["CANCELED", "REFUNDED"] } }, _sum: { total: true } }),
   ]);
   const q = one(sp.q).trim();
   const tabStatus = ({ pending: "PENDING", delivered: "DELIVERED", canceled: "CANCELED" } as Record<string, string>)[one(sp.tab)] || "";
@@ -176,7 +181,7 @@ export async function PremiumOrdersView({ userId, sp, base }: { userId: number; 
   const fromD = one(sp.from) ? new Date(`${one(sp.from)}T00:00:00`) : null;
   const toD = one(sp.to) ? new Date(`${one(sp.to)}T23:59:59`) : null;
   const where: any = {
-    userId,
+    ...regularPremiumWhere(userId),
     ...(status ? { status } : {}),
     ...(fromD || toD ? { createdAt: { ...(fromD ? { gte: fromD } : {}), ...(toD ? { lte: toD } : {}) } } : {}),
     ...(q ? { OR: [

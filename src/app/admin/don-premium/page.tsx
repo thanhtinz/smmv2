@@ -3,12 +3,16 @@ import { prisma } from "@/lib/db";
 import { PageHead, Flash, Badge, Empty } from "@/components/ui";
 import { PRE_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
+import { regularPremiumWhere } from "@/lib/order-scope";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPremiumOrders({ searchParams }: { searchParams: { status?: string; q?: string; msg?: string; err?: string } }) {
   const { L, Ld, M } = await getServerI18n(null);
-  const where: any = {};
+  // Hàng đợi này chỉ chứa đơn Premium THƯỜNG (tách khu): đơn Telegram/Steam
+  // xử lý ở khu admin riêng của chúng. Chỉ lọc DANH SÁCH — trang chi tiết
+  // /admin/don-premium/[id] vẫn mở được mọi đơn thuộc họ Premium.
+  const where: any = { ...regularPremiumWhere() };
   if (searchParams.status) where.status = searchParams.status;
   if (searchParams.q) where.OR = [{ code: { contains: searchParams.q, mode: "insensitive" } }, { user: { username: { contains: searchParams.q, mode: "insensitive" } } }];
   const orders = await prisma.premiumOrder.findMany({ where, orderBy: { id: "desc" }, take: 50, include: { variant: { include: { product: true } }, user: true } });

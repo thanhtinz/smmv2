@@ -13,6 +13,7 @@ import { backupCodesLeft } from "@/lib/twofa";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { LEVEL_NAME, num, dt, dshort, relTime } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
+import { regularPremiumWhere } from "@/lib/order-scope";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
   const tab = searchParams.tab === "api" ? "api" : searchParams.tab === "security" ? "security" : "profile";
   const s = await getSettings();
   const [preCount, commissionAgg, refCount, loginHistory, mySessions, curSession, myPasskeys] = await Promise.all([
-    prisma.premiumOrder.count({ where: { userId: user.id } }),
+    prisma.premiumOrder.count({ where: regularPremiumWhere(user.id) }),
     prisma.transaction.aggregate({ where: { userId: user.id, type: { in: ["REFERRAL_COMMISSION", "PANEL_COMMISSION"] }, amount: { gt: 0 } }, _sum: { amount: true } }),
     prisma.user.count({ where: { referredById: user.id } }),
     prisma.loginEvent.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 20 }),
