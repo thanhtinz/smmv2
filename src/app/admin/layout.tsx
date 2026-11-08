@@ -95,6 +95,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/gift-card/san-pham", label: L("Sản phẩm Gift Card"), icon: "gem", adminOnly: true } as any,
       ],
     } as any,
+    // Khu Top-Up trong admin (nhóm dropdown như các khu FZR khác) — đơn hàng
+    // (STAFF xử lý được) + sản phẩm theo cấu trúc FZR topups (ADMIN): 1
+    // category = 1 sản phẩm, fields[] của category sửa nhãn tại đó.
+    {
+      group: "Top-Up", icon: "money",
+      children: [
+        { href: "/admin/top-up", label: L("Đơn hàng Top-Up"), icon: "box" } as any,
+        { href: "/admin/top-up/san-pham", label: L("Sản phẩm Top-Up"), icon: "gem", adminOnly: true } as any,
+      ],
+    } as any,
     { href: "/admin/nguoi-dung", label: L("Người dùng"), icon: "users", adminOnly: true },
     { href: "/admin/ticket", label: L("Ticket hỗ trợ"), icon: "ticket", badge: ticketOpen },
     {

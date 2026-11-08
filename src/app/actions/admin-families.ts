@@ -4,10 +4,11 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { getTelegramProvider } from "@/lib/tg";
-import { ADMIN_VARIANT_MARK, steamAddProvider, gameKeyAddProvider, giftCardAddProvider } from "@/lib/families";
-import { FZR_LABELS, fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrGiftCardCards, fzrSteamGiftGames, fzrTelegramPremiumPlans } from "@/lib/fzr";
+import { ADMIN_VARIANT_MARK, steamAddProvider, gameKeyAddProvider, giftCardAddProvider, topupAddProvider } from "@/lib/families";
+import { FZR_LABELS, fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrGiftCardCards, fzrSteamGiftGames, fzrTelegramPremiumPlans, fzrTopups, fzrTopupOffers, normalizeTopupFields } from "@/lib/fzr";
 import { syncFzrCatalog } from "@/lib/fzr-sync";
 import { fzrMarkupKey, fzrMarkupResolver } from "@/lib/fzr-markup";
+import { normalizePremiumFieldsJson, parsePremiumFields } from "@/lib/format";
 import { setSetting } from "@/lib/settings";
 import type { Provider } from "@prisma/client";
 
@@ -506,6 +507,7 @@ const PICK_PAGE_SIZE = 20;
 async function pickerProvider(group: string): Promise<Provider | null> {
   if (group === "gamekeys") return gameKeyAddProvider();
   if (group === "giftcards") return giftCardAddProvider();
+  if (group === "topups") return topupAddProvider();
   if (group === "steam_gift") return steamAddProvider();
   if (group === "telegram_premium") return getTelegramProvider();
   return null;
@@ -551,6 +553,27 @@ export async function fzrPickSearch(group: string, query: string, pageRaw?: numb
             extra: group === "gamekeys" ? String(g?.platform || "") : "",
             extra2: group === "gamekeys" ? String(g?.region || "") : "",
           });
+          if (matches.length >= need) break;
+        }
+        const next = raw?.meta?.next_cursor;
+        if (!raw?.meta?.has_more || !next) break;
+        cursor = String(next);
+      }
+      return slicePage(matches);
+    }
+    if (group === "topups") {
+      // Danh sách category top-up của FZR cũng phân trang CURSOR như
+      // gamekeys/giftcards, không có tham số tìm kiếm -> lọc tên tại đây.
+      const matches: PickItem[] = [];
+      let cursor: string | undefined;
+      for (let p = 0; p < 30 && matches.length < need; p++) {
+        const raw: any = await fzrTopups(provider, cursor);
+        for (const c of asArr(raw?.items)) {
+          const id = c?.category_id ?? c?.id;
+          if (id === undefined || id === null) continue;
+          const name = String(c?.name || id);
+          if (q && !name.toLowerCase().includes(q)) continue;
+          matches.push({ id: String(id), name, priceUsd: null, extra: String(c?.note || "").slice(0, 80) });
           if (matches.length >= need) break;
         }
         const next = raw?.meta?.next_cursor;
@@ -622,6 +645,18 @@ export async function fzrPickEditions(group: string, parentId: string): Promise<
         })),
       };
     }
+    if (group === "topups") {
+      const raw: any = await fzrTopupOffers(provider, parentId);
+      return {
+        ok: true,
+        items: asArr(raw?.offers).map((k) => ({
+          id: k?.offer_id != null && k?.offer_id !== "" ? String(k.offer_id) : `name:${String(k?.name || "Gói nạp")}`,
+          name: String(k?.name || "Gói nạp"),
+          priceUsd: k?.price_usd != null ? String(k.price_usd) : null,
+          extra: "",
+        })),
+      };
+    }
     return { ok: false, error: "Nhóm này không có gói con" };
   } catch (e: any) {
     return { ok: false, error: `Không gọi được nhà cung cấp: ${String(e?.message || e).slice(0, 140)}` };
@@ -659,6 +694,11 @@ export async function fzrPickLookup(group: string, idRaw: string): Promise<PickR
       if (raw && (raw.name || raw.offers)) return { ok: true, item: { id, name: String(raw.name || id), priceUsd: null, extra: "" } };
       return notFound;
     }
+    if (group === "topups") {
+      const raw: any = await fzrTopupOffers(provider, id);
+      if (raw && (raw.name || raw.offers)) return { ok: true, item: { id, name: String(raw.name || id), priceUsd: null, extra: "" } };
+      return notFound;
+    }
     if (group === "steam_gift") {
       for (let page = 1; page <= 3; page++) {
         const raw: any = await fzrSteamGiftGames(provider, page);
@@ -682,4 +722,131 @@ export async function fzrPickLookup(group: string, idRaw: string): Promise<PickR
   } catch {
     return notFound;
   }
+}
+
+/* ================= KHU TOP-UP (FZR topups, theo OpenAPI) =================
+ * 1 category = 1 sản phẩm (providerProductId = category_id), gói nạp =
+ * variant (providerItemId = offer_id). Luồng THÊM bằng picker: chọn
+ * category -> fields[] của category tự nạp vào form (key khoá cứng, nhãn
+ * admin sửa được) -> lưu vào customFields của sản phẩm. */
+
+/** Nạp fields[] THẬT của một category top-up từ nhà cung cấp cho form thêm
+ *  sản phẩm (fzr-picker TopupAddForm): key/type/options theo NCC, nhãn để
+ *  admin sửa trước khi lưu. */
+export async function fzrPickTopupFields(categoryIdRaw: string): Promise<{
+  ok: boolean;
+  fields?: { key: string; label: string; type: "text" | "select"; required: boolean; options?: string[] }[];
+  name?: string;
+  note?: string;
+  imageUrl?: string;
+  error?: string;
+}> {
+  await requireAdmin();
+  const provider = await topupAddProvider();
+  if (!provider) return { ok: false, error: "Chưa có nhà cung cấp FZR đang bật cho khu này" };
+  const categoryId = categoryIdRaw.trim();
+  if (!categoryId) return { ok: false, error: "Chưa chọn category" };
+  try {
+    const raw: any = await fzrTopupOffers(provider, categoryId);
+    return {
+      ok: true,
+      fields: normalizeTopupFields(raw?.fields),
+      ...(raw?.name ? { name: String(raw.name) } : {}),
+      ...(raw?.note ? { note: String(raw.note) } : {}),
+      ...(raw?.imageurl ? { imageUrl: String(raw.imageurl) } : {}),
+    };
+  } catch (e: any) {
+    return { ok: false, error: `Không gọi được nhà cung cấp: ${String(e?.message || e).slice(0, 140)}` };
+  }
+}
+
+/** Thêm CATEGORY Top-Up từ picker: tạo sản phẩm (providerProductId =
+ *  category_id) + gói nạp đầu tiên (dấu CUSTOM) + customFields từ form
+ *  (fieldsJson đã gồm key khoá cứng + nhãn admin đặt). */
+export async function famAddTopupCategory(fd: FormData) {
+  await requireAdmin();
+  const categoryIdFzr = String(fd.get("categoryId") || "").trim();
+  const name = String(fd.get("name") || "").trim();
+  const imageUrl = String(fd.get("imageUrl") || "").trim();
+  const offerId = String(fd.get("offerId") || "").trim();
+  const offerName = String(fd.get("offerName") || "").trim() || name;
+  const price = money(fd.get("price"));
+  const fieldsRaw = String(fd.get("fieldsJson") || "").trim();
+  const provider = await topupAddProvider();
+  if (!provider) back(rt(fd), false, "Chưa có nhà cung cấp FZR đang bật");
+  if (!categoryIdFzr || !name || !offerId) back(rt(fd), false, "Category ID, tên danh mục và gói nạp đầu tiên là bắt buộc");
+  const dup = await prisma.premiumProduct.findFirst({
+    where: { providerId: provider!.id, providerProductId: categoryIdFzr },
+    select: { id: true },
+  });
+  if (dup) back(rt(fd), false, `Category ID ${categoryIdFzr} đã có trong danh sách`);
+  const slugify = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "top-up";
+  const product = await prisma.premiumProduct.create({
+    data: {
+      categoryId: await categoryId("Top-Up", provider!.id),
+      name,
+      slug: `fzr-${provider!.id}-topups-${slugify(categoryIdFzr)}`.slice(0, 150),
+      imageUrl: imageUrl || null,
+      fulfillment: "API",
+      providerId: provider!.id,
+      providerProductId: categoryIdFzr,
+      customFields: fieldsRaw ? normalizePremiumFieldsJson(fieldsRaw) : null,
+    },
+  });
+  await prisma.premiumVariant.create({
+    data: {
+      productId: product.id, name: offerName, price, cost: 0, warrantyDays: 0,
+      providerId: provider!.id, providerGroup: "topups",
+      providerItemId: offerId,
+      deliveryType: ADMIN_VARIANT_MARK,
+    },
+  });
+  back(rt(fd), true, `Đã thêm danh mục ${name}`);
+}
+
+/** Thêm gói nạp (offer) cho một category Top-Up đã có — gói admin tự thêm
+ *  mang dấu CUSTOM như các khu khác. */
+export async function famAddTopupOffer(fd: FormData) {
+  await requireAdmin();
+  const productId = parseInt(String(fd.get("productId") || "0"));
+  const offerId = String(fd.get("offerId") || "").trim();
+  const name = String(fd.get("name") || "").trim();
+  const price = money(fd.get("price"));
+  const product = productId ? await prisma.premiumProduct.findUnique({ where: { id: productId }, select: { id: true, providerId: true } }) : null;
+  if (!product) back(rt(fd), false, "Danh mục không hợp lệ");
+  if (!offerId || !name) back(rt(fd), false, "Offer ID và tên gói nạp là bắt buộc");
+  const dup = await prisma.premiumVariant.findFirst({
+    where: { productId: product!.id, providerGroup: "topups", providerItemId: offerId },
+    select: { id: true },
+  });
+  if (dup) back(rt(fd), false, `Offer ID ${offerId} đã có trong danh mục này`);
+  await prisma.premiumVariant.create({
+    data: {
+      productId: product!.id, name, price, cost: 0, warrantyDays: 0,
+      providerId: product!.providerId, providerGroup: "topups",
+      providerItemId: offerId,
+      deliveryType: ADMIN_VARIANT_MARK,
+    },
+  });
+  back(rt(fd), true, `Đã thêm gói nạp ${name}`);
+}
+
+/** Lưu NHÃN của các trường tuỳ chỉnh phía nhà cung cấp trên một sản phẩm:
+ *  form gửi fkey_<i> (chỉ để hiển thị, KHÔNG đọc lại) + flabel_<i>; action
+ *  dựng lại danh sách từ customFields đã lưu theo đúng thứ tự, chỉ thay
+ *  nhãn — key/type/options/required giữ nguyên phía máy chủ nên nhãn đổi
+ *  không bao giờ phá được ánh xạ gửi đơn. Nhãn để trống = giữ nhãn cũ. */
+export async function famSaveFieldLabels(fd: FormData) {
+  await requireAdmin();
+  const productId = parseInt(String(fd.get("productId") || "0"));
+  const product = productId ? await prisma.premiumProduct.findUnique({ where: { id: productId }, select: { id: true, customFields: true } }) : null;
+  if (!product) back(rt(fd), false, "Sản phẩm không hợp lệ");
+  const fields = parsePremiumFields(product!.customFields);
+  if (!fields.length) back(rt(fd), false, "Sản phẩm này không có trường tuỳ chỉnh");
+  const next = fields.map((f, i) => {
+    const label = String(fd.get(`flabel_${i}`) || "").trim().slice(0, 80);
+    return label ? { ...f, label } : f;
+  });
+  await prisma.premiumProduct.update({ where: { id: product!.id }, data: { customFields: JSON.stringify(next) } });
+  back(rt(fd), true, "Đã lưu nhãn trường tuỳ chỉnh");
 }

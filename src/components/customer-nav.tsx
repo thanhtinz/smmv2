@@ -71,6 +71,13 @@ export async function buildCustomerNav(
     { href: "/dashboard/gift-card", label: L("Mua gift card") },
     { href: "/dashboard/gift-card/don-hang", label: L("Đơn hàng") },
   ];
+  // Top-Up (lệnh Tín 2026-11-08 17:50): dropdown riêng ngay sau Gift Card —
+  // nhóm FZR topups tách HẲN khỏi Premium; giao diện mua Top-Up làm sau nên
+  // hiện chỉ có mục Đơn hàng (lịch sử), mục Mua sẽ vào cùng dropdown khi
+  // trang mua được dựng.
+  const topupChildren = [
+    { href: "/dashboard/top-up/don-hang", label: L("Đơn hàng") },
+  ];
   // (Đã bỏ phân đoạn nền tảng SMM riêng trong menu theo lệnh Tín 2026-11-07 20:33 —
   // khách đặt đơn qua mục Đặt đơn và tự chọn nền tảng/phân loại trong form.)
   const items: NavEntry[] = [
@@ -80,6 +87,7 @@ export async function buildCustomerNav(
     { label: "Steam", icon: I.gamepad, children: steamChildren },
     { label: "Game key", icon: I.key, children: gameKeyChildren },
     { label: "Gift Card", icon: I.gift, children: giftCardChildren },
+    { label: "Top-Up", icon: I.money, children: topupChildren },
     ...(smmChildren.length ? [{ label: L("Dịch vụ mạng xã hội"), icon: I.cart, children: smmChildren }] : []),
     ...(telegramOn ? [{ label: "Telegram Premium", icon: I.send, children: telegramChildren }] : []),
     ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),

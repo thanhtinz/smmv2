@@ -221,6 +221,79 @@ export async function giftCardAddProvider(): Promise<Provider | null> {
   return prisma.provider.findFirst({ where: { driver: "FZR", active: true }, orderBy: { id: "asc" } });
 }
 
+export type TopupProduct = FamilyVariant["product"] & {
+  providerProductId: string | null;
+  description: string | null;
+  customFields: string | null;
+};
+
+/** Họ Top-Up (theo OpenAPI FZR, đọc lại 2026-11-08): 1 category = 1 sản
+ *  phẩm (providerProductId = category_id; note của NCC lưu ở description),
+ *  gói nạp = các variant topups (providerItemId = offer_id). customFields
+ *  của sản phẩm mang fields[] của category (key khoá cứng + nhãn admin đặt)
+ *  để trang admin sửa nhãn. Phân trang phía máy chủ theo SẢN PHẨM như các
+ *  họ khác (20/trang, tìm theo tên category qua `q`). */
+export async function loadTopupFamilies(opts?: { q?: string; page?: number; pageSize?: number }): Promise<{
+  providers: Provider[];
+  groups: { product: TopupProduct; variants: FamilyVariant[] }[];
+  total: number;
+  page: number;
+  pages: number;
+}> {
+  const pageSize = opts?.pageSize ?? 20;
+  const q = (opts?.q || "").trim();
+  const productWhere: any = {
+    variants: { some: { providerGroup: "topups" } },
+    ...(q ? { name: { contains: q, mode: "insensitive" } } : {}),
+  };
+  const total = await prisma.premiumProduct.count({ where: productWhere });
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(pages, Math.max(1, opts?.page || 1));
+  const productRows = (await prisma.premiumProduct.findMany({
+    where: productWhere,
+    orderBy: { name: "asc" },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    select: { id: true, name: true, slug: true, imageUrl: true, active: true, providerProductId: true, description: true, customFields: true },
+  })) as TopupProduct[];
+  const variants = productRows.length
+    ? ((await prisma.premiumVariant.findMany({
+        where: { providerGroup: "topups", productId: { in: productRows.map((p) => p.id) } },
+        include: { product: { select: PRODUCT_SELECT } },
+        orderBy: [{ price: "asc" }],
+      })) as FamilyVariant[])
+    : [];
+  const groups = productRows.map((product) => ({
+    product,
+    variants: variants.filter((v) => v.product.id === product.id),
+  }));
+  const provRows = await prisma.premiumVariant.findMany({
+    where: { providerGroup: "topups", providerId: { not: null } },
+    distinct: ["providerId"],
+    select: { providerId: true },
+  });
+  const providerIds = provRows.map((r) => r.providerId).filter((x): x is number => !!x);
+  const providers = providerIds.length
+    ? await prisma.provider.findMany({ where: { id: { in: providerIds } }, orderBy: { id: "asc" } })
+    : await prisma.provider.findMany({ where: { driver: "FZR", active: true }, orderBy: { id: "asc" }, take: 1 });
+  return { providers, groups, total, page, pages };
+}
+
+/** Nhà cung cấp dùng khi admin THÊM category/gói Top-Up: ưu tiên nhà cung
+ *  cấp đã có gói topups, sau đó tới nhà cung cấp FZR đang bật đầu tiên. */
+export async function topupAddProvider(): Promise<Provider | null> {
+  const withTp = await prisma.premiumVariant.findFirst({
+    where: { providerGroup: "topups", providerId: { not: null } },
+    select: { providerId: true },
+    orderBy: { id: "asc" },
+  });
+  if (withTp?.providerId) {
+    const p = await prisma.provider.findUnique({ where: { id: withTp.providerId } });
+    if (p) return p;
+  }
+  return prisma.provider.findFirst({ where: { driver: "FZR", active: true }, orderBy: { id: "asc" } });
+}
+
 /** Nhà cung cấp dùng khi admin THÊM gói Steam: ưu tiên nhà cung cấp đã có gói
  *  steam_topup, sau đó tới nhà cung cấp FZR đang bật đầu tiên. */
 export async function steamAddProvider(): Promise<Provider | null> {

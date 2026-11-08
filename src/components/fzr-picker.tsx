@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  fzrPickSearch, fzrPickEditions, fzrPickLookup,
+  fzrPickSearch, fzrPickEditions, fzrPickLookup, fzrPickTopupFields,
   famAddGameKey, famAddGameKeyEdition, famAddGiftCardCategory, famAddGiftCardDenomination,
-  famAddGiftGame, famAddTelegramPlan,
+  famAddGiftGame, famAddTelegramPlan, famAddTopupCategory, famAddTopupOffer,
 } from "@/app/actions/admin-families";
 
 /** FIX11 TASK 3 — Picker chọn sản phẩm TỪ NGUỒN FZR cho các trang admin
@@ -340,6 +340,129 @@ export function TelegramPremiumAddForm({ returnTo }: { returnTo: string }) {
       </label>
       <button disabled={!months} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm gói</button>
       {error && <p className="w-full text-xs font-semibold text-rose-600">{error}</p>}
+    </form>
+  );
+}
+
+type LoadedField = { key: string; label: string; type: "text" | "select"; required: boolean; options?: string[] };
+
+/** Thêm CATEGORY Top-Up: chọn category từ nguồn -> chọn offer đầu tiên từ
+ *  nguồn -> fields[] của category TỰ NẠP từ nhà cung cấp vào form: KEY khoá
+ *  cứng (chỉ hiển thị), type + options chỉ đọc, NHÃN sửa được (điền sẵn
+ *  nhãn của nhà cung cấp). Lưu kèm fieldsJson gồm key + nhãn admin đặt —
+ *  trang khách hiển thị nhãn này, thực thi đơn vẫn gửi key gốc. */
+export function TopupAddForm({ returnTo }: { returnTo: string }) {
+  const [picked, setPicked] = useState<PickItem | null>(null);
+  const [name, setName] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [fields, setFields] = useState<LoadedField[]>([]);
+  const [fieldsNote, setFieldsNote] = useState("");
+  const { editions, editionId, setEditionId, err } = useEditions("topups", picked?.id || null);
+  const edition = editions.find((e) => e.id === editionId);
+
+  useEffect(() => {
+    if (!picked) { setFields([]); setFieldsNote(""); return; }
+    let live = true;
+    setFieldsNote("Đang tải trường tuỳ chỉnh từ nhà cung cấp…");
+    fzrPickTopupFields(picked.id).then((r) => {
+      if (!live) return;
+      if (!r.ok) { setFields([]); setFieldsNote(r.error || "Không tải được trường tuỳ chỉnh"); return; }
+      const list = (r.fields || []) as LoadedField[];
+      setFields(list);
+      if (r.imageUrl) setImageUrl(r.imageUrl);
+      setFieldsNote(list.length
+        ? `${list.length} trường của nhà cung cấp đã được tải — sửa nhãn tuỳ ý, key giữ nguyên để gửi đơn không sai.`
+        : "Danh mục này không có trường tuỳ chỉnh nào phía nhà cung cấp.");
+    });
+    return () => { live = false; };
+  }, [picked]);
+
+  const pick = (it: PickItem) => { setPicked(it); setName(it.name); };
+  return (
+    <form action={famAddTopupCategory} className="flex flex-wrap items-end gap-2 border-b border-slate-100 px-4 py-3.5">
+      <input type="hidden" name="returnTo" value={returnTo} />
+      <input type="hidden" name="categoryId" value={picked?.id || ""} />
+      <input type="hidden" name="offerId" value={edition?.id || ""} />
+      <input type="hidden" name="offerName" value={edition?.name || ""} />
+      <input type="hidden" name="fieldsJson" value={JSON.stringify(fields)} />
+      <div className="w-full">
+        <span className={lbl}>Chọn category từ nguồn FazerCards</span>
+        <PickerBox group="topups" onPick={pick} picked={picked} />
+      </div>
+      <label className="block min-w-[180px] flex-1">
+        <span className={lbl}>Tên danh mục</span>
+        <input name="name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Tên hiển thị" className={`${inp} w-full`} />
+      </label>
+      <label className="block min-w-[180px] flex-1">
+        <span className={lbl}>Ảnh bìa (URL)</span>
+        <input name="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" className={`${inp} w-full`} />
+      </label>
+      {editionSelect(editions, editionId, setEditionId)}
+      <label className="block">
+        <span className={lbl}>Giá bán (VNĐ)</span>
+        <input name="price" type="number" min={0} required placeholder="55000" className={`${inp} !w-32`} />
+      </label>
+      <button disabled={!picked || !edition} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm danh mục</button>
+      {err && <p className="w-full text-xs font-semibold text-rose-600">{err}</p>}
+      {(fieldsNote || fields.length > 0) && (
+        <div className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3">
+          <div className="mb-2 text-xs font-bold text-slate-600">Trường tuỳ chỉnh của nhà cung cấp</div>
+          {fieldsNote && <p className="mb-2 text-xs text-slate-500">{fieldsNote}</p>}
+          <div className="space-y-2">
+            {fields.map((f, i) => (
+              <div key={f.key} className="flex flex-wrap items-center gap-2">
+                <span className="rounded-md bg-slate-800 px-2 py-1 font-mono text-[11px] font-semibold text-white" title="Key của nhà cung cấp — khoá cứng, không sửa được">{f.key}</span>
+                <span className="text-[11px] font-medium text-slate-400">
+                  {f.type === "select" ? `Chọn 1 trong: ${(f.options || []).join(", ") || "—"}` : "Ô nhập 1 dòng"}{f.required ? " · Bắt buộc" : ""}
+                </span>
+                <label className="block min-w-[200px] flex-1">
+                  <input
+                    value={f.label}
+                    onChange={(e) => setFields((prev) => prev.map((x, xi) => (xi === i ? { ...x, label: e.target.value } : x)))}
+                    placeholder="Nhãn hiển thị cho khách"
+                    className={`${inp} w-full`}
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </form>
+  );
+}
+
+/** Thêm gói nạp (offer) từ nguồn cho MỘT category Top-Up đã có. */
+export function TopupOfferForm({ productId, categoryId, existing, returnTo }: {
+  productId: number; categoryId: string | null; existing: string[]; returnTo: string;
+}) {
+  const { editions, editionId, setEditionId } = useEditions("topups", categoryId);
+  const avail = editions.filter((e) => !existing.includes(e.id));
+  const edition = avail.find((e) => e.id === editionId) || avail[0];
+  if (!categoryId) return null;
+  return (
+    <form action={famAddTopupOffer} className="flex flex-wrap items-end gap-2 px-4 pb-3.5">
+      <input type="hidden" name="returnTo" value={returnTo} />
+      <input type="hidden" name="productId" value={productId} />
+      <input type="hidden" name="offerId" value={edition?.id || ""} />
+      <label className="block min-w-[220px] flex-1">
+        <span className={lbl}>Gói nạp từ nguồn</span>
+        <select value={edition?.id || ""} onChange={(e) => setEditionId(e.target.value)} className={`${inp} w-full`} required>
+          {avail.length === 0 && <option value="">— Đã thêm hết các gói của danh mục —</option>}
+          {avail.map((e) => (
+            <option key={e.id} value={e.id}>{e.name}{e.priceUsd ? ` — $${e.priceUsd}` : ""}</option>
+          ))}
+        </select>
+      </label>
+      <label className="block min-w-[160px] flex-1">
+        <span className={lbl}>Tên gói</span>
+        <input name="name" defaultValue={edition?.name || ""} key={edition?.id || "none"} required className={`${inp} w-full`} />
+      </label>
+      <label className="block">
+        <span className={lbl}>Giá bán (VNĐ)</span>
+        <input name="price" type="number" min={0} required placeholder="55000" className={`${inp} !w-32`} />
+      </label>
+      <button disabled={!edition} className="btn-ghost btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm gói nạp</button>
     </form>
   );
 }
