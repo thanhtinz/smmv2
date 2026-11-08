@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useLang } from "@/components/lang";
+import { I } from "@/components/ui";
 
 /** Dữ liệu thẻ sản phẩm Premium (đã tính sẵn phía server: khoảng giá, đã bán, kho). */
 export type PremiumCardData = {
@@ -18,9 +19,9 @@ export type PremiumCardData = {
   reviewCount: number;
   flashPct: number; // % giảm flash sale đang áp cho sản phẩm (0 = không có)
   // Sản phẩm mua thẳng được ngay ở trang chi tiết khi có đúng 1 gói, không
-  // trường bắt buộc và không phải nhóm Telegram — chỉ còn để chọn NHÃN nút
-  // "Đặt mua"/"Chọn gói": nút thêm vào giỏ CHỈ có trong trang chi tiết
-  // (lệnh Tín 2026-11-07 22:59), thẻ không còn nút giỏ.
+  // trường bắt buộc và không phải nhóm Telegram. Nút thêm vào giỏ CHỈ có
+  // trong trang chi tiết (lệnh Tín 2026-11-07 22:59); CTA trên thẻ chỉ là
+  // "Xem sản phẩm" (lệnh Tín 2026-11-08 00:55) — field này không còn lái nhãn.
   cartVariant: { id: number; name: string; price: number; stock: number } | null;
 };
 
@@ -86,12 +87,12 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
           )}
         </div>
         <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+          {/* CTA thẻ = "Xem sản phẩm" + mũi tên (lệnh Tín 2026-11-08 00:55):
+              thẻ chỉ điều hướng sang trang chi tiết, mua ở đó (luật WS2). */}
           {contact ? (
-            <span className="inline-block rounded-lg bg-teal-600 px-3.5 py-1.5 text-[13px] font-bold text-white">{t("Đặt mua")}</span>
-          ) : item.cartVariant || !item.instant || !item.hasStock ? (
-            <span className="text-[13px] font-bold text-teal-700">{t("Đặt mua")}</span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-1.5 text-[13px] font-bold text-white">{t("Xem sản phẩm")}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span></span>
           ) : (
-            <span className="text-[13px] font-bold text-teal-700">{t("Chọn gói")}</span>
+            <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-teal-700">{t("Xem sản phẩm")}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span></span>
           )}
         </div>
       </div>
