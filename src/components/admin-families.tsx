@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { I } from "./ui";
 import { famSaveVariant, famToggleVariant, famSaveProviderPricing, famDeleteVariant, famSyncArea, famSaveAreaMarkup } from "@/app/actions/admin-families";
 import { ADMIN_VARIANT_MARK, type FamilyVariant } from "@/lib/families";
@@ -149,5 +150,36 @@ export function AreaSyncCard({ provider, groups, overrides, returnTo }: {
         </form>
       </div>
     </section>
+  );
+}
+
+/** Phân trang phía máy chủ cho các danh sách quản trị sản phẩm/gói — đúng
+ *  khuôn trang khách ("Trang x/y · N mục" + nút Trang trước/Trang sau),
+ *  đi qua query param; `params` giữ lại các tham số lọc khác (tìm kiếm…)
+ *  khi lật trang. Chỉ hiện khi có từ 2 trang trở lên. */
+export function AdminPager({ basePath, page, pages, total, unit, param = "page", params = {} }: {
+  basePath: string;
+  page: number;
+  pages: number;
+  total: number;
+  unit: string;
+  param?: string;
+  params?: Record<string, string>;
+}) {
+  if (pages <= 1) return null;
+  const href = (p: number) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
+    qs.set(param, String(p));
+    return `${basePath}?${qs.toString()}`;
+  };
+  return (
+    <div className="flex items-center justify-between px-1 py-3 text-sm">
+      <span className="text-slate-500">Trang {page}/{pages} · {total} {unit}</span>
+      <span className="flex gap-2">
+        {page > 1 && <Link className="btn-ghost btn-sm" href={href(page - 1)}>Trang trước</Link>}
+        {page < pages && <Link className="btn-ghost btn-sm" href={href(page + 1)}>Trang sau</Link>}
+      </span>
+    </div>
   );
 }

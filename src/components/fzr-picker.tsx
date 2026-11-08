@@ -29,13 +29,17 @@ function PickerBox({ group, onPick, picked }: {
   const [error, setError] = useState("");
   const [lookupId, setLookupId] = useState("");
   const [lookupMsg, setLookupMsg] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
-  const search = async () => {
+  const search = async (toPage = 1) => {
     setBusy(true); setError(""); setLookupMsg("");
-    const r = await fzrPickSearch(group, q);
+    const r = await fzrPickSearch(group, q, toPage);
     setBusy(false);
     if (!r.ok) { setError(r.error || "Lỗi không rõ"); setItems(null); return; }
     setItems(r.items || []);
+    setPage(r.page || toPage);
+    setHasMore(!!r.hasMore);
   };
   const lookup = async () => {
     if (!lookupId.trim()) return;
@@ -52,7 +56,7 @@ function PickerBox({ group, onPick, picked }: {
       <div className="mt-2 flex flex-wrap gap-2">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm theo tên trong catalog FZR..." className={`${inp} min-w-[200px] flex-1`}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); search(); } }} />
-        <button type="button" onClick={search} disabled={busy} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">{busy ? "Đang gọi..." : "Tìm"}</button>
+        <button type="button" onClick={() => search()} disabled={busy} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">{busy ? "Đang gọi..." : "Tìm"}</button>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <input value={lookupId} onChange={(e) => setLookupId(e.target.value)} placeholder="Hoặc dán mã phía FZR để kiểm chứng" className={`${inp} min-w-[200px] flex-1`} />
@@ -62,7 +66,7 @@ function PickerBox({ group, onPick, picked }: {
       {error && <p className="mt-1.5 text-xs font-semibold text-rose-600">{error}</p>}
       {items && (
         items.length === 0
-          ? <p className="mt-2 text-xs text-slate-400">Không có mục nào khớp trong nhóm này.</p>
+          ? <p className="mt-2 text-xs text-slate-400">{page > 1 ? "Đã hết kết quả — quay lại trang trước." : "Không có mục nào khớp trong nhóm này."}</p>
           : (
             <div className="mt-2 max-h-52 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 bg-white">
               {items.map((it) => (
@@ -79,6 +83,15 @@ function PickerBox({ group, onPick, picked }: {
               ))}
             </div>
           )
+      )}
+      {items && (page > 1 || hasMore) && (
+        <div className="mt-2 flex items-center justify-between text-xs">
+          <span className="text-slate-400">Trang {page} — kết quả từ catalog nhà cung cấp{hasMore ? " (còn nữa)" : ""}</span>
+          <span className="flex gap-2">
+            <button type="button" onClick={() => search(page - 1)} disabled={busy || page <= 1} className="btn-ghost btn-sm !px-3 !py-1.5 disabled:opacity-50">Trang trước</button>
+            <button type="button" onClick={() => search(page + 1)} disabled={busy || !hasMore} className="btn-ghost btn-sm !px-3 !py-1.5 disabled:opacity-50">Trang sau</button>
+          </span>
+        </div>
       )}
       {picked && (
         <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">

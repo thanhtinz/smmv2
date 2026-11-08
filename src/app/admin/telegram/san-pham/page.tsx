@@ -1,6 +1,6 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { ProviderPricingCard, VariantRow, fmtVnd, AreaSyncCard } from "@/components/admin-families";
+import { ProviderPricingCard, VariantRow, fmtVnd, AreaSyncCard, AdminPager } from "@/components/admin-families";
 import { famAddStarPackage } from "@/app/actions/admin-families";
 import { TelegramPremiumAddForm } from "@/components/fzr-picker";
 import { loadTelegramFamilies } from "@/lib/families";
@@ -17,10 +17,20 @@ const RT = "/admin/telegram/san-pham";
  *  chọn trên trang đặt đơn — thêm/sửa/xoá/bật tắt tại đây, ghi vào đúng các
  *  PremiumVariant telegram_stars của catalog) và Gói Premium (các gói theo
  *  tháng, giá bán = giá gói trong catalog). */
-export default async function AdminTelegramProducts({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+const PAGE_SIZE = 20;
+
+export default async function AdminTelegramProducts({ searchParams }: { searchParams: { msg?: string; err?: string; spage?: string; ppage?: string } }) {
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const { provider, stars, starsPackages, premium } = await loadTelegramFamilies();
+  // Phân trang phía máy chủ cho 2 danh sách gói (gói sao theo `spage`, gói
+  // Premium theo `ppage`) — mỗi trang 20 gói, lật trang giữ trang của họ kia.
+  const starsPages = Math.max(1, Math.ceil(starsPackages.length / PAGE_SIZE));
+  const starsPage = Math.min(starsPages, Math.max(1, parseInt(searchParams.spage || "1") || 1));
+  const starsSlice = starsPackages.slice((starsPage - 1) * PAGE_SIZE, starsPage * PAGE_SIZE);
+  const premiumPages = Math.max(1, Math.ceil(premium.length / PAGE_SIZE));
+  const premiumPage = Math.min(premiumPages, Math.max(1, parseInt(searchParams.ppage || "1") || 1));
+  const premiumSlice = premium.slice((premiumPage - 1) * PAGE_SIZE, premiumPage * PAGE_SIZE);
   const settings = await getSettings();
   const areaOverrides = { telegram_stars: settings[fzrMarkupKey("telegram_stars")] || "", telegram_premium: settings[fzrMarkupKey("telegram_premium")] || "" };
   return (
@@ -64,9 +74,14 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
           </p>
         </div>
         {starsPackages.length ? (
-          starsPackages.map((v) => (
-            <VariantRow key={v.id} v={v} returnTo={RT} meta={`Gói ${v.providerItemId} sao · giá hiển thị`} deletable />
-          ))
+          <>
+            {starsSlice.map((v) => (
+              <VariantRow key={v.id} v={v} returnTo={RT} meta={`Gói ${v.providerItemId} sao · giá hiển thị`} deletable />
+            ))}
+            <div className="px-4">
+              <AdminPager basePath={RT} page={starsPage} pages={starsPages} total={starsPackages.length} unit="gói sao" param="spage" params={{ ppage: String(premiumPage) }} />
+            </div>
+          </>
         ) : (
           <p className="px-5 py-4 text-sm text-slate-400">Chưa có gói sao nào trong catalog — trang đặt đơn đang dùng danh sách mặc định. Đồng bộ catalog FZR hoặc thêm gói ở dưới để tự quản lý danh sách.</p>
         )}
@@ -96,9 +111,14 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
           <span className="text-xs text-slate-400">Các gói theo tháng — giá bán sửa ở đây là giá trang khách tính tiền</span>
         </div>
         {premium.length ? (
-          premium.map((v) => (
-            <VariantRow key={v.id} v={v} returnTo={RT} meta={`Thời hạn: ${v.providerCycle ?? v.providerItemId ?? "—"} tháng`} />
-          ))
+          <>
+            {premiumSlice.map((v) => (
+              <VariantRow key={v.id} v={v} returnTo={RT} meta={`Thời hạn: ${v.providerCycle ?? v.providerItemId ?? "—"} tháng`} />
+            ))}
+            <div className="px-4">
+              <AdminPager basePath={RT} page={premiumPage} pages={premiumPages} total={premium.length} unit="gói" param="ppage" params={{ spage: String(starsPage) }} />
+            </div>
+          </>
         ) : (
           <p className="px-5 py-4 text-sm text-slate-400">Chưa có gói Premium — đồng bộ catalog FZR hoặc thêm gói ở dưới.</p>
         )}

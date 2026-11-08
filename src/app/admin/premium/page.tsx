@@ -1,12 +1,17 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash } from "@/components/ui";
 import { ProductsClient } from "@/components/admin-premium";
+import { AdminPager } from "@/components/admin-families";
 import { loadAdminPremiumData } from "@/lib/admin-premium-data";
+import { prisma } from "@/lib/db";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPremiumProducts({ searchParams }: { searchParams: { q?: string; cat?: string; status?: string; msg?: string; err?: string } }) {
+const PAGE_SIZE = 20;
+const RT = "/admin/premium";
+
+export default async function AdminPremiumProducts({ searchParams }: { searchParams: { q?: string; cat?: string; status?: string; page?: string; msg?: string; err?: string } }) {
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const where: any = {};
@@ -14,7 +19,12 @@ export default async function AdminPremiumProducts({ searchParams }: { searchPar
   if (searchParams.cat) where.categoryId = parseInt(searchParams.cat);
   if (searchParams.status === "on") where.active = true;
   if (searchParams.status === "off") where.active = false;
-  const { products: dtos, categories: catDtos, providers } = await loadAdminPremiumData(where);
+  // Phân trang phía máy chủ (20 sản phẩm/trang) — bộ lọc q/cat/status giữ
+  // nguyên qua query khi lật trang.
+  const total = await prisma.premiumProduct.count({ where: { ...where, panelId: null } });
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const page = Math.min(pages, Math.max(1, parseInt(searchParams.page || "1") || 1));
+  const { products: dtos, categories: catDtos, providers } = await loadAdminPremiumData(where, { skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE });
   const categories = catDtos;
   return (
     <div>
@@ -34,6 +44,7 @@ export default async function AdminPremiumProducts({ searchParams }: { searchPar
         <button className="btn-primary btn-sm !px-4 !py-2.5">{L("Tìm kiếm")}</button>
       </form>
       <ProductsClient products={dtos} categories={catDtos} providers={providers} />
+      <AdminPager basePath={RT} page={page} pages={pages} total={total} unit={L("sản phẩm")} params={{ q: searchParams.q || "", cat: searchParams.cat || "", status: searchParams.status || "" }} />
     </div>
   );
 }

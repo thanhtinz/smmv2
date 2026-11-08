@@ -499,7 +499,11 @@ export async function famSyncArea(fd: FormData) {
 }
 
 type PickItem = { id: string; name: string; priceUsd: string | null; extra: string; extra2?: string };
-type PickResult = { ok: boolean; items?: PickItem[]; item?: PickItem; error?: string };
+type PickResult = { ok: boolean; items?: PickItem[]; item?: PickItem; error?: string; hasMore?: boolean; page?: number };
+
+/** Số kết quả picker mỗi trang — picker lật trang THẬT qua catalog phía
+ *  nhà cung cấp (cursor của gamekeys/giftcards, page của steam-gifts). */
+const PICK_PAGE_SIZE = 20;
 
 /** Nhà cung cấp dùng cho picker của một nhóm — cùng quy tắc chọn NCC như
  *  luồng thêm sản phẩm của khu đó. */
@@ -515,56 +519,74 @@ const asArr = (v: any): any[] => (Array.isArray(v) ? v : []);
 
 /** Tìm trong catalog THẬT của nhà cung cấp, CHỈ trong nhóm của trang đang
  *  mở (lọc phía máy chủ theo nhóm — trang khác không lọt item sang được).
- *  Các list endpoint của FZR không có tham số tìm kiếm nên ta kéo từng
- *  trang (tối đa 5 trang x 100) rồi lọc theo tên tại đây. */
-export async function fzrPickSearch(group: string, query: string): Promise<PickResult> {
+ *  Các list endpoint gamekeys/giftcards của FZR không có tham số tìm kiếm
+ *  nên ta kéo lần lượt theo CURSOR rồi lọc theo tên tại đây; picker lật
+ *  trang theo lô 20 kết quả khớp (đi tiếp cursor phía NCC cho tới khi đủ
+ *  lô của trang yêu cầu hoặc hết catalog — tối đa 30 trang NCC mỗi lần
+ *  gọi). steam-gifts có sẵn page + search phía NCC (mỗi trang NCC 100
+ *  game, tối đa 5 trang mỗi lần gọi vì rate limit của endpoint này). */
+export async function fzrPickSearch(group: string, query: string, pageRaw?: number): Promise<PickResult> {
   await requireAdmin();
   const provider = await pickerProvider(group);
   if (!provider) return { ok: false, error: "Chưa có nhà cung cấp FZR đang bật cho khu này" };
   const q = query.trim().toLowerCase();
+  const page = Math.max(1, Math.floor(pageRaw || 1));
+  const need = page * PICK_PAGE_SIZE + 1; // +1 để biết còn trang sau hay không
+  const slicePage = (all: PickItem[]) => ({
+    ok: true,
+    items: all.slice((page - 1) * PICK_PAGE_SIZE, page * PICK_PAGE_SIZE),
+    hasMore: all.length > page * PICK_PAGE_SIZE,
+    page,
+  });
   try {
     if (group === "gamekeys" || group === "giftcards") {
       const listFn = group === "gamekeys" ? fzrGameKeys : fzrGiftCards;
-      const items: PickItem[] = [];
+      const matches: PickItem[] = [];
       let cursor: string | undefined;
-      for (let page = 0; page < 5 && items.length < 20; page++) {
+      for (let p = 0; p < 30 && matches.length < need; p++) {
         const raw: any = await listFn(provider, cursor);
         for (const g of asArr(raw?.items)) {
           const id = group === "gamekeys" ? (g?.game_id ?? g?.id) : (g?.category_id ?? g?.id);
           if (id === undefined || id === null) continue;
           const name = String(g?.name || id);
           if (q && !name.toLowerCase().includes(q)) continue;
-          items.push({
+          matches.push({
             id: String(id), name, priceUsd: null,
             extra: group === "gamekeys" ? String(g?.platform || "") : "",
             extra2: group === "gamekeys" ? String(g?.region || "") : "",
           });
-          if (items.length >= 20) break;
+          if (matches.length >= need) break;
         }
         const next = raw?.meta?.next_cursor;
         if (!raw?.meta?.has_more || !next) break;
         cursor = String(next);
       }
-      return { ok: true, items };
+      return slicePage(matches);
     }
     if (group === "steam_gift") {
-      const raw: any = await fzrSteamGiftGames(provider, 1, query || undefined);
-      const items: PickItem[] = [];
-      for (const g of asArr(raw?.games || raw?.data?.games || raw?.data || raw?.items)) {
-        const appid = g?.appid ?? g?.app_id ?? g?.id;
-        if (appid === undefined || appid === null) continue;
-        const name = String(g?.name || `App ${appid}`);
-        if (q && !name.toLowerCase().includes(q)) continue;
-        items.push({ id: String(appid), name, priceUsd: null, extra: `AppID ${appid}` });
-        if (items.length >= 20) break;
+      const matches: PickItem[] = [];
+      for (let p = 1; p <= 5 && matches.length < need; p++) {
+        const raw: any = await fzrSteamGiftGames(provider, p, query || undefined);
+        const games = asArr(raw?.games || raw?.data?.games || raw?.data || raw?.items);
+        for (const g of games) {
+          const appid = g?.appid ?? g?.app_id ?? g?.id;
+          if (appid === undefined || appid === null) continue;
+          const name = String(g?.name || `App ${appid}`);
+          if (q && !name.toLowerCase().includes(q)) continue;
+          matches.push({ id: String(appid), name, priceUsd: null, extra: `AppID ${appid}` });
+          if (matches.length >= need) break;
+        }
+        if (games.length < 100) break; // trang NCC chưa đầy = đã hết catalog
       }
-      return { ok: true, items };
+      return slicePage(matches);
     }
     if (group === "telegram_premium") {
       const plans = await fzrTelegramPremiumPlans(provider);
       return {
         ok: true,
         items: plans.map((p) => ({ id: String(p.durationMonths), name: `Premium ${p.durationMonths} tháng`, priceUsd: p.finalPrice || p.price, extra: "" })),
+        hasMore: false,
+        page: 1,
       };
     }
     return { ok: false, error: "Nhóm này không có catalog để chọn" };

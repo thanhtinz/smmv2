@@ -5,9 +5,9 @@ import type { PremiumProductDTO, PremiumCategoryDTO, PremiumProviderOpt } from "
 /** Lắp dữ liệu cho editor sản phẩm Premium dùng chung (FIX7 E2/E3/E4): trang
  *  /admin/premium và các trang theo khu (Telegram, Steam) chỉ khác nhau ở
  *  `where` — DTO, số đơn, tồn kho AUTO_STOCK và danh mục/NCC y hệt nhau. */
-export async function loadAdminPremiumData(where: any): Promise<{ products: PremiumProductDTO[]; categories: PremiumCategoryDTO[]; providers: PremiumProviderOpt[] }> {
+export async function loadAdminPremiumData(where: any, pageOpts?: { skip?: number; take?: number }): Promise<{ products: PremiumProductDTO[]; categories: PremiumCategoryDTO[]; providers: PremiumProviderOpt[] }> {
   const [products, categories, providers] = await Promise.all([
-    prisma.premiumProduct.findMany({ where: { ...where, panelId: null }, orderBy: [{ sort: "asc" }, { id: "asc" }], include: { category: true, variants: { orderBy: [{ sort: "asc" }, { id: "asc" }] } } }),
+    prisma.premiumProduct.findMany({ where: { ...where, panelId: null }, orderBy: [{ sort: "asc" }, { id: "asc" }], ...(pageOpts?.take !== undefined ? { skip: pageOpts.skip || 0, take: pageOpts.take } : {}), include: { category: true, variants: { orderBy: [{ sort: "asc" }, { id: "asc" }] } } }),
     prisma.premiumCategory.findMany({ orderBy: [{ sort: "asc" }, { id: "asc" }], include: { _count: { select: { products: true } } } }),
     prisma.provider.findMany({ where: { kind: { in: ["PREMIUM", "BOTH"] } }, select: { id: true, name: true }, orderBy: { id: "asc" } }),
   ]);

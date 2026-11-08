@@ -85,32 +85,54 @@ export type GameKeyProduct = FamilyVariant["product"] & {
 /** Họ Game Key (FIX10, theo OpenAPI FZR): 1 game = 1 sản phẩm (provider
  *  ProductId = game_id; platform/region là dữ liệu thật từ API lưu ở cột
  *  providerPlatform/providerRegion), editions = các variant gamekeys
- *  (providerItemId = key_id, providerStock = tồn kho phía FZR). */
-export async function loadGameKeyFamilies(): Promise<{
+ *  (providerItemId = key_id, providerStock = tồn kho phía FZR).
+ *  Catalog phía FZR tới hàng nghìn game nên trang admin PHÂN TRANG phía
+ *  máy chủ theo SẢN PHẨM (count + skip/take ở tầng DB, tìm theo tên game
+ *  qua `q`) — editions của các game trong trang nạp kèm theo. */
+export async function loadGameKeyFamilies(opts?: { q?: string; page?: number; pageSize?: number }): Promise<{
   providers: Provider[];
   groups: { product: GameKeyProduct; variants: FamilyVariant[] }[];
+  total: number;
+  page: number;
+  pages: number;
 }> {
-  const variants = (await prisma.premiumVariant.findMany({
-    where: { providerGroup: "gamekeys" },
-    include: {
-      product: {
-        select: { id: true, name: true, slug: true, imageUrl: true, active: true, providerPlatform: true, providerRegion: true, providerProductId: true },
-      },
-    },
-    orderBy: [{ price: "asc" }],
-  })) as (PremiumVariant & { product: GameKeyProduct })[];
-  const groups: { product: GameKeyProduct; variants: FamilyVariant[] }[] = [];
-  for (const v of variants) {
-    let g = groups.find((x) => x.product.id === v.product.id);
-    if (!g) { g = { product: v.product, variants: [] }; groups.push(g); }
-    g.variants.push(v as FamilyVariant);
-  }
-  groups.sort((a, b) => a.product.name.localeCompare(b.product.name));
-  const providerIds = Array.from(new Set(variants.map((v) => v.providerId).filter((x): x is number => !!x)));
+  const pageSize = opts?.pageSize ?? 20;
+  const q = (opts?.q || "").trim();
+  const productWhere: any = {
+    variants: { some: { providerGroup: "gamekeys" } },
+    ...(q ? { name: { contains: q, mode: "insensitive" } } : {}),
+  };
+  const total = await prisma.premiumProduct.count({ where: productWhere });
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(pages, Math.max(1, opts?.page || 1));
+  const productRows = (await prisma.premiumProduct.findMany({
+    where: productWhere,
+    orderBy: { name: "asc" },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    select: { id: true, name: true, slug: true, imageUrl: true, active: true, providerPlatform: true, providerRegion: true, providerProductId: true },
+  })) as GameKeyProduct[];
+  const variants = productRows.length
+    ? ((await prisma.premiumVariant.findMany({
+        where: { providerGroup: "gamekeys", productId: { in: productRows.map((p) => p.id) } },
+        include: { product: { select: PRODUCT_SELECT } },
+        orderBy: [{ price: "asc" }],
+      })) as FamilyVariant[])
+    : [];
+  const groups = productRows.map((product) => ({
+    product,
+    variants: variants.filter((v) => v.product.id === product.id),
+  }));
+  const provRows = await prisma.premiumVariant.findMany({
+    where: { providerGroup: "gamekeys", providerId: { not: null } },
+    distinct: ["providerId"],
+    select: { providerId: true },
+  });
+  const providerIds = provRows.map((r) => r.providerId).filter((x): x is number => !!x);
   const providers = providerIds.length
     ? await prisma.provider.findMany({ where: { id: { in: providerIds } }, orderBy: { id: "asc" } })
     : await prisma.provider.findMany({ where: { driver: "FZR", active: true }, orderBy: { id: "asc" }, take: 1 });
-  return { providers, groups };
+  return { providers, groups, total, page, pages };
 }
 
 /** Nhà cung cấp dùng khi admin THÊM game/edition Game Key: ưu tiên nhà cung
@@ -136,32 +158,52 @@ export type GiftCardProduct = FamilyVariant["product"] & {
 /** Họ Gift Card (theo OpenAPI FZR, đọc lại 2026-11-08): 1 category = 1 sản
  *  phẩm (providerProductId = category_id; note của NCC lưu ở description),
  *  mệnh giá = các variant giftcards (providerItemId = card_id, providerStock
- *  = tồn kho phía FZR tại lần đồng bộ gần nhất). */
-export async function loadGiftCardFamilies(): Promise<{
+ *  = tồn kho phía FZR tại lần đồng bộ gần nhất). Trang admin PHÂN TRANG phía
+ *  máy chủ theo SẢN PHẨM như họ Game Key (tìm theo tên danh mục qua `q`). */
+export async function loadGiftCardFamilies(opts?: { q?: string; page?: number; pageSize?: number }): Promise<{
   providers: Provider[];
   groups: { product: GiftCardProduct; variants: FamilyVariant[] }[];
+  total: number;
+  page: number;
+  pages: number;
 }> {
-  const variants = (await prisma.premiumVariant.findMany({
-    where: { providerGroup: "giftcards" },
-    include: {
-      product: {
-        select: { id: true, name: true, slug: true, imageUrl: true, active: true, providerProductId: true, description: true },
-      },
-    },
-    orderBy: [{ price: "asc" }],
-  })) as (PremiumVariant & { product: GiftCardProduct })[];
-  const groups: { product: GiftCardProduct; variants: FamilyVariant[] }[] = [];
-  for (const v of variants) {
-    let g = groups.find((x) => x.product.id === v.product.id);
-    if (!g) { g = { product: v.product, variants: [] }; groups.push(g); }
-    g.variants.push(v as FamilyVariant);
-  }
-  groups.sort((a, b) => a.product.name.localeCompare(b.product.name));
-  const providerIds = Array.from(new Set(variants.map((v) => v.providerId).filter((x): x is number => !!x)));
+  const pageSize = opts?.pageSize ?? 20;
+  const q = (opts?.q || "").trim();
+  const productWhere: any = {
+    variants: { some: { providerGroup: "giftcards" } },
+    ...(q ? { name: { contains: q, mode: "insensitive" } } : {}),
+  };
+  const total = await prisma.premiumProduct.count({ where: productWhere });
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(pages, Math.max(1, opts?.page || 1));
+  const productRows = (await prisma.premiumProduct.findMany({
+    where: productWhere,
+    orderBy: { name: "asc" },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    select: { id: true, name: true, slug: true, imageUrl: true, active: true, providerProductId: true, description: true },
+  })) as GiftCardProduct[];
+  const variants = productRows.length
+    ? ((await prisma.premiumVariant.findMany({
+        where: { providerGroup: "giftcards", productId: { in: productRows.map((p) => p.id) } },
+        include: { product: { select: PRODUCT_SELECT } },
+        orderBy: [{ price: "asc" }],
+      })) as FamilyVariant[])
+    : [];
+  const groups = productRows.map((product) => ({
+    product,
+    variants: variants.filter((v) => v.product.id === product.id),
+  }));
+  const provRows = await prisma.premiumVariant.findMany({
+    where: { providerGroup: "giftcards", providerId: { not: null } },
+    distinct: ["providerId"],
+    select: { providerId: true },
+  });
+  const providerIds = provRows.map((r) => r.providerId).filter((x): x is number => !!x);
   const providers = providerIds.length
     ? await prisma.provider.findMany({ where: { id: { in: providerIds } }, orderBy: { id: "asc" } })
     : await prisma.provider.findMany({ where: { driver: "FZR", active: true }, orderBy: { id: "asc" }, take: 1 });
-  return { providers, groups };
+  return { providers, groups, total, page, pages };
 }
 
 /** Nhà cung cấp dùng khi admin THÊM category/mệnh giá Gift Card: ưu tiên nhà
