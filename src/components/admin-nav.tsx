@@ -1,16 +1,36 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { I } from "@/components/ui";
 import { useLang } from "@/components/lang";
 
 export type AdminNavItem = { href: string; label: string; icon: string; badge?: number };
 export type AdminNavEntry = AdminNavItem | { group: string; icon: string; children: AdminNavItem[] };
 
-function isActive(pathname: string, href: string) {
-  if (href === "/admin") return pathname === "/admin";
-  return pathname === href || pathname.startsWith(href + "/");
+/** LUẬT HIGHLIGHT DUY NHẤT (lệnh Tín 2026-11-07 23:12): toàn menu admin
+ *  chỉ MỘT lá được tô gradient. Khớp đúng path thắng; nếu không, tiền tố dài
+ *  nhất thắng (trang con tô lá tổ tiên gần nhất); "/admin" chỉ khớp đúng.
+ *  Trước đây các cặp anh em kiểu /admin/premium + /admin/premium/danh-muc
+ *  cùng khớp tiền tố nên sáng 2 lá một lúc. */
+function leafScore(pathname: string, href: string): number {
+  if (href === "/admin") return pathname === href ? 5000 + href.length : 0;
+  if (pathname === href) return 5000 + href.length;
+  if (pathname.startsWith(href + "/")) return 1000 + href.length;
+  return 0;
+}
+function navWinner(entries: AdminNavEntry[], pathname: string): AdminNavItem | null {
+  let best: AdminNavItem | null = null;
+  let bestScore = 0;
+  const consider = (it: AdminNavItem) => {
+    const s = leafScore(pathname, it.href);
+    if (s > bestScore) { bestScore = s; best = it; }
+  };
+  for (const e of entries) {
+    if ("group" in e) e.children.forEach(consider);
+    else consider(e);
+  }
+  return best;
 }
 
 /** Màu riêng cho từng icon trên nền sidebar navy — nhìn phát biết mục nào. */
@@ -33,9 +53,8 @@ const GROUP_TILES: Record<string, string> = {
   users: "bg-gradient-to-br from-violet-500 to-purple-600",
 };
 
-function Leaf({ it, pathname, sub = false }: { it: AdminNavItem; pathname: string; sub?: boolean }) {
+function Leaf({ it, active, sub = false }: { it: AdminNavItem; active: boolean; sub?: boolean }) {
   const Icon = (I as any)[it.icon] || I.home;
-  const active = isActive(pathname, it.href);
   return (
     <Link
       href={it.href}
@@ -52,17 +71,20 @@ function Leaf({ it, pathname, sub = false }: { it: AdminNavItem; pathname: strin
   );
 }
 
-function Group({ entry, pathname }: { entry: { group: string; icon: string; children: AdminNavItem[] }; pathname: string }) {
+function Group({ entry, winner }: { entry: { group: string; icon: string; children: AdminNavItem[] }; winner: AdminNavItem | null }) {
   const { t } = useLang();
   const Icon = (I as any)[entry.icon] || I.list;
-  const hasActive = entry.children.some((c) => isActive(pathname, c.href));
-  const [open, setOpen] = useState(hasActive);
+  const containsWinner = entry.children.some((c) => c === winner);
+  const [open, setOpen] = useState(containsWinner);
+  // Nhóm chứa lá đang xem thì tự mở (kể cả khi điều hướng phía client).
+  // Nút cha KHÔNG nhuộm màu active — chỉ lá thắng mới được tô (luật duy nhất).
+  useEffect(() => { if (containsWinner) setOpen(true); }, [containsWinner]);
   return (
     <div>
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${hasActive ? "text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition text-slate-300 hover:bg-white/10 hover:text-white"
       >
         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white shadow ${GROUP_TILES[entry.icon] || "bg-gradient-to-br from-slate-500 to-slate-600"}`}>{Icon}</span>
         <span className="truncate font-medium">{t(entry.group)}</span>
@@ -71,7 +93,7 @@ function Group({ entry, pathname }: { entry: { group: string; icon: string; chil
       {open && (
         <div className="ml-[21px] mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
           {entry.children.map((c) => (
-            <Leaf key={c.href} it={c} pathname={pathname} sub />
+            <Leaf key={c.href} it={c} active={c === winner} sub />
           ))}
         </div>
       )}
@@ -81,6 +103,7 @@ function Group({ entry, pathname }: { entry: { group: string; icon: string; chil
 
 function NavBody({ siteName, logoText, entries, pathname, onNavigate }: { siteName: string; logoText: string; entries: AdminNavEntry[]; pathname: string; onNavigate?: () => void }) {
   const { t } = useLang();
+  const winner = navWinner(entries, pathname);
   return (
     <>
       <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-white/10 px-5">
@@ -91,7 +114,7 @@ function NavBody({ siteName, logoText, entries, pathname, onNavigate }: { siteNa
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-3" onClick={onNavigate}>
         {entries.map((e) =>
-          "group" in e ? <Group key={e.group} entry={e} pathname={pathname} /> : <Leaf key={e.href} it={e} pathname={pathname} />
+          "group" in e ? <Group key={e.group} entry={e} winner={winner} /> : <Leaf key={e.href} it={e} active={e === winner} />
         )}
       </nav>
       <div className="shrink-0 border-t border-white/10 p-3">

@@ -14,36 +14,56 @@ export type NavEntry = NavItem | { section: string };
 
 const isItem = (e: NavEntry): e is NavItem => !("section" in e);
 
-const isActivePath = (path: string, href: string) =>
-  href === "/dashboard" ? path === href : path === href || path.startsWith(href + "/");
-
 function NavLinks({ items, onNavigate }: { items: NavEntry[]; onNavigate?: () => void }) {
   const path = usePathname();
   // Query của URL hiện tại (đọc phía client sau khi mount) — để nhận diện mục con dạng
   // /dashboard/dat-hang?platform=..&cat=.. là đang xem, tự mở nhóm nền tảng chứa nó.
   const [search, setSearch] = useState("");
   useEffect(() => { setSearch(window.location.search); }, [path]);
-  const isChildActive = (href: string) => {
+  // LUẬT HIGHLIGHT DUY NHẤT (lệnh Tín 2026-11-07 23:12 "bấm vào menu bị tô
+  // highlights 2 nút 1 lần"): toàn menu chỉ MỘT lá được tô. Cách chấm điểm:
+  // khớp query (cụ thể nhất) > khớp đúng path > khớp tiền tố path (trang con
+  // lồng sâu tô lá tổ tiên gần nhất = href dài nhất); "/" và "/dashboard" chỉ
+  // khớp đúng tuyệt đối. Trước đây mỗi lá tự khớp tiền tố nên các cặp anh em
+  // kiểu /dashboard/telegram + /dashboard/telegram/lich-su cùng sáng, cộng
+  // thêm nút cha nhóm cũng nhuộm màu brand.
+  const leafScore = (href: string): number => {
     const qi = href.indexOf("?");
-    if (qi === -1) return isActivePath(path, href);
-    if (path !== href.slice(0, qi)) return false;
-    const want = new URLSearchParams(href.slice(qi + 1));
-    const have = new URLSearchParams(search);
-    let ok = true;
-    want.forEach((v, k) => { if (have.get(k) !== v) ok = false; });
-    return ok;
+    if (qi !== -1) {
+      if (path !== href.slice(0, qi)) return 0;
+      const want = new URLSearchParams(href.slice(qi + 1));
+      const have = new URLSearchParams(search);
+      let ok = true;
+      let n = 0;
+      want.forEach((v, k) => { n++; if (have.get(k) !== v) ok = false; });
+      return ok ? 10000 + n * 100 + href.length : 0;
+    }
+    if (href === "/" || href === "/dashboard") return path === href ? 5000 + href.length : 0;
+    if (path === href) return 5000 + href.length;
+    if (path.startsWith(href + "/")) return 1000 + href.length;
+    return 0;
   };
+  let winner: object | null = null;
+  let winnerScore = 0;
+  for (const it of items) {
+    if (!isItem(it)) continue;
+    const cands: object[] = it.children ? [...it.children] : it.href ? [it] : [];
+    for (const c of cands) {
+      const s = leafScore((c as NavChild).href ?? (it as NavItem).href!);
+      if (s > winnerScore) { winnerScore = s; winner = c; }
+    }
+  }
   const [open, setOpen] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     for (const it of items) {
-      if (isItem(it) && it.children?.some((c) => isActivePath(path, c.href))) init[it.label] = true;
+      if (isItem(it) && it.children?.some((c) => c === winner)) init[it.label] = true;
     }
     return init;
   });
-  // Đang ở trang con nào thì tự mở nhóm chứa nó (sidebar desktop không đóng lại được bằng tay)
+  // Đang ở trang con nào thì tự mở nhóm chứa lá thắng (sidebar desktop không đóng lại được bằng tay)
   useEffect(() => {
     for (const it of items) {
-      if (isItem(it) && it.children?.some((c) => isChildActive(c.href))) {
+      if (isItem(it) && it.children?.some((c) => c === winner)) {
         setOpen((o) => (o[it.label] ? o : { ...o, [it.label]: true }));
       }
     }
@@ -66,7 +86,7 @@ function NavLinks({ items, onNavigate }: { items: NavEntry[]; onNavigate?: () =>
           );
         }
         if (!it.children) {
-          const active = isActivePath(path, it.href!);
+          const active = it === winner;
           return (
             <Link key={it.label} href={it.href!} onClick={onNavigate} className={linkCls(active)}>
               <span className="shrink-0 [&>svg]:w-5 [&>svg]:h-5">{it.icon}</span>
@@ -76,12 +96,12 @@ function NavLinks({ items, onNavigate }: { items: NavEntry[]; onNavigate?: () =>
           );
         }
         const groupOpen = !!open[it.label];
-        const childActive = it.children.some((c) => isChildActive(c.href));
+        const childActive = it.children.some((c) => c === winner);
         const totalBadge = it.children.reduce((sum, c) => sum + (c.badge || 0), 0);
         return (
           <div key={it.label}>
             <button type="button" onClick={() => setOpen((o) => ({ ...o, [it.label]: !o[it.label] }))}
-              className={`flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm whitespace-nowrap transition ${childActive ? "font-semibold text-brand-700" : "font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"}`}>
+              className={`flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm whitespace-nowrap transition ${childActive ? "font-semibold text-slate-700" : "font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"}`}>
               <span className="shrink-0 [&>svg]:w-5 [&>svg]:h-5">{it.icon}</span>
               {it.label}
               {badge(totalBadge)}
@@ -91,7 +111,7 @@ function NavLinks({ items, onNavigate }: { items: NavEntry[]; onNavigate?: () =>
               <div className={it.scrollChildren ? "mt-0.5 max-h-[300px] space-y-0.5 overflow-y-auto pr-1" : "mt-0.5 space-y-0.5"}>
                 {it.children.map((c) => (
                   <Link key={c.href} href={c.href} onClick={onNavigate}
-                    className={`flex items-center gap-2.5 rounded-xl py-2 pl-11 pr-3.5 text-sm whitespace-nowrap transition ${isChildActive(c.href) ? "bg-brand-50 text-brand-700 font-semibold shadow-[inset_0_0_0_1px] shadow-brand-100" : "font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"}`}>
+                    className={`flex items-center gap-2.5 rounded-xl py-2 pl-11 pr-3.5 text-sm whitespace-nowrap transition ${c === winner ? "bg-brand-50 text-brand-700 font-semibold shadow-[inset_0_0_0_1px] shadow-brand-100" : "font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"}`}>
                     {c.label}
                     {badge(c.badge)}
                   </Link>
