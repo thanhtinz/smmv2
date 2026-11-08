@@ -34,37 +34,76 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
     {contacts.length > 0 && <FloatingSupport items={contacts} />}
     {merged.livechat_enabled !== "0" && <LiveChat />}
     <footer className="bg-white border-t border-slate-200 text-slate-500 mt-20">
-      <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm">
+      {/* Thiết kế lại 2026-11-08: cột thương hiệu có ô logo brand + các cột
+          link có tiêu đề gạch brand, cột hỗ trợ có icon theo kênh; TOÀN BỘ
+          nội dung/link/cấu hình giữ nguyên như bản cũ, không thêm bớt. */}
+      <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1.25fr] gap-10 lg:gap-8 text-sm">
         <div>
-          <div className="text-slate-900 font-extrabold text-lg mb-3">{brand?.name || s.site_name}</div>
-          <p className="leading-relaxed">{L(brand?.tagline || s.site_tagline)}</p>
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 font-black text-white shadow-md shadow-brand-600/25">{(brand?.name || s.site_name || "S").charAt(0).toUpperCase()}</span>
+            <span className="text-slate-900 font-extrabold text-lg">{brand?.name || s.site_name}</span>
+          </div>
+          <p className="mt-3 max-w-xs leading-relaxed">{L(brand?.tagline || s.site_tagline)}</p>
         </div>
         <div>
-          <div className="text-slate-900 font-semibold mb-3">{L("Dịch vụ")}</div>
-          <ul className="space-y-2">
-            <li><Link href="/premium" className="hover:text-brand-600">{L("Tài khoản Premium")}</Link></li>
-            <li><Link href="/dashboard/dich-vu" className="hover:text-brand-600">{L("Bảng giá dịch vụ")}</Link></li>
+          <div className="flex items-center gap-2 text-slate-900 font-extrabold mb-4"><span className="h-4 w-1 rounded-full bg-brand-500" />{L("Dịch vụ")}</div>
+          <ul className="space-y-1.5">
+            <li><Link href="/premium" className="inline-block py-1 transition hover:text-brand-600">{L("Tài khoản Premium")}</Link></li>
+            <li><Link href="/dashboard/dich-vu" className="inline-block py-1 transition hover:text-brand-600">{L("Bảng giá dịch vụ")}</Link></li>
           </ul>
         </div>
         <div>
-          <div className="text-slate-900 font-semibold mb-3">{L("Tài khoản")}</div>
-          <ul className="space-y-2">
-            <li><Link href="/register" className="hover:text-brand-600">{L("Đăng ký")}</Link></li>
-            <li><Link href="/login" className="hover:text-brand-600">{L("Đăng nhập")}</Link></li>
-            <li><Link href="/dashboard/nap-tien" className="hover:text-brand-600">{L("Nạp tiền")}</Link></li>
+          <div className="flex items-center gap-2 text-slate-900 font-extrabold mb-4"><span className="h-4 w-1 rounded-full bg-brand-500" />{L("Tài khoản")}</div>
+          <ul className="space-y-1.5">
+            <li><Link href="/register" className="inline-block py-1 transition hover:text-brand-600">{L("Đăng ký")}</Link></li>
+            <li><Link href="/login" className="inline-block py-1 transition hover:text-brand-600">{L("Đăng nhập")}</Link></li>
+            <li><Link href="/dashboard/nap-tien" className="inline-block py-1 transition hover:text-brand-600">{L("Nạp tiền")}</Link></li>
           </ul>
         </div>
         <div>
-          <div className="text-slate-900 font-semibold mb-3">{L("Hỗ trợ 24/7")}</div>
-          <ul className="space-y-2">
-            {merged.support_hotline && <li>{L("Hotline:")} {merged.support_hotline}</li>}
-            {merged.support_telegram && <li>Telegram: {merged.support_telegram}</li>}
-            {merged.support_facebook && <li>Facebook: {merged.support_facebook}</li>}
-            <li><Link href="/dashboard/ticket" className="hover:text-brand-600">{L("Gửi ticket hỗ trợ")}</Link></li>
+          <div className="flex items-center gap-2 text-slate-900 font-extrabold mb-4"><span className="h-4 w-1 rounded-full bg-brand-500" />{L("Hỗ trợ 24/7")}</div>
+          <ul className="space-y-2.5">
+            {merged.support_hotline && (
+              <li className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.13.96.36 1.9.7 2.8a2 2 0 0 1-.45 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.45c.9.34 1.84.57 2.8.7A2 2 0 0 1 22 16.9Z" /></svg>
+                </span>
+                <span>{L("Hotline:")} {merged.support_hotline}</span>
+              </li>
+            )}
+            {merged.support_telegram && (
+              <li className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+                </span>
+                <span>Telegram: {merged.support_telegram}</span>
+              </li>
+            )}
+            {merged.support_facebook && (
+              <li className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5h1.3V4.9c-.3 0-1.1-.1-2.1-.1-2.1 0-3.6 1.3-3.6 3.7V11H8.2v3h2.5v7h2.8Z" /></svg>
+                </span>
+                <span>Facebook: {merged.support_facebook}</span>
+              </li>
+            )}
+            <li>
+              <Link href="/dashboard/ticket" className="flex items-center gap-2.5 transition hover:text-brand-600">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a3 3 0 0 0 0 6v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a3 3 0 0 0 0-6Z" /><path d="M13 5v2M13 17v2M13 11v2" /></svg>
+                </span>
+                <span className="font-semibold">{L("Gửi ticket hỗ trợ")}</span>
+              </Link>
+            </li>
           </ul>
         </div>
       </div>
-      <div className="border-t border-slate-200 py-5 text-center text-xs">© {new Date().getFullYear()} {brand?.name || s.site_name}. {L("Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.")}</div>
+      <div className="border-t border-slate-200 bg-slate-50">
+        <div className="max-w-7xl mx-auto flex flex-col items-center justify-between gap-1.5 px-4 py-5 text-center text-xs lg:flex-row lg:text-left">
+          <span>© {new Date().getFullYear()} {brand?.name || s.site_name}.</span>
+          <span>{L("Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.")}</span>
+        </div>
+      </div>
     </footer>
     </>
   );
