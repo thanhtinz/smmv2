@@ -5,6 +5,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { logoutAction } from "@/app/actions/auth";
 import { I } from "@/components/ui";
+import { useLang } from "@/components/lang";
 
 type NavChild = { href: string; label: string; badge?: number };
 type NavItem = { href?: string; label: string; icon: ReactNode; badge?: number; children?: NavChild[]; scrollChildren?: boolean };
@@ -104,46 +105,44 @@ function NavLinks({ items, onNavigate }: { items: NavEntry[]; onNavigate?: () =>
   );
 }
 
-/** Cụm đáy menu GHIM CỐ ĐỊNH (lệnh Tín 2026-11-07 15:18 — thay bố cục "cuối danh sách"
- *  của đợt trước): luôn hiện ở đáy khung menu không cần cuộn, các thẻ to/rõ hơn hàng menu
- *  thường. Thứ tự: thẻ tài khoản → Nạp tiền → Điều khoản → Admin Panel (nếu có quyền) →
- *  nút Đăng xuất (nút bấm rõ ràng, có icon). Cụm này đứng NGOÀI vùng cuộn của danh sách
- *  (drawer mobile: thanh riêng shrink-0; sidebar desktop: chân thẻ, danh sách cuộn nội bộ). */
-export function MenuBottomCluster({ accountName, accountEmail, accountInitials, depositLabel, termsLabel, adminLabel, logoutLabel }: {
+/** Cụm đáy menu GHIM CỐ ĐỊNH: luôn hiện ở đáy khung menu không cần cuộn. Thứ tự +
+ *  thành phần (lệnh Tín 2026-11-07 19:29, thay bản 15:18/15:32): BỎ Điều khoản; còn
+ *  Nạp tiền → Admin Panel (nếu có quyền) → thẻ tài khoản → nút Đăng xuất; cụm làm
+ *  NHỎ GỌN lại (trước quá bự): chữ text-sm, icon 20px, avatar 36px. Toàn cụm ĐỒNG MÀU
+ *  với menu (bề mặt slate-50/viền slate-200, chữ + icon slate — không tông riêng) ở cả
+ *  sáng lẫn tối. Cụm này đứng NGOÀI vùng cuộn của danh sách (drawer mobile: thanh riêng
+ *  shrink-0; sidebar desktop: chân thẻ, danh sách cuộn nội bộ). */
+export function MenuBottomCluster({ accountName, accountEmail, accountInitials, depositLabel, adminLabel, logoutLabel }: {
   accountName: string; accountEmail: string; accountInitials: string;
-  depositLabel: string; termsLabel: string; adminLabel: string | null; logoutLabel: string;
+  depositLabel: string; adminLabel: string | null; logoutLabel: string;
 }) {
-  const card = "flex w-full items-center justify-center gap-2.5 rounded-2xl border px-4 py-3.5 text-base font-bold transition";
+  const card = "flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition";
   return (
-    <div className="space-y-2.5">
-      <Link href="/dashboard/ho-so"
-        className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3 transition hover:bg-slate-100">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-lg font-extrabold text-slate-800">{accountInitials}</span>
-        <span className="min-w-0">
-          <span className="block truncate text-base font-bold text-slate-900">{accountName}</span>
-          <span className="block truncate text-sm text-slate-500">{accountEmail}</span>
-        </span>
-      </Link>
+    <div className="space-y-2">
       <Link href="/dashboard/nap-tien" className={`${card} border-slate-200/80 bg-slate-50 text-slate-800 hover:bg-slate-100`}>
-        <span className="relative shrink-0 text-slate-700 [&>svg]:h-6 [&>svg]:w-6">
+        <span className="relative shrink-0 text-slate-700 [&>svg]:h-5 [&>svg]:w-5">
           {I.wallet}
-          <span className="absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-slate-700 [&>svg]:h-3 [&>svg]:w-3">{I.plus}</span>
+          <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-slate-700 [&>svg]:h-2.5 [&>svg]:w-2.5">{I.plus}</span>
         </span>
         {depositLabel}
       </Link>
-      <Link href="/dashboard/dieu-khoan" className={`${card} border-slate-200/80 bg-slate-50 text-brand-700 hover:bg-brand-50`}>
-        <span className="shrink-0 text-brand-600 [&>svg]:h-6 [&>svg]:w-6">{I.book}</span>
-        {termsLabel}
-      </Link>
       {adminLabel && (
         <Link href="/admin" className={`${card} border-slate-200/80 bg-slate-50 text-slate-800 hover:bg-slate-100`}>
-          <span className="shrink-0 [&>svg]:h-6 [&>svg]:w-6">{I.shield}</span>
+          <span className="shrink-0 text-slate-700 [&>svg]:h-5 [&>svg]:w-5">{I.shield}</span>
           {adminLabel}
         </Link>
       )}
+      <Link href="/dashboard/ho-so"
+        className="flex items-center gap-2.5 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2.5 transition hover:bg-slate-100">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-extrabold text-slate-700">{accountInitials}</span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-bold text-slate-900">{accountName}</span>
+          <span className="block truncate text-xs text-slate-500">{accountEmail}</span>
+        </span>
+      </Link>
       <form action={logoutAction}>
-        <button className={`${card} border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100`}>
-          <span className="shrink-0 [&>svg]:h-6 [&>svg]:w-6">{I.logout}</span>
+        <button className={`${card} border-slate-200/80 bg-slate-50 text-slate-800 hover:bg-slate-100`}>
+          <span className="shrink-0 text-slate-700 [&>svg]:h-5 [&>svg]:w-5">{I.logout}</span>
           {logoutLabel}
         </button>
       </form>
@@ -171,12 +170,13 @@ export function SideNav({ items, footer }: { items: NavEntry[]; footer?: ReactNo
 export function MobileSideNav({ items, siteName, footer, logoUrl, logoText }: {
   items: NavEntry[]; siteName: string; footer?: ReactNode; logoUrl?: string | null; logoText?: string;
 }) {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   const path = usePathname();
   useEffect(() => { setOpen(false); }, [path]);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-label="Mở menu"
+      <button type="button" onClick={() => setOpen(true)} aria-label={t("Mở menu")}
         className="lg:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
       </button>
@@ -191,7 +191,7 @@ export function MobileSideNav({ items, siteName, footer, logoUrl, logoText }: {
               ) : (
                 <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-2xl font-black text-white">{logoText || "S"}</span>
               )}
-              <button type="button" onClick={() => setOpen(false)} aria-label="Đóng menu" className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100">
+              <button type="button" onClick={() => setOpen(false)} aria-label={t("Đóng menu")} className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
               </button>
             </div>

@@ -1,10 +1,11 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { vnd, num, PLATFORMS, type PremiumCustomField } from "@/lib/format";
+import { num, PLATFORMS, type PremiumCustomField } from "@/lib/format";
 import { I, PLATFORM_COLORS } from "@/components/ui";
 import { OrderSupportActions } from "@/components/order-support-actions";
 import { warrantyAction } from "@/app/actions/user";
+import { useLang } from "@/components/lang";
 
 export type ServiceDTO = {
   id: number; name: string; description: string | null; notice?: string | null; rate: number; min: number; max: number;
@@ -12,14 +13,18 @@ export type ServiceDTO = {
 };
 
 /* ---------- Khám phá dịch vụ (trang công khai + trang đặt đơn) ---------- */
-const StarBtn = ({ active, onClick }: { active: boolean; onClick: () => void }) => (
-  <button type="button" onClick={onClick} title={active ? "Bỏ yêu thích" : "Đánh dấu yêu thích"}
+const StarBtn = ({ active, onClick }: { active: boolean; onClick: () => void }) => {
+  const { t } = useLang();
+  return (
+  <button type="button" onClick={onClick} title={active ? t("Bỏ yêu thích") : t("Đánh dấu yêu thích")}
     className={`p-1.5 rounded-lg transition ${active ? "text-amber-500" : "text-slate-300 hover:text-amber-400"}`}>
     <svg width="17" height="17" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M12 3.5 14.9 9.4l6.5.9-4.7 4.6 1.1 6.5L12 18.3l-5.8 3.1 1.1-6.5L2.6 10.3l6.5-.9L12 3.5Z" /></svg>
   </button>
-);
+  );
+};
 
 export function ServicesExplorer({ services, orderMode = false, registerHref }: { services: ServiceDTO[]; orderMode?: boolean; registerHref?: string }) {
+  const { t, td, m } = useLang();
   const platforms = useMemo(() => Array.from(new Set(services.map((s) => s.platform))), [services]);
   const [platform, setPlatform] = useState<string>("all");
   const [q, setQ] = useState("");
@@ -56,33 +61,33 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-white" style={{ background: PLATFORM_COLORS[p] || "#64748b" }}>{(PLATFORMS[p] || p).charAt(0)}</span>
             <span className="min-w-0">
               <span className="block truncate font-bold text-slate-900">{PLATFORMS[p] || p}</span>
-              <span className="block text-xs text-slate-400">{platCounts.get(p) || 0} dịch vụ</span>
+              <span className="block text-xs text-slate-400">{td(`${platCounts.get(p) || 0} dịch vụ`)}</span>
             </span>
           </button>
         ))}
       </div>
       <div className="mb-5 text-sm text-slate-500">
-        Tổng cộng: <b className="text-slate-800">{services.length} dịch vụ</b> · {catCount} danh mục · {platforms.length} nền tảng
-        {platform !== "all" && <button type="button" onClick={() => setPlatform("all")} className="ml-3 font-semibold text-brand-600">Xem tất cả</button>}
+        {t("Tổng cộng:")} <b className="text-slate-800">{td(`${services.length} dịch vụ`)}</b> · {td(`${catCount} danh mục`)} · {td(`${platforms.length} nền tảng`)}
+        {platform !== "all" && <button type="button" onClick={() => setPlatform("all")} className="ml-3 font-semibold text-brand-600">{t("Xem tất cả")}</button>}
       </div>
       <div className="flex flex-col xl:flex-row gap-3 mb-5">
-        <input className="inp xl:max-w-xs" placeholder="Tìm dịch vụ... (vd: follow TikTok)" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="inp xl:max-w-xs" placeholder={t("Tìm dịch vụ... (vd: follow TikTok)")} value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="flex flex-wrap gap-2 items-center xl:ml-auto">
-          <select className="inp !w-auto !py-2 text-sm" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} title="Sắp xếp">
-            <option value="default">Mặc định</option>
-            <option value="asc">Giá tăng dần</option>
-            <option value="desc">Giá giảm dần</option>
+          <select className="inp !w-auto !py-2 text-sm" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} title={t("Sắp xếp")}>
+            <option value="default">{t("Mặc định")}</option>
+            <option value="asc">{t("Giá tăng dần")}</option>
+            <option value="desc">{t("Giá giảm dần")}</option>
           </select>
-          <select className="inp !w-auto !py-2 text-sm" value={range} onChange={(e) => setRange(e.target.value as typeof range)} title="Khoảng giá / 1000">
-            <option value="all">Mọi mức giá</option>
-            <option value="u10">Dưới 10.000đ</option>
-            <option value="m10">10.000 – 50.000đ</option>
-            <option value="o50">Trên 50.000đ</option>
+          <select className="inp !w-auto !py-2 text-sm" value={range} onChange={(e) => setRange(e.target.value as typeof range)} title={t("Khoảng giá / 1000")}>
+            <option value="all">{t("Mọi mức giá")}</option>
+            <option value="u10">{t("Dưới 10.000đ")}</option>
+            <option value="m10">{t("10.000 – 50.000đ")}</option>
+            <option value="o50">{t("Trên 50.000đ")}</option>
           </select>
-          <button onClick={() => setFavOnly((v) => !v)} className={`btn-sm rounded-full font-semibold ${favOnly ? "bg-amber-500 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>Yêu thích ({favs.length})</button>
+          <button onClick={() => setFavOnly((v) => !v)} className={`btn-sm rounded-full font-semibold ${favOnly ? "bg-amber-500 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>{td(`Yêu thích (${favs.length})`)}</button>
           <div className="flex rounded-full border border-slate-200 bg-white p-0.5">
-            <button onClick={() => setView("table")} className={`btn-sm rounded-full font-semibold ${view === "table" ? "bg-brand-600 text-white" : "text-slate-500"}`}>Bảng</button>
-            <button onClick={() => setView("grid")} className={`btn-sm rounded-full font-semibold ${view === "grid" ? "bg-brand-600 text-white" : "text-slate-500"}`}>Lưới</button>
+            <button onClick={() => setView("table")} className={`btn-sm rounded-full font-semibold ${view === "table" ? "bg-brand-600 text-white" : "text-slate-500"}`}>{t("Bảng")}</button>
+            <button onClick={() => setView("grid")} className={`btn-sm rounded-full font-semibold ${view === "grid" ? "bg-brand-600 text-white" : "text-slate-500"}`}>{t("Lưới")}</button>
           </div>
         </div>
       </div>
@@ -90,7 +95,7 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[760px]">
             <thead className="bg-slate-50 border-b border-slate-200">
-              <tr><th className="th">ID</th><th className="th">Dịch vụ</th><th className="th">Giá / 1000</th><th className="th">Min – Max</th><th className="th">Thời gian</th><th className="th"></th></tr>
+              <tr><th className="th">ID</th><th className="th">{t("Dịch vụ")}</th><th className="th">{t("Giá / 1000")}</th><th className="th">Min – Max</th><th className="th">{t("Thời gian")}</th><th className="th"></th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {list.map((s) => (
@@ -98,18 +103,18 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
                   <td className="td text-slate-400 font-mono text-xs">{s.id}</td>
                   <td className="td">
                     <div className="font-medium text-slate-800">{s.name}</div>
-                    <div className="text-xs text-slate-400">{s.categoryName}{s.refill ? " · Có bảo hành bù" : ""}</div>
+                    <div className="text-xs text-slate-400">{s.categoryName}{s.refill ? t(" · Có bảo hành bù") : ""}</div>
                   </td>
-                  <td className="td font-bold text-brand-700">{vnd(s.rate)}</td>
+                  <td className="td font-bold text-brand-700">{m(s.rate)}</td>
                   <td className="td text-slate-500">{num(s.min)} – {num(s.max)}</td>
                   <td className="td text-slate-500">{s.avgTime || "—"}</td>
                   <td className="td text-right whitespace-nowrap">
                     <StarBtn active={favs.includes(s.id)} onClick={() => toggleFav(s.id)} />
-                    <Link href={orderHref(s.id)} className="btn-primary btn-sm">Đặt ngay</Link>
+                    <Link href={orderHref(s.id)} className="btn-primary btn-sm">{t("Đặt ngay")}</Link>
                   </td>
                 </tr>
               ))}
-              {list.length === 0 && <tr><td colSpan={6} className="td text-center text-slate-400 py-8">Không tìm thấy dịch vụ phù hợp</td></tr>}
+              {list.length === 0 && <tr><td colSpan={6} className="td text-center text-slate-400 py-8">{t("Không tìm thấy dịch vụ phù hợp")}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -121,27 +126,27 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
                 <span className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black shrink-0" style={{ background: PLATFORM_COLORS[s.platform] || "#64748b" }}>{(PLATFORMS[s.platform] || s.platform).charAt(0)}</span>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-slate-800 leading-snug">{s.name}</div>
-                  <div className="text-xs text-slate-400 mt-0.5">{s.categoryName} · ID {s.id}</div>
+                  <div className="text-xs text-slate-400 mt-0.5">{s.categoryName}{td(` · ID ${s.id}`)}</div>
                 </div>
                 <StarBtn active={favs.includes(s.id)} onClick={() => toggleFav(s.id)} />
               </div>
               <div className="flex items-end justify-between mt-4">
                 <div>
-                  <div className="text-xl font-extrabold text-brand-700">{vnd(s.rate)}</div>
-                  <div className="text-[11px] text-slate-400">/ 1000 lượt</div>
+                  <div className="text-xl font-extrabold text-brand-700">{m(s.rate)}</div>
+                  <div className="text-[11px] text-slate-400">{t("/ 1000 lượt")}</div>
                 </div>
                 <div className="text-right text-xs text-slate-500 space-y-0.5">
                   <div>{num(s.min)} – {num(s.max)}</div>
-                  <div>{s.avgTime || "Xử lý nhanh"}{s.refill ? " · Có bù" : ""}</div>
+                  <div>{s.avgTime || t("Xử lý nhanh")}{s.refill ? t(" · Có bù") : ""}</div>
                 </div>
               </div>
-              <Link href={orderHref(s.id)} className="btn-primary btn-sm w-full mt-4 !py-2.5">Đặt ngay</Link>
+              <Link href={orderHref(s.id)} className="btn-primary btn-sm w-full mt-4 !py-2.5">{t("Đặt ngay")}</Link>
             </div>
           ))}
-          {list.length === 0 && <div className="card p-10 text-center text-slate-400 sm:col-span-2 xl:col-span-3">Không tìm thấy dịch vụ phù hợp</div>}
+          {list.length === 0 && <div className="card p-10 text-center text-slate-400 sm:col-span-2 xl:col-span-3">{t("Không tìm thấy dịch vụ phù hợp")}</div>}
         </div>
       )}
-      <p className="text-xs text-slate-400 mt-3">Hiển thị {list.length}/{services.length} dịch vụ. Giá đã gồm VAT; cấp Đại lý / Tổng đại lý / VIP được chiết khấu thêm tự động khi đặt đơn. Bấm ngôi sao để ghim dịch vụ hay dùng.</p>
+      <p className="text-xs text-slate-400 mt-3">{td(`Hiển thị ${list.length}/${services.length} dịch vụ. Giá đã gồm VAT; cấp Đại lý / Tổng đại lý / VIP được chiết khấu thêm tự động khi đặt đơn. Bấm ngôi sao để ghim dịch vụ hay dùng.`)}</p>
     </div>
   );
 }
@@ -217,11 +222,12 @@ const EXAMPLE_LINK: Record<string, string> = {
   shopee: "Link sản phẩm công khai",
 };
 function InfoCell({ icon, tone, label, value }: { icon: React.ReactNode; tone: string; label: string; value: string }) {
+  const { t } = useLang();
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3.5">
       <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${tone}`}>{icon}</span>
       <span className="min-w-0">
-        <span className="block text-[13px] text-slate-500">{label}</span>
+        <span className="block text-[13px] text-slate-500">{t(label)}</span>
         <span className="block truncate text-[15px] font-bold text-slate-800">{value}</span>
       </span>
     </div>
@@ -230,8 +236,9 @@ function InfoCell({ icon, tone, label, value }: { icon: React.ReactNode; tone: s
 
 /* Nút dán link dạng icon, nằm bên trong khung input của form đặt đơn */
 function PasteIconBtn({ onClick }: { onClick: () => void }) {
+  const { t } = useLang();
   return (
-    <button type="button" title="Dán link" aria-label="Dán link" onClick={onClick} className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-brand-300 hover:text-brand-600">
+    <button type="button" title={t("Dán link")} aria-label={t("Dán link")} onClick={onClick} className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-brand-300 hover:text-brand-600">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6" /><path d="M9 16h4" /></svg>
     </button>
   );
@@ -248,6 +255,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
   initialQty?: number;
   campaignId?: number;
 }) {
+  const { t, td, m } = useLang();
   const [catId, setCatId] = useState<number>(preselect ? services.find((s) => s.id === preselect)?.categoryId || categories[0]?.id : categories[0]?.id);
   const inCat = services.filter((s) => s.categoryId === catId);
   const [serviceId, setServiceId] = useState<number>(preselect || inCat[0]?.id);
@@ -300,29 +308,29 @@ export function OrderForm({ services, categories, discount, preselect, action, b
         {campaignId ? <input type="hidden" name="campaignId" value={campaignId} /> : null}
         <input type="hidden" name="serviceId" value={service?.id || ""} />
         <div className="relative">
-          <label className="lbl !text-[15px] !font-bold text-slate-800">Tìm nhanh dịch vụ</label>
+          <label className="lbl !text-[15px] !font-bold text-slate-800">{t("Tìm nhanh dịch vụ")}</label>
           {openMenu === "quick" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
           <button type="button" onClick={() => setOpenMenu(openMenu === "quick" ? null : "quick")} className="relative z-10 flex h-[56px] w-full items-center gap-3 rounded-2xl bg-slate-100 px-4 text-left transition hover:bg-slate-200/70">
-            {service ? <><IdBadge id={service.id} /><span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-slate-800">{service.name}</span></> : <span className="flex-1 text-[15px] text-slate-400">Chọn dịch vụ...</span>}
+            {service ? <><IdBadge id={service.id} /><span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-slate-800">{service.name}</span></> : <span className="flex-1 text-[15px] text-slate-400">{t("Chọn dịch vụ...")}</span>}
             <ChevUD />
           </button>
           {openMenu === "quick" && (
             <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
-              <input autoFocus className="inp mb-1.5" placeholder="Gõ tên hoặc mã dịch vụ..." value={quickQ} onChange={(e) => setQuickQ(e.target.value)} />
+              <input autoFocus className="inp mb-1.5" placeholder={t("Gõ tên hoặc mã dịch vụ...")} value={quickQ} onChange={(e) => setQuickQ(e.target.value)} />
               <div className="max-h-64 overflow-auto">
                 {quickResults.map((s) => (
                   <button key={s.id} type="button" onClick={() => pickService(s)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50 ${s.id === service?.id ? "bg-brand-50" : ""}`}>
                     <IdBadge id={s.id} />
-                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-800">{s.name}</span><span className="block text-xs text-slate-400">{s.categoryName} · {vnd(s.rate)}/1000</span></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-800">{s.name}</span><span className="block text-xs text-slate-400">{s.categoryName} · {m(s.rate)}/1000</span></span>
                   </button>
                 ))}
-                {quickResults.length === 0 && <p className="px-3 py-4 text-center text-sm text-slate-400">Không tìm thấy dịch vụ nào.</p>}
+                {quickResults.length === 0 && <p className="px-3 py-4 text-center text-sm text-slate-400">{t("Không tìm thấy dịch vụ nào.")}</p>}
               </div>
             </div>
           )}
         </div>
         <div className="relative">
-          <label className="lbl !text-[15px] !font-bold text-slate-800">Chọn nền tảng</label>
+          <label className="lbl !text-[15px] !font-bold text-slate-800">{t("Chọn nền tảng")}</label>
           {openMenu === "platform" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
           <button type="button" onClick={() => setOpenMenu(openMenu === "platform" ? null : "platform")} className="relative z-10 flex h-[56px] w-full items-center gap-3 rounded-2xl bg-slate-100 px-4 text-left transition hover:bg-slate-200/70">
             <PlatformIcon platform={platform} />
@@ -335,18 +343,18 @@ export function OrderForm({ services, categories, discount, preselect, action, b
                 <button key={p} type="button" onClick={() => pickPlatform(p)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50 ${p === platform ? "bg-brand-50" : ""}`}>
                   <PlatformIcon platform={p} size={32} />
                   <span className="flex-1 text-sm font-semibold text-slate-800">{PLATFORMS[p] || p}</span>
-                  <span className="text-xs text-slate-400">{services.filter((s) => s.platform === p).length} dịch vụ</span>
+                  <span className="text-xs text-slate-400">{td(`${services.filter((s) => s.platform === p).length} dịch vụ`)}</span>
                 </button>
               ))}
             </div>
           )}
         </div>
         <div className="relative">
-          <label className="lbl !text-[15px] !font-bold text-slate-800">Chọn dịch vụ</label>
+          <label className="lbl !text-[15px] !font-bold text-slate-800">{t("Chọn dịch vụ")}</label>
           {openMenu === "cat" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
           <button type="button" onClick={() => setOpenMenu(openMenu === "cat" ? null : "cat")} className="relative z-10 flex h-[56px] w-full items-center gap-3 rounded-2xl bg-slate-100 px-4 text-left transition hover:bg-slate-200/70">
             <PlatformIcon platform={platform} />
-            <span className="flex-1 truncate text-[15px] font-semibold text-slate-800">{categories.find((c) => c.id === catId)?.name || "Chọn dịch vụ"}</span>
+            <span className="flex-1 truncate text-[15px] font-semibold text-slate-800">{categories.find((c) => c.id === catId)?.name || t("Chọn dịch vụ")}</span>
             <ChevUD />
           </button>
           {openMenu === "cat" && (
@@ -355,15 +363,15 @@ export function OrderForm({ services, categories, discount, preselect, action, b
                 <button key={c.id} type="button" onClick={() => pickCategory(c)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50 ${c.id === catId ? "bg-brand-50" : ""}`}>
                   <PlatformIcon platform={c.platform} size={32} />
                   <span className="flex-1 text-sm font-semibold text-slate-800">{c.name}</span>
-                  <span className="text-xs text-slate-400">{services.filter((s) => s.categoryId === c.id).length} máy chủ</span>
+                  <span className="text-xs text-slate-400">{td(`${services.filter((s) => s.categoryId === c.id).length} máy chủ`)}</span>
                 </button>
               ))}
-              {catsOfPlatform.length === 0 && <p className="px-3 py-4 text-center text-sm text-slate-400">Nền tảng này chưa có dịch vụ.</p>}
+              {catsOfPlatform.length === 0 && <p className="px-3 py-4 text-center text-sm text-slate-400">{t("Nền tảng này chưa có dịch vụ.")}</p>}
             </div>
           )}
         </div>
         <div className="relative">
-          <label className="lbl !text-[15px] !font-bold text-slate-800">Chọn máy chủ</label>
+          <label className="lbl !text-[15px] !font-bold text-slate-800">{t("Chọn máy chủ")}</label>
           {openMenu === "svc" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
           <button type="button" onClick={() => setOpenMenu(openMenu === "svc" ? null : "svc")} className="relative z-10 flex w-full items-start gap-3 rounded-2xl bg-slate-100 px-4 py-3.5 text-left transition hover:bg-slate-200/70">
             {service ? (
@@ -374,12 +382,12 @@ export function OrderForm({ services, categories, discount, preselect, action, b
                 </span>
                 <span className="mt-2.5 flex flex-wrap gap-1.5">
                   <span className="rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-bold text-white">{perUnitVnd(service.rate)}</span>
-                  {service.refill && <span className="rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-bold text-teal-700">Có bảo hành</span>}
-                  {service.dripfeed && <span className="rounded-lg bg-violet-100 px-2.5 py-1 text-xs font-bold text-violet-700">Thả nhỏ giọt</span>}
+                  {service.refill && <span className="rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-bold text-teal-700">{t("Có bảo hành")}</span>}
+                  {service.dripfeed && <span className="rounded-lg bg-violet-100 px-2.5 py-1 text-xs font-bold text-violet-700">{t("Thả nhỏ giọt")}</span>}
                   {service.avgTime && <span className="rounded-lg bg-slate-200 px-2.5 py-1 text-xs font-bold text-slate-600">{service.avgTime}</span>}
                 </span>
               </span>
-            ) : <span className="flex-1 py-1.5 text-[15px] text-slate-400">Chọn máy chủ...</span>}
+            ) : <span className="flex-1 py-1.5 text-[15px] text-slate-400">{t("Chọn máy chủ...")}</span>}
             <ChevUD />
           </button>
           {openMenu === "svc" && (
@@ -391,7 +399,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
                   <span className="shrink-0 text-xs font-bold text-emerald-600">{perUnitVnd(s.rate)}</span>
                 </button>
               ))}
-              {inCat.length === 0 && <p className="px-3 py-4 text-center text-sm text-slate-400">Chưa có máy chủ nào.</p>}
+              {inCat.length === 0 && <p className="px-3 py-4 text-center text-sm text-slate-400">{t("Chưa có máy chủ nào.")}</p>}
             </div>
           )}
         </div>
@@ -405,7 +413,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
         )}
         {service?.description && (
           <div className="rounded-2xl border border-slate-200/80 p-5">
-            <div className="mb-2 text-[13px] font-bold uppercase tracking-wider text-slate-500">Mô tả máy chủ:</div>
+            <div className="mb-2 text-[13px] font-bold uppercase tracking-wider text-slate-500">{t("Mô tả máy chủ:")}</div>
             <p className="whitespace-pre-line text-[15px] leading-relaxed text-slate-700">{service.description}</p>
           </div>
         )}
@@ -414,18 +422,18 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             {[{ v: false, t: "1 link" }, { v: true, t: "Nhiều link" }].map((o) => (
               <button key={o.t} type="button" onClick={() => setMultiOn(o.v)} aria-pressed={multiOn === o.v} className="flex items-center gap-2.5">
                 <span className={`flex h-[26px] w-[26px] items-center justify-center rounded-full transition ${multiOn === o.v ? "bg-brand-500" : "border-2 border-slate-300 bg-white hover:border-slate-400"}`}>{multiOn === o.v && <span className="h-2 w-2 rounded-full bg-white" />}</span>
-                <span className={`text-[15px] font-medium ${multiOn === o.v ? "text-slate-900" : "text-slate-500"}`}>{o.t}</span>
+                <span className={`text-[15px] font-medium ${multiOn === o.v ? "text-slate-900" : "text-slate-500"}`}>{t(o.t)}</span>
               </button>
             ))}
           </div>
-          <label className="lbl !text-[15px] !font-bold text-slate-700">Link cần tăng</label>
+          <label className="lbl !text-[15px] !font-bold text-slate-700">{t("Link cần tăng")}</label>
           {multiOn ? (
             <div className="relative">
-              <textarea className="inp w-full font-mono !text-[13px] leading-relaxed !pr-20" name="links" required rows={4} placeholder={"Mỗi dòng 1 link:\nhttps://...\nhttps://..."} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
+              <textarea className="inp w-full font-mono !text-[13px] leading-relaxed !pr-20" name="links" required rows={4} placeholder={t("Mỗi dòng 1 link:\nhttps://...\nhttps://...")} value={multiLinks} onChange={(e) => setMultiLinks(e.target.value)} />
               <span className="absolute right-2 top-2 flex gap-1.5">
                 <PasteIconBtn onClick={pasteLink} />
                 {multiLinks.trim() && (
-                  <button type="button" title="Xoá hết" aria-label="Xoá hết" onClick={() => setMultiLinks("")} className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-rose-300 hover:text-rose-600">
+                  <button type="button" title={t("Xoá hết")} aria-label={t("Xoá hết")} onClick={() => setMultiLinks("")} className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-rose-300 hover:text-rose-600">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>
                   </button>
                 )}
@@ -433,20 +441,20 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             </div>
           ) : (
             <div className="relative">
-              <input className="inp w-full !h-[52px] !rounded-[14px] !text-[15px] !pr-12" name="link" required placeholder="https://... (link công khai, không cần mật khẩu)" value={link} onChange={(e) => setLink(e.target.value)} />
+              <input className="inp w-full !h-[52px] !rounded-[14px] !text-[15px] !pr-12" name="link" required placeholder={t("https://... (link công khai, không cần mật khẩu)")} value={link} onChange={(e) => setLink(e.target.value)} />
               <span className="absolute right-2 top-1/2 -translate-y-1/2"><PasteIconBtn onClick={pasteLink} /></span>
             </div>
           )}
         </div>
-        {pasteMsg && <p className="text-xs text-slate-400">{pasteMsg}</p>}
-        {!multiOn && linkMismatch && <p className="text-xs font-medium text-amber-600">Link này có vẻ không thuộc {PLATFORMS[service!.platform] || service!.platform} — kiểm tra lại dịch vụ đã chọn nhé.</p>}
+        {pasteMsg && <p className="text-xs text-slate-400">{t(pasteMsg)}</p>}
+        {!multiOn && linkMismatch && <p className="text-xs font-medium text-amber-600">{td(`Link này có vẻ không thuộc ${PLATFORMS[service!.platform] || service!.platform} — kiểm tra lại dịch vụ đã chọn nhé.`)}</p>}
         <div>
-          <label className="lbl">Số lượng {multiOn && <span className="text-brand-600 font-semibold">(cho mỗi link)</span>}</label>
+          <label className="lbl">{t("Số lượng")} {multiOn && <span className="text-brand-600 font-semibold">{t("(cho mỗi link)")}</span>}</label>
           <div className="flex gap-3">
             <input className="inp flex-1 !h-[52px] !rounded-[14px] !text-[15px]" name="quantity" type="number" required min={service?.min} max={service?.max} value={qty || ""} onChange={(e) => setQty(parseInt(e.target.value) || 0)} />
-            <div className="flex h-[52px] min-w-[104px] items-center justify-center rounded-[14px] bg-[linear-gradient(120deg,rgb(var(--b700)),rgb(var(--b500)))] px-4 text-base font-bold text-white shadow-md shadow-brand-600/25">{vnd(shownCharge)}</div>
+            <div className="flex h-[52px] min-w-[104px] items-center justify-center rounded-[14px] bg-[linear-gradient(120deg,rgb(var(--b700)),rgb(var(--b500)))] px-4 text-base font-bold text-white shadow-md shadow-brand-600/25">{m(shownCharge)}</div>
           </div>
-          {service && <p className="mt-1.5 text-[13px] text-slate-400">Tối thiểu: {num(service.min)} - Tối đa: {num(service.max)}</p>}
+          {service && <p className="mt-1.5 text-[13px] text-slate-400">{td(`Tối thiểu: ${num(service.min)} - Tối đa: ${num(service.max)}`)}</p>}
           {qtyChips.length > 1 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {qtyChips.map((n) => (
@@ -457,77 +465,77 @@ export function OrderForm({ services, categories, discount, preselect, action, b
         </div>
         {service && /comment|bình luận/i.test(service.name) && (
           <div>
-            <label className="lbl">Nội dung bình luận (mỗi dòng 1 bình luận)</label>
-            <textarea className="inp" name="comments" rows={4} placeholder={"Hay quá shop ơi\nChất lượng tuyệt vời..."} />
-            <p className="text-xs text-slate-400 mt-1.5">Số lượng đơn nên bằng số dòng bình luận bạn nhập.</p>
+            <label className="lbl">{t("Nội dung bình luận (mỗi dòng 1 bình luận)")}</label>
+            <textarea className="inp" name="comments" rows={4} placeholder={t("Hay quá shop ơi\nChất lượng tuyệt vời...")} />
+            <p className="text-xs text-slate-400 mt-1.5">{t("Số lượng đơn nên bằng số dòng bình luận bạn nhập.")}</p>
           </div>
         )}
         {service && /cảm xúc|reaction/i.test(service.name) && (
           <div>
-            <label className="lbl">Loại cảm xúc</label>
+            <label className="lbl">{t("Loại cảm xúc")}</label>
             <select className="inp" name="reaction" defaultValue="like">
-              <option value="like">Thích</option>
-              <option value="love">Yêu thích</option>
+              <option value="like">{t("Thích")}</option>
+              <option value="love">{t("Yêu thích")}</option>
               <option value="haha">Haha</option>
               <option value="wow">Wow</option>
-              <option value="sad">Buồn</option>
-              <option value="angry">Phẫn nộ</option>
-              <option value="like|love|haha">Trộn: Thích + Yêu thích + Haha</option>
+              <option value="sad">{t("Buồn")}</option>
+              <option value="angry">{t("Phẫn nộ")}</option>
+              <option value="like|love|haha">{t("Trộn: Thích + Yêu thích + Haha")}</option>
             </select>
           </div>
         )}
         {service && /watch|giờ xem|xem phút/i.test(service.name) && (
           <div>
-            <label className="lbl">Số phút mỗi lượt xem</label>
-            <input className="inp" name="minutes" type="number" min={1} placeholder="Vd: 30" />
+            <label className="lbl">{t("Số phút mỗi lượt xem")}</label>
+            <input className="inp" name="minutes" type="number" min={1} placeholder={t("Vd: 30")} />
           </div>
         )}
         {service?.dripfeed && (
           <div className="rounded-2xl border border-dashed border-brand-200 bg-brand-50/50 p-4">
             <label className="flex items-center gap-2.5 cursor-pointer">
               <input type="checkbox" name="dripfeed" value="1" checked={dripOn} onChange={(e) => setDripOn(e.target.checked)} className="w-4 h-4 accent-[#4680ff]" />
-              <span className="font-semibold text-slate-800 text-sm">Thả nhỏ giọt</span>
-              <span className="text-xs text-slate-400">— chia tổng số lượng thành nhiều lượt thả đều theo thời gian, nhìn tự nhiên hơn</span>
+              <span className="font-semibold text-slate-800 text-sm">{t("Thả nhỏ giọt")}</span>
+              <span className="text-xs text-slate-400">{t("— chia tổng số lượng thành nhiều lượt thả đều theo thời gian, nhìn tự nhiên hơn")}</span>
             </label>
             {dripOn && (
               <div className="grid grid-cols-2 gap-3 mt-3.5">
                 <div>
-                  <label className="lbl">Số lượt thả</label>
+                  <label className="lbl">{t("Số lượt thả")}</label>
                   <input className="inp" name="runs" type="number" min={2} max={100} value={dripRuns} onChange={(e) => setDripRuns(parseInt(e.target.value) || 2)} />
                 </div>
                 <div>
-                  <label className="lbl">Cách nhau (phút)</label>
+                  <label className="lbl">{t("Cách nhau (phút)")}</label>
                   <input className="inp" name="interval" type="number" min={5} max={1440} value={dripInterval} onChange={(e) => setDripInterval(parseInt(e.target.value) || 60)} />
                 </div>
                 <p className="col-span-2 text-xs text-slate-500 leading-relaxed">
                   {qty > 0 && dripRuns > 0 ? (
-                    <>Mỗi lượt khoảng <b>{num(Math.floor(qty / dripRuns))}</b> (lượt đầu cộng phần dư), tổng thời gian thả ≈ <b>{num(dripRuns * dripInterval)} phút</b>. Mỗi lượt phải ≥ {num(service.min)} theo giới hạn dịch vụ.</>
-                  ) : "Nhập số lượng và số lượt để xem lịch thả."}
+                    <>{t("Mỗi lượt khoảng")} <b>{num(Math.floor(qty / dripRuns))}</b> {t("(lượt đầu cộng phần dư), tổng thời gian thả ≈")} <b>{td(`${num(dripRuns * dripInterval)} phút`)}</b>{td(`. Mỗi lượt phải ≥ ${num(service.min)} theo giới hạn dịch vụ.`)}</>
+                  ) : t("Nhập số lượng và số lượt để xem lịch thả.")}
                 </p>
               </div>
             )}
           </div>
         )}
         <div>
-          <label className="lbl">Mã giảm giá (nếu có)</label>
-          <input className="inp uppercase" name="promoCode" placeholder="VD: SALE10" autoComplete="off" />
-          <p className="mt-1 text-xs text-slate-400">Mã hợp lệ sẽ được giảm trực tiếp vào tiền đơn khi đặt.</p>
+          <label className="lbl">{t("Mã giảm giá (nếu có)")}</label>
+          <input className="inp uppercase" name="promoCode" placeholder={t("VD: SALE10")} autoComplete="off" />
+          <p className="mt-1 text-xs text-slate-400">{t("Mã hợp lệ sẽ được giảm trực tiếp vào tiền đơn khi đặt.")}</p>
         </div>
         <div>
-          <label className="lbl !text-[17px] !font-bold text-slate-800">Ghi chú:</label>
-          <textarea className="w-full rounded-2xl border-0 bg-slate-100 px-5 py-4 text-[15px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 dark:bg-white/5" name="note" rows={3} placeholder="Nhập ghi chú nếu cần" />
+          <label className="lbl !text-[17px] !font-bold text-slate-800">{t("Ghi chú:")}</label>
+          <textarea className="w-full rounded-2xl border-0 bg-slate-100 px-5 py-4 text-[15px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 dark:bg-white/5" name="note" rows={3} placeholder={t("Nhập ghi chú nếu cần")} />
         </div>
         <div className="flex items-center gap-2.5 rounded-[26px] border border-[#d9e6fd] bg-[#eaf1fe] px-3.5 py-3.5 dark:border-white/10 dark:bg-white/5 sm:gap-4 sm:px-5 sm:py-5">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#d3e4ff] text-brand-600 dark:bg-white/10 sm:h-14 sm:w-14">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 sm:h-7 sm:w-7"><path d="M20 7H5a2 2 0 0 1 0-4h13v4" /><path d="M3 5.5V18a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2Z" /><circle cx="17" cy="15" r="1.15" fill="currentColor" stroke="none" /></svg>
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-slate-600 sm:text-[13px]">Tổng thanh toán</span>
-            <span className="block whitespace-nowrap text-[19px] font-extrabold leading-tight text-brand-600 sm:text-[28px]">{vnd(shownCharge)}{multiOn && orderCount === 0 && <span className="text-xs font-semibold text-slate-400 sm:text-sm"> / link</span>}</span>
+            <span className="block whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-slate-600 sm:text-[13px]">{t("Tổng thanh toán")}</span>
+            <span className="block whitespace-nowrap text-[19px] font-extrabold leading-tight text-brand-600 sm:text-[28px]">{m(shownCharge)}{multiOn && orderCount === 0 && <span className="text-xs font-semibold text-slate-400 sm:text-sm">{t(" / link")}</span>}</span>
           </span>
-          <button type="submit" disabled={notEnough} className="shrink-0 whitespace-nowrap rounded-2xl bg-brand-500 px-4 py-2.5 text-[15px] font-semibold text-white shadow-md shadow-brand-500/30 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-[18px] sm:px-7 sm:py-3.5 sm:text-lg">Đặt hàng</button>
+          <button type="submit" disabled={notEnough} className="shrink-0 whitespace-nowrap rounded-2xl bg-brand-500 px-4 py-2.5 text-[15px] font-semibold text-white shadow-md shadow-brand-500/30 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-[18px] sm:px-7 sm:py-3.5 sm:text-lg">{t("Đặt hàng")}</button>
         </div>
-        {notEnough && <p className="-mt-2 text-right text-xs font-medium text-rose-600">Chưa đủ số dư cho đơn này — nạp thêm để đặt hàng.</p>}
+        {notEnough && <p className="-mt-2 text-right text-xs font-medium text-rose-600">{t("Chưa đủ số dư cho đơn này — nạp thêm để đặt hàng.")}</p>}
       </form>
       <div className="card p-6 lg:col-span-2 lg:sticky lg:top-24">
         {service ? (
@@ -544,34 +552,34 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             {discount > 0 && (
               <p className="mt-4 flex items-center justify-center gap-2 text-[15px] text-slate-700">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="#f59e0b"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z" /></svg>
-                Bạn đang được giảm {discount}% theo cấp bậc
+                {td(`Bạn đang được giảm ${discount}% theo cấp bậc`)}
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="#f59e0b"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z" /></svg>
               </p>
             )}
             <div className="mt-6">
-              <div className="mb-2 text-[15px] font-bold text-slate-700">Thời gian trung bình</div>
+              <div className="mb-2 text-[15px] font-bold text-slate-700">{t("Thời gian trung bình")}</div>
               <div className="rounded-xl border border-slate-200 px-4 py-3.5 text-[15px] text-slate-500">{service.avgTime || "—"}</div>
             </div>
             <div className="mt-5 space-y-3.5 rounded-2xl border-2 border-dashed border-slate-200 p-5">
               <DetailLine icon={<span className="flex h-[22px] w-[22px] items-center justify-center rounded-md bg-emerald-500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg></span>}>
-                Link mẫu: {EXAMPLE_LINK[service.platform] || "Link công khai"}
+                {t("Link mẫu:")} {t(EXAMPLE_LINK[service.platform] || "Link công khai")}
               </DetailLine>
               <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-slate-400"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>}>
-                Thời gian bắt đầu: Ngay lập tức
+                {t("Thời gian bắt đầu: Ngay lập tức")}
               </DetailLine>
               <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M12 3v3" /><path d="M5.6 5.6l2.2 2.2" /><path d="M18.4 5.6l-2.2 2.2" /><path d="M8 21h8" /><path d="M12 6a6.5 6.5 0 0 0-4 11.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A6.5 6.5 0 0 0 12 6z" /></svg>}>
-                Tối thiểu/Tối đa: {num(service.min)}/{num(service.max)}
+                {td(`Tối thiểu/Tối đa: ${num(service.min)}/${num(service.max)}`)}
               </DetailLine>
               <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6" /><path d="M21 3v5h-5" /></svg>}>
-                Bảo hành: {service.refill ? "Có bảo hành" : "Không bảo hành"}
+                {t("Bảo hành:")} {service.refill ? t("Có bảo hành") : t("Không bảo hành")}
               </DetailLine>
               <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="text-slate-400"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z" /><path d="M3 7l9 4.5L21 7" /><path d="M12 11.5v10" /></svg>}>
-                Số lượng đơn này: {num(qty || 0)}{multiOn ? ` / link${orderCount > 0 ? ` × ${num(orderCount)} link` : ""}` : ""}
+                {td(`Số lượng đơn này: ${num(qty || 0)}${multiOn ? ` / link${orderCount > 0 ? ` × ${num(orderCount)} link` : ""}` : ""}`)}
               </DetailLine>
               {service.notice && (
                 <div className="pt-1">
                   <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5 22 20H2z" stroke="#f59e0b" strokeWidth="1.6" strokeLinejoin="round" /><path d="M12 10v4.2" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" /><circle cx="12" cy="17" r="1.25" fill="#fff" /></svg>}>
-                    <span className="font-semibold">Lưu ý:</span>
+                    <span className="font-semibold">{t("Lưu ý:")}</span>
                   </DetailLine>
                   <p className="mt-1.5 whitespace-pre-line pl-8 text-[15px] leading-relaxed text-slate-700">{service.notice}</p>
                 </div>
@@ -579,12 +587,12 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             </div>
             {balance !== undefined && (
               <div className={`mt-5 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${notEnough ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
-                Số dư ví: <b>{vnd(balance)}</b>
-                {notEnough ? <> — còn thiếu <b>{vnd(shownCharge - balance)}</b>. <Link href="/dashboard/nap-tien" className="font-bold underline">Nạp thêm ngay</Link></> : <> — sau đơn này còn <b>{vnd(balance - shownCharge)}</b>.</>}
+                {t("Số dư ví:")} <b>{m(balance)}</b>
+                {notEnough ? <> {t("— còn thiếu")} <b>{m(shownCharge - balance)}</b>. <Link href="/dashboard/nap-tien" className="font-bold underline">{t("Nạp thêm ngay")}</Link></> : <> {t("— sau đơn này còn")} <b>{m(balance - shownCharge)}</b>.</>}
               </div>
             )}
           </div>
-        ) : <p className="text-sm text-slate-400">Chưa có dịch vụ nào đang bán.</p>}
+        ) : <p className="text-sm text-slate-400">{t("Chưa có dịch vụ nào đang bán.")}</p>}
       </div>
     </div>
   );
@@ -596,6 +604,7 @@ export function BulkOrderForm({ services, discount, balance, action }: {
   balance: number;
   action: (formData: FormData) => void;
 }) {
+  const { t, td, m } = useLang();
   const [text, setText] = useState("");
   const byId = useMemo(() => new Map(services.map((s) => [s.id, s])), [services]);
   const parsed = useMemo(() => {
@@ -606,10 +615,10 @@ export function BulkOrderForm({ services, discount, balance, action }: {
       const qty = parseInt(parts[2] || "0");
       const svc = byId.get(sid);
       let error = "";
-      if (parts.length < 3 || !sid || !link || !qty) error = "Sai định dạng";
-      else if (!svc) error = `Không có dịch vụ ID ${sid}`;
-      else if (qty < svc.min) error = `Số lượng < tối thiểu ${num(svc.min)}`;
-      else if (qty > svc.max) error = `Số lượng > tối đa ${num(svc.max)}`;
+      if (parts.length < 3 || !sid || !link || !qty) error = t("Sai định dạng");
+      else if (!svc) error = td(`Không có dịch vụ ID ${sid}`);
+      else if (qty < svc.min) error = td(`Số lượng < tối thiểu ${num(svc.min)}`);
+      else if (qty > svc.max) error = td(`Số lượng > tối đa ${num(svc.max)}`);
       const charge = svc && !error ? Math.round(Math.ceil((svc.rate * qty) / 1000) * (1 - discount / 100)) : 0;
       return { n: i + 1, sid, link, qty, svc, error, charge };
     });
@@ -620,29 +629,29 @@ export function BulkOrderForm({ services, discount, balance, action }: {
   return (
     <form action={action} className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
       <div className="card p-6 lg:col-span-3">
-        <label className="lbl">Danh sách đơn — mỗi dòng một đơn, định dạng: <code className="font-mono text-brand-700">id dịch vụ | link | số lượng</code></label>
+        <label className="lbl">{t("Danh sách đơn — mỗi dòng một đơn, định dạng:")} <code className="font-mono text-brand-700">{t("id dịch vụ | link | số lượng")}</code></label>
         <textarea className="inp font-mono !text-[13px] leading-relaxed" name="bulk" rows={12} value={text} onChange={(e) => setText(e.target.value)}
-          placeholder={"1 | https://facebook.com/trangcanhan | 1000\n6 | https://tiktok.com/@kenhcuaban | 5000\n# dòng bắt đầu bằng # là ghi chú, được bỏ qua"} />
-        <p className="text-xs text-slate-400 mt-2">Tối đa 50 dòng/lần. ID dịch vụ xem ở trang Bảng giá dịch vụ. Dòng lỗi được bỏ qua, các dòng đúng vẫn đặt bình thường.</p>
+          placeholder={t("1 | https://facebook.com/trangcanhan | 1000\n6 | https://tiktok.com/@kenhcuaban | 5000\n# dòng bắt đầu bằng # là ghi chú, được bỏ qua")} />
+        <p className="text-xs text-slate-400 mt-2">{t("Tối đa 50 dòng/lần. ID dịch vụ xem ở trang Bảng giá dịch vụ. Dòng lỗi được bỏ qua, các dòng đúng vẫn đặt bình thường.")}</p>
       </div>
       <div className="card p-6 lg:col-span-2 lg:sticky lg:top-24">
-        <div className="font-bold text-slate-900 mb-3">Xem trước</div>
+        <div className="font-bold text-slate-900 mb-3">{t("Xem trước")}</div>
         {parsed.length === 0 ? (
           <div>
-            <p className="text-sm text-slate-400">Chưa có dòng nào. Dán danh sách vào ô bên trái để xem trước từng đơn và tổng tiền.</p>
+            <p className="text-sm text-slate-400">{t("Chưa có dòng nào. Dán danh sách vào ô bên trái để xem trước từng đơn và tổng tiền.")}</p>
             {services.slice(0, 1).length > 0 && (
               <div className="space-y-2.5 mt-3">
-                <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Ví dụ kết quả sẽ hiện</div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{t("Ví dụ kết quả sẽ hiện")}</div>
                 {services.slice(0, 1).map((sv) => {
                   const q = Math.min(sv.max, Math.max(sv.min, 1000));
                   const c = Math.round(Math.ceil((sv.rate * q) / 1000) * (1 - discount / 100));
                   return (
                     <div key={sv.id} className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-xs leading-relaxed">
                       <div className="flex justify-between gap-3">
-                        <span className="font-bold">Dòng · ID {sv.id}</span>
-                        <span className="font-bold text-brand-700">{vnd(c)}</span>
+                        <span className="font-bold">{td(`Dòng · ID ${sv.id}`)}</span>
+                        <span className="font-bold text-brand-700">{m(c)}</span>
                       </div>
-                      <div className="text-slate-500 mt-0.5 truncate">{sv.name} — {num(q)} lượt</div>
+                      <div className="text-slate-500 mt-0.5 truncate">{td(`${sv.name} — ${num(q)} lượt`)}</div>
                     </div>
                   );
                 })}
@@ -654,22 +663,22 @@ export function BulkOrderForm({ services, discount, balance, action }: {
             {parsed.map((p) => (
               <div key={p.n} className={`rounded-xl border px-3.5 py-2.5 text-xs leading-relaxed ${p.error ? "border-rose-200 bg-rose-50 text-rose-700" : "border-slate-200 bg-slate-50/60"}`}>
                 <div className="flex justify-between gap-3">
-                  <span className="font-bold">Dòng {p.n} · ID {p.sid || "?"}</span>
-                  {p.error ? <span className="font-semibold">{p.error}</span> : <span className="font-bold text-brand-700">{vnd(p.charge)}</span>}
+                  <span className="font-bold">{td(`Dòng ${p.n} · ID ${p.sid || "?"}`)}</span>
+                  {p.error ? <span className="font-semibold">{p.error}</span> : <span className="font-bold text-brand-700">{m(p.charge)}</span>}
                 </div>
-                {!p.error && p.svc && <div className="text-slate-500 mt-0.5 truncate">{p.svc.name} — {num(p.qty)} lượt</div>}
+                {!p.error && p.svc && <div className="text-slate-500 mt-0.5 truncate">{td(`${p.svc.name} — ${num(p.qty)} lượt`)}</div>}
               </div>
             ))}
           </div>
         )}
         <div className="border-t border-dashed mt-4 pt-3.5 space-y-1.5 text-sm">
-          <div className="flex justify-between"><span className="text-slate-500">Đơn hợp lệ</span><b>{valid.length}/{parsed.length}</b></div>
-          <div className="flex justify-between"><span className="text-slate-500">Tổng tiền</span><b className="text-brand-700">{vnd(total)}</b></div>
-          <div className="flex justify-between"><span className="text-slate-500">Số dư hiện tại</span><b>{vnd(balance)}</b></div>
-          {notEnough && <p className="text-xs text-rose-600 font-medium">Còn thiếu {vnd(total - balance)} — nạp thêm hoặc bỏ bớt dòng.</p>}
+          <div className="flex justify-between"><span className="text-slate-500">{t("Đơn hợp lệ")}</span><b>{valid.length}/{parsed.length}</b></div>
+          <div className="flex justify-between"><span className="text-slate-500">{t("Tổng tiền")}</span><b className="text-brand-700">{m(total)}</b></div>
+          <div className="flex justify-between"><span className="text-slate-500">{t("Số dư hiện tại")}</span><b>{m(balance)}</b></div>
+          {notEnough && <p className="text-xs text-rose-600 font-medium">{t("Còn thiếu")} {m(total - balance)} {t("— nạp thêm hoặc bỏ bớt dòng.")}</p>}
         </div>
         <button type="submit" disabled={valid.length === 0 || notEnough} className="btn-primary w-full mt-4 !py-3 disabled:opacity-50">
-          {valid.length === 0 ? "Nhập ít nhất 1 dòng hợp lệ" : notEnough ? "Chưa đủ số dư" : `Đặt ${valid.length} đơn — tổng ${vnd(total)}`}
+          {valid.length === 0 ? t("Nhập ít nhất 1 dòng hợp lệ") : notEnough ? t("Chưa đủ số dư") : td(`Đặt ${valid.length} đơn — tổng ${m(total)}`)}
         </button>
       </div>
     </form>
@@ -690,22 +699,23 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
   apiUrl: string;
   action: (formData: FormData) => void;
 }) {
+  const { t, td, m } = useLang();
   const [step, setStep] = useState(1);
   const [d, setD] = useState<PanelWizardData>(initial);
   const set = (k: keyof PanelWizardData, v: string | number) => setD((p) => ({ ...p, [k]: v }));
   const accents = [
-    { id: "blue", label: "Xanh dương", hex: "#4680ff" }, { id: "violet", label: "Tím", hex: "#7c5cff" },
-    { id: "emerald", label: "Xanh lá", hex: "#10b981" }, { id: "orange", label: "Cam", hex: "#f97316" },
-    { id: "rose", label: "Hồng", hex: "#f43f5e" }, { id: "teal", label: "Ngọc", hex: "#14b8a6" },
+    { id: "blue", label: t("Xanh dương"), hex: "#4680ff" }, { id: "violet", label: t("Tím"), hex: "#7c5cff" },
+    { id: "emerald", label: t("Xanh lá"), hex: "#10b981" }, { id: "orange", label: t("Cam"), hex: "#f97316" },
+    { id: "rose", label: t("Hồng"), hex: "#f43f5e" }, { id: "teal", label: t("Ngọc"), hex: "#14b8a6" },
   ];
   const tiers: { k: keyof PanelWizardData; label: string }[] = [
-    { k: "discountMember", label: "Thành viên" }, { k: "discountReseller", label: "Đại lý" },
-    { k: "discountAgency", label: "Tổng đại lý" }, { k: "discountVip", label: "VIP" },
+    { k: "discountMember", label: t("Thành viên") }, { k: "discountReseller", label: t("Đại lý") },
+    { k: "discountAgency", label: t("Tổng đại lý") }, { k: "discountVip", label: "VIP" },
   ];
   const step1Ok = d.name.trim().length >= 3 && (mode === "edit" || d.slug.trim().length >= 3);
   const panelPrice = (rate: number) => Math.round(rate * (1 + (Number(d.markup) || 0) / 100));
   const tierPrice = (rate: number, disc: number) => Math.round(panelPrice(rate) * (1 - disc / 100));
-  const steps = ["Thông tin website", "Giá & cấp bậc", "Kết nối API", "Tên miền & hỗ trợ", "Hoàn tất"];
+  const steps = [t("Thông tin website"), t("Giá & cấp bậc"), t("Kết nối API"), t("Tên miền & hỗ trợ"), t("Hoàn tất")];
   return (
     <form action={action} className="card p-6 sm:p-8">
       <input type="hidden" name="setupDone" value="1" />
@@ -721,19 +731,19 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
       </div>
 
       <div className={step === 1 ? "space-y-4 max-w-xl" : "hidden"}>
-          <div><label className="lbl">Tên panel / website *</label><input className="inp" name="name" required minLength={3} value={d.name} onChange={(e) => set("name", e.target.value)} placeholder="Vd: Tăng Tương Tác Pro" /></div>
+          <div><label className="lbl">{t("Tên panel / website *")}</label><input className="inp" name="name" required minLength={3} value={d.name} onChange={(e) => set("name", e.target.value)} placeholder={t("Vd: Tăng Tương Tác Pro")} /></div>
           <div>
-            <label className="lbl">Đường dẫn (slug) {mode === "create" ? "*" : ""}</label>
+            <label className="lbl">{t("Đường dẫn (slug)")} {mode === "create" ? "*" : ""}</label>
             {mode === "create" ? (
               <div className="flex items-center gap-2"><span className="text-sm text-slate-400 whitespace-nowrap">/cua-hang/</span><input className="inp" name="slug" required value={d.slug} onChange={(e) => set("slug", e.target.value)} placeholder="tang-tuong-tac-pro" /></div>
             ) : (
               <input className="inp bg-slate-50" value={`/cua-hang/${d.slug}`} readOnly />
             )}
-            <p className="text-xs text-slate-400 mt-1.5">Chỉ chữ thường, số và dấu gạch ngang. Không đổi được sau khi tạo.</p>
+            <p className="text-xs text-slate-400 mt-1.5">{t("Chỉ chữ thường, số và dấu gạch ngang. Không đổi được sau khi tạo.")}</p>
           </div>
-          <div><label className="lbl">Câu giới thiệu</label><input className="inp" name="tagline" maxLength={255} value={d.tagline} onChange={(e) => set("tagline", e.target.value)} placeholder="Dịch vụ nhanh — bảo hành rõ ràng" /></div>
+          <div><label className="lbl">{t("Câu giới thiệu")}</label><input className="inp" name="tagline" maxLength={255} value={d.tagline} onChange={(e) => set("tagline", e.target.value)} placeholder={t("Dịch vụ nhanh — bảo hành rõ ràng")} /></div>
           <div>
-            <label className="lbl">Màu chủ đạo của website</label>
+            <label className="lbl">{t("Màu chủ đạo của website")}</label>
             <input type="hidden" name="accent" value={d.accent} />
             <div className="flex flex-wrap gap-2">
               {accents.map((a) => (
@@ -748,84 +758,84 @@ export function PanelSetupWizard({ mode, initial, samples, apiUrl, action }: {
       <div className={step === 2 ? "grid grid-cols-1 lg:grid-cols-2 gap-8" : "hidden"}>
           <div className="space-y-4">
             <div>
-              <label className="lbl">Phụ phí của panel (%)</label>
+              <label className="lbl">{t("Phụ phí của panel (%)")}</label>
               <input className="inp" name="markup" type="number" min={0} max={200} value={d.markup} onChange={(e) => set("markup", parseInt(e.target.value) || 0)} />
-              <p className="text-xs text-slate-400 mt-1.5">Cộng trên giá gốc của hệ thống — đây là mặt bằng giá bán của panel và nguồn hoa hồng của bạn.</p>
+              <p className="text-xs text-slate-400 mt-1.5">{t("Cộng trên giá gốc của hệ thống — đây là mặt bằng giá bán của panel và nguồn hoa hồng của bạn.")}</p>
             </div>
             <div>
-              <label className="lbl">Giảm giá theo cấp bậc khách (%)</label>
+              <label className="lbl">{t("Giảm giá theo cấp bậc khách (%)")}</label>
               <div className="grid grid-cols-2 gap-3">
                 {tiers.map((t) => (
                   <div key={t.k}><label className="lbl !mb-1">{t.label}</label><input className="inp" name={t.k} type="number" min={0} max={90} value={d[t.k] as number} onChange={(e) => set(t.k, parseInt(e.target.value) || 0)} /></div>
                 ))}
               </div>
-              <p className="text-xs text-slate-400 mt-1.5">Khách được bạn gán bậc cao hơn sẽ mua rẻ hơn. Phần giảm tính trên giá panel và trừ vào hoa hồng của bạn trước.</p>
+              <p className="text-xs text-slate-400 mt-1.5">{t("Khách được bạn gán bậc cao hơn sẽ mua rẻ hơn. Phần giảm tính trên giá panel và trừ vào hoa hồng của bạn trước.")}</p>
             </div>
           </div>
           <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
-            <div className="font-bold text-slate-900 text-sm mb-3">Xem trước giá bán</div>
+            <div className="font-bold text-slate-900 text-sm mb-3">{t("Xem trước giá bán")}</div>
             <div className="space-y-3">
               {samples.map((s) => (
                 <div key={s.name} className="rounded-xl bg-white border border-slate-200 p-3.5">
                   <div className="text-sm font-medium text-slate-700 leading-snug">{s.name}</div>
                   <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold">
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500">Gốc {vnd(s.rate)}</span>
-                    <span className="rounded-full bg-brand-50 text-brand-700 px-2 py-1">Panel {vnd(panelPrice(s.rate))}</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500">{td(`Gốc ${m(s.rate)}`)}</span>
+                    <span className="rounded-full bg-brand-50 text-brand-700 px-2 py-1">{td(`Panel ${m(panelPrice(s.rate))}`)}</span>
                     {tiers.filter((t) => (d[t.k] as number) > 0).map((t) => (
-                      <span key={t.k} className="rounded-full bg-emerald-50 text-emerald-700 px-2 py-1">{t.label} {vnd(tierPrice(s.rate, d[t.k] as number))}</span>
+                      <span key={t.k} className="rounded-full bg-emerald-50 text-emerald-700 px-2 py-1">{t.label} {m(tierPrice(s.rate, d[t.k] as number))}</span>
                     ))}
                   </div>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-slate-400 mt-3">Giá trên 1.000 lượt. Hoa hồng mỗi đơn = tiền khách trả − giá gốc (tối thiểu 0).</p>
+            <p className="text-xs text-slate-400 mt-3">{t("Giá trên 1.000 lượt. Hoa hồng mỗi đơn = tiền khách trả − giá gốc (tối thiểu 0).")}</p>
           </div>
         </div>
 
       <div className={step === 3 ? "space-y-4 max-w-xl" : "hidden"}>
           <div>
-            <label className="lbl">API URL của web mẹ</label>
+            <label className="lbl">{t("API URL của web mẹ")}</label>
             <input className="inp bg-slate-50 font-mono !text-[13px]" value={apiUrl} readOnly />
           </div>
           <div>
-            <label className="lbl">API key tài khoản mẹ *</label>
-            <input className="inp font-mono !text-[13px]" name="apiKey" value={d.apiKey} onChange={(e) => set("apiKey", e.target.value)} placeholder={mode === "edit" ? "Để trống = giữ key đang liên kết" : "Dán API key của tài khoản mẹ"} autoComplete="off" />
-            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">Panel con liên kết với web mẹ bằng API key này — mặc định là key của chính tài khoản bạn (lấy tại mục <b>API đại lý</b> trong khu khách hàng). Nếu muốn panel chạy trên một tài khoản mẹ khác (ví dụ tài khoản cấp cao hơn), dán key của tài khoản đó. Hệ thống kiểm tra key ngay khi lưu.</p>
+            <label className="lbl">{t("API key tài khoản mẹ *")}</label>
+            <input className="inp font-mono !text-[13px]" name="apiKey" value={d.apiKey} onChange={(e) => set("apiKey", e.target.value)} placeholder={mode === "edit" ? t("Để trống = giữ key đang liên kết") : t("Dán API key của tài khoản mẹ")} autoComplete="off" />
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{t("Panel con liên kết với web mẹ bằng API key này — mặc định là key của chính tài khoản bạn (lấy tại mục")} <b>{t("API đại lý")}</b> {t("trong khu khách hàng). Nếu muốn panel chạy trên một tài khoản mẹ khác (ví dụ tài khoản cấp cao hơn), dán key của tài khoản đó. Hệ thống kiểm tra key ngay khi lưu.")}</p>
           </div>
       </div>
 
       <div className={step === 4 ? "space-y-4 max-w-xl" : "hidden"}>
           <div>
-            <label className="lbl">Tên miền riêng (tuỳ chọn)</label>
+            <label className="lbl">{t("Tên miền riêng (tuỳ chọn)")}</label>
             <input className="inp" name="domain" value={d.domain} onChange={(e) => set("domain", e.target.value)} placeholder="shop.tenmiencuaban.com" />
-            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">Trỏ bản ghi <b>CNAME</b> của tên miền về máy chủ của hệ thống, website sẽ chạy ngay trên tên miền của bạn. Chưa có tên miền thì bỏ qua — dùng đường dẫn /cua-hang/{d.slug || "..."} cũng đầy đủ tính năng.</p>
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{t("Trỏ bản ghi")} <b>CNAME</b> {t("của tên miền về máy chủ của hệ thống, website sẽ chạy ngay trên tên miền của bạn. Chưa có tên miền thì bỏ qua — dùng đường dẫn /cua-hang/")}{d.slug || "..."}{t(" cũng đầy đủ tính năng.")}</p>
           </div>
           <div>
-            <label className="lbl">Liên hệ hỗ trợ của panel</label>
-            <input className="inp" name="support" maxLength={255} value={d.support} onChange={(e) => set("support", e.target.value)} placeholder="Vd: Zalo 0901 234 567 hoặc https://t.me/hotrocuaban" />
-            <p className="text-xs text-slate-400 mt-1.5">Hiện ở website để khách của panel liên hệ bạn trực tiếp khi cần.</p>
+            <label className="lbl">{t("Liên hệ hỗ trợ của panel")}</label>
+            <input className="inp" name="support" maxLength={255} value={d.support} onChange={(e) => set("support", e.target.value)} placeholder={t("Vd: Zalo 0901 234 567 hoặc https://t.me/hotrocuaban")} />
+            <p className="text-xs text-slate-400 mt-1.5">{t("Hiện ở website để khách của panel liên hệ bạn trực tiếp khi cần.")}</p>
           </div>
         </div>
 
       <div className={step === 5 ? "max-w-xl" : "hidden"}>
           <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5">
-            <div className="font-bold text-emerald-800">Sẵn sàng mở bán</div>
+            <div className="font-bold text-emerald-800">{t("Sẵn sàng mở bán")}</div>
             <ul className="mt-2.5 text-sm text-emerald-700 space-y-1.5">
-              <li>— Website: <b>/cua-hang/{d.slug || "..."}</b>{d.domain ? <> và tên miền <b>{d.domain}</b></> : ""}</li>
-              <li>— Liên kết web mẹ bằng API key <b className="font-mono">{d.apiKey ? `${d.apiKey.slice(0, 6)}••••••` : mode === "edit" ? "(giữ key hiện tại)" : "(chưa nhập)"}</b></li>
-              <li>— Giá bán: giá gốc + {Number(d.markup) || 0}%, giảm thêm theo bậc: Đại lý −{d.discountReseller}%, Tổng đại lý −{d.discountAgency}%, VIP −{d.discountVip}%</li>
-              <li>— Khách đăng ký tại website là khách của bạn; hoa hồng vào ví ngay khi có đơn.</li>
+              <li>{t("— Website:")} <b>/cua-hang/{d.slug || "..."}</b>{d.domain ? <> {t("và tên miền")} <b>{d.domain}</b></> : ""}</li>
+              <li>{t("— Liên kết web mẹ bằng API key")} <b className="font-mono">{d.apiKey ? `${d.apiKey.slice(0, 6)}••••••` : mode === "edit" ? t("(giữ key hiện tại)") : t("(chưa nhập)")}</b></li>
+              <li>{td(`— Giá bán: giá gốc + ${Number(d.markup) || 0}%, giảm thêm theo bậc: Đại lý −${d.discountReseller}%, Tổng đại lý −${d.discountAgency}%, VIP −${d.discountVip}%`)}</li>
+              <li>{t("— Khách đăng ký tại website là khách của bạn; hoa hồng vào ví ngay khi có đơn.")}</li>
             </ul>
           </div>
-          <p className="text-sm text-slate-500 mt-4 leading-relaxed">Sau khi {mode === "create" ? "tạo" : "lưu"}, hãy chia sẻ link website cho khách. Bạn gán cấp bậc cho từng khách và theo dõi hoa hồng tại Panel Admin của panel.</p>
+          <p className="text-sm text-slate-500 mt-4 leading-relaxed">{t("Sau khi")} {mode === "create" ? t("tạo") : t("lưu")}{t(", hãy chia sẻ link website cho khách. Bạn gán cấp bậc cho từng khách và theo dõi hoa hồng tại Panel Admin của panel.")}</p>
         </div>
 
       <div className="flex items-center justify-between mt-9 pt-5 border-t border-dashed">
-        <button type="button" onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1} className="btn-ghost !px-5 !py-2.5 disabled:opacity-40">Quay lại</button>
+        <button type="button" onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1} className="btn-ghost !px-5 !py-2.5 disabled:opacity-40">{t("Quay lại")}</button>
         {step < 5 ? (
-          <button type="button" onClick={() => setStep(step + 1)} disabled={(step === 1 && !step1Ok) || (step === 3 && mode === "create" && !d.apiKey.trim())} className="btn-primary !px-6 !py-2.5 disabled:opacity-50">Tiếp tục</button>
+          <button type="button" onClick={() => setStep(step + 1)} disabled={(step === 1 && !step1Ok) || (step === 3 && mode === "create" && !d.apiKey.trim())} className="btn-primary !px-6 !py-2.5 disabled:opacity-50">{t("Tiếp tục")}</button>
         ) : (
-          <button type="submit" className="btn-primary !px-6 !py-2.5">{mode === "create" ? "Tạo panel & mở bán" : "Lưu cấu hình"}</button>
+          <button type="submit" className="btn-primary !px-6 !py-2.5">{mode === "create" ? t("Tạo panel & mở bán") : t("Lưu cấu hình")}</button>
         )}
       </div>
     </form>
@@ -839,10 +849,11 @@ export function PanelPriceEditor({ services, overrides, action, deleteAction }: 
   action: (formData: FormData) => void;
   deleteAction: (formData: FormData) => void;
 }) {
+  const { t, m } = useLang();
   const LEVELS = [
-    { k: "MEMBER", label: "Thành viên" },
-    { k: "RESELLER", label: "Đại lý" },
-    { k: "AGENCY", label: "Tổng đại lý" },
+    { k: "MEMBER", label: t("Thành viên") },
+    { k: "RESELLER", label: t("Đại lý") },
+    { k: "AGENCY", label: t("Tổng đại lý") },
     { k: "VIP", label: "VIP" },
   ] as const;
   const [serviceId, setServiceId] = useState<number>(services[0]?.id || 0);
@@ -861,7 +872,7 @@ export function PanelPriceEditor({ services, overrides, action, deleteAction }: 
     <div>
       <form action={action} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end" key={serviceId}>
         <div className="md:col-span-2">
-          <label className="lbl">Dịch vụ</label>
+          <label className="lbl">{t("Dịch vụ")}</label>
           <select className="inp" name="serviceId" value={serviceId} onChange={(e) => setServiceId(Number(e.target.value))}>
             {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -872,9 +883,9 @@ export function PanelPriceEditor({ services, overrides, action, deleteAction }: 
             <input className="inp" name={`price_${lv.k}`} type="number" min={0} defaultValue={current(lv.k) || ""} placeholder={svc ? String(svc.panelRate) : ""} />
           </div>
         ))}
-        <button className="btn-primary !py-2.5">Lưu giá</button>
+        <button className="btn-primary !py-2.5">{t("Lưu giá")}</button>
       </form>
-      <p className="text-xs text-slate-400 mt-2">Giá tính trên 1.000 lượt. Ô gợi ý mờ là giá panel chuẩn của dịch vụ (đã gồm markup). Để trống một bậc = bậc đó dùng giá chuẩn kèm % giảm của bậc; điền số = giá cuối cố định cho bậc đó, không giảm thêm.</p>
+      <p className="text-xs text-slate-400 mt-2">{t("Giá tính trên 1.000 lượt. Ô gợi ý mờ là giá panel chuẩn của dịch vụ (đã gồm markup). Để trống một bậc = bậc đó dùng giá chuẩn kèm % giảm của bậc; điền số = giá cuối cố định cho bậc đó, không giảm thêm.")}</p>
       {byService.length > 0 && (
         <div className="mt-4 divide-y divide-slate-100 border border-slate-100 rounded-xl">
           {byService.map(([sid, g]) => (
@@ -883,10 +894,10 @@ export function PanelPriceEditor({ services, overrides, action, deleteAction }: 
               <div className="mt-1.5 flex flex-wrap gap-2">
                 {g.rows.map((o) => (
                   <span key={o.id} className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold px-2.5 py-1">
-                    {LEVELS.find((l) => l.k === o.level)?.label}: {vnd(o.price)}
+                    {LEVELS.find((l) => l.k === o.level)?.label}: {m(o.price)}
                     <form action={deleteAction} className="inline">
                       <input type="hidden" name="id" value={o.id} />
-                      <button className="text-brand-400 hover:text-red-500 font-black" title="Xoá giá riêng này">×</button>
+                      <button className="text-brand-400 hover:text-red-500 font-black" title={t("Xoá giá riêng này")}>×</button>
                     </form>
                   </span>
                 ))}
@@ -922,6 +933,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   promos?: PremiumPromoPreview[]; // mã giảm giá đang hiệu lực (chỉ để XEM TRƯỚC số tiền giảm trong hộp tóm tắt — server vẫn chốt lại khi đặt đơn)
   flashPct?: number; // % flash sale đang áp cho sản phẩm này (0/không truyền = không có) — hiển thị giá đã giảm + xem trước dòng giảm, server chốt lại khi đặt đơn
 }) {
+  const { t, td, m } = useLang();
   const [variantId, setVariantId] = useState(variants[0]?.id);
   const [qty, setQty] = useState(1);
   const [promoCode, setPromoCode] = useState("");
@@ -953,7 +965,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
                   <textarea className="inp" name={`cf_${i}`} rows={3} required={f.required} placeholder={f.placeholder || ""} />
                 ) : f.type === "select" ? (
                   <select className="inp" name={`cf_${i}`} required={f.required} defaultValue="">
-                    <option value="" disabled>-- Chọn --</option>
+                    <option value="" disabled>{t("-- Chọn --")}</option>
                     {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
                   </select>
                 ) : (
@@ -964,14 +976,14 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
           </div>
         ) : (fulfillment === "MANUAL" || fulfillment === "API") ? (
           <div>
-            <label className="lbl">Email / tài khoản của bạn để bàn giao *</label>
-            <input className="inp" name="buyerInfo" required placeholder="Vd: email nhận gói / tài khoản cần nâng cấp" />
-            <p className="mt-1.5 text-xs text-slate-400">{fulfillment === "API" ? "Thông tin này được gửi kèm đơn sang nhà cung cấp để bàn giao gói." : "Gói này được nâng cấp trực tiếp lên tài khoản của bạn — chỉ cần email, không cần mật khẩu."}</p>
+            <label className="lbl">{t("Email / tài khoản của bạn để bàn giao *")}</label>
+            <input className="inp" name="buyerInfo" required placeholder={t("Vd: email nhận gói / tài khoản cần nâng cấp")} />
+            <p className="mt-1.5 text-xs text-slate-400">{fulfillment === "API" ? t("Thông tin này được gửi kèm đơn sang nhà cung cấp để bàn giao gói.") : t("Gói này được nâng cấp trực tiếp lên tài khoản của bạn — chỉ cần email, không cần mật khẩu.")}</p>
           </div>
         ) : (
           <div>
-            <label className="lbl">Ghi chú (tuỳ chọn)</label>
-            <input className="inp" name="buyerInfo" placeholder="Email nhận tài khoản (mặc định dùng email tài khoản của bạn)" />
+            <label className="lbl">{t("Ghi chú (tuỳ chọn)")}</label>
+            <input className="inp" name="buyerInfo" placeholder={t("Email nhận tài khoản (mặc định dùng email tài khoản của bạn)")} />
           </div>
         )}
       </>
@@ -982,7 +994,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
         {backBase ? <input type="hidden" name="returnTo" value={`${backBase}/${slug}`} /> : null}
         <input type="hidden" name="variantId" value={v?.id || ""} />
         <div className="order-1 lg:col-start-1">
-          <h2 className="text-lg font-extrabold text-slate-900">Chọn gói sản phẩm</h2>
+          <h2 className="text-lg font-extrabold text-slate-900">{t("Chọn gói sản phẩm")}</h2>
           <div className="mt-4 space-y-2.5">
             {variants.map((x) => {
               const selected = x.id === v?.id;
@@ -1001,23 +1013,23 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
                   <span className="min-w-0 flex-1">
                     <span className="block break-words font-bold text-slate-900">{x.name}</span>
                     <span className="mt-0.5 block text-xs text-slate-500">
-                      {x.warrantyDays ? `Bảo hành ${x.warrantyDays} ngày` : "Không bảo hành"}
-                      {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? ` · Còn ${x.stock} trong kho` : " · Hết kho — giao tay") : fulfillment === "API" ? " · Giao qua nhà cung cấp" : " · Giao thủ công"}
+                      {x.warrantyDays ? td(`Bảo hành ${x.warrantyDays} ngày`) : t("Không bảo hành")}
+                      {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? td(` · Còn ${x.stock} trong kho`) : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
                     </span>
                   </span>
                   {fulfillment === "AUTO_STOCK" && x.stock > 0 && (
                     <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-xs font-bold text-teal-600">
                       <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
-                      Giao ngay
+                      {t("Giao ngay")}
                     </span>
                   )}
                   {flashPct ? (
                     <span className="shrink-0 text-right">
-                      <span className="block text-xs font-semibold text-slate-400 line-through">{vnd(x.price)}</span>
-                      <span className="block font-extrabold text-rose-600">{vnd(applyFlashClient(x.price, flashPct))}</span>
+                      <span className="block text-xs font-semibold text-slate-400 line-through">{m(x.price)}</span>
+                      <span className="block font-extrabold text-rose-600">{m(applyFlashClient(x.price, flashPct))}</span>
                     </span>
                   ) : (
-                    <span className="shrink-0 font-extrabold text-rose-600">{vnd(x.price)}</span>
+                    <span className="shrink-0 font-extrabold text-rose-600">{m(x.price)}</span>
                   )}
                 </button>
               );
@@ -1027,36 +1039,36 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
         {belowVariants && <div className="order-2 lg:col-start-1">{belowVariants}</div>}
         <div className="card order-3 space-y-4 p-5 lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-start lg:sticky lg:top-24">
           <div>
-            <label className="lbl">Số lượng</label>
+            <label className="lbl">{t("Số lượng")}</label>
             <div className="flex h-[46px] items-stretch justify-center lg:justify-start">
-              <button type="button" aria-label="Giảm số lượng" onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-11 rounded-l-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">−</button>
+              <button type="button" aria-label={t("Giảm số lượng")} onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-11 rounded-l-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">−</button>
               <input className="w-16 border-y border-slate-300 bg-transparent text-center text-lg font-bold text-slate-900 outline-none" name="quantity" type="number" min={1} max={maxQty} value={qty} onChange={(e) => setQty(parseInt(e.target.value) || 1)} />
-              <button type="button" aria-label="Tăng số lượng" onClick={() => setQty((q) => Math.min(maxQty, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
+              <button type="button" aria-label={t("Tăng số lượng")} onClick={() => setQty((q) => Math.min(maxQty, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
             </div>
           </div>
           {note && <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-sky-900">{note}</div>}
           <div className="rounded-xl bg-slate-50 p-4">
-            <div className="mb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">Thông tin đặt hàng</div>
+            <div className="mb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">{t("Thông tin đặt hàng")}</div>
             {infoFields}
           </div>
           <details className="group">
             <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-brand-700 [&::-webkit-details-marker]:hidden">
-              Bạn có mã giảm giá?
+              {t("Bạn có mã giảm giá?")}
               <span className="text-slate-400 transition-transform duration-200 group-open:rotate-180">{I.chevron}</span>
             </summary>
-            <input className="inp mt-2 uppercase" name="promoCode" placeholder="VD: SALE10" autoComplete="off" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} />
+            <input className="inp mt-2 uppercase" name="promoCode" placeholder={t("VD: SALE10")} autoComplete="off" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} />
           </details>
           <div className="space-y-1.5 rounded-xl bg-slate-50 p-4 text-sm">
-            <div className="flex justify-between text-slate-500"><span>Tạm tính</span><span className="font-semibold text-slate-700">{vnd(total)}</span></div>
+            <div className="flex justify-between text-slate-500"><span>{t("Tạm tính")}</span><span className="font-semibold text-slate-700">{m(total)}</span></div>
             {discount > 0 && (
-              <div className="flex justify-between font-semibold text-emerald-600"><span>Giảm giá</span><span>−{vnd(discount)}</span></div>
+              <div className="flex justify-between font-semibold text-emerald-600"><span>{t("Giảm giá")}</span><span>−{m(discount)}</span></div>
             )}
-            <div className="flex items-baseline justify-between border-t border-slate-200/70 pt-2"><span className="font-semibold text-slate-700">Tổng cộng</span><span className="text-xl font-extrabold text-rose-600">{vnd(grandTotal)}</span></div>
+            <div className="flex items-baseline justify-between border-t border-slate-200/70 pt-2"><span className="font-semibold text-slate-700">{t("Tổng cộng")}</span><span className="text-xl font-extrabold text-rose-600">{m(grandTotal)}</span></div>
           </div>
           <div className="text-xs text-slate-400">
-            {fulfillment === "AUTO_STOCK" ? `Kho hàng: ${v?.stock || 0} sản phẩm` : fulfillment === "API" ? "Giao tự động qua nhà cung cấp" : "Nâng cấp thủ công trên tài khoản của bạn"}
+            {fulfillment === "AUTO_STOCK" ? td(`Kho hàng: ${v?.stock || 0} sản phẩm`) : fulfillment === "API" ? t("Giao tự động qua nhà cung cấp") : t("Nâng cấp thủ công trên tài khoản của bạn")}
           </div>
-          <button className="btn-primary w-full !py-3">Đặt hàng ngay</button>
+          <button className="btn-primary w-full !py-3">{t("Đặt hàng ngay")}</button>
         </div>
       </form>
     );
@@ -1072,30 +1084,30 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
             <div className="flex items-baseline justify-between gap-2">
               <span className="font-bold text-slate-900 text-[15px]">{x.name}</span>
               <span className="whitespace-nowrap text-right">
-                {flashPct ? <span className="mr-1.5 text-xs font-semibold text-slate-400 line-through">{vnd(x.price)}</span> : null}
-                <span className="text-brand-700 font-extrabold">{vnd(applyFlashClient(x.price, flashPct || 0))}</span>
+                {flashPct ? <span className="mr-1.5 text-xs font-semibold text-slate-400 line-through">{m(x.price)}</span> : null}
+                <span className="text-brand-700 font-extrabold">{m(applyFlashClient(x.price, flashPct || 0))}</span>
               </span>
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
-              {x.warrantyDays ? `Bảo hành ${x.warrantyDays} ngày` : "Không bảo hành"}
-              {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? ` · Còn ${x.stock} trong kho` : " · Hết kho — giao tay") : fulfillment === "API" ? " · Giao qua nhà cung cấp" : " · Giao thủ công"}
+              {x.warrantyDays ? td(`Bảo hành ${x.warrantyDays} ngày`) : t("Không bảo hành")}
+              {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? td(` · Còn ${x.stock} trong kho`) : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
             </div>
           </button>
         ))}
       </div>
       <input type="hidden" name="variantId" value={v?.id || ""} />
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <label className="lbl">Số lượng</label>
-          <div className="flex items-stretch h-[46px]">
-            <button type="button" aria-label="Giảm số lượng" onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-11 rounded-l-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">−</button>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="w-full lg:w-auto">
+          <label className="lbl">{t("Số lượng")}</label>
+          <div className="flex items-stretch h-[46px] justify-center lg:justify-start">
+            <button type="button" aria-label={t("Giảm số lượng")} onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-11 rounded-l-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">−</button>
             <input className="w-16 border-y border-slate-300 bg-transparent text-center text-lg font-bold text-slate-900 outline-none" name="quantity" type="number" min={1} max={maxQty} value={qty} onChange={(e) => setQty(parseInt(e.target.value) || 1)} />
-            <button type="button" aria-label="Tăng số lượng" onClick={() => setQty((q) => Math.min(maxQty, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
+            <button type="button" aria-label={t("Tăng số lượng")} onClick={() => setQty((q) => Math.min(maxQty, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-xs text-slate-500">Tổng tiền</div>
-          <div className="text-2xl font-extrabold text-brand-700">{vnd(applyFlashClient((v?.price || 0) * qty, flashPct || 0))}</div>
+        <div className="self-end text-right lg:self-auto">
+          <div className="text-xs text-slate-500">{t("Tổng tiền")}</div>
+          <div className="text-2xl font-extrabold text-brand-700">{m(applyFlashClient((v?.price || 0) * qty, flashPct || 0))}</div>
         </div>
       </div>
       {note && (
@@ -1110,7 +1122,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
                 <textarea className="inp" name={`cf_${i}`} rows={3} required={f.required} placeholder={f.placeholder || ""} />
               ) : f.type === "select" ? (
                 <select className="inp" name={`cf_${i}`} required={f.required} defaultValue="">
-                  <option value="" disabled>-- Chọn --</option>
+                  <option value="" disabled>{t("-- Chọn --")}</option>
                   {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
               ) : (
@@ -1121,22 +1133,22 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
         </div>
       ) : (fulfillment === "MANUAL" || fulfillment === "API") && (
         <div>
-          <label className="lbl">Email / tài khoản của bạn để bàn giao *</label>
-          <input className="inp" name="buyerInfo" required placeholder="Vd: email nhận gói / tài khoản cần nâng cấp" />
-          <p className="text-xs text-slate-400 mt-1.5">{fulfillment === "API" ? "Thông tin này được gửi kèm đơn sang nhà cung cấp để bàn giao gói." : "Gói này được nâng cấp trực tiếp lên tài khoản của bạn — chỉ cần email, không cần mật khẩu."}</p>
+          <label className="lbl">{t("Email / tài khoản của bạn để bàn giao *")}</label>
+          <input className="inp" name="buyerInfo" required placeholder={t("Vd: email nhận gói / tài khoản cần nâng cấp")} />
+          <p className="text-xs text-slate-400 mt-1.5">{fulfillment === "API" ? t("Thông tin này được gửi kèm đơn sang nhà cung cấp để bàn giao gói.") : t("Gói này được nâng cấp trực tiếp lên tài khoản của bạn — chỉ cần email, không cần mật khẩu.")}</p>
         </div>
       )}
       {!fields?.length && fulfillment === "AUTO_STOCK" && (
         <div>
-          <label className="lbl">Ghi chú (tuỳ chọn)</label>
-          <input className="inp" name="buyerInfo" placeholder="Email nhận tài khoản (mặc định dùng email tài khoản của bạn)" />
+          <label className="lbl">{t("Ghi chú (tuỳ chọn)")}</label>
+          <input className="inp" name="buyerInfo" placeholder={t("Email nhận tài khoản (mặc định dùng email tài khoản của bạn)")} />
         </div>
       )}
       <div>
-        <label className="lbl">Mã giảm giá (nếu có)</label>
-        <input className="inp uppercase" name="promoCode" placeholder="VD: SALE10" autoComplete="off" />
+        <label className="lbl">{t("Mã giảm giá (nếu có)")}</label>
+        <input className="inp uppercase" name="promoCode" placeholder={t("VD: SALE10")} autoComplete="off" />
       </div>
-      <button className="btn-primary w-full !py-3">Mua ngay bằng số dư</button>
+      <button className="btn-primary w-full !py-3">{t("Mua ngay bằng số dư")}</button>
     </form>
   );
 }
@@ -1144,6 +1156,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
 /** Trình soạn TRƯỜNG TUỲ CHỈNH cho sản phẩm premium (admin): mỗi sản phẩm định nghĩa
  *  các ô khách phải điền khi mua — nhãn, kiểu ô, bắt buộc hay không, gợi ý, lựa chọn. */
 export function PremiumFieldsEditor({ initial }: { initial: PremiumCustomField[] }) {
+  const { t } = useLang();
   const [rows, setRows] = useState<PremiumCustomField[]>(initial);
   const set = (i: number, patch: Partial<PremiumCustomField>) =>
     setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
@@ -1154,28 +1167,28 @@ export function PremiumFieldsEditor({ initial }: { initial: PremiumCustomField[]
         {rows.map((r, i) => (
           <div key={i} className="rounded-xl border border-slate-200 p-3 space-y-2.5">
             <div className="flex gap-2">
-              <input className="inp flex-1" placeholder="Nhãn trường — vd: Gmail cần nâng cấp" value={r.label}
+              <input className="inp flex-1" placeholder={t("Nhãn trường — vd: Gmail cần nâng cấp")} value={r.label}
                 onChange={(e) => set(i, { label: e.target.value })} />
               <button type="button" className="btn-ghost btn-sm !text-rose-600 shrink-0"
-                onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}>Xoá</button>
+                onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}>{t("Xoá")}</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <select className="inp" value={r.type} onChange={(e) => set(i, { type: e.target.value as PremiumCustomField["type"] })}>
-                <option value="text">Ô nhập 1 dòng</option>
-                <option value="textarea">Ô nhập nhiều dòng</option>
-                <option value="select">Danh sách chọn</option>
+                <option value="text">{t("Ô nhập 1 dòng")}</option>
+                <option value="textarea">{t("Ô nhập nhiều dòng")}</option>
+                <option value="select">{t("Danh sách chọn")}</option>
               </select>
-              <input className="inp" placeholder="Chữ gợi ý trong ô" value={r.placeholder || ""}
+              <input className="inp" placeholder={t("Chữ gợi ý trong ô")} value={r.placeholder || ""}
                 onChange={(e) => set(i, { placeholder: e.target.value })} />
             </div>
             {r.type === "select" && (
-              <input className="inp" placeholder="Các lựa chọn, cách nhau dấu phẩy — vd: Android, iOS, TV"
+              <input className="inp" placeholder={t("Các lựa chọn, cách nhau dấu phẩy — vd: Android, iOS, TV")}
                 value={(r.options || []).join(", ")}
                 onChange={(e) => set(i, { options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
             )}
             <label className="flex items-center gap-2 text-sm text-slate-600">
               <input type="checkbox" className="w-4 h-4" checked={r.required} onChange={(e) => set(i, { required: e.target.checked })} />
-              Bắt buộc khách điền
+              {t("Bắt buộc khách điền")}
             </label>
           </div>
         ))}
@@ -1183,7 +1196,7 @@ export function PremiumFieldsEditor({ initial }: { initial: PremiumCustomField[]
       {rows.length < 8 && (
         <button type="button" className="btn-ghost btn-sm mt-3"
           onClick={() => setRows((rs) => [...rs, { label: "", type: "text", required: true }])}>
-          + Thêm trường tuỳ chỉnh
+          {t("+ Thêm trường tuỳ chỉnh")}
         </button>
       )}
     </div>
@@ -1191,9 +1204,10 @@ export function PremiumFieldsEditor({ initial }: { initial: PremiumCustomField[]
 }
 
 export function CopyBtn({ text, label = "Sao chép" }: { text: string; label?: string }) {
+  const { t } = useLang();
   const [ok, setOk] = useState(false);
   return (
-    <button type="button" title={label} aria-label={label}
+    <button type="button" title={t(label)} aria-label={t(label)}
       onClick={() => { navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 1500); }}
       className={`inline-flex items-center justify-center w-[30px] h-[30px] shrink-0 rounded-lg border transition ${ok ? "border-emerald-300 bg-emerald-50 text-emerald-600" : "border-slate-200 bg-white text-slate-500 hover:text-brand-600 hover:border-brand-300"}`}>
       {ok ? (
@@ -1208,12 +1222,13 @@ export function CopyBtn({ text, label = "Sao chép" }: { text: string; label?: s
 /** Ô hiện API key: mặc định che giữa (6 ký tự đầu + 4 ký tự cuối), nút con mắt
  *  để hiện/ẩn toàn bộ + nút sao chép (luôn chép bản đầy đủ). Thuần trình bày. */
 export function ApiKeyReveal({ value }: { value: string }) {
+  const { t } = useLang();
   const [show, setShow] = useState(false);
   const masked = value.length > 12 ? `${value.slice(0, 6)}••••••••••${value.slice(-4)}` : "••••••••••";
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
       <input className="inp min-w-[200px] flex-1 font-mono" readOnly value={show ? value : masked} onFocus={(e) => e.target.select()} />
-      <button type="button" title={show ? "Ẩn bớt" : "Hiện toàn bộ key"} aria-label={show ? "Ẩn bớt" : "Hiện toàn bộ key"}
+      <button type="button" title={show ? t("Ẩn bớt") : t("Hiện toàn bộ key")} aria-label={show ? t("Ẩn bớt") : t("Hiện toàn bộ key")}
         onClick={() => setShow((v) => !v)}
         className="inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-brand-300 hover:text-brand-600">
         {show ? (
@@ -1236,6 +1251,7 @@ export type PremiumOrderCard = {
 const dtf = (iso: string) => new Date(iso).toLocaleString("vi-VN", { hour12: false });
 
 export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
+  const { t, td, m } = useLang();
   const [sel, setSel] = useState<PremiumOrderCard | null>(null);
   return (
     <div className="space-y-4">
@@ -1244,10 +1260,10 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 flex-wrap">
               <span className="font-black text-slate-900">#{o.id}</span>
-              <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${o.statusCls}`}>{o.statusLabel}</span>
+              <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${o.statusCls}`}>{t(o.statusLabel)}</span>
               <span className="text-xs text-slate-400">{dtf(o.created)}</span>
             </div>
-            <div className="text-sm text-slate-500">Tổng tiền <b className="text-brand-600 text-base">{vnd(o.total)}</b></div>
+            <div className="text-sm text-slate-500">{t("Tổng tiền")} <b className="text-brand-600 text-base">{m(o.total)}</b></div>
           </div>
           <div className="border-t border-slate-100 mt-4 pt-4 flex items-center gap-3.5">
             <span className="w-11 h-11 shrink-0 rounded-xl bg-brand-600 text-white flex items-center justify-center font-black">{o.name.charAt(0).toUpperCase()}</span>
@@ -1255,7 +1271,7 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
               <div className="font-bold text-slate-900 truncate">{o.name} ({o.variant})</div>
               {o.desc && <div className="text-[13px] text-slate-500 truncate">{o.desc}</div>}
             </div>
-            <button type="button" onClick={() => setSel(o)} className="btn-dark shrink-0">Chi tiết</button>
+            <button type="button" onClick={() => setSel(o)} className="btn-dark shrink-0">{t("Chi tiết")}</button>
           </div>
         </div>
       ))}
@@ -1263,48 +1279,48 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
         <div className="fixed inset-0 z-50 bg-slate-950/60 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSel(null)}>
           <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between sticky top-0">
-              <div className="font-bold">Chi tiết đơn hàng #{sel.id}</div>
-              <button type="button" onClick={() => setSel(null)} className="text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5">Đóng</button>
+              <div className="font-bold">{td(`Chi tiết đơn hàng #${sel.id}`)}</div>
+              <button type="button" onClick={() => setSel(null)} className="text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5">{t("Đóng")}</button>
             </div>
             <div className="p-5 space-y-6">
               <section>
-                <div className="font-bold text-slate-900 mb-2.5">Thông tin đơn hàng</div>
+                <div className="font-bold text-slate-900 mb-2.5">{t("Thông tin đơn hàng")}</div>
                 <dl className="text-sm space-y-1.5">
-                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">Tên sản phẩm:</dt><dd className="font-medium text-slate-800">{sel.name} ({sel.variant})</dd></div>
-                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">Số tiền thanh toán:</dt><dd className="font-medium text-slate-800">{vnd(sel.total)}</dd></div>
-                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">Trạng thái:</dt><dd className="font-medium text-slate-800">{sel.statusLabel}</dd></div>
-                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">Ghi chú:</dt><dd className="font-medium text-slate-800 whitespace-pre-wrap">{sel.buyerInfo || "."}</dd></div>
+                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">{t("Tên sản phẩm:")}</dt><dd className="font-medium text-slate-800">{sel.name} ({sel.variant})</dd></div>
+                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">{t("Số tiền thanh toán:")}</dt><dd className="font-medium text-slate-800">{m(sel.total)}</dd></div>
+                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">{t("Trạng thái:")}</dt><dd className="font-medium text-slate-800">{t(sel.statusLabel)}</dd></div>
+                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">{t("Ghi chú:")}</dt><dd className="font-medium text-slate-800 whitespace-pre-wrap">{sel.buyerInfo || "."}</dd></div>
                 </dl>
               </section>
               <section>
-                <div className="font-bold text-slate-900 mb-2.5">Thông tin tài khoản:</div>
+                <div className="font-bold text-slate-900 mb-2.5">{t("Thông tin tài khoản:")}</div>
                 {sel.delivery ? (
                   <div>
                     <textarea readOnly value={sel.delivery} rows={Math.min(8, sel.delivery.split("\n").length + 1)} className="inp font-mono !text-[13px] w-full" />
                     <div className="mt-2"><CopyBtn text={sel.delivery} label="Sao chép" /></div>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500">{sel.status === "PENDING" ? "Đơn đang chờ giao." : "Chưa có nội dung giao."}</p>
+                  <p className="text-sm text-slate-500">{sel.status === "PENDING" ? t("Đơn đang chờ giao.") : t("Chưa có nội dung giao.")}</p>
                 )}
                 {(sel.status === "DELIVERED" || sel.status === "COMPLETED") && sel.warrantyUntil && new Date(sel.warrantyUntil) > new Date() && (
                   <form action={warrantyAction} className="mt-4 flex flex-wrap gap-2">
                     <input type="hidden" name="orderId" value={sel.id} />
-                    <input className="inp flex-1 min-w-[200px]" name="note" placeholder="Mô tả lỗi để yêu cầu bảo hành" />
-                    <button className="btn-ghost btn-sm !py-2.5">Yêu cầu bảo hành</button>
+                    <input className="inp flex-1 min-w-[200px]" name="note" placeholder={t("Mô tả lỗi để yêu cầu bảo hành")} />
+                    <button className="btn-ghost btn-sm !py-2.5">{t("Yêu cầu bảo hành")}</button>
                   </form>
                 )}
               </section>
               <section>
-                <div className="font-bold text-slate-900 mb-2.5">Hỗ trợ đơn này</div>
+                <div className="font-bold text-slate-900 mb-2.5">{t("Hỗ trợ đơn này")}</div>
                 <OrderSupportActions code={sel.code} category="premium" />
               </section>
               <section>
-                <div className="font-bold text-slate-900 mb-2.5">Lịch sử xử lý</div>
+                <div className="font-bold text-slate-900 mb-2.5">{t("Lịch sử xử lý")}</div>
                 <ol className="relative border-l-2 border-slate-100 ml-1.5 space-y-4">
                   {(sel.status === "DELIVERED" || sel.status === "COMPLETED") && (
-                    <li className="pl-4 relative"><span className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-emerald-500" /><div className="text-sm font-semibold text-slate-800">Đã giao hàng</div><div className="text-xs text-slate-400">{dtf(sel.updated)}</div></li>
+                    <li className="pl-4 relative"><span className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-emerald-500" /><div className="text-sm font-semibold text-slate-800">{t("Đã giao hàng")}</div><div className="text-xs text-slate-400">{dtf(sel.updated)}</div></li>
                   )}
-                  <li className="pl-4 relative"><span className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-slate-300" /><div className="text-sm font-semibold text-slate-800">Đã tạo đơn hàng</div><div className="text-xs text-slate-400">{dtf(sel.created)}</div></li>
+                  <li className="pl-4 relative"><span className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-slate-300" /><div className="text-sm font-semibold text-slate-800">{t("Đã tạo đơn hàng")}</div><div className="text-xs text-slate-400">{dtf(sel.created)}</div></li>
                 </ol>
               </section>
             </div>
@@ -1318,6 +1334,7 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
 /* ---------- Tabs tài liệu API (kiểu thatim: danh sách action bên trái, Parameters + Example Response bên phải) ---------- */
 export type ApiActionDoc = { id: string; label: string; params: [string, string, string][]; response: string };
 export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
+  const { t } = useLang();
   const [active, setActive] = useState(actions[0]?.id);
   const cur = actions.find((a) => a.id === active) || actions[0];
   if (!cur) return null;
@@ -1329,10 +1346,10 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
         ))}
       </div>
       <div className="card p-5 min-w-0">
-        <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Tham số</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">{t("Tham số")}</div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[480px]">
-            <thead className="border-b border-slate-200"><tr><th className="th !py-2">Tham số</th><th className="th !py-2">Kiểu</th><th className="th !py-2">Mô tả</th></tr></thead>
+            <thead className="border-b border-slate-200"><tr><th className="th !py-2">{t("Tham số")}</th><th className="th !py-2">{t("Kiểu")}</th><th className="th !py-2">{t("Mô tả")}</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {cur.params.map((p) => (
                 <tr key={p[0]}><td className="td font-mono text-xs font-bold text-brand-700">{p[0]}</td><td className="td text-slate-500 text-xs">{p[1]}</td><td className="td text-slate-600">{p[2]}</td></tr>
@@ -1341,7 +1358,7 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
           </table>
         </div>
         <div className="flex items-center justify-between mt-6 mb-2">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Phản hồi mẫu</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("Phản hồi mẫu")}</div>
           <CopyBtn text={cur.response} label="Sao chép" />
         </div>
         <div className="text-xs font-mono text-slate-400 mb-1">response.json</div>
