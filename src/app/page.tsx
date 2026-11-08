@@ -45,7 +45,7 @@ export default async function HomePage() {
     cats = (catRows as any[])
       .map((c) => {
         const first = all.find((x) => x.categoryId === c.id);
-        return first ? { id: c.id, name: c.name, color: first.color, image: first.image } : null;
+        return first ? { id: c.id, name: c.name, color: first.color, image: first.image, count: all.filter((x) => x.categoryId === c.id).length } : null;
       })
       .filter((x): x is HomeCat => !!x);
     // Slide hero từ dữ liệu thật: slide mở đầu của cửa hàng + tối đa 3 danh mục.

@@ -8,7 +8,7 @@ import { I } from "@/components/ui";
 
 export type HomeCard = PremiumCardData & { categoryId: number };
 export type HomeSlide = { title: string; subtitle: string; href: string; cta: string; image: string | null; color: string };
-export type HomeCat = { id: number; name: string; color: string; image: string | null };
+export type HomeCat = { id: number; name: string; color: string; image: string | null; count: number };
 
 const PAGE = 8;
 
@@ -126,8 +126,6 @@ export function HomeShop({ slides, cats, all, best }: { slides: HomeSlide[]; cat
   const [cat, setCat] = useState<number | null>(null);
   const [shown, setShown] = useState(PAGE);
   useEffect(() => { setShown(PAGE); }, [cat]);
-  const tileRef = useRef<HTMLDivElement>(null);
-  const scrollTiles = (d: number) => tileRef.current?.scrollBy({ left: d * 320, behavior: "smooth" });
   const pickCat = (id: number | null, scroll = false) => {
     setCat(id);
     if (scroll) document.getElementById("home-featured")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -143,35 +141,38 @@ export function HomeShop({ slides, cats, all, best }: { slides: HomeSlide[]; cat
 
       {cats.length > 0 && (
         <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 [&>svg]:h-5 [&>svg]:w-5">{I.layers}</span>
-              <h2 className="text-lg font-extrabold text-slate-900 sm:text-xl">{t("Danh mục sản phẩm")}</h2>
-            </div>
-            <div className="hidden gap-2 sm:flex">
-              <ChevronBtn dir="prev" label={t("Trang trước")} onClick={() => scrollTiles(-1)} />
-              <ChevronBtn dir="next" label={t("Trang sau")} onClick={() => scrollTiles(1)} />
-            </div>
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 [&>svg]:h-5 [&>svg]:w-5">{I.layers}</span>
+            <h2 className="text-lg font-extrabold text-slate-900 sm:text-xl">{t("Danh mục sản phẩm")}</h2>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button type="button" onClick={() => pickCat(null)} className={`rounded-full px-4 py-2 text-sm font-bold transition ${cat == null ? "bg-brand-600 text-white hover:bg-brand-500" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{t("Tất cả")}</button>
-            {cats.map((c) => (
-              <button key={c.id} type="button" onClick={() => pickCat(c.id)} className={`rounded-full px-4 py-2 text-sm font-bold transition ${cat === c.id ? "bg-brand-600 text-white hover:bg-brand-500" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{c.name}</button>
-            ))}
-          </div>
-          <div ref={tileRef} className="mt-4 flex snap-x gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* Lưới ô danh mục (thiết kế lại 2026-11-08): một lưới đều ô nào
+              cũng bằng ô nào — ảnh thật của sản phẩm đầu danh mục (hoặc ô
+              chữ cái gradient brand), tên 1 dòng + số sản phẩm thật từ DB.
+              Bấm ô = lọc lưới nổi bật tại chỗ như trước (Tất cả = bỏ lọc). */}
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            <button type="button" onClick={() => pickCat(null)}
+              className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${cat == null ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500/40" : "border-slate-200 bg-white hover:border-brand-300 hover:bg-brand-50/50"}`}>
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white [&>svg]:h-6 [&>svg]:w-6">{I.layers}</span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-bold text-slate-800">{t("Tất cả")}</span>
+                <span className="block text-xs text-slate-500">{all.length} {t("sản phẩm")}</span>
+              </span>
+            </button>
             {cats.map((c) => (
               <button key={c.id} type="button" onClick={() => pickCat(c.id, true)}
-                className={`w-[104px] shrink-0 snap-start rounded-2xl border p-2.5 text-center transition ${cat === c.id ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-slate-50 hover:bg-slate-100"}`}>
-                <span className="block h-14 w-full overflow-hidden rounded-lg">
+                className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${cat === c.id ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500/40" : "border-slate-200 bg-white hover:border-brand-300 hover:bg-brand-50/50"}`}>
+                <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-xl">
                   {c.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={c.image} alt="" className="h-full w-full object-cover" loading="lazy" />
                   ) : (
-                    <span className="flex h-full w-full items-center justify-center text-2xl font-black text-white/90" style={{ background: `linear-gradient(135deg, ${c.color}, #0ea5e9)` }}>{c.name.charAt(0).toUpperCase()}</span>
+                    <span className="flex h-full w-full items-center justify-center text-2xl font-black text-white/90" style={{ background: `linear-gradient(135deg, ${c.color}, rgb(var(--b500)))` }}>{c.name.charAt(0).toUpperCase()}</span>
                   )}
                 </span>
-                <span className="mt-2 line-clamp-2 block min-h-[2.5em] text-xs font-semibold leading-snug text-slate-700">{c.name}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-bold text-slate-800">{c.name}</span>
+                  <span className="block text-xs text-slate-500">{c.count} {t("sản phẩm")}</span>
+                </span>
               </button>
             ))}
           </div>

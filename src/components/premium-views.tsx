@@ -106,6 +106,15 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
   const { L, Ld } = await getServerI18n();
   const session = await getSession();
   const cats = await prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } });
+  // Số sản phẩm + ảnh/màu đại diện cho từng danh mục (chip lọc mới): đếm và
+  // lấy sản phẩm đầu mỗi danh mục từ DB thật, không hardcode.
+  const [catCountRows, catFirstRows] = await Promise.all([
+    prisma.premiumProduct.groupBy({ by: ["categoryId"], where: { active: true, panelId: null }, _count: true }),
+    prisma.premiumProduct.findMany({ where: { active: true, panelId: null }, orderBy: { sort: "asc" }, select: { categoryId: true, color: true, images: true, imageUrl: true, name: true } }),
+  ]);
+  const catCount = new Map<number, number>(catCountRows.map((r) => [r.categoryId || 0, typeof r._count === "number" ? r._count : 0]));
+  const catFirst = new Map<number, (typeof catFirstRows)[number]>();
+  for (const p of catFirstRows) if (p.categoryId && !catFirst.has(p.categoryId)) catFirst.set(p.categoryId, p);
   const catId = cat ? parseInt(cat) : undefined;
   const needle = (q || "").trim().toLowerCase();
   const allProducts = await prisma.premiumProduct.findMany({
@@ -144,7 +153,7 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
           </div>
           <div className="w-full lg:justify-self-end">
             <form method="get" action={base} className="flex gap-2">
-              <input name="q" defaultValue={q || ""} placeholder={L("Tìm sản phẩm...")} className="h-11 min-w-0 flex-1 rounded-full border-0 bg-white px-4 text-sm text-slate-900 outline-none ring-cyan-300 focus:ring-4" />
+              <input name="q" defaultValue={q || ""} placeholder={L("Tìm sản phẩm...")} className="h-11 min-w-0 flex-1 rounded-full border-0 bg-white px-4 text-sm text-slate-900 outline-none ring-brand-300 focus:ring-4" />
               <button className="h-11 shrink-0 rounded-full bg-slate-900 px-4 text-sm font-extrabold text-white transition hover:bg-slate-800">{L("Tìm kiếm")}</button>
             </form>
             <div className="mt-3 flex lg:justify-end">
@@ -156,12 +165,42 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
 
       <form method="get" action={base} className="card mt-6 grid grid-cols-2 items-end gap-4 p-5 lg:grid-cols-[1fr_1.25fr_1fr_auto]">
         <input type="hidden" name="q" value={q || ""} />
-        <div>
+        <div className="col-span-2 lg:col-span-full">
           <label className="lbl">{L("Danh mục")}</label>
-          <select className="inp" name="cat" defaultValue={catId ? String(catId) : ""}>
-            <option value="">{L("Tất cả")}</option>
-            {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          {/* Chip danh mục cùng ngôn ngữ với lưới ô ở trang chủ (thiết kế lại
+              2026-11-08): radio name="cat" như cũ — tham số và logic lọc
+              không đổi, áp dụng bằng nút Lọc; chip đang chọn có viền brand. */}
+          <div className="flex flex-wrap gap-2">
+            <label className="cursor-pointer">
+              <input type="radio" name="cat" value="" defaultChecked={!catId} className="peer sr-only" />
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3.5 text-sm font-bold text-slate-600 transition peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700 hover:border-brand-300">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-white [&>svg]:h-4 [&>svg]:w-4">{I.layers}</span>
+                {L("Tất cả")}
+                <span className="text-xs font-semibold text-slate-400">{Array.from(catCount.values()).reduce((a, b) => a + b, 0)}</span>
+              </span>
+            </label>
+            {cats.map((c) => {
+              const first = catFirst.get(c.id);
+              const img = first ? productImages(first.images, first.imageUrl)[0] || null : null;
+              return (
+                <label key={c.id} className="cursor-pointer">
+                  <input type="radio" name="cat" value={c.id} defaultChecked={catId === c.id} className="peer sr-only" />
+                  <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3.5 text-sm font-bold text-slate-600 transition peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700 hover:border-brand-300">
+                    <span className="block h-7 w-7 shrink-0 overflow-hidden rounded-full">
+                      {img ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-[13px] font-black text-white/90" style={{ background: `linear-gradient(135deg, ${first?.color || "#64748b"}, rgb(var(--b500)))` }}>{c.name.charAt(0).toUpperCase()}</span>
+                      )}
+                    </span>
+                    {c.name}
+                    <span className="text-xs font-semibold text-slate-400">{catCount.get(c.id) || 0}</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
         </div>
         <div>
           <label className="lbl">{L("Mức giá")}</label>
