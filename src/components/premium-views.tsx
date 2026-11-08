@@ -13,6 +13,7 @@ import { ProductGallery } from "@/components/rich-editor";
 import { PremiumCard, Stars, type PremiumCardData } from "@/components/premium-card";
 import { PremiumGrid } from "@/components/premium-grid";
 import { ProductReviews } from "@/components/product-reviews";
+import { PillStrip } from "@/components/pill-strip";
 import { RecordRecentView } from "@/components/recent";
 import { moduleOn } from "@/lib/modules";
 import { regularCatalogWhere } from "@/lib/order-scope";
@@ -160,8 +161,9 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
               2026-11-08 01:51): pill rounded-full CHỈ CÓ TÊN, không icon,
               không số lượng; đang chọn = nền brand chữ trắng. Radio
               name="cat" như cũ — tham số và logic lọc không đổi, áp dụng
-              bằng nút Lọc. */}
-          <div className="flex flex-wrap gap-2">
+              bằng nút Lọc. Vỏ PillStrip: mobile cuộn ngang có nút chevron
+              + vệt mờ gợi ý kéo qua; desktop xuống hàng như cũ. */}
+          <PillStrip>
             <label className="cursor-pointer">
               <input type="radio" name="cat" value="" defaultChecked={!catId} className="peer sr-only" />
               <span className="inline-flex items-center whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition peer-checked:border-brand-600 peer-checked:bg-brand-600 peer-checked:text-white hover:border-brand-300">
@@ -176,7 +178,7 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
                 </span>
               </label>
             ))}
-          </div>
+          </PillStrip>
         </div>
         <div>
           <label className="lbl">{L("Mức giá")}</label>

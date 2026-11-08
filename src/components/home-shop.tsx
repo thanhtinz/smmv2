@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { PremiumCard, type PremiumCardData } from "@/components/premium-card";
 import { HomeGiftSection, type HomeGift } from "@/components/home-gifts";
+import { PillStrip } from "@/components/pill-strip";
 import { useRecentItems } from "@/components/recent";
 import { useLang } from "@/components/lang";
 import { I } from "@/components/ui";
@@ -157,8 +158,10 @@ export function HomeShop({ slides, cats, all, best, gifts }: { slides: HomeSlide
               icon, không số lượng; pill đang chọn = nền brand chữ trắng,
               chưa chọn = trắng viền nhạt. Mobile vuốt ngang (ẩn thanh
               cuộn), desktop tự xuống hàng khi không đủ chỗ. Bấm pill = lọc
-              lưới nổi bật tại chỗ (Tất cả = bỏ lọc) như cũ. */}
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible">
+              lưới nổi bật tại chỗ (Tất cả = bỏ lọc) như cũ. Vỏ PillStrip
+              (2026-11-08) thêm nút chevron 2 đầu + vệt mờ để khách biết
+              dải kéo qua được. */}
+          <PillStrip className="mt-4">
             <button type="button" onClick={() => pickCat(null)}
               className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition ${cat == null ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-700"}`}>
               {t("Tất cả")}
@@ -169,7 +172,7 @@ export function HomeShop({ slides, cats, all, best, gifts }: { slides: HomeSlide
                 {c.name}
               </button>
             ))}
-          </div>
+          </PillStrip>
         </section>
       )}
 
