@@ -146,22 +146,21 @@ export function HomeShop({ slides, cats, all, best }: { slides: HomeSlide[]; cat
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 [&>svg]:h-5 [&>svg]:w-5">{I.layers}</span>
             <h2 className="text-lg font-extrabold text-slate-900 sm:text-xl">{t("Danh mục sản phẩm")}</h2>
           </div>
-          {/* Ô danh mục GỌN, KHÔNG ảnh (lệnh Tín 2026-11-08 01:30 đính
-              chính): icon registry + tên + số lượng, ô nào cũng bằng ô nào
-              trong lưới; bấm ô = lọc lưới nổi bật tại chỗ (Tất cả = bỏ lọc). */}
-          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5">
+          {/* Dải pill danh mục (lệnh Tín 2026-11-08 01:51, thay lưới ô của
+              fix6 task 11): một hàng pill rounded-full CHỈ CÓ TÊN — không
+              icon, không số lượng; pill đang chọn = nền brand chữ trắng,
+              chưa chọn = trắng viền nhạt. Mobile vuốt ngang (ẩn thanh
+              cuộn), desktop tự xuống hàng khi không đủ chỗ. Bấm pill = lọc
+              lưới nổi bật tại chỗ (Tất cả = bỏ lọc) như cũ. */}
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible">
             <button type="button" onClick={() => pickCat(null)}
-              className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition ${cat == null ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500/40" : "border-slate-200 bg-white hover:border-brand-300 hover:bg-brand-50/50"}`}>
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white [&_svg]:h-5 [&_svg]:w-5">{I.layers}</span>
-              <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">{t("Tất cả")}</span>
-              <span className="shrink-0 text-xs font-semibold text-slate-400">{all.length}</span>
+              className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition ${cat == null ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-700"}`}>
+              {t("Tất cả")}
             </button>
             {cats.map((c) => (
               <button key={c.id} type="button" onClick={() => pickCat(c.id, true)}
-                className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition ${cat === c.id ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500/40" : "border-slate-200 bg-white hover:border-brand-300 hover:bg-brand-50/50"}`}>
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 [&_svg]:h-5 [&_svg]:w-5">{I.box}</span>
-                <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">{c.name}</span>
-                <span className="shrink-0 text-xs font-semibold text-slate-400">{c.count}</span>
+                className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition ${cat === c.id ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-700"}`}>
+                {c.name}
               </button>
             ))}
           </div>

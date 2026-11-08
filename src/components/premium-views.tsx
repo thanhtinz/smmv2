@@ -108,9 +108,6 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
   const { L, Ld } = await getServerI18n();
   const session = await getSession();
   const cats = await prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } });
-  // Số sản phẩm cho từng danh mục (chip lọc): đếm từ DB thật, không hardcode.
-  const catCountRows = await prisma.premiumProduct.groupBy({ by: ["categoryId"], where: { active: true, panelId: null }, _count: true });
-  const catCount = new Map<number, number>(catCountRows.map((r) => [r.categoryId || 0, typeof r._count === "number" ? r._count : 0]));
   const catId = cat ? parseInt(cat) : undefined;
   const needle = (q || "").trim().toLowerCase();
   const allProducts = await prisma.premiumProduct.findMany({
@@ -163,25 +160,23 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
         <input type="hidden" name="q" value={q || ""} />
         <div className="col-span-2 lg:col-span-full">
           <label className="lbl">{L("Danh mục")}</label>
-          {/* Chip danh mục cùng ngôn ngữ với lưới ô ở trang chủ (thiết kế lại
-              2026-11-08): radio name="cat" như cũ — tham số và logic lọc
-              không đổi, áp dụng bằng nút Lọc; chip đang chọn có viền brand. */}
+          {/* Dải pill danh mục — CÙNG dạng với trang chủ (lệnh Tín
+              2026-11-08 01:51): pill rounded-full CHỈ CÓ TÊN, không icon,
+              không số lượng; đang chọn = nền brand chữ trắng. Radio
+              name="cat" như cũ — tham số và logic lọc không đổi, áp dụng
+              bằng nút Lọc. */}
           <div className="flex flex-wrap gap-2">
             <label className="cursor-pointer">
               <input type="radio" name="cat" value="" defaultChecked={!catId} className="peer sr-only" />
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3.5 text-sm font-bold text-slate-600 transition peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700 hover:border-brand-300">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-600 text-white [&_svg]:h-3.5 [&_svg]:w-3.5">{I.layers}</span>
+              <span className="inline-flex items-center whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition peer-checked:border-brand-600 peer-checked:bg-brand-600 peer-checked:text-white hover:border-brand-300">
                 {L("Tất cả")}
-                <span className="text-xs font-semibold text-slate-400">{Array.from(catCount.values()).reduce((a, b) => a + b, 0)}</span>
               </span>
             </label>
             {cats.map((c) => (
               <label key={c.id} className="cursor-pointer">
                 <input type="radio" name="cat" value={c.id} defaultChecked={catId === c.id} className="peer sr-only" />
-                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3.5 text-sm font-bold text-slate-600 transition peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700 hover:border-brand-300">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-50 text-brand-600 [&_svg]:h-3.5 [&_svg]:w-3.5">{I.box}</span>
+                <span className="inline-flex items-center whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition peer-checked:border-brand-600 peer-checked:bg-brand-600 peer-checked:text-white hover:border-brand-300">
                   {c.name}
-                  <span className="text-xs font-semibold text-slate-400">{catCount.get(c.id) || 0}</span>
                 </span>
               </label>
             ))}
