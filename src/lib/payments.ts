@@ -204,3 +204,29 @@ export async function paypalCaptureFlow(token: string, mode: string, orderId: st
   const c = captureOf(j);
   return { status: String(j.status || ""), cents: c?.cents ?? null };
 }
+
+/* ================= Kiểm tra kết nối (Admin → Cấu hình nạp tiền) =================
+ * Mỗi hàm gọi THẬT một endpoint nhẹ có xác thực của cổng và ném lỗi kèm thông
+ * điệp gốc của cổng khi thất bại — admin thấy đúng lý do, không có "OK giả".
+ * baseUrl chỉ để kiểm chứng bằng mock nội bộ; mặc định là host thật. */
+
+export async function stripeTestConnection(secretKey: string, baseUrl = "https://api.stripe.com"): Promise<string> {
+  const r = await fetch(`${baseUrl}/v1/balance`, { headers: { Authorization: `Bearer ${secretKey}` } });
+  const j: any = await r.json().catch(() => null);
+  if (!r.ok) throw new Error(j?.error?.message || `Stripe HTTP ${r.status}`);
+  const av = Array.isArray(j?.available) ? j.available[0] : null;
+  return av ? `số dư khả dụng ${av.amount} ${String(av.currency || "").toUpperCase()}` : "tài khoản hợp lệ";
+}
+
+export async function paypalTestConnection(clientId: string, secret: string, mode: string): Promise<string> {
+  await paypalAccessToken(clientId, secret, mode);
+  return `đã lấy được access token (môi trường ${mode === "live" ? "Live" : "Sandbox"})`;
+}
+
+export async function sepayTestConnection(apiKey: string, baseUrl = "https://userapi.sepay.vn"): Promise<string> {
+  const r = await fetch(`${baseUrl}/v2/bank-accounts`, { headers: { Authorization: `Bearer ${apiKey}` } });
+  const j: any = await r.json().catch(() => null);
+  if (!r.ok) throw new Error(j?.message || j?.error || `SePay HTTP ${r.status}`);
+  const n = Array.isArray(j?.data) ? j.data.length : 0;
+  return `API key hợp lệ — ${n} tài khoản ngân hàng đã liên kết`;
+}

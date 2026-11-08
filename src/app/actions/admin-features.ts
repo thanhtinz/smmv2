@@ -287,11 +287,19 @@ export async function cleanupAllAction(formData: FormData) {
 /* ---------- Tiền tệ: tỉ giá quy đổi hiển thị ---------- */
 export async function saveRatesAction(formData: FormData) {
   await requireAdmin();
-  for (const k of ["usd_rate", "rate_eur", "rate_cny", "rate_thb", "rate_jpy", "rate_krw"]) {
+  for (const k of ["usd_rate", "rate_eur", "rate_cny", "rate_thb", "rate_jpy", "rate_krw", "usdt_rate"]) {
     const v = parseFloat(str(formData, k).replace(",", "."));
     if (!isNaN(v) && v > 0) await setSetting(k, String(v));
   }
-  done("/admin/tien-te", "Đã lưu tỉ giá hiển thị");
+  const minUsd = parseInt(str(formData, "intl_min_usd"));
+  if (!isNaN(minUsd) && minUsd >= 1) await setSetting("intl_min_usd", String(minUsd));
+  // Công tắc tỉ giá tự động chỉ có ở form tỉ giá ĐẦY ĐỦ (trang Cấu hình nạp
+  // tiền, có field ẩn rates_form_full) — form ở trang Tiền tệ không đụng vào.
+  if (str(formData, "rates_form_full") === "1") {
+    await setSetting("rates_auto_enabled", formData.get("rates_auto_enabled") === "on" ? "1" : "0");
+  }
+  const backTo = str(formData, "back");
+  done(backTo.startsWith("/admin/") ? backTo : "/admin/tien-te", "Đã lưu tỉ giá");
 }
 
 /* ---------- Email Marketing ---------- */

@@ -198,6 +198,10 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   rate_jpy: "165",
   rate_krw: "18",
   usdt_rate: "", // tỉ giá riêng 1 USDT (VNĐ) — để trống = dùng usd_rate
+  // Tỉ giá thị trường tự động (2026-11-08): cron kéo từ open.er-api.com khi bật
+  rates_auto_enabled: "0",
+  rates_auto_updated_at: "", // ISO lần cập nhật tự động gần nhất
+  rates_auto_source: "", // nguồn tỉ giá tự động đang dùng
   // BoltUtil thay nạp USDT thủ công (2026-11-07): cổng stablecoin không giữ tiền,
   // tiền về thẳng ví nhận của shop cấu hình trong dashboard BoltUtil.
   boltutil_enabled: "0",

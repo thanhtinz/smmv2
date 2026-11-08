@@ -578,6 +578,75 @@ export async function adminBoltPingAction() {
   }
 }
 
+/** Ưu tiên giá trị admin VỪA GÕ trong form (chưa lưu) để test trước khi lưu;
+ *  trống hoặc còn dấu • che thì dùng giá trị đã lưu. */
+const pickSubmitted = (formData: FormData, name: string, saved: string) => {
+  const v = String(formData.get(name) || "").trim();
+  return v && !v.includes("•") ? v : saved;
+};
+
+/** Kiểm tra kết nối Stripe (GET /v1/balance bằng Secret Key). */
+export async function adminStripeTestAction(formData: FormData) {
+  await requireAdmin();
+  const s = await getSettings();
+  const key = pickSubmitted(formData, "stripe_secret_key", String(s.stripe_secret_key || "").trim());
+  if (!key) back("/admin/cau-hinh-nap-tien", "err", "Chưa nhập Secret Key của Stripe");
+  try {
+    const { stripeTestConnection } = await import("@/lib/payments");
+    const detail = await stripeTestConnection(key);
+    back("/admin/cau-hinh-nap-tien", "msg", `Kết nối Stripe OK — ${detail}`);
+  } catch (e: any) {
+    back("/admin/cau-hinh-nap-tien", "err", `Kết nối Stripe thất bại: ${String(e?.message || e).slice(0, 160)}`);
+  }
+}
+
+/** Kiểm tra kết nối PayPal (xin access token OAuth bằng Client ID/Secret). */
+export async function adminPaypalTestAction(formData: FormData) {
+  await requireAdmin();
+  const s = await getSettings();
+  const clientId = String(formData.get("paypal_client_id") || "").trim() || String(s.paypal_client_id || "").trim();
+  const secret = pickSubmitted(formData, "paypal_client_secret", String(s.paypal_client_secret || "").trim());
+  const mode = String(formData.get("paypal_mode") || s.paypal_mode || "sandbox");
+  if (!clientId || !secret) back("/admin/cau-hinh-nap-tien", "err", "Chưa nhập Client ID / Client Secret của PayPal");
+  try {
+    const { paypalTestConnection } = await import("@/lib/payments");
+    const detail = await paypalTestConnection(clientId, secret, mode);
+    back("/admin/cau-hinh-nap-tien", "msg", `Kết nối PayPal OK — ${detail}`);
+  } catch (e: any) {
+    back("/admin/cau-hinh-nap-tien", "err", `Kết nối PayPal thất bại: ${String(e?.message || e).slice(0, 160)}`);
+  }
+}
+
+/** Kiểm tra kết nối SePay (GET /v2/bank-accounts bằng API key đã lưu). Lưu ý:
+ *  đây là API dữ liệu của SePay — key chỉ dùng cho webhook mà SePay cấp riêng
+ *  có thể bị từ chối ở đây dù webhook vẫn nhận bình thường. */
+export async function adminSepayTestAction(formData: FormData) {
+  await requireAdmin();
+  const s = await getSettings();
+  const key = pickSubmitted(formData, "sepay_secret", String(s.sepay_secret || "").trim());
+  if (!key) back("/admin/cau-hinh-nap-tien", "err", "Chưa nhập API Key của SePay");
+  try {
+    const { sepayTestConnection } = await import("@/lib/payments");
+    const detail = await sepayTestConnection(key);
+    back("/admin/cau-hinh-nap-tien", "msg", `Kết nối SePay OK — ${detail}`);
+  } catch (e: any) {
+    back("/admin/cau-hinh-nap-tien", "err", `Kết nối SePay thất bại: ${String(e?.message || e).slice(0, 160)}`);
+  }
+}
+
+/** Cập nhật tỉ giá thị trường NGAY (bất kể công tắc tự động) — Admin → Cấu hình nạp tiền. */
+export async function adminFetchRatesNowAction() {
+  await requireAdmin();
+  try {
+    const { applyMarketRates } = await import("@/lib/rates");
+    const r = await applyMarketRates({ force: true });
+    const s = await getSettings();
+    back("/admin/cau-hinh-nap-tien", "msg", `Đã cập nhật tỉ giá thị trường (${r.updated.join(", ")}) — 1 USD = ${Number(s.usd_rate || 0).toLocaleString("vi-VN")}đ`);
+  } catch (e: any) {
+    back("/admin/cau-hinh-nap-tien", "err", `Cập nhật tỉ giá thất bại: ${String(e?.message || e).slice(0, 160)}`);
+  }
+}
+
 export async function adminDepositAction(formData: FormData) {
   const actor = await requireAdmin();
   const id = parseInt(String(formData.get("id")));

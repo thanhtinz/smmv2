@@ -188,6 +188,19 @@ export async function GET(req: NextRequest) {
     result.riskError = String(e?.message || e);
   }
 
+  // Tỉ giá thị trường tự động (Admin → Cấu hình nạp tiền → Tỉ giá): chỉ chạy
+  // khi admin bật; applyMarketRates tự throttle 1 giờ và không ghi đè đồng
+  // nào nguồn không trả.
+  try {
+    const st = await getSettings();
+    if (st.rates_auto_enabled === "1") {
+      const { applyMarketRates } = await import("@/lib/rates");
+      result.rates = await applyMarketRates();
+    }
+  } catch (e: any) {
+    result.ratesError = String(e?.message || e);
+  }
+
   // Ghi nhận lần chạy cron cho trang Sức khoẻ hệ thống (Admin → Hệ thống)
   await prisma.apiLog.create({ data: { kind: "cron_sync", ok: true, detail: JSON.stringify({ ordersSynced: result.ordersSynced, ordersFailed: result.ordersFailed, premiumSynced: result.premiumSynced, premiumFailed: result.premiumFailed }).slice(0, 900) } }).catch(() => {});
   return NextResponse.json(result);

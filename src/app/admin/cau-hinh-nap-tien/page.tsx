@@ -3,7 +3,8 @@ import { requireAdminPage } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
-import { adminSaveMethodsAction, adminBoltPingAction } from "@/app/actions/admin";
+import { adminSaveMethodsAction, adminBoltPingAction, adminStripeTestAction, adminPaypalTestAction, adminSepayTestAction, adminFetchRatesNowAction } from "@/app/actions/admin";
+import { saveRatesAction } from "@/app/actions/admin-features";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
           <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">{L("Khách ghi đúng nội dung chứa mã nạp thì hệ thống tự đối soát và cộng tiền trong vài phút; sai nội dung sẽ chờ duyệt tay ở trang Quản lý nạp tiền.")}</p>
           <div className="flex gap-2">
             <button className="btn-primary !py-2.5">{L("Lưu SePay")}</button>
+            <button formAction={adminSepayTestAction} className="btn-ghost !py-2.5" title={L("Gọi thử API dữ liệu SePay bằng API key ở trên (hoặc key đã lưu)")}>{L("Kiểm tra kết nối")}</button>
             <a href="/admin/ngan-hang" className="btn-ghost !py-2.5">{L("Mở trang Ngân hàng")}</a>
           </div>
         </form>
@@ -127,7 +129,10 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
             </select>
           </div>
           <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">{L("Lấy Client ID / Secret tại PayPal Developer → Apps & Credentials, chọn đúng môi trường khớp ô Môi trường ở trên. PayPal không cần cấu hình webhook.")}</p>
-          <button className="btn-primary !py-2.5">{L("Lưu PayPal")}</button>
+          <div className="flex gap-2">
+            <button className="btn-primary !py-2.5">{L("Lưu PayPal")}</button>
+            <button formAction={adminPaypalTestAction} className="btn-ghost !py-2.5" title={L("Xin thử access token OAuth bằng Client ID/Secret ở trên (hoặc đã lưu)")}>{L("Kiểm tra kết nối")}</button>
+          </div>
         </form>
 
         <form action={adminSaveMethodsAction} className="card space-y-4 p-6">
@@ -150,16 +155,55 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
               <CopyBtn text={`${base}/api/webhooks/stripe`} />
             </div>
           </div>
-          <button className="btn-primary !py-2.5">{L("Lưu Stripe")}</button>
+          <div className="flex gap-2">
+            <button className="btn-primary !py-2.5">{L("Lưu Stripe")}</button>
+            <button formAction={adminStripeTestAction} className="btn-ghost !py-2.5" title={L("Gọi thử API số dư Stripe bằng Secret Key ở trên (hoặc key đã lưu)")}>{L("Kiểm tra kết nối")}</button>
+          </div>
         </form>
 
-        <form action={adminSaveMethodsAction} className="card space-y-4 p-6">
+        <form action={saveRatesAction} className="card space-y-4 p-6 xl:col-span-2">
           <input type="hidden" name="back" value={back} />
-          <div className="font-bold text-slate-900">{L("Tỉ giá USD → VNĐ")}</div>
-          <p className="text-sm text-slate-500">{L("Tỉ giá quy đổi cho PayPal và Stripe.")}</p>
-          <div><label className="lbl">{L("1 USD = ? đ")}</label><input className="inp" name="usd_rate" type="number" min={0} defaultValue={s.usd_rate} /></div>
-          <div><label className="lbl">{L("Số tiền nạp quốc tế tối thiểu (USD)")}</label><input className="inp" name="intl_min_usd" type="number" min={1} defaultValue={s.intl_min_usd} /></div>
-          <button className="btn-primary !py-2.5">{L("Lưu tỉ giá")}</button>
+          <input type="hidden" name="rates_form_full" value="1" />
+          <div className="font-bold text-slate-900">{L("Tỉ giá & tiền tệ")}</div>
+          <p className="text-sm text-slate-500">{L("Tỉ giá quy đổi VNĐ cho nạp quốc tế (PayPal/Stripe theo USD, BoltUtil theo USDT) và cho hiển thị ngoại tệ phía khách. Tiền thật trong hệ thống luôn là VNĐ.")}</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {([
+              { code: "USD", key: "usd_rate", note: L("Nạp PayPal / Stripe") },
+              { code: "USDT", key: "usdt_rate", note: L("Nạp BoltUtil — trống = theo USD") },
+              { code: "EUR", key: "rate_eur", note: L("Chỉ quy đổi hiển thị") },
+              { code: "CNY", key: "rate_cny", note: L("Chỉ quy đổi hiển thị") },
+              { code: "THB", key: "rate_thb", note: L("Chỉ quy đổi hiển thị") },
+              { code: "JPY", key: "rate_jpy", note: L("Chỉ quy đổi hiển thị") },
+              { code: "KRW", key: "rate_krw", note: L("Chỉ quy đổi hiển thị") },
+            ] as const).map((r) => (
+              <div key={r.key}>
+                <label className="lbl">1 {r.code} = ? đ</label>
+                <input className="inp" name={r.key} type="number" step="any" min={0} defaultValue={s[r.key]} placeholder={r.code === "USDT" ? s.usd_rate || "25000" : undefined} />
+                <p className="mt-1 text-xs text-slate-400">{r.note}</p>
+              </div>
+            ))}
+            <div>
+              <label className="lbl">{L("Số tiền nạp quốc tế tối thiểu (USD)")}</label>
+              <input className="inp" name="intl_min_usd" type="number" min={1} defaultValue={s.intl_min_usd} />
+            </div>
+          </div>
+          <div className="rounded-xl bg-slate-50 px-4 py-3.5">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input type="checkbox" name="rates_auto_enabled" defaultChecked={s.rates_auto_enabled === "1"} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600" />
+              <span>
+                <span className="block text-sm font-bold text-slate-800">{L("Tự động cập nhật tỉ giá thị trường")}</span>
+                <span className="mt-0.5 block text-[13px] leading-relaxed text-slate-500">{L("Khi bật, vòng đồng bộ (cron) tự kéo tỉ giá từ {source} và ghi vào các ô trên; USDT theo tỉ giá USD. Đồng nào nguồn không có dữ liệu thì giữ nguyên. Khi tắt, tỉ giá nhập tay là tỉ giá hiệu lực.").replace("{source}", "open.er-api.com")}</span>
+              </span>
+            </label>
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px] text-slate-500">
+              <span>{L("Nguồn")}: <b className="text-slate-700">{s.rates_auto_source || "open.er-api.com (ExchangeRate-API, gốc USD)"}</b></span>
+              <span>{L("Cập nhật lần cuối")}: <b className="text-slate-700">{s.rates_auto_updated_at ? new Date(s.rates_auto_updated_at).toLocaleString("vi-VN") : L("Chưa cập nhật lần nào")}</b></span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-primary !py-2.5">{L("Lưu tỉ giá")}</button>
+            <button formAction={adminFetchRatesNowAction} className="btn-ghost !py-2.5" title={L("Kéo tỉ giá thị trường về ngay, không chờ cron")} >{L("Cập nhật ngay")}</button>
+          </div>
         </form>
       </div>
     </div>
