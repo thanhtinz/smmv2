@@ -128,6 +128,57 @@ export async function gameKeyAddProvider(): Promise<Provider | null> {
   return prisma.provider.findFirst({ where: { driver: "FZR", active: true }, orderBy: { id: "asc" } });
 }
 
+export type GiftCardProduct = FamilyVariant["product"] & {
+  providerProductId: string | null;
+  description: string | null;
+};
+
+/** Họ Gift Card (theo OpenAPI FZR, đọc lại 2026-11-08): 1 category = 1 sản
+ *  phẩm (providerProductId = category_id; note của NCC lưu ở description),
+ *  mệnh giá = các variant giftcards (providerItemId = card_id, providerStock
+ *  = tồn kho phía FZR tại lần đồng bộ gần nhất). */
+export async function loadGiftCardFamilies(): Promise<{
+  providers: Provider[];
+  groups: { product: GiftCardProduct; variants: FamilyVariant[] }[];
+}> {
+  const variants = (await prisma.premiumVariant.findMany({
+    where: { providerGroup: "giftcards" },
+    include: {
+      product: {
+        select: { id: true, name: true, slug: true, imageUrl: true, active: true, providerProductId: true, description: true },
+      },
+    },
+    orderBy: [{ price: "asc" }],
+  })) as (PremiumVariant & { product: GiftCardProduct })[];
+  const groups: { product: GiftCardProduct; variants: FamilyVariant[] }[] = [];
+  for (const v of variants) {
+    let g = groups.find((x) => x.product.id === v.product.id);
+    if (!g) { g = { product: v.product, variants: [] }; groups.push(g); }
+    g.variants.push(v as FamilyVariant);
+  }
+  groups.sort((a, b) => a.product.name.localeCompare(b.product.name));
+  const providerIds = Array.from(new Set(variants.map((v) => v.providerId).filter((x): x is number => !!x)));
+  const providers = providerIds.length
+    ? await prisma.provider.findMany({ where: { id: { in: providerIds } }, orderBy: { id: "asc" } })
+    : await prisma.provider.findMany({ where: { driver: "FZR", active: true }, orderBy: { id: "asc" }, take: 1 });
+  return { providers, groups };
+}
+
+/** Nhà cung cấp dùng khi admin THÊM category/mệnh giá Gift Card: ưu tiên nhà
+ *  cung cấp đã có gói giftcards, sau đó tới nhà cung cấp FZR đang bật đầu tiên. */
+export async function giftCardAddProvider(): Promise<Provider | null> {
+  const withGc = await prisma.premiumVariant.findFirst({
+    where: { providerGroup: "giftcards", providerId: { not: null } },
+    select: { providerId: true },
+    orderBy: { id: "asc" },
+  });
+  if (withGc?.providerId) {
+    const p = await prisma.provider.findUnique({ where: { id: withGc.providerId } });
+    if (p) return p;
+  }
+  return prisma.provider.findFirst({ where: { driver: "FZR", active: true }, orderBy: { id: "asc" } });
+}
+
 /** Nhà cung cấp dùng khi admin THÊM gói Steam: ưu tiên nhà cung cấp đã có gói
  *  steam_topup, sau đó tới nhà cung cấp FZR đang bật đầu tiên. */
 export async function steamAddProvider(): Promise<Provider | null> {

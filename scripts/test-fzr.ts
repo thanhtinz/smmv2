@@ -85,6 +85,12 @@ async function main() {
     ok(stars?.variants[0]?.price === sell(0.015), `giá 1 sao = ${stars?.variants[0]?.price} (kỳ vọng ${sell(0.015)})`);
     const tgp = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "telegram-premium" }, include: { variants: true } });
     ok(tgp?.variants.length === 3 && tgp.variants.find((v) => v.providerItemId === "12")?.price === sell(35.99), "telegram premium đủ 3 gói tháng, giá theo finalPrice");
+    const gcCat = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "gcat-amazon-us" }, include: { variants: true } });
+    ok(!!gcCat && (gcCat.description || "").includes("Region: US"), "giftcard category gcat-amazon-us thành sản phẩm, note NCC lưu ở description");
+    const gcRefundChk = gcCat!.variants.find((v) => v.providerItemId === "gc-refund");
+    ok(!!gcRefundChk && gcRefundChk.providerStock === 5 && gcRefundChk.price === sell(5), `giftcard offer là variant theo card_id, giá ${gcRefundChk?.price} / tồn kho ${gcRefundChk?.providerStock}`);
+    const gcPs = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "gcat-ps-us" }, include: { variants: true } });
+    ok(!!gcPs && gcPs.variants.some((v) => (v.providerItemId || "").startsWith("name:")), "giftcard offer card_id null -> variant name:-key (đặt sẽ bị FZR từ chối dứt khoát)");
     const st = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "steam-topup" }, include: { variants: true } });
     ok(st?.variants.length === 5 && st.variants.find((v) => v.providerItemId === "10")?.price === sell(10), "steam top-up 5 mệnh giá USD");
     const sgBefore = await prisma.premiumProduct.count({ where: { providerId: provider.id, providerProductId: { startsWith: "app-" } } });
@@ -137,14 +143,25 @@ async function main() {
     const oWp: any = await pollFzrPremiumOrder(oW);
     ok(oWp.status === "DELIVERED" && (oWp.deliveryData || "").includes("WEIRD-CODE-123"), "trường lạ voucher_payload -> deliveryData giữ JSON thô chứa mã");
 
-    /* 4) Gift card bị refund phía FZR -> poll hoàn tiền đủ */
-    const gcRefundV = (await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "gc-refund" }, include: { variants: true } }))!.variants[0];
+    /* 4) Gift card bị refund phía FZR -> poll hoàn tiền đủ (model mới:
+       category = sản phẩm, card_id ở variant — body order theo OpenAPI) */
+    const gcRefundV = gcCat!.variants.find((v) => v.providerItemId === "gc-refund")!;
     const balBefore4 = (await demoNow()).balance;
     const o4: any = await buy(gcRefundV.id, 1, {});
     ok(o4.status === "PENDING", "đơn gift card refund-case đang PENDING");
+    const log4 = await mockLog();
+    const call4 = log4.filter((l) => l.path === "/api/v2/giftcards/order").pop();
+    ok(call4?.body?.category_id === "gcat-amazon-us" && call4?.body?.card_id === "gc-refund" && call4?.body?.quantity === 1, "mock nhận đúng body giftcards/order {category_id, card_id, quantity} theo OpenAPI");
     const o4p: any = await pollFzrPremiumOrder(o4);
     ok(o4p.status === "REFUNDED", "poll thấy refunded -> đơn REFUNDED");
     ok((await demoNow()).balance === balBefore4, "số dư khách được hoàn đủ sau refund");
+
+    /* 4b) Gift card mua thành công -> poll DELIVERED + trích được mã */
+    const gcApple = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "gcat-apple-tr" }, include: { variants: true } });
+    const gcOkV = gcApple!.variants.find((v) => v.providerItemId === "gc-tr-50")!;
+    const o4b: any = await buy(gcOkV.id, 1, {});
+    const o4bp: any = await pollFzrPremiumOrder(o4b);
+    ok(o4bp.status === "DELIVERED" && (o4bp.deliveryData || "").includes("GC-CODE-1"), `gift card poll -> DELIVERED + trích được mã: ${o4bp.deliveryData}`);
 
     /* 5) Top-up: map orderParams từ thông tin khách điền */
     const o5: any = await buy(tp!.variants[0].id, 1, { "Tài khoản / ID người chơi": "player123" });

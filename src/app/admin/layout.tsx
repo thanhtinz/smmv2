@@ -86,6 +86,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/game-key/san-pham", label: L("Sản phẩm Game Key"), icon: "gem", adminOnly: true } as any,
       ],
     } as any,
+    // Khu Gift Card trong admin (nhóm dropdown như Game Key) — đơn hàng
+    // (STAFF xử lý được) + sản phẩm theo cấu trúc FZR giftcards (ADMIN).
+    {
+      group: "Gift Card", icon: "gift",
+      children: [
+        { href: "/admin/gift-card", label: L("Đơn hàng Gift Card"), icon: "box" } as any,
+        { href: "/admin/gift-card/san-pham", label: L("Sản phẩm Gift Card"), icon: "gem", adminOnly: true } as any,
+      ],
+    } as any,
     { href: "/admin/nguoi-dung", label: L("Người dùng"), icon: "users", adminOnly: true },
     { href: "/admin/ticket", label: L("Ticket hỗ trợ"), icon: "ticket", badge: ticketOpen },
     {

@@ -1,8 +1,11 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { ProviderPricingCard, VariantRow, fmtVnd } from "@/components/admin-families";
-import { famAddTopupDenom, famAddGiftGame, famSaveGiftProduct } from "@/app/actions/admin-families";
+import { ProviderPricingCard, VariantRow, fmtVnd, AreaSyncCard } from "@/components/admin-families";
+import { famAddTopupDenom, famSaveGiftProduct } from "@/app/actions/admin-families";
+import { SteamGiftAddForm } from "@/components/fzr-picker";
 import { loadSteamFamilies } from "@/lib/families";
+import { getSettings } from "@/lib/settings";
+import { fzrMarkupKey } from "@/lib/fzr-markup";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +21,8 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const { providers, topup, giftGroups } = await loadSteamFamilies();
+  const settings = await getSettings();
+  const areaOverrides = { steam_topup: settings[fzrMarkupKey("steam_topup")] || "", steam_gift: settings[fzrMarkupKey("steam_gift")] || "" };
   return (
     <div>
       <PageHead
@@ -32,6 +37,7 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
         </div>
       )}
       {providers.map((p) => <ProviderPricingCard key={p.id} provider={p} returnTo={RT} />)}
+      {providers[0] && <AreaSyncCard provider={providers[0]} groups={["steam_topup", "steam_gift"]} overrides={areaOverrides} returnTo={RT} />}
 
       {/* Họ Top-Up */}
       <section className="card mb-4 overflow-hidden">
@@ -102,26 +108,7 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
         ) : (
           <p className="px-5 py-4 text-sm text-slate-400">Chưa có game gift — bấm đồng bộ Steam Gifts ở trang Nhà cung cấp hoặc thêm game ở dưới.</p>
         )}
-        <form action={famAddGiftGame} className="flex flex-wrap items-end gap-2 border-t border-slate-100 bg-slate-50/60 px-4 py-3.5">
-          <input type="hidden" name="returnTo" value={RT} />
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">App ID</span>
-            <input name="appid" type="number" min={1} required placeholder="1245620" className="inp !w-28 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Tên game</span>
-            <input name="name" required placeholder="ELDEN RING" className="inp !w-48 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Ảnh bìa (URL)</span>
-            <input name="imageUrl" placeholder="https://…" className="inp !w-52 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Giá hiển thị (VNĐ)</span>
-            <input name="price" type="number" min={0} placeholder="0 = báo giá khi mua" className="inp !w-40 !py-2 text-[13px]" />
-          </label>
-          <button className="btn-primary btn-sm !px-3.5 !py-2">Thêm game</button>
-        </form>
+        <SteamGiftAddForm returnTo={RT} />
       </section>
 
       <p className="px-1 text-xs leading-relaxed text-slate-400">

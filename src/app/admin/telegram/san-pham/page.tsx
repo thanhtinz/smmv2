@@ -1,8 +1,11 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { ProviderPricingCard, VariantRow, fmtVnd } from "@/components/admin-families";
-import { famAddTelegramPlan, famAddStarPackage } from "@/app/actions/admin-families";
+import { ProviderPricingCard, VariantRow, fmtVnd, AreaSyncCard } from "@/components/admin-families";
+import { famAddStarPackage } from "@/app/actions/admin-families";
+import { TelegramPremiumAddForm } from "@/components/fzr-picker";
 import { loadTelegramFamilies } from "@/lib/families";
+import { getSettings } from "@/lib/settings";
+import { fzrMarkupKey } from "@/lib/fzr-markup";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +21,8 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const { provider, stars, starsPackages, premium } = await loadTelegramFamilies();
+  const settings = await getSettings();
+  const areaOverrides = { telegram_stars: settings[fzrMarkupKey("telegram_stars")] || "", telegram_premium: settings[fzrMarkupKey("telegram_premium")] || "" };
   return (
     <div>
       <PageHead
@@ -32,6 +37,7 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
         </div>
       )}
       {provider && <ProviderPricingCard provider={provider} returnTo={RT} />}
+      {provider && <AreaSyncCard provider={provider} groups={["telegram_stars", "telegram_premium"]} overrides={areaOverrides} returnTo={RT} />}
 
       {/* Họ Stars */}
       <section className="card mb-4 overflow-hidden">
@@ -96,22 +102,7 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
         ) : (
           <p className="px-5 py-4 text-sm text-slate-400">Chưa có gói Premium — đồng bộ catalog FZR hoặc thêm gói ở dưới.</p>
         )}
-        <form action={famAddTelegramPlan} className="flex flex-wrap items-end gap-2 border-t border-slate-100 bg-slate-50/60 px-4 py-3.5">
-          <input type="hidden" name="returnTo" value={RT} />
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Số tháng</span>
-            <input name="months" type="number" min={1} max={36} required placeholder="24" className="inp !w-24 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Tên gói (trống = “N tháng”)</span>
-            <input name="name" placeholder="24 tháng" className="inp !w-44 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Giá bán (VNĐ)</span>
-            <input name="price" type="number" min={1} required placeholder="699000" className="inp !w-36 !py-2 text-[13px]" />
-          </label>
-          <button className="btn-primary btn-sm !px-3.5 !py-2">Thêm gói</button>
-        </form>
+        <TelegramPremiumAddForm returnTo={RT} />
       </section>
 
       <p className="px-1 text-xs leading-relaxed text-slate-400">

@@ -175,8 +175,19 @@ export async function fzrGameKeyKeys(provider: Provider, gameId: string): Promis
   return call<any>(provider, "GET", "/api/v2/gamekeys/keys", { query: { game_id: gameId } });
 }
 
-export async function fzrGiftCards(provider: Provider, page: number, q?: string): Promise<any> {
-  return call<any>(provider, "GET", "/api/v2/giftcards", { query: { page, limit: 100, q } });
+/** Gift Cards — theo OpenAPI FZR (đọc lại 2026-11-08 khi làm khu Gift Card):
+ *  GET /giftcards phân trang CURSOR (limit + cursor, include_ui=1 để có ảnh
+ *  bìa), items[] phẳng: { category_id, name, note?, imageurl? } — tầng
+ *  CATEGORY không có giá; mệnh giá nằm ở offers qua GET /giftcards/cards. */
+export async function fzrGiftCards(provider: Provider, cursor?: string): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/giftcards", { query: { limit: 100, include_ui: 1, ...(cursor ? { cursor } : {}) } });
+}
+
+/** Offers (mệnh giá) của 1 category gift card: { category_id, name, note?,
+ *  imageurl?, offers: [{ card_id (có thể null), name, price_usd, stock,
+ *  min_order_quantity, max_order_quantity }] }. */
+export async function fzrGiftCardCards(provider: Provider, categoryId: string): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/giftcards/cards", { query: { category_id: categoryId, include_ui: 1 } });
 }
 
 export async function fzrTopups(provider: Provider, page: number, q?: string): Promise<any> {
@@ -226,8 +237,11 @@ export async function fzrCreateGameKeyOrder(provider: Provider, gameId: string, 
   return r?.order ?? r;
 }
 
-export async function fzrCreateGiftCardOrder(provider: Provider, giftCardId: string, quantity: number, idemKey: string): Promise<any> {
-  const r = await call<any>(provider, "POST", "/api/v2/giftcards/order", { body: { giftCardId, quantity }, idempotencyKey: idemKey });
+/** Đặt đơn Gift Card — body theo OpenAPI: { category_id, card_id, quantity }
+ *  (cả 3 bắt buộc). card_id là id của OFFER/mệnh giá đã chọn
+ *  (variant.providerItemId), category_id = providerProductId của sản phẩm. */
+export async function fzrCreateGiftCardOrder(provider: Provider, categoryId: string, cardId: string, quantity: number, idemKey: string): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/giftcards/order", { body: { category_id: categoryId, card_id: cardId, quantity }, idempotencyKey: idemKey });
   return r?.order ?? r;
 }
 

@@ -64,6 +64,13 @@ export async function buildCustomerNav(
     { href: "/dashboard/game-key", label: L("Mua game") },
     { href: "/dashboard/game-key/don-hang", label: L("Đơn hàng") },
   ];
+  // Gift Card (lệnh Tín 2026-11-08 14:27): dropdown riêng ngay sau Game key —
+  // khu bán thẻ quà tặng/mã nạp của nhóm FZR giftcards, tách khỏi catalog
+  // Premium như các khu riêng khác (trang đích tự hiện trạng thái chưa có dữ liệu).
+  const giftCardChildren = [
+    { href: "/dashboard/gift-card", label: L("Mua gift card") },
+    { href: "/dashboard/gift-card/don-hang", label: L("Đơn hàng") },
+  ];
   // (Đã bỏ phân đoạn nền tảng SMM riêng trong menu theo lệnh Tín 2026-11-07 20:33 —
   // khách đặt đơn qua mục Đặt đơn và tự chọn nền tảng/phân loại trong form.)
   const items: NavEntry[] = [
@@ -72,6 +79,7 @@ export async function buildCustomerNav(
     { href: "/dashboard/don-premium", label: L("Đơn Premium của tôi"), icon: I.box },
     { label: "Steam", icon: I.gamepad, children: steamChildren },
     { label: "Game key", icon: I.key, children: gameKeyChildren },
+    { label: "Gift Card", icon: I.gift, children: giftCardChildren },
     ...(smmChildren.length ? [{ label: L("Dịch vụ mạng xã hội"), icon: I.cart, children: smmChildren }] : []),
     ...(telegramOn ? [{ label: "Telegram Premium", icon: I.send, children: telegramChildren }] : []),
     ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),

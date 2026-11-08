@@ -4,6 +4,7 @@ import { Flash } from "@/components/ui";
 import { getServerI18n } from "@/lib/lang-server";
 import { getTelegramProvider, getTelegramVariants, telegramEnabled, DEFAULT_STAR_PACKAGES } from "@/lib/tg";
 import { fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrUsdToVnd } from "@/lib/fzr";
+import { fzrMarkupFor } from "@/lib/fzr-markup";
 import { TelegramOrderForm, type TelegramPlan } from "@/components/telegram-order";
 import { ProductReviews } from "@/components/product-reviews";
 
@@ -37,9 +38,13 @@ export default async function TelegramOrderPage({ searchParams }: { searchParams
     .filter((p) => [3, 6, 12].includes(p.months))
     .sort((a, b) => a.months - b.months);
   if (provider) {
+    // Markup theo khu Telegram (override ở Admin → Telegram → Sản phẩm) —
+    // giá hiển thị phải là giá sẽ tính tiền ở refreshFzrQuotePrice/đơn.
+    const starsMarkup = await fzrMarkupFor(provider, "telegram_stars");
+    const premiumMarkup = await fzrMarkupFor(provider, "telegram_premium");
     const quote = await fzrTelegramStarsQuote(provider).catch(() => null);
     if (quote) {
-      starPrice = fzrUsdToVnd(quote.pricePerStar, provider.exchangeRate, provider.markupPercent);
+      starPrice = fzrUsdToVnd(quote.pricePerStar, provider.exchangeRate, starsMarkup);
       if (quote.minAmount) starMin = quote.minAmount;
       if (quote.maxAmount) starMax = quote.maxAmount;
     }
@@ -48,7 +53,7 @@ export default async function TelegramOrderPage({ searchParams }: { searchParams
       const have = new Set(plans.map((p) => p.months));
       for (const p of livePlans) {
         if (![3, 6, 12].includes(p.durationMonths) || have.has(p.durationMonths)) continue;
-        plans.push({ months: p.durationMonths, price: fzrUsdToVnd(p.finalPrice || p.price, provider.exchangeRate, provider.markupPercent) });
+        plans.push({ months: p.durationMonths, price: fzrUsdToVnd(p.finalPrice || p.price, provider.exchangeRate, premiumMarkup) });
       }
       plans.sort((a, b) => a.months - b.months);
     }

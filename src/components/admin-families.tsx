@@ -1,5 +1,5 @@
 import { I } from "./ui";
-import { famSaveVariant, famToggleVariant, famSaveProviderPricing, famDeleteVariant } from "@/app/actions/admin-families";
+import { famSaveVariant, famToggleVariant, famSaveProviderPricing, famDeleteVariant, famSyncArea, famSaveAreaMarkup } from "@/app/actions/admin-families";
 import { ADMIN_VARIANT_MARK, type FamilyVariant } from "@/lib/families";
 import type { Provider } from "@prisma/client";
 
@@ -86,5 +86,68 @@ export function VariantRow({ v, returnTo, meta, deletable }: { v: FamilyVariant;
         </form>
       )}
     </div>
+  );
+}
+
+export const FZR_GROUP_LABELS: Record<string, string> = {
+  telegram_stars: "Telegram Stars",
+  telegram_premium: "Telegram Premium",
+  steam_topup: "Steam Top-Up",
+  steam_gift: "Steam Gift Games",
+  gamekeys: "Game Key",
+  giftcards: "Gift Card",
+  topups: "Top-Up",
+  manual: "Dịch vụ thủ công",
+};
+
+/** FIX11 TASK 3 — Thẻ "Đồng bộ & markup của khu" đặt trên trang sản phẩm
+ *  của TỪNG khu FZR: nút đồng bộ chỉ kéo đúng nhóm của khu đó (như đồng bộ
+ *  phía SMM), ô markup % riêng của khu ghi đè markup chung của nhà cung
+ *  cấp cho nhóm đó (để trống = dùng markup chung). */
+export function AreaSyncCard({ provider, groups, overrides, returnTo }: {
+  provider: Provider;
+  groups: string[];
+  overrides: Record<string, string>;
+  returnTo: string;
+}) {
+  return (
+    <section className="card mb-4 p-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-brand-600">{I.refresh}</span>
+        <h2 className="text-[15px] font-bold text-slate-800">Đồng bộ &amp; markup của khu này</h2>
+        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500">
+          Nguồn: {provider.name}
+        </span>
+        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500">
+          Markup chung của NCC: {provider.markupPercent}%
+        </span>
+      </div>
+      <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+        Đồng bộ chỉ kéo các nhóm của khu này ({groups.map((g) => FZR_GROUP_LABELS[g] || g).join(", ")}) — catalog của khu khác không bị đụng. Markup riêng dưới đây ghi đè markup chung cho đúng nhóm đó, áp dụng cả khi đồng bộ lẫn khi chốt giá tươi lúc mua.
+      </p>
+      <div className="mt-3.5 flex flex-wrap items-end gap-4">
+        <form action={famSaveAreaMarkup} className="flex flex-wrap items-end gap-3">
+          <input type="hidden" name="returnTo" value={returnTo} />
+          <input type="hidden" name="groups" value={groups.join(",")} />
+          {groups.map((g) => (
+            <label key={g} className="block">
+              <span className="mb-1 block text-[11px] font-semibold text-slate-400">Markup {FZR_GROUP_LABELS[g] || g} (%)</span>
+              <input
+                name={`markup_${g}`} type="number" min={0} max={1000}
+                defaultValue={overrides[g] || ""} placeholder={`${provider.markupPercent} (chung)`}
+                className="inp !w-36 !py-2 text-[13px]"
+              />
+            </label>
+          ))}
+          <button className="btn-ghost btn-sm !px-3.5 !py-2">Lưu markup khu</button>
+        </form>
+        <form action={famSyncArea}>
+          <input type="hidden" name="returnTo" value={returnTo} />
+          <input type="hidden" name="providerId" value={provider.id} />
+          <input type="hidden" name="groups" value={groups.join(",")} />
+          <button className="btn-primary btn-sm !px-3.5 !py-2">Đồng bộ khu này</button>
+        </form>
+      </div>
+    </section>
   );
 }

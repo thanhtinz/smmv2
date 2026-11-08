@@ -1,8 +1,11 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { ProviderPricingCard, VariantRow } from "@/components/admin-families";
-import { famSaveGiftProduct, famAddGameKey, famAddGameKeyEdition } from "@/app/actions/admin-families";
+import { ProviderPricingCard, VariantRow, AreaSyncCard } from "@/components/admin-families";
+import { famSaveGiftProduct } from "@/app/actions/admin-families";
+import { GameKeyAddForm, GameKeyEditionForm } from "@/components/fzr-picker";
 import { loadGameKeyFamilies } from "@/lib/families";
+import { getSettings } from "@/lib/settings";
+import { fzrMarkupKey } from "@/lib/fzr-markup";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +23,8 @@ export default async function AdminGameKeyProducts({ searchParams }: { searchPar
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const { providers, groups } = await loadGameKeyFamilies();
+  const settings = await getSettings();
+  const areaOverrides = { gamekeys: settings[fzrMarkupKey("gamekeys")] || "" };
   return (
     <div>
       <PageHead
@@ -34,6 +39,7 @@ export default async function AdminGameKeyProducts({ searchParams }: { searchPar
         </div>
       )}
       {providers.map((p) => <ProviderPricingCard key={p.id} provider={p} returnTo={RT} />)}
+      {providers[0] && <AreaSyncCard provider={providers[0]} groups={["gamekeys"]} overrides={areaOverrides} returnTo={RT} />}
 
       <section className="card mb-4 overflow-hidden">
         <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
@@ -79,64 +85,13 @@ export default async function AdminGameKeyProducts({ searchParams }: { searchPar
                   meta={`Key ID: ${v.providerItemId || "—"} · Tồn kho NCC: ${v.providerStock == null ? "—" : v.providerStock}`}
                 />
               ))}
-              <form action={famAddGameKeyEdition} className="flex flex-wrap items-end gap-2 border-t border-dashed border-slate-100 bg-slate-50/40 px-4 py-3">
-                <input type="hidden" name="productId" value={product.id} />
-                <input type="hidden" name="returnTo" value={RT} />
-                <label className="block">
-                  <span className="mb-1 block text-[11px] font-semibold text-slate-400">Key ID (FZR)</span>
-                  <input name="keyId" required placeholder="key-id" className="inp !w-40 !py-2 text-[13px]" />
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-[11px] font-semibold text-slate-400">Tên phiên bản</span>
-                  <input name="name" required placeholder="Deluxe Edition" className="inp !w-48 !py-2 text-[13px]" />
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-[11px] font-semibold text-slate-400">Giá bán (VNĐ)</span>
-                  <input name="price" type="number" min={0} required placeholder="499000" className="inp !w-36 !py-2 text-[13px]" />
-                </label>
-                <button className="btn-primary btn-sm !px-3.5 !py-2">Thêm phiên bản</button>
-              </form>
+              <GameKeyEditionForm productId={product.id} gameId={product.providerProductId} existing={variants.map((v) => v.providerItemId || "")} returnTo={RT} />
             </div>
           ))
         ) : (
           <p className="px-5 py-4 text-sm text-slate-400">Chưa có game nào — đồng bộ catalog FZR ở trang Nhà cung cấp hoặc thêm game ở dưới.</p>
         )}
-        <form action={famAddGameKey} className="flex flex-wrap items-end gap-2 border-t border-slate-100 bg-slate-50/60 px-4 py-3.5">
-          <input type="hidden" name="returnTo" value={RT} />
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Game ID (FZR)</span>
-            <input name="gameId" required placeholder="game-id" className="inp !w-36 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Tên game</span>
-            <input name="name" required placeholder="Tên game" className="inp !w-48 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Nền tảng</span>
-            <input name="platform" placeholder="Steam" className="inp !w-28 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Vùng</span>
-            <input name="region" placeholder="GLOBAL" className="inp !w-28 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Ảnh bìa (URL)</span>
-            <input name="imageUrl" placeholder="https://…" className="inp !w-44 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Key ID phiên bản đầu</span>
-            <input name="keyId" required placeholder="key-id" className="inp !w-36 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Tên phiên bản</span>
-            <input name="editionName" placeholder="Bản thường" className="inp !w-40 !py-2 text-[13px]" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-slate-400">Giá bán (VNĐ)</span>
-            <input name="price" type="number" min={0} required placeholder="499000" className="inp !w-36 !py-2 text-[13px]" />
-          </label>
-          <button className="btn-primary btn-sm !px-3.5 !py-2">Thêm game</button>
-        </form>
+        <GameKeyAddForm returnTo={RT} />
       </section>
 
       <p className="px-1 text-xs leading-relaxed text-slate-400">

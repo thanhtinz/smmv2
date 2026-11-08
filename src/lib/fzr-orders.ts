@@ -13,6 +13,7 @@ import {
   fzrCreateSteamTopupOrder, fzrCreateSteamGiftOrder, fzrGetOrder,
   fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrSteamGiftOffers, parseDecimalScaled,
 } from "./fzr";
+import { fzrMarkupFor } from "./fzr-markup";
 import type { PremiumOrder, PremiumVariant, Provider } from "@prisma/client";
 
 /**
@@ -167,7 +168,12 @@ async function createOne(
       return { orderId: fzrOrderIdOf(raw), raw };
     }
     case "giftcards": {
-      const raw = await fzrCreateGiftCardOrder(provider, item, order.quantity, idem);
+      // Theo OpenAPI FZR: order cần CẢ category_id (id category = provider
+      // ProductId của sản phẩm) và card_id (offer/mệnh giá = providerItemId).
+      const prod = await prisma.premiumProduct.findUnique({ where: { id: variant.productId }, select: { providerProductId: true } });
+      const categoryId = prod?.providerProductId || "";
+      if (!categoryId || !item) throw new LocalDefinitiveError("Gói Gift Card thiếu category_id/card_id phía FZR");
+      const raw = await fzrCreateGiftCardOrder(provider, categoryId, item, order.quantity, idem);
       return { orderId: fzrOrderIdOf(raw), raw };
     }
     case "topups": {
@@ -434,7 +440,7 @@ export async function refreshFzrQuotePrice(variant: PremiumVariant, provider: Pr
   if (variant.providerGroup === "telegram_stars") {
     try {
       const q = await fzrTelegramStarsQuote(provider);
-      const price = fzrUsdToVnd(q.pricePerStar, provider.exchangeRate, provider.markupPercent);
+      const price = fzrUsdToVnd(q.pricePerStar, provider.exchangeRate, await fzrMarkupFor(provider, "telegram_stars"));
       const cost = fzrUsdCostVnd(q.pricePerStar, provider.exchangeRate);
       if (price > 0 && (price !== variant.price || cost !== variant.cost)) {
         await prisma.premiumVariant.update({ where: { id: variant.id }, data: { price, cost } });
@@ -452,7 +458,7 @@ export async function refreshFzrQuotePrice(variant: PremiumVariant, provider: Pr
       if (best === null || Number(o.price) < Number(best)) best = o.price;
     }
     if (best === null) throw new Error("Game này tạm thời chưa có offer bán phía nhà cung cấp");
-    const price = fzrUsdToVnd(best, provider.exchangeRate, provider.markupPercent);
+    const price = fzrUsdToVnd(best, provider.exchangeRate, await fzrMarkupFor(provider, "steam_gift"));
     const cost = fzrUsdCostVnd(best, provider.exchangeRate);
     if (price > 0 && (price !== variant.price || cost !== variant.cost)) {
       await prisma.premiumVariant.update({ where: { id: variant.id }, data: { price, cost } });

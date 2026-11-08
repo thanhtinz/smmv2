@@ -3,7 +3,7 @@ import { FZR_LABELS, fzrUsdToVnd, fzrUsdCostVnd } from "./fzr";
 import { ADMIN_VARIANT_MARK } from "./families";
 import { DEFAULT_STAR_PACKAGES } from "./tg";
 import {
-  fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrTopups, fzrManualServices, fzrManualOffers,
+  fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrGiftCardCards, fzrTopups, fzrManualServices, fzrManualOffers,
   fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrSteamGiftGames,
 } from "./fzr";
 import type { Provider } from "@prisma/client";
@@ -150,24 +150,66 @@ async function collectGameKeys(provider: Provider): Promise<{ items: SyncItem[];
   return { items, skipped };
 }
 
+/** Gift Cards theo OpenAPI FZR (đọc lại 2026-11-08 khi làm khu Gift Card):
+ *  - GET /giftcards: phân trang CURSOR, items[] phẳng { category_id, name,
+ *    note?, imageurl? } — tầng category KHÔNG có giá và không lồng items.
+ *    (Bản cũ tưởng response lồng category->items có sẵn id+price và order
+ *    bằng { giftCardId } — ngược tài liệu, đấu key thật sẽ sync 0 sản phẩm
+ *    và order bị 400, đúng bệnh của gamekeys trước FIX10.)
+ *  - GET /giftcards/cards?category_id=: offers của category { card_id (có
+ *    thể null), name, price_usd, stock, min/max_order_quantity } — giá +
+ *    tồn kho ở đây.
+ *  Ánh xạ: 1 category = 1 PremiumProduct (providerProductId = category_id,
+ *  note -> description để trang chi tiết hiện thẻ NOTE đúng văn bản NCC),
+ *  1 offer = 1 variant (providerItemId = card_id, providerStock = stock).
+ *  Mỗi category tốn thêm 1 call /cards — category nào lỗi /cards hoặc
+ *  không còn offer có giá thì bỏ qua (đếm skipped), không chặn cả đợt. */
 async function collectGiftCards(provider: Provider): Promise<{ items: SyncItem[]; skipped: number }> {
-  const { cats } = await collectPaged((p) => fzrGiftCards(provider, p), ["giftcards", "cards", "products", "items"]);
+  const rawCats: any[] = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < 50; page++) {
+    const raw = await fzrGiftCards(provider, cursor);
+    const pageItems = asArray(raw?.items);
+    rawCats.push(...pageItems);
+    const next = raw?.meta?.next_cursor;
+    if (!raw?.meta?.has_more || !next || pageItems.length === 0) break;
+    cursor = String(next);
+  }
   const items: SyncItem[] = [];
   let skipped = 0;
-  for (const cat of cats) {
-    for (const g of cat.items) {
-      const id = firstDefined(g?.id);
-      const price = firstDefined(g?.price, g?.amount, g?.value);
-      if (id === undefined || price === undefined) { skipped++; continue; }
-      items.push({
-        group: "giftcards",
-        productKey: String(id),
-        productName: String(g?.name || g?.brand || `Gift Card ${id}`),
-        categoryName: cat.name || "Gift Cards",
-        image: firstDefined(g?.image, g?.imageUrl, g?.logo),
-        variants: [{ itemId: String(id), name: String(g?.denomination || g?.faceValue || "Gift card"), usd: String(price) }],
+  for (const c of rawCats) {
+    const categoryId = firstDefined(c?.category_id, c?.categoryId);
+    if (categoryId === undefined) { skipped++; continue; }
+    let cardsRaw: any;
+    try {
+      cardsRaw = await fzrGiftCardCards(provider, String(categoryId));
+    } catch { skipped++; continue; }
+    const variants: SyncVariant[] = [];
+    for (const o of asArray(cardsRaw?.offers)) {
+      const price = firstDefined(o?.price_usd, o?.price);
+      if (price === undefined) { skipped++; continue; }
+      const stockNum = Number(o?.stock);
+      variants.push({
+        // card_id có thể null phía FZR (OpenAPI cho phép null): offer đó
+        // không gọi order được bằng card_id — vẫn lưu theo tên để admin
+        // thấy, lúc đặt FZR trả lỗi dứt khoát -> hoàn tiền như lỗi cứng.
+        itemId: o?.card_id != null && o?.card_id !== "" ? String(o.card_id) : `name:${String(o?.name || "Gift card")}`,
+        name: String(o?.name || c?.name || "Gift card"),
+        usd: String(price),
+        ...(Number.isFinite(stockNum) ? { stock: stockNum } : {}),
       });
     }
+    if (!variants.length) { skipped++; continue; }
+    const note = firstDefined(cardsRaw?.note, c?.note);
+    items.push({
+      group: "giftcards",
+      productKey: String(categoryId),
+      productName: String(c?.name || cardsRaw?.name || `Gift Card ${categoryId}`),
+      categoryName: "Gift Cards",
+      ...(note ? { description: String(note) } : {}),
+      image: firstDefined(c?.imageurl, cardsRaw?.imageurl, c?.image, c?.imageUrl),
+      variants,
+    });
   }
   return { items, skipped };
 }
@@ -332,33 +374,51 @@ async function collectSteamGifts(provider: Provider): Promise<{ items: SyncItem[
   return { items, skipped };
 }
 
-export async function syncFzrCatalog(provider: Provider, opts: { includeSteamGifts?: boolean } = {}) {
+export async function syncFzrCatalog(provider: Provider, opts: {
+  includeSteamGifts?: boolean;
+  /** FIX11 TASK 3 — đồng bộ RIÊNG một số nhóm (nút Đồng bộ trên trang sản
+   *  phẩm từng khu): collector của nhóm khác không chạy, vòng tắt gói cũ
+   *  cũng chỉ quét trong các nhóm của đợt này — không đụng catalog khu khác. */
+  groups?: string[];
+  /** Markup hiệu lực theo nhóm (override theo khu, xem lib/fzr-markup) —
+   *  bỏ trống thì mọi nhóm dùng markupPercent của nhà cung cấp như trước. */
+  markupFor?: (group: string) => number;
+} = {}) {
   const groups: SyncItem[] = [];
   let skipped = 0;
   const push = (r: { items: SyncItem[]; skipped: number }) => { groups.push(...r.items); skipped += r.skipped; };
+  const only = opts.groups ? new Set(opts.groups) : null;
+  const want = (g: string) => !only || only.has(g);
+  // Khu Steam bấm đồng bộ riêng thì lấy luôn gift games (vẫn là thao tác tay
+  // như cờ includeSteamGifts, chỉ khác là gói trong nhóm của khu).
+  const doSteamGifts = !!opts.includeSteamGifts || want("steam_gift") && !!only;
 
-  push(await collectGameKeys(provider));
-  push(await collectGiftCards(provider));
-  const topupsRes = await collectTopups(provider);
-  push(topupsRes);
-  // Ghi nhận đường giao Telegram theo username cho provider này (hoặc xoá nếu
-  // lần đồng bộ này không còn thấy) — luồng thực thi đơn Telegram đọc lại ở đây.
-  try {
-    const { setSetting } = await import("./settings");
-    if (topupsRes.tgTopup) {
-      await setSetting("telegram_topup_offer_id", topupsRes.tgTopup.offerId);
-      await setSetting("telegram_topup_field", topupsRes.tgTopup.field);
-      await setSetting("telegram_topup_provider_id", String(provider.id));
-    } else if (String((await (await import("./settings")).getSettings()).telegram_topup_provider_id || "") === String(provider.id)) {
-      await setSetting("telegram_topup_offer_id", "");
-      await setSetting("telegram_topup_field", "");
-      await setSetting("telegram_topup_provider_id", "");
-    }
-  } catch { /* ghi nhận đường Telegram là phụ trợ — lỗi không chặn đồng bộ catalog */ }
-  push(await collectManual(provider));
-  groups.push(...(await collectSynthetic(provider)));
+  if (want("gamekeys")) push(await collectGameKeys(provider));
+  if (want("giftcards")) push(await collectGiftCards(provider));
+  if (want("topups")) {
+    const topupsRes = await collectTopups(provider);
+    push(topupsRes);
+    // Ghi nhận đường giao Telegram theo username cho provider này (hoặc xoá nếu
+    // lần đồng bộ này không còn thấy) — luồng thực thi đơn Telegram đọc lại ở đây.
+    try {
+      const { setSetting } = await import("./settings");
+      if (topupsRes.tgTopup) {
+        await setSetting("telegram_topup_offer_id", topupsRes.tgTopup.offerId);
+        await setSetting("telegram_topup_field", topupsRes.tgTopup.field);
+        await setSetting("telegram_topup_provider_id", String(provider.id));
+      } else if (String((await (await import("./settings")).getSettings()).telegram_topup_provider_id || "") === String(provider.id)) {
+        await setSetting("telegram_topup_offer_id", "");
+        await setSetting("telegram_topup_field", "");
+        await setSetting("telegram_topup_provider_id", "");
+      }
+    } catch { /* ghi nhận đường Telegram là phụ trợ — lỗi không chặn đồng bộ catalog */ }
+  }
+  if (want("manual")) push(await collectManual(provider));
+  if (want("telegram_stars") || want("telegram_premium") || want("steam_topup")) {
+    groups.push(...(await collectSynthetic(provider)).filter((i) => want(i.group)));
+  }
   const syncedGroups = new Set(groups.map((g) => g.group));
-  if (opts.includeSteamGifts) {
+  if (doSteamGifts) {
     push(await collectSteamGifts(provider));
     syncedGroups.add("steam_gift");
   }
@@ -417,7 +477,7 @@ export async function syncFzrCatalog(provider: Provider, opts: { includeSteamGif
       created++;
     }
     for (const v of item.variants) {
-      const price = v.usd !== null ? fzrUsdToVnd(v.usd, provider.exchangeRate, provider.markupPercent) : 0;
+      const price = v.usd !== null ? fzrUsdToVnd(v.usd, provider.exchangeRate, opts.markupFor ? opts.markupFor(item.group) : provider.markupPercent) : 0;
       const cost = v.usd !== null ? fzrUsdCostVnd(v.usd, provider.exchangeRate) : 0;
       const ev = await prisma.premiumVariant.findFirst({
         where: { productId, providerGroup: item.group, providerItemId: v.itemId },
@@ -469,7 +529,7 @@ export async function syncFzrCatalog(provider: Provider, opts: { includeSteamGif
 
   await prisma.provider.update({ where: { id: provider.id }, data: { lastSyncAt: new Date() } });
   await prisma.apiLog.create({
-    data: { kind: "provider_sync", ref: provider.name, detail: `FZR catalog created=${created} updated=${updated} variants=${variantCount} deactivated=${deactivated} skipped=${skipped} steamGifts=${!!opts.includeSteamGifts}` },
+    data: { kind: "provider_sync", ref: provider.name, detail: `FZR catalog created=${created} updated=${updated} variants=${variantCount} deactivated=${deactivated} skipped=${skipped} steamGifts=${doSteamGifts}` },
   });
-  return { created, updated, variants: variantCount, deactivated, skipped, total: groups.length, steamGifts: !!opts.includeSteamGifts };
+  return { created, updated, variants: variantCount, deactivated, skipped, total: groups.length, steamGifts: doSteamGifts };
 }
