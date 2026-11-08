@@ -123,7 +123,7 @@ export default async function HomePage() {
               header, thấp xuống nữa cái banner"): hero hạ xuống, khoảng
               trống hiện nền trang chứ không dính sát topbar. Chỉ gói ở
               trang chủ — các trang khác dùng chung PublicFrame không đổi. */}
-          <div className="mt-5 sm:mt-6">
+          <div className="mt-10 sm:mt-12">
             <HeroSlider slides={slides} />
           </div>
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
