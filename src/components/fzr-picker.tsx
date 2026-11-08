@@ -147,7 +147,7 @@ export function GameKeyAddForm({ returnTo }: { returnTo: string }) {
   const edition = editions.find((e) => e.id === editionId);
   const pick = (it: PickItem) => { setPicked(it); setName(it.name); };
   return (
-    <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-3.5">
+    <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3.5">
       <PickerBox group="gamekeys" onPick={pick} picked={picked} />
       <form action={famAddGameKey} className="mt-3 flex flex-wrap items-end gap-2">
         <input type="hidden" name="returnTo" value={returnTo} />
@@ -217,7 +217,7 @@ export function GiftCardAddForm({ returnTo }: { returnTo: string }) {
   const edition = editions.find((e) => e.id === editionId);
   const pick = (it: PickItem) => { setPicked(it); setName(it.name); };
   return (
-    <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-3.5">
+    <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3.5">
       <PickerBox group="giftcards" onPick={pick} picked={picked} />
       <form action={famAddGiftCardCategory} className="mt-3 flex flex-wrap items-end gap-2">
         <input type="hidden" name="returnTo" value={returnTo} />
@@ -277,7 +277,7 @@ export function SteamGiftAddForm({ returnTo }: { returnTo: string }) {
   const [name, setName] = useState("");
   const pick = (it: PickItem) => { setPicked(it); setName(it.name); };
   return (
-    <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-3.5">
+    <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3.5">
       <PickerBox group="steam_gift" onPick={pick} picked={picked} />
       <form action={famAddGiftGame} className="mt-3 flex flex-wrap items-end gap-2">
         <input type="hidden" name="returnTo" value={returnTo} />
@@ -317,7 +317,7 @@ export function TelegramPremiumAddForm({ returnTo }: { returnTo: string }) {
   };
   const plan = plans?.find((p) => p.id === months);
   return (
-    <form action={famAddTelegramPlan} className="flex flex-wrap items-end gap-2 border-t border-dashed border-slate-100 bg-slate-50/40 px-4 py-3">
+    <form action={famAddTelegramPlan} className="flex flex-wrap items-end gap-2 border-b border-dashed border-slate-100 bg-slate-50/40 px-4 py-3">
       <input type="hidden" name="returnTo" value={returnTo} />
       <label className="block">
         <span className={lbl}>Gói tháng (từ nguồn FZR)</span>

@@ -310,7 +310,7 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
   );
 }
 
-export function ProductsClient({ products, categories, providers, returnTo = "/admin/premium" }: { products: PremiumProductDTO[]; categories: PremiumCategoryDTO[]; providers: PremiumProviderOpt[]; returnTo?: string }) {
+export function ProductsClient({ products, categories, providers, returnTo = "/admin/premium", filterForm }: { products: PremiumProductDTO[]; categories: PremiumCategoryDTO[]; providers: PremiumProviderOpt[]; returnTo?: string; filterForm?: React.ReactNode }) {
   const { t, td } = useLang();
   const [editing, setEditing] = useState<PremiumProductDTO | undefined>(undefined);
   const [open, setOpen] = useState(false);
@@ -321,6 +321,7 @@ export function ProductsClient({ products, categories, providers, returnTo = "/a
         <Link href="/admin/kho-premium" className="btn-ghost btn-sm !px-4 !py-2.5">{t("Kho tài khoản")}</Link>
         <button onClick={() => { setEditing(undefined); setOpen(true); }} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm sản phẩm mới")}</button>
       </div>
+      {filterForm}
       {open && <ProductModal product={editing} categories={categories} providers={providers} returnTo={returnTo} onClose={() => setOpen(false)} />}
       {variantFor && <VariantsModal product={variantFor} providers={providers} returnTo={returnTo} onClose={() => setVariantFor(null)} />}
       <div className="card overflow-x-auto">

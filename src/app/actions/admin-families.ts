@@ -19,7 +19,9 @@ import type { Provider } from "@prisma/client";
 
 function back(returnTo: string, ok: boolean, text: string): never {
   const rt = returnTo.startsWith("/admin/") ? returnTo : "/admin";
-  redirect(`${rt}?${ok ? "msg" : "err"}=${encodeURIComponent(text)}`);
+  // returnTo có thể đã mang query (vd ?tab=premium của trang Telegram) —
+  // nối msg/err bằng "&" khi đã có "?", tránh nuốt mất tham số cũ.
+  redirect(`${rt}${rt.includes("?") ? "&" : "?"}${ok ? "msg" : "err"}=${encodeURIComponent(text)}`);
 }
 const rt = (fd: FormData) => String(fd.get("returnTo") || "");
 const money = (v: FormDataEntryValue | null) => Math.max(0, Math.floor(Number(String(v || "0").replace(/[^\d]/g, "")) || 0));

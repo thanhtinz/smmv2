@@ -48,6 +48,7 @@ export default async function AdminGameKeyProducts({ searchParams }: { searchPar
           <h2 className="text-[15px] font-bold text-slate-800">Game Key</h2>
           <span className="text-xs text-slate-400">Nền tảng / vùng / tồn kho lấy từ dữ liệu FazerCards khi đồng bộ</span>
         </div>
+        <GameKeyAddForm returnTo={RT} />
         <form method="get" className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
           <input name="q" defaultValue={q} placeholder="Tìm game theo tên..." className="inp min-w-[220px] flex-1 !py-2 text-[13px]" />
           <button className="btn-primary btn-sm !px-3.5 !py-2">Tìm kiếm</button>
@@ -95,12 +96,11 @@ export default async function AdminGameKeyProducts({ searchParams }: { searchPar
             </div>
           ))
         ) : (
-          <p className="px-5 py-4 text-sm text-slate-400">{q ? `Không có game nào khớp “${q}”.` : "Chưa có game nào — đồng bộ catalog FZR ở trang Nhà cung cấp hoặc thêm game ở dưới."}</p>
+          <p className="px-5 py-4 text-sm text-slate-400">{q ? `Không có game nào khớp “${q}”.` : "Chưa có game nào — đồng bộ catalog FZR ở trang Nhà cung cấp hoặc thêm game ở trên."}</p>
         )}
         <div className="px-4">
           <AdminPager basePath={RT} page={page} pages={pages} total={total} unit="game" params={{ q }} />
         </div>
-        <GameKeyAddForm returnTo={RT} />
       </section>
 
       <p className="px-1 text-xs leading-relaxed text-slate-400">

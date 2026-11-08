@@ -49,6 +49,7 @@ export default async function AdminGiftCardProducts({ searchParams }: { searchPa
           <h2 className="text-[15px] font-bold text-slate-800">Gift Card</h2>
           <span className="text-xs text-slate-400">Mệnh giá / tồn kho lấy từ dữ liệu FazerCards khi đồng bộ</span>
         </div>
+        <GiftCardAddForm returnTo={RT} />
         <form method="get" className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
           <input name="q" defaultValue={q} placeholder="Tìm danh mục theo tên..." className="inp min-w-[220px] flex-1 !py-2 text-[13px]" />
           <button className="btn-primary btn-sm !px-3.5 !py-2">Tìm kiếm</button>
@@ -99,12 +100,11 @@ export default async function AdminGiftCardProducts({ searchParams }: { searchPa
             </div>
           ))
         ) : (
-          <p className="px-5 py-4 text-sm text-slate-400">{q ? `Không có danh mục nào khớp “${q}”.` : "Chưa có danh mục nào — đồng bộ catalog FZR ở trang Nhà cung cấp hoặc thêm danh mục ở dưới."}</p>
+          <p className="px-5 py-4 text-sm text-slate-400">{q ? `Không có danh mục nào khớp “${q}”.` : "Chưa có danh mục nào — đồng bộ catalog FZR ở trang Nhà cung cấp hoặc thêm danh mục ở trên."}</p>
         )}
         <div className="px-4">
           <AdminPager basePath={RT} page={page} pages={pages} total={total} unit="danh mục" params={{ q }} />
         </div>
-        <GiftCardAddForm returnTo={RT} />
       </section>
 
       <p className="px-1 text-xs leading-relaxed text-slate-400">

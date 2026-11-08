@@ -59,19 +59,7 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
           <h2 className="text-[15px] font-bold text-slate-800">Gói Top-Up</h2>
           <span className="text-xs text-slate-400">Mệnh giá USD cố định — giá bán sửa ở đây là giá trang khách tính tiền</span>
         </div>
-        {topup.length ? (
-          <>
-            {topupSlice.map((v) => (
-              <VariantRow key={v.id} v={v} returnTo={RT} meta={`Mệnh giá: ${v.providerItemId || "—"} USD`} />
-            ))}
-            <div className="px-4">
-              <AdminPager basePath={RT} page={topupPage} pages={topupPages} total={topup.length} unit="mệnh giá" param="tpage" params={{ gq, gpage: String(giftPage) }} />
-            </div>
-          </>
-        ) : (
-          <p className="px-5 py-4 text-sm text-slate-400">Chưa có mệnh giá Top-Up — đồng bộ catalog FZR hoặc thêm mệnh giá ở dưới.</p>
-        )}
-        <form action={famAddTopupDenom} className="flex flex-wrap items-end gap-2 border-t border-slate-100 bg-slate-50/60 px-4 py-3.5">
+        <form action={famAddTopupDenom} className="flex flex-wrap items-end gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3.5">
           <input type="hidden" name="returnTo" value={RT} />
           <label className="block">
             <span className="mb-1 block text-[11px] font-semibold text-slate-400">Mệnh giá (USD)</span>
@@ -83,6 +71,18 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
           </label>
           <button className="btn-primary btn-sm !px-3.5 !py-2">Thêm mệnh giá</button>
         </form>
+        {topup.length ? (
+          <>
+            {topupSlice.map((v) => (
+              <VariantRow key={v.id} v={v} returnTo={RT} meta={`Mệnh giá: ${v.providerItemId || "—"} USD`} />
+            ))}
+            <div className="px-4">
+              <AdminPager basePath={RT} page={topupPage} pages={topupPages} total={topup.length} unit="mệnh giá" param="tpage" params={{ gq, gpage: String(giftPage) }} />
+            </div>
+          </>
+        ) : (
+          <p className="px-5 py-4 text-sm text-slate-400">Chưa có mệnh giá Top-Up — đồng bộ catalog FZR hoặc thêm mệnh giá ở trên.</p>
+        )}
       </section>
 
       {/* Họ Game gift */}
@@ -92,6 +92,7 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
           <h2 className="text-[15px] font-bold text-slate-800">Game gift</h2>
           <span className="text-xs text-slate-400">Mỗi game 1 sản phẩm theo App ID — giá bán chốt tươi theo offer rẻ nhất phía FZR tại lúc mua</span>
         </div>
+        <SteamGiftAddForm returnTo={RT} />
         <form method="get" className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
           <input type="hidden" name="tpage" value={topupPage} />
           <input name="gq" defaultValue={gq} placeholder="Tìm game gift theo tên..." className="inp min-w-[220px] flex-1 !py-2 text-[13px]" />
@@ -130,14 +131,13 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
             </div>
           ))
         ) : (
-          <p className="px-5 py-4 text-sm text-slate-400">{gq ? `Không có game gift nào khớp “${gq}”.` : "Chưa có game gift — bấm đồng bộ Steam Gifts ở trang Nhà cung cấp hoặc thêm game ở dưới."}</p>
+          <p className="px-5 py-4 text-sm text-slate-400">{gq ? `Không có game gift nào khớp “${gq}”.` : "Chưa có game gift — bấm đồng bộ Steam Gifts ở trang Nhà cung cấp hoặc thêm game ở trên."}</p>
         )}
         {giftFiltered.length > 0 && (
           <div className="px-4">
             <AdminPager basePath={RT} page={giftPage} pages={giftPages} total={giftFiltered.length} unit="game gift" param="gpage" params={{ gq, tpage: String(topupPage) }} />
           </div>
         )}
-        <SteamGiftAddForm returnTo={RT} />
       </section>
 
       <p className="px-1 text-xs leading-relaxed text-slate-400">
