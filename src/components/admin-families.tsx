@@ -1,53 +1,18 @@
 import Link from "next/link";
 import { I } from "./ui";
-import { famSaveVariant, famToggleVariant, famSaveProviderPricing, famDeleteVariant, famSyncArea, famSaveAreaMarkup } from "@/app/actions/admin-families";
+import { famSaveVariant, famToggleVariant, famDeleteVariant, famSyncArea, famSaveAreaMarkup } from "@/app/actions/admin-families";
 import { ADMIN_VARIANT_MARK, type FamilyVariant } from "@/lib/families";
 import type { Provider } from "@prisma/client";
 
 /** FIX8 TASK 4 — Mảnh giao diện dùng chung cho admin họ Telegram/Steam:
- *  thẻ nhà cung cấp (tỉ giá CHỈ ĐỌC — nguồn duy nhất là hồ sơ nhà cung cấp
- *  ở Admin → Nhà cung cấp; markup chung sửa tại đây) và hàng gói (sửa
- *  tên/giá, bật/tắt). Server components thuần form — không JS phía khách. */
+ *  hàng gói (sửa tên/giá, bật/tắt) và thẻ đồng bộ & markup của khu.
+ *  TỈ GIÁ + MARKUP CHUNG của nhà cung cấp KHÔNG còn thẻ riêng ở các trang
+ *  khu vực: cả hai sống trọn trong form nhà cung cấp (Admin → Nhà cung
+ *  cấp, Provider.exchangeRate / markupPercent — "chỉnh 1 lần cho toàn
+ *  bộ"); trang khu vực chỉ còn markup RIÊNG của khu (AreaSyncCard).
+ *  Server components thuần form — không JS phía khách. */
 
 export const fmtVnd = (n: number) => `${n.toLocaleString("vi-VN")}đ`;
-
-export function ProviderPricingCard({ provider, returnTo }: { provider: Provider; returnTo: string }) {
-  return (
-    <section className="card mb-4 p-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-brand-600">{I.server}</span>
-        <h2 className="text-[15px] font-bold text-slate-800">Nhà cung cấp: {provider.name}</h2>
-        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500">
-          Tự cập nhật giá khi đồng bộ: {provider.autoUpdatePrice ? "Bật" : "Tắt"}
-        </span>
-        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500">
-          Đồng bộ tên/mô tả: {provider.syncContent ? "Bật" : "Tắt"}
-        </span>
-      </div>
-      <p className="mt-1.5 text-[13px] text-slate-500">
-        Tỉ giá chỉ lưu MỘT chỗ duy nhất trong hồ sơ nhà cung cấp — thẻ này chỉ hiển thị để tham chiếu, mọi đường tính giá (đồng bộ, báo giá tươi của Stars và Steam Gift mỗi đơn) đều đọc thẳng giá trị đó. Markup dưới đây là markup chung của nhà cung cấp.
-      </p>
-      <div className="mt-3 flex flex-wrap items-end gap-3">
-        <div>
-          <span className="mb-1 block text-xs font-semibold text-slate-500">Tỉ giá (VNĐ / 1 USD) — của nhà cung cấp</span>
-          <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-200">
-            {fmtVnd(provider.exchangeRate)}
-            <Link href="/admin/nha-cung-cap" className="text-xs font-semibold text-brand-600 hover:underline">Sửa tại Nhà cung cấp</Link>
-          </div>
-        </div>
-        <form action={famSaveProviderPricing} className="flex flex-wrap items-end gap-3">
-          <input type="hidden" name="providerId" value={provider.id} />
-          <input type="hidden" name="returnTo" value={returnTo} />
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-slate-500">Markup chung (%)</span>
-            <input name="markupPercent" type="number" min={0} max={1000} defaultValue={provider.markupPercent} className="inp !w-32" />
-          </label>
-          <button className="btn-primary btn-sm !px-4 !py-2.5">Lưu markup nhà cung cấp</button>
-        </form>
-      </div>
-    </section>
-  );
-}
 
 export function VariantRow({ v, returnTo, meta, deletable }: { v: FamilyVariant; returnTo: string; meta: string; deletable?: boolean }) {
   const custom = v.deliveryType === ADMIN_VARIANT_MARK;

@@ -1,6 +1,6 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { ProviderPricingCard, VariantRow, AreaSyncCard, AdminPager } from "@/components/admin-families";
+import { VariantRow, AreaSyncCard, AdminPager } from "@/components/admin-families";
 import { famSaveGiftProduct } from "@/app/actions/admin-families";
 import { GameKeyAddForm, GameKeyEditionForm } from "@/components/fzr-picker";
 import { loadGameKeyFamilies } from "@/lib/families";
@@ -17,8 +17,9 @@ const RT = "/admin/game-key/san-pham";
  *  API (chỉ hiện, không sửa tay ở đây); editions = các key của game
  *  (key_id, giá bán sửa ở đây là giá tính tiền, tồn kho là số phía FZR tại
  *  lần đồng bộ gần nhất). Edition admin tự thêm mang dấu CUSTOM — đồng bộ
- *  không ghi đè giá và không tắt. KHÔNG trang cấu hình riêng: tỉ giá/markup
- *  nằm ở thẻ nhà cung cấp bên dưới, cấu hình FZR ở trang Nhà cung cấp. */
+ *  không ghi đè giá và không tắt. KHÔNG trang cấu hình riêng: tỉ giá +
+ *  markup chung ở form nhà cung cấp (Admin → Nhà cung cấp), markup riêng
+ *  của khu ở thẻ AreaSyncCard bên dưới. */
 export default async function AdminGameKeyProducts({ searchParams }: { searchParams: { msg?: string; err?: string; q?: string; page?: string } }) {
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
@@ -39,7 +40,6 @@ export default async function AdminGameKeyProducts({ searchParams }: { searchPar
           Chưa có nhà cung cấp FZR đang bật — thêm nhà cung cấp ở Admin → Nhà cung cấp (API) rồi đồng bộ catalog để có game.
         </div>
       )}
-      {providers.map((p) => <ProviderPricingCard key={p.id} provider={p} returnTo={RT} />)}
       {providers[0] && <AreaSyncCard provider={providers[0]} groups={["gamekeys"]} overrides={areaOverrides} returnTo={RT} />}
 
       <section className="card mb-4 overflow-hidden">

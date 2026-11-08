@@ -1,6 +1,6 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { ProviderPricingCard, VariantRow, fmtVnd, AreaSyncCard, AdminPager } from "@/components/admin-families";
+import { VariantRow, fmtVnd, AreaSyncCard, AdminPager } from "@/components/admin-families";
 import { famAddStarPackage } from "@/app/actions/admin-families";
 import { TelegramPremiumAddForm } from "@/components/fzr-picker";
 import { AdminFamilyTabs } from "@/components/admin-tabs";
@@ -69,7 +69,7 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
         <>
           <VariantRow v={stars} returnTo={rtStars} meta={`Gói đơn vị (neo thực thi của mọi đơn sao) · Giá hiển thị mỗi sao: ${fmtVnd(stars.price)} (tự cập nhật theo báo giá)`} />
           <p className="px-4 pb-4 text-xs leading-relaxed text-slate-400">
-            Giá bán thật của Stars = giá mỗi sao phía FZR × tỉ giá × (1 + markup%) của nhà cung cấp ở thẻ trên — sửa markup/tỉ giá để đổi giá bán; ô giá ở hàng gói đơn vị chỉ là giá hiển thị gần nhất.
+            Giá bán thật của Stars = giá mỗi sao phía FZR × tỉ giá × (1 + markup%) của nhà cung cấp — sửa markup/tỉ giá tại Admin → Nhà cung cấp để đổi giá bán; ô giá ở hàng gói đơn vị chỉ là giá hiển thị gần nhất.
           </p>
         </>
       ) : (
@@ -133,7 +133,6 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
           Chưa cấu hình nhà cung cấp FZR cho Telegram — vào Admin → Nhà cung cấp để chọn nhà cung cấp phục vụ Telegram, rồi đồng bộ catalog tại đó.
         </div>
       )}
-      {provider && <ProviderPricingCard provider={provider} returnTo={rtTab} />}
       {provider && <AreaSyncCard provider={provider} groups={["telegram_stars", "telegram_premium"]} overrides={areaOverrides} returnTo={rtTab} />}
 
       <AdminFamilyTabs

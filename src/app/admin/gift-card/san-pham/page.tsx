@@ -1,6 +1,6 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { ProviderPricingCard, VariantRow, AreaSyncCard, AdminPager } from "@/components/admin-families";
+import { VariantRow, AreaSyncCard, AdminPager } from "@/components/admin-families";
 import { famSaveGiftProduct } from "@/app/actions/admin-families";
 import { GiftCardAddForm, GiftCardDenomForm } from "@/components/fzr-picker";
 import { loadGiftCardFamilies } from "@/lib/families";
@@ -18,8 +18,8 @@ const RT = "/admin/gift-card/san-pham";
  *  category (card_id, giá bán sửa ở đây là giá tính tiền, tồn kho là số
  *  phía FZR tại lần đồng bộ gần nhất). Mệnh giá admin tự thêm mang dấu
  *  CUSTOM — đồng bộ không ghi đè giá và không tắt. KHÔNG trang cấu hình
- *  riêng: tỉ giá/markup nằm ở thẻ nhà cung cấp bên dưới, cấu hình FZR ở
- *  trang Nhà cung cấp. */
+ *  riêng: tỉ giá + markup chung ở form nhà cung cấp (Admin → Nhà cung
+ *  cấp), markup riêng của khu ở thẻ AreaSyncCard bên dưới. */
 export default async function AdminGiftCardProducts({ searchParams }: { searchParams: { msg?: string; err?: string; q?: string; page?: string } }) {
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
@@ -40,7 +40,6 @@ export default async function AdminGiftCardProducts({ searchParams }: { searchPa
           Chưa có nhà cung cấp FZR đang bật — thêm nhà cung cấp ở Admin → Nhà cung cấp (API) rồi đồng bộ catalog để có danh mục thẻ.
         </div>
       )}
-      {providers.map((p) => <ProviderPricingCard key={p.id} provider={p} returnTo={RT} />)}
       {providers[0] && <AreaSyncCard provider={providers[0]} groups={["giftcards"]} overrides={areaOverrides} returnTo={RT} />}
 
       <section className="card mb-4 overflow-hidden">

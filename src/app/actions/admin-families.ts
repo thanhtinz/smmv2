@@ -49,19 +49,11 @@ export async function famToggleVariant(fd: FormData) {
   back(rt(fd), true, on ? "Đã bật bán gói" : "Đã tắt bán gói");
 }
 
-/** Markup CHUNG của nhà cung cấp FZR (thẻ nhà cung cấp trên các trang khu
- *  vực). TỈ GIÁ KHÔNG được lưu ở đây: tỉ giá chỉ có MỘT nguồn duy nhất là
- *  hồ sơ nhà cung cấp (Admin → Nhà cung cấp, Provider.exchangeRate) — thẻ
- *  khu vực chỉ hiển thị để tham chiếu, và mọi đường tính giá đều đọc
- *  provider.exchangeRate tại thời điểm dùng. */
-export async function famSaveProviderPricing(fd: FormData) {
-  await requireAdmin();
-  const providerId = parseInt(String(fd.get("providerId") || "0"));
-  const markupPercent = Math.max(0, Math.min(1000, parseInt(String(fd.get("markupPercent") || "0")) || 0));
-  if (!providerId) back(rt(fd), false, "Nhà cung cấp không hợp lệ");
-  await prisma.provider.update({ where: { id: providerId }, data: { markupPercent } });
-  back(rt(fd), true, "Đã lưu markup nhà cung cấp");
-}
+/* (Đã gỡ famSaveProviderPricing: markup CHUNG + tỉ giá của nhà cung cấp
+ *  chỉ còn sửa trong form nhà cung cấp — Admin → Nhà cung cấp, action
+ *  adminSaveProvider ghi Provider.exchangeRate + markupPercent. Các trang
+ *  khu vực không còn thẻ nhà cung cấp; markup riêng của khu đi qua
+ *  famSaveAreaMarkup.) */
 
 async function categoryId(name: string, providerId: number): Promise<number> {
   const found = await prisma.premiumCategory.findFirst({ where: { name } });

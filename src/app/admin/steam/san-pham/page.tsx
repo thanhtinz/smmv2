@@ -1,6 +1,6 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { ProviderPricingCard, VariantRow, fmtVnd, AreaSyncCard, AdminPager } from "@/components/admin-families";
+import { VariantRow, fmtVnd, AreaSyncCard, AdminPager } from "@/components/admin-families";
 import { famAddTopupDenom, famSaveGiftProduct } from "@/app/actions/admin-families";
 import { SteamGiftAddForm } from "@/components/fzr-picker";
 import { loadSteamFamilies } from "@/lib/families";
@@ -15,8 +15,9 @@ const RT = "/admin/steam/san-pham";
 /** FIX8 TASK 4 — Sản phẩm Steam theo đúng 2 họ phía FZR: Gói Top-Up (mệnh giá
  *  USD cố định, giá bán = giá gói trong catalog) và Game gift (mỗi game 1 sản
  *  phẩm theo appid + gói "Bản gift"; giá bán chốt tươi theo offer rẻ nhất tại
- *  lúc mua nên giá hiển thị chỉ là giá gần nhất, markup nằm ở thẻ nhà cung
- *  cấp). Sửa ở đây ghi vào đúng PremiumProduct/PremiumVariant trang khách đọc. */
+ *  lúc mua nên giá hiển thị chỉ là giá gần nhất; tỉ giá + markup chung nằm ở
+ *  form nhà cung cấp — Admin → Nhà cung cấp, markup riêng khu ở AreaSyncCard).
+ *  Sửa ở đây ghi vào đúng PremiumProduct/PremiumVariant trang khách đọc. */
 const PAGE_SIZE = 20;
 
 export default async function AdminSteamProducts({ searchParams }: { searchParams: { msg?: string; err?: string; tpage?: string; gpage?: string; gq?: string } }) {
@@ -49,7 +50,6 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
           Chưa có nhà cung cấp FZR đang bật — thêm nhà cung cấp ở Admin → Nhà cung cấp (API) rồi đồng bộ catalog để có gói Steam.
         </div>
       )}
-      {providers.map((p) => <ProviderPricingCard key={p.id} provider={p} returnTo={RT} />)}
       {providers[0] && <AreaSyncCard provider={providers[0]} groups={["steam_topup", "steam_gift"]} overrides={areaOverrides} returnTo={RT} />}
 
       {/* Họ Top-Up */}
