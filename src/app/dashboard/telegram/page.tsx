@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { PageHead, Flash, I } from "@/components/ui";
+import { Flash } from "@/components/ui";
 import { getServerI18n } from "@/lib/lang-server";
 import { getTelegramProvider, getTelegramVariants, telegramEnabled } from "@/lib/tg";
 import { fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrUsdToVnd } from "@/lib/fzr";
@@ -43,14 +42,13 @@ export default async function TelegramOrderPage({ searchParams }: { searchParams
   const configured = !!provider && (!!variants.stars || plans.length > 0);
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="card mb-5 flex items-start gap-4 p-5">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-600/25 [&>svg]:h-5 [&>svg]:w-5">{I.send}</span>
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Telegram Stars & Premium</h1>
-          <p className="mt-0.5 text-sm text-slate-500">{L("Mua sao và gói Premium Telegram, gửi thẳng vào tài khoản của bạn.")}</p>
-        </div>
-        <Link href="/dashboard/telegram/lich-su" className="btn-ghost btn-sm ml-auto shrink-0">{L("Lịch sử")}</Link>
+    <div className="mx-auto max-w-[600px] space-y-4 sm:space-y-5">
+      {/* Thẻ tiêu đề DUY NHẤT ở đầu trang — đúng thẻ header của ảnh mẫu FZR
+          (gradient oải hương nhạt, không icon, không nút Lịch sử, không
+          PageHead/hero nào khác phía trên). */}
+      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
+        <h1 className="text-[26px] font-black leading-tight text-slate-900">Telegram stars & premium</h1>
+        <p className="mt-1.5 text-[15px] text-slate-500">{L("Danh mục sao và Premium Telegram.")}</p>
       </div>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       {!configured ? (

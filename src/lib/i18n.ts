@@ -867,7 +867,7 @@ export const DICT: Record<string, Tr> = {
   "điền máy chủ SMTP trước thì mới gửi được.": e("enter the SMTP server first before sending.", "先填写 SMTP 服务器才能发送。", "กรอกเซิร์ฟเวอร์ SMTP ก่อนจึงจะส่งได้", "送信するには先にSMTPサーバーを入力してください。", "전송하려면 먼저 SMTP 서버를 입력하세요."),
   "Gửi email thử kiểm tra SMTP": e("Send a test email to check SMTP", "发送测试邮件检查 SMTP", "ส่งอีเมลทดสอบเพื่อตรวจสอบ SMTP", "SMTP確認用のテストメールを送信", "SMTP 확인용 테스트 이메일 보내기"),
   "Gửi thử": e("Send test", "发送测试", "ส่งทดสอบ", "テスト送信", "테스트 보내기"),
-  "Người nhận": e("Recipients", "收件人", "ผู้รับ", "受信者", "수신자"),
+  "Người nhận": e("Recipient", "收件人", "ผู้รับ", "受信者", "수신자"),
   "Tiêu đề email": e("Email subject", "邮件标题", "หัวข้ออีเมล", "メール件名", "이메일 제목"),
   "Gửi email": e("Send email", "发送邮件", "ส่งอีเมล", "メールを送信", "이메일 보내기"),
   "Địa chỉ email của bạn": e("Your email address", "您的邮箱地址", "ที่อยู่อีเมลของคุณ", "あなたのメールアドレス", "내 이메일 주소"),
@@ -3447,8 +3447,8 @@ export const DICT: Record<string, Tr> = {
   "Lịch sử đơn Telegram": e("Telegram order history", "Telegram 订单历史", "ประวัติคำสั่งซื้อ Telegram", "Telegram注文履歴", "Telegram 주문 내역"),
   "Dịch vụ chưa được cấu hình": e("Service not configured yet", "服务尚未配置", "ยังไม่ได้ตั้งค่าบริการ", "サービスが未設定です", "서비스가 아직 설정되지 않았습니다"),
   "Telegram Stars & Premium chưa mở bán — vui lòng quay lại sau.": e("Telegram Stars & Premium are not on sale yet — please check back later.", "Telegram Stars 与 Premium 尚未开售——请稍后再来。", "Telegram Stars & Premium ยังไม่เปิดขาย — โปรดกลับมาใหม่ภายหลัง", "Telegram Stars & Premiumはまだ販売していません。後ほどお越しください。", "Telegram 스타 및 Premium은 아직 판매 중이 아닙니다. 나중에 다시 확인해 주세요."),
-  "Chọn gói sao": e("Choose a Stars package", "选择星星套餐", "เลือกแพ็กเกจดาว", "Starsパッケージを選択", "스타 패키지 선택"),
-  "Chọn gói Premium": e("Choose a Premium plan", "选择 Premium 套餐", "เลือกแพ็กเกจ Premium", "Premiumプランを選択", "Premium 요금제 선택"),
+  "Chọn gói sao": e("Choose a package", "选择星星套餐", "เลือกแพ็กเกจดาว", "Starsパッケージを選択", "스타 패키지 선택"),
+  "Chọn gói Premium": e("Choose a plan", "选择 Premium 套餐", "เลือกแพ็กเกจ Premium", "Premiumプランを選択", "Premium 요금제 선택"),
   "Hiện tất cả": e("Show all", "显示全部", "แสดงทั้งหมด", "すべて表示", "모두 보기"),
   "Số sao": e("Stars amount", "星星数量", "จำนวนดาว", "Stars数", "스타 수"),
   "Số dư ví": e("Wallet balance", "钱包余额", "ยอดเงินในกระเป๋า", "ウォレット残高", "지갑 잔액"),
@@ -3566,6 +3566,12 @@ export const DICT: Record<string, Tr> = {
   "Những sản phẩm bạn vừa xem.": e("Products you just looked at.", "您刚刚浏览过的产品。", "สินค้าที่คุณเพิ่งดู", "あなたが最近見た商品です。", "방금 보신 상품입니다."),
   "Sản phẩm gợi ý": e("Suggested products", "推荐产品", "สินค้าแนะนำสำหรับคุณ", "おすすめ商品", "추천 상품"),
   "Chưa có đánh giá": e("No reviews yet", "暂无评价", "ยังไม่มีรีวิว", "レビューはまだありません", "아직 리뷰가 없습니다"),
+  "Danh mục sao và Premium Telegram.": e("Catalog of Telegram stars and premium.", "Telegram 星星和 Premium 目录。", "แคตตาล็อกดาว Telegram และ Premium", "TelegramスターとPremiumのカタログです。", "Telegram 스타와 Premium 카탈로그입니다."),
+  "Cập nhật khi bạn đặt người nhận và số sao.": e("Updates when you set the recipient and stars.", "设置收件人和星星数量后更新。", "อัปเดตเมื่อคุณตั้งค่าผู้รับและจำนวนดาว", "受信者とスターを設定すると更新されます。", "수신자와 스타를 설정하면 업데이트됩니다."),
+  "Cập nhật khi bạn đặt người nhận và gói.": e("Updates when you set the recipient and plan.", "设置收件人和套餐后更新。", "อัปเดตเมื่อคุณตั้งค่าผู้รับและแพ็กเกจ", "受信者とプランを設定すると更新されます。", "수신자와 요금제를 설정하면 업데이트됩니다."),
+  "Cần thanh toán": e("To pay", "应付金额", "ยอดที่ต้องชำระ", "お支払い金額", "결제 금액"),
+  "Min": e("Min", "最小", "ขั้นต่ำ", "最小", "최소"),
+  "Max": e("Max", "最大", "สูงสุด", "最大", "최대"),
 
 };
 
