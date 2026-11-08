@@ -1,5 +1,5 @@
 import { I } from "./ui";
-import { famSaveVariant, famToggleVariant, famSaveProviderPricing } from "@/app/actions/admin-families";
+import { famSaveVariant, famToggleVariant, famSaveProviderPricing, famDeleteVariant } from "@/app/actions/admin-families";
 import { ADMIN_VARIANT_MARK, type FamilyVariant } from "@/lib/families";
 import type { Provider } from "@prisma/client";
 
@@ -42,7 +42,7 @@ export function ProviderPricingCard({ provider, returnTo }: { provider: Provider
   );
 }
 
-export function VariantRow({ v, returnTo, meta }: { v: FamilyVariant; returnTo: string; meta: string }) {
+export function VariantRow({ v, returnTo, meta, deletable }: { v: FamilyVariant; returnTo: string; meta: string; deletable?: boolean }) {
   const custom = v.deliveryType === ADMIN_VARIANT_MARK;
   const selling = v.active && !v.outOfStock;
   return (
@@ -78,6 +78,13 @@ export function VariantRow({ v, returnTo, meta }: { v: FamilyVariant; returnTo: 
           {selling ? "Tắt bán" : "Bật bán"}
         </button>
       </form>
+      {deletable && (
+        <form action={famDeleteVariant}>
+          <input type="hidden" name="id" value={v.id} />
+          <input type="hidden" name="returnTo" value={returnTo} />
+          <button className="btn-sm btn-ghost !px-3.5 !py-2 !text-rose-600">Xoá</button>
+        </form>
+      )}
     </div>
   );
 }

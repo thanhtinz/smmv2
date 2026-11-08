@@ -246,6 +246,10 @@ async function handle(req: NextRequest) {
           ...(f.options ? { options: f.options } : {}),
         }));
         for (const v of p.variants) {
+          // Gói sao Telegram theo số lượng (itemId là số sao) là preset hiển
+          // thị của web, KHÔNG phải SKU API — API bán sao qua gói đơn vị
+          // (itemId "stars") với quantity = số sao.
+          if (v.providerGroup === "telegram_stars" && v.providerItemId !== "stars") continue;
           const g = v.providerGroup || (p.fulfillment === "AUTO_STOCK" ? "gamekeys" : "manual");
           if (groupFilter && g !== groupFilter) continue;
           if (!byGroup.has(g)) byGroup.set(g, new Map());
@@ -315,7 +319,19 @@ async function handle(req: NextRequest) {
         });
       }
       if (!variant) return NextResponse.json({ error: "Product/cycle not found" });
-      const quantity = Math.max(1, parseInt(get("quantity") || "1") || 1);
+      let quantity = Math.max(1, parseInt(get("quantity") || "1") || 1);
+      // Gói sao Telegram theo số lượng mua qua API -> dịch sang gói đơn vị
+      // với quantity = số sao x số lượng gói (đúng máy tính tiền theo báo giá).
+      if (variant.providerGroup === "telegram_stars" && variant.providerItemId !== "stars") {
+        const amount = parseInt(variant.providerItemId || "0");
+        const unit = await prisma.premiumVariant.findFirst({
+          where: { productId: variant.productId, providerGroup: "telegram_stars", providerItemId: "stars", active: true },
+          include: { product: true },
+        });
+        if (!amount || !unit) return NextResponse.json({ error: "Telegram Stars package unavailable" });
+        quantity = quantity * amount;
+        variant = unit;
+      }
       // Thông tin bàn giao theo nhóm (fix6 task 6): tham số tiện ích theo nhóm
       // + `fields` JSON theo đúng nhãn trường của sản phẩm — tất cả chạy qua
       // createPremiumOrder như đơn web (trừ kho WS9, thực thi FZR, hoàn tiền).

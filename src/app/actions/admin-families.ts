@@ -119,6 +119,90 @@ async function steamTopupProduct(provider: Provider) {
   });
 }
 
+/** Sản phẩm tổng hợp Telegram Stars của nhà cung cấp (tạo vỏ đúng hình đồng bộ
+ *  FZR tạo nếu chưa có) — nơi chứa gói đơn vị và các gói sao theo số lượng. */
+async function telegramStarsProduct(provider: Provider) {
+  const existing = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "telegram-stars" } });
+  if (existing) return existing;
+  const viaVariant = await prisma.premiumVariant.findFirst({
+    where: { providerId: provider.id, providerGroup: "telegram_stars" },
+    select: { productId: true },
+  });
+  if (viaVariant) {
+    const p = await prisma.premiumProduct.findUnique({ where: { id: viaVariant.productId } });
+    if (p) return p;
+  }
+  return prisma.premiumProduct.create({
+    data: {
+      categoryId: await categoryId("Telegram", provider.id),
+      name: "Telegram Stars",
+      slug: `fzr-${provider.id}-telegram_stars-telegram-stars`.slice(0, 150),
+      fulfillment: "API",
+      providerId: provider.id,
+      providerProductId: "telegram-stars",
+      customFields: TELEGRAM_FIELDS,
+    },
+  });
+}
+
+/** Thêm GÓI SAO Telegram theo số lượng (vd 777 sao) — gói tự thêm (dấu CUSTOM,
+ *  sync không đụng), hiện ngay trong lưới gói của trang đặt đơn. Giá gói là
+ *  giá HIỂN THỊ (trống = tự tính theo giá mỗi sao hiện tại x số sao); giá
+ *  tính tiền thật vẫn chốt theo báo giá FZR tại lúc mua như mọi đơn sao. */
+export async function famAddStarPackage(fd: FormData) {
+  await requireAdmin();
+  const amount = parseInt(String(fd.get("amount") || "0"));
+  const name = String(fd.get("name") || "").trim() || (amount > 0 ? `${amount} sao` : "");
+  const priceIn = money(fd.get("price"));
+  const provider = await getTelegramProvider();
+  if (!provider) back(rt(fd), false, "Chưa cấu hình nhà cung cấp FZR cho Telegram (Admin → Telegram → Cài đặt)");
+  if (!(amount >= 1 && amount <= 10000000)) back(rt(fd), false, "Số sao phải từ 1 đến 10.000.000");
+  const product = await telegramStarsProduct(provider!);
+  const dup = await prisma.premiumVariant.findFirst({
+    where: { productId: product.id, providerGroup: "telegram_stars", providerItemId: String(amount) },
+    select: { id: true },
+  });
+  if (dup) back(rt(fd), false, `Đã có gói ${amount} sao — hãy sửa gói đó`);
+  let price = priceIn;
+  if (price <= 0) {
+    const unit = await prisma.premiumVariant.findFirst({
+      where: { productId: product.id, providerGroup: "telegram_stars", providerItemId: "stars" },
+      select: { price: true },
+    });
+    if (!unit) back(rt(fd), false, "Chưa có gói Stars đơn vị — hãy đồng bộ catalog FZR trước, hoặc nhập giá hiển thị cho gói");
+    price = unit!.price * amount;
+  }
+  await prisma.premiumVariant.create({
+    data: {
+      productId: product.id, name, price, cost: 0, warrantyDays: 0,
+      providerId: provider!.id, providerGroup: "telegram_stars",
+      providerItemId: String(amount),
+      deliveryType: ADMIN_VARIANT_MARK,
+    },
+  });
+  back(rt(fd), true, `Đã thêm gói ${amount} sao`);
+}
+
+/** Xoá hẳn một gói (trang họ Telegram/Steam). Chặn xoá gói ĐƠN VỊ Stars
+ *  (neo thực thi của mọi đơn sao) và gói đã phát sinh đơn/kho — các gói đó
+ *  chỉ tắt bán được. Gói do đồng bộ tạo có thể được đồng bộ tạo lại ở đợt
+ *  sync sau; gói tự thêm (CUSTOM) xoá là mất hẳn. */
+export async function famDeleteVariant(fd: FormData) {
+  await requireAdmin();
+  const id = parseInt(String(fd.get("id") || "0"));
+  if (!id) back(rt(fd), false, "Gói không hợp lệ");
+  const v = await prisma.premiumVariant.findUnique({ where: { id }, select: { name: true, providerGroup: true, providerItemId: true } });
+  if (!v) back(rt(fd), false, "Gói không tồn tại");
+  if (v!.providerGroup === "telegram_stars" && v!.providerItemId === "stars")
+    back(rt(fd), false, "Không xoá được gói Stars đơn vị — đây là gói thực thi của mọi đơn sao, chỉ tắt bán được");
+  const used = await prisma.premiumOrder.count({ where: { variantId: id } });
+  if (used > 0) back(rt(fd), false, `Gói "${v!.name}" đã có ${used} đơn hàng — chỉ tắt bán được, không xoá được`);
+  const stocked = await prisma.premiumStock.count({ where: { variantId: id } }).catch(() => 0);
+  if (stocked > 0) back(rt(fd), false, `Gói "${v!.name}" đang có ${stocked} mục trong kho — không xoá được`);
+  await prisma.premiumVariant.delete({ where: { id } });
+  back(rt(fd), true, `Đã xoá gói ${v!.name}`);
+}
+
 /** Thêm gói Premium Telegram (số tháng tự chọn) — gói tự thêm, sync không đụng. */
 export async function famAddTelegramPlan(fd: FormData) {
   await requireAdmin();

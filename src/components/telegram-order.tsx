@@ -4,8 +4,6 @@ import { useLang } from "@/components/lang";
 import { I } from "@/components/ui";
 import { placeTelegramOrderAction } from "@/app/actions/telegram";
 
-export const STAR_PRESETS = [50, 100, 200, 250, 500, 750, 1000, 2500, 5000, 10000, 25000, 50000, 75000, 100000];
-
 export type TelegramPlan = { months: number; price: number };
 
 /** Form đặt đơn Telegram Stars & Premium — dựng 1:1 theo ảnh mẫu FZR của Tín:
@@ -13,17 +11,18 @@ export type TelegramPlan = { months: number; price: number };
  *  2 Chọn gói) → thẻ Summary có nút Continue bên trong. Người nhận CHỈ có
  *  username (không còn ô Telegram ID — đơn username đi đường top-up username
  *  hoặc chờ xử lý tay như máy chủ đã làm). Giá hiện bằng tiền của site. */
-export function TelegramOrderForm({ starPrice, starMin, starMax, plans, balance }: {
+export function TelegramOrderForm({ starPrice, starMin, starMax, starPackages, plans, balance }: {
   starPrice: number; // VNĐ / 1 sao đã quy đổi (0 = chưa có giá)
   starMin: number;
   starMax: number;
+  starPackages: number[]; // số sao của từng gói trong catalog (Admin → Telegram → Sản phẩm quản lý)
   plans: TelegramPlan[];
   balance: number;
 }) {
   const { t, m } = useLang();
   const [mode, setMode] = useState<"stars" | "premium">("stars");
   const [username, setUsername] = useState("");
-  const [amount, setAmount] = useState(50);
+  const [amount, setAmount] = useState(starPackages[0] ?? 50);
   const [showAll, setShowAll] = useState(false);
   const [months, setMonths] = useState(plans[0]?.months || 3);
   const plan = plans.find((p) => p.months === months) || plans[0];
@@ -31,7 +30,7 @@ export function TelegramOrderForm({ starPrice, starMin, starMax, plans, balance 
   const usernameOk = username.trim().length >= 3;
   const amountOk = mode === "premium" ? !!plan : amount >= starMin && amount <= starMax;
   const canSubmit = usernameOk && amountOk && total > 0 && total <= balance;
-  const presets = useMemo(() => (showAll ? STAR_PRESETS : STAR_PRESETS.slice(0, 6)), [showAll]);
+  const presets = useMemo(() => (showAll ? starPackages : starPackages.slice(0, 6)), [showAll, starPackages]);
   const account = username.trim() ? (username.trim().startsWith("@") ? username.trim() : `@${username.trim()}`) : "—";
 
   const segBtn = (active: boolean) =>
@@ -90,7 +89,7 @@ export function TelegramOrderForm({ starPrice, starMin, starMax, plans, balance 
             </div>
             <div className="mt-5 text-center">
               <button type="button" onClick={() => setShowAll((v) => !v)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-                {showAll ? t("Thu gọn") : `${t("Hiện tất cả")} (${STAR_PRESETS.length})`}
+                {showAll ? t("Thu gọn") : `${t("Hiện tất cả")} (${starPackages.length})`}
               </button>
             </div>
           </section>

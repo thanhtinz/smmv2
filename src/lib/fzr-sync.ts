@@ -1,6 +1,7 @@
 import { prisma } from "./db";
 import { FZR_LABELS, fzrUsdToVnd, fzrUsdCostVnd } from "./fzr";
 import { ADMIN_VARIANT_MARK } from "./families";
+import { DEFAULT_STAR_PACKAGES } from "./tg";
 import {
   fzrGameKeys, fzrGiftCards, fzrTopups, fzrManualServices, fzrManualOffers,
   fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrSteamGiftGames,
@@ -223,7 +224,19 @@ async function collectSynthetic(provider: Provider): Promise<SyncItem[]> {
         { label: FZR_LABELS.telegramId, type: "text", required: false, placeholder: "ID số của tài khoản Telegram (không bắt buộc)" },
         { label: "Tên người dùng Telegram", type: "text", required: true, placeholder: "@username của tài khoản nhận" },
       ],
-      variants: [{ itemId: "stars", name: "1 sao", usd: String(q.pricePerStar) }],
+      // Gói đơn vị "stars" (neo thực thi: đơn chạy quantity = số sao) + các
+      // GÓI SAO mặc định theo số lượng (danh sách khách chọn ở trang đặt đơn;
+      // giá gói ở đây là giá HIỂN THỊ = giá mỗi sao x số sao — giá tính tiền
+      // vẫn chốt theo báo giá tại lúc mua). Admin thêm gói riêng ở Admin →
+      // Telegram → Sản phẩm (dấu CUSTOM, sync không đụng).
+      variants: [
+        { itemId: "stars", name: "1 sao", usd: String(q.pricePerStar) },
+        ...DEFAULT_STAR_PACKAGES.map((n) => ({
+          itemId: String(n),
+          name: `${n} sao`,
+          usd: String(Math.round(Number(q.pricePerStar) * n * 1e6) / 1e6),
+        })),
+      ],
     });
   } catch { /* nhóm không khả dụng phía FZR (thiếu addon) -> bỏ qua, không chặn cả đợt sync */ }
   // Telegram Premium — các gói 3/6/12 tháng

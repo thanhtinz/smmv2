@@ -25,6 +25,7 @@ const PRODUCT_SELECT = { id: true, name: true, slug: true, imageUrl: true, activ
 export async function loadTelegramFamilies(): Promise<{
   provider: Provider | null;
   stars: FamilyVariant | null;
+  starsPackages: FamilyVariant[];
   premium: FamilyVariant[];
 }> {
   const provider = await getTelegramProvider();
@@ -36,11 +37,17 @@ export async function loadTelegramFamilies(): Promise<{
     include: { product: { select: PRODUCT_SELECT } },
     orderBy: [{ providerGroup: "asc" }, { price: "asc" }],
   })) as FamilyVariant[];
-  const stars = variants.find((v) => v.providerGroup === "telegram_stars") || null;
+  const starsAll = variants.filter((v) => v.providerGroup === "telegram_stars");
+  const stars = starsAll.find((v) => v.providerItemId === "stars") || null;
+  // Gói sao theo số lượng (itemId là số sao) — danh sách trang khách cho chọn,
+  // admin thêm/sửa/xoá/bật tắt tại trang Sản phẩm Telegram.
+  const starsPackages = starsAll
+    .filter((v) => /^\d+$/.test(v.providerItemId || ""))
+    .sort((a, b) => parseInt(a.providerItemId || "0") - parseInt(b.providerItemId || "0"));
   const premium = variants
     .filter((v) => v.providerGroup === "telegram_premium")
     .sort((a, b) => (a.providerCycle ?? parseInt(a.providerItemId || "0") ?? 0) - (b.providerCycle ?? parseInt(b.providerItemId || "0") ?? 0));
-  return { provider, stars, premium };
+  return { provider, stars, starsPackages, premium };
 }
 
 export async function loadSteamFamilies(): Promise<{

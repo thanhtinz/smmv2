@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { Flash } from "@/components/ui";
 import { getServerI18n } from "@/lib/lang-server";
-import { getTelegramProvider, getTelegramVariants, telegramEnabled } from "@/lib/tg";
+import { getTelegramProvider, getTelegramVariants, telegramEnabled, DEFAULT_STAR_PACKAGES } from "@/lib/tg";
 import { fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrUsdToVnd } from "@/lib/fzr";
 import { TelegramOrderForm, type TelegramPlan } from "@/components/telegram-order";
 
@@ -14,7 +14,13 @@ export default async function TelegramOrderPage({ searchParams }: { searchParams
   const { L, Ld } = await getServerI18n();
   if (!(await telegramEnabled())) redirect("/");
   const provider = await getTelegramProvider();
-  const variants = provider ? await getTelegramVariants(provider.id) : { stars: null, premium: [] as never[] };
+  const variants = provider ? await getTelegramVariants(provider.id) : { stars: null, starsPackages: [] as { amount: number; active: boolean; outOfStock: boolean }[], premium: [] as never[] };
+  // Danh sách gói sao khách chọn = các gói sao trong catalog đang bán (admin
+  // quản lý ở Admin → Telegram → Sản phẩm). Catalog chưa có gói nào (chưa
+  // đồng bộ bản mới) thì dùng danh sách mặc định để trang vẫn bán được.
+  const starPackages = variants.starsPackages.length
+    ? variants.starsPackages.filter((p) => p.active && !p.outOfStock).map((p) => p.amount)
+    : DEFAULT_STAR_PACKAGES;
 
   // Báo giá tươi phía FZR khi lấy được; lỗi thì dùng giá đã đồng bộ trong DB.
   let starPrice = variants.stars?.price || 0;
@@ -64,7 +70,7 @@ export default async function TelegramOrderPage({ searchParams }: { searchParams
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{L("Telegram Stars & Premium chưa mở bán — vui lòng quay lại sau.")}</p>
         </div>
       ) : (
-        <TelegramOrderForm starPrice={starPrice} starMin={starMin} starMax={starMax} plans={plans} balance={user.balance} />
+        <TelegramOrderForm starPrice={starPrice} starMin={starMin} starMax={starMax} starPackages={starPackages} plans={plans} balance={user.balance} />
       )}
     </div>
   );
