@@ -9,6 +9,7 @@ import { buyPremiumAction, submitPremiumReviewAction, toggleReviewHelpfulAction 
 import { parsePremiumFields, productImages } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { RichText } from "@/components/rich-text";
+import { ProductGallery } from "@/components/rich-editor";
 import { PremiumCard, Stars, type PremiumCardData } from "@/components/premium-card";
 import { PremiumReviewForm, HelpfulButton } from "@/components/premium-review-form";
 import { PremiumGrid } from "@/components/premium-grid";
@@ -200,10 +201,11 @@ function DetailSection({ title, open, children }: { title: string; open?: boolea
   );
 }
 
-/** Trang CHI TIẾT sản phẩm Premium dùng chung — từ 2026-11-07 23:11 theo
- *  lệnh Tín: MỘT cột ~640px kiểu trang Telegram (thẻ header oải hương → form
- *  3 thẻ Chọn gói/Thông tin/Tóm tắt → khối gập nội dung → đánh giá → liên
- *  quan), thay bố cục shopkey 73/27 + hộp đặt hàng dính trước đây. */
+/** Trang CHI TIẾT sản phẩm Premium dùng chung — bố cục shopkey (lệnh Tín
+ *  2026-11-08 khôi phục, thay bố cục một cột kiểu Telegram của fix5 WS4):
+ *  hero gradient 31/69 (gallery trái, thông tin phải), khu chính 73/27 —
+ *  cột trái chọn gói → khối gập nội dung → đánh giá, cột phải hộp đặt hàng
+ *  ghim dính; sản phẩm liên quan full-width bên dưới. */
 export async function PremiumDetailView({ slug, searchParams, base }: { slug: string; searchParams: { msg?: string; err?: string }; base: string }) {
   const { L, Ld, M } = await getServerI18n();
   const product = await prisma.premiumProduct.findUnique({
@@ -276,8 +278,8 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
     include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true } } },
   });
   const related = await buildCardData(relatedRaw);
-  // Các khối gập nội dung: xếp chồng trong cùng cột 640px, ngay dưới form
-  // đặt hàng. Khối đầu (Thông tin sản phẩm) mở sẵn.
+  // Các khối gập nội dung: xếp chồng trong cột trái, ngay dưới danh sách gói
+  // (truyền vào form qua belowVariants). Khối đầu (Thông tin sản phẩm) mở sẵn.
   const sectionItems: React.ReactNode[] = [];
   if (product.description) {
     sectionItems.push(
@@ -320,7 +322,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
         <h2 className="text-base font-extrabold text-slate-900">{L("Đánh giá sản phẩm")}</h2>
         <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">{reviewCount}{L(" đánh giá")}</span>
       </div>
-      <div className="mt-5 grid grid-cols-1 items-center gap-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,3fr)]">
+      <div className="mt-5 grid grid-cols-1 items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,3fr)]">
         <div className="text-center">
           {reviewCount > 0 ? (
             <>
@@ -410,50 +412,59 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   return (
     <>
       <RecordRecentView item={{ productId: product.id, slug: product.slug, name: product.name, price: prices.length ? Math.min(...prices) : 0, image: images[0] || null }} />
-      <div className="mx-auto w-full max-w-[640px]">
-        <nav className="mb-4 text-[13px] font-medium text-slate-500">
-          <Link href={homeHref} className="hover:text-brand-600">{L("Trang chủ")}</Link>
+      <div className="rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-cyan-500 px-6 py-6 text-white sm:px-8">
+        <div className="text-[13px] font-medium text-white/75">
+          <Link href={homeHref} className="hover:text-white">{L("Trang chủ")}</Link>
           <span className="mx-1.5">›</span>
-          <Link href={base} className="hover:text-brand-600">{L("Sản phẩm")}</Link>
+          <Link href={base} className="hover:text-white">{L("Sản phẩm")}</Link>
           <span className="mx-1.5">›</span>
-          <span className="text-slate-800">{product.name}</span>
-        </nav>
-        {/* Thẻ tiêu đề sản phẩm — thẻ heading DUY NHẤT của trang, đúng kiểu thẻ
-            header oải hương của trang Telegram (lệnh Tín 2026-11-07 23:11). */}
-        <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
-          <div className="flex items-start gap-4 sm:gap-5">
-            {images.length > 0 ? (
+          <span className="text-white">{product.name}</span>
+        </div>
+        <div className="mt-5 grid grid-cols-1 items-start gap-6 md:grid-cols-[minmax(0,31fr)_minmax(0,69fr)]">
+          <div className="overflow-hidden rounded-2xl bg-white/10">
+            {images.length > 1 ? (
+              <ProductGallery images={images} name={product.name} />
+            ) : images.length === 1 ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={images[0]} alt={product.name} className="h-16 w-16 shrink-0 rounded-2xl object-cover sm:h-20 sm:w-20" />
+              <img src={images[0]} alt={product.name} className="aspect-video max-h-[240px] w-full object-cover" />
             ) : (
-              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-3xl font-black text-white sm:h-20 sm:w-20" style={{ background: `linear-gradient(135deg, ${product.color}, #0ea5e9)` }}>{product.name.charAt(0)}</span>
-            )}
-            <div className="min-w-0">
-              <h1 className="text-[24px] font-black leading-tight text-slate-900 sm:text-[26px]">{product.name}</h1>
-              {product.tagline && <p className="mt-1 text-sm leading-relaxed text-slate-500">{product.tagline}</p>}
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-                <span className="inline-block rounded-full border border-violet-200 bg-white/70 px-3 py-1 text-xs font-bold text-violet-700">{product.category.name}</span>
-                {reviewCount > 0 && <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700"><Stars value={reviewAvg} className="h-4 w-4" /> {reviewAvg.toFixed(1)} ({reviewCount}{L(" đánh giá")})</span>}
-                {sold > 0 && <span className="font-semibold text-slate-500">{L("Đã bán ")}{sold.toLocaleString("vi-VN")}</span>}
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-slate-600">{fulfillmentTag}</span>
-                {flashPct > 0 && <span className="rounded-full bg-rose-600 px-2.5 py-1 text-xs font-extrabold text-white">-{flashPct}%</span>}
+              <div className="flex aspect-video max-h-[240px] w-full items-center justify-center" style={{ background: `linear-gradient(135deg, ${product.color}, #0ea5e9)` }}>
+                <span className="text-7xl font-black text-white/90">{product.name.charAt(0)}</span>
               </div>
+            )}
+          </div>
+          <div>
+            <span className="inline-block rounded-full border border-white/40 px-3 py-1 text-xs font-bold text-white">{product.category.name}</span>
+            <h1 className="mt-3 text-3xl font-extrabold leading-tight">{product.name}</h1>
+            {product.tagline && <p className="mt-2 text-sm leading-relaxed text-white/85">{product.tagline}</p>}
+            {prices.length > 0 && (
+              <div className="mt-4 text-2xl font-black text-white">
+                {Math.min(...prices) !== Math.max(...prices) ? <>{M(Math.min(...prices))} – {M(Math.max(...prices))}</> : M(prices[0])}
+              </div>
+            )}
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              {reviewCount > 0 && <span className="inline-flex items-center gap-1.5 font-semibold text-white/95"><Stars value={reviewAvg} /> {reviewAvg.toFixed(1)} ({reviewCount}{L(" đánh giá")})</span>}
+              {sold > 0 && <span className="font-semibold text-white/90">{L("Đã bán ")}{sold.toLocaleString("vi-VN")}</span>}
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{fulfillmentTag}</span>
+              {flashPct > 0 && <span className="rounded-full bg-rose-600 px-2.5 py-1 text-xs font-extrabold text-white">-{flashPct}%</span>}
+              {session && <Link href="/dashboard/api-docs" className="rounded-lg border border-white/40 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/10">API</Link>}
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="mt-4"><Flash msg={searchParams.msg} err={searchParams.err} /></div>
+      <div className="mt-6"><Flash msg={searchParams.msg} err={searchParams.err} /></div>
 
-        <FlashBanner kind="PREMIUM" />
+      <FlashBanner kind="PREMIUM" />
 
-      {/* Khu chính MỘT CỘT ~640px kiểu trang Telegram (lệnh Tín 2026-11-07
-          23:11 — thay bố cục shopkey 73/27): form mua 3 thẻ (Chọn gói →
-          Thông tin → Tóm tắt) hoặc khối khách chưa đăng nhập, rồi các khối
-          nội dung + đánh giá xếp chồng cùng bề rộng cột. */}
-      <div className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
+      {/* Khu chính theo shopkey: 2 cột ~73/27 — cột trái lần lượt chọn gói →
+          khối gập → đánh giá; cột phải CHỈ hộp đặt hàng/đăng nhập, ghim dính
+          (sticky) trong toàn bộ khu. Nhánh đã đăng nhập: form mua dùng
+          lg:contents để các phần của form tham gia thẳng vào lưới này. */}
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,73fr)_minmax(0,27fr)] lg:items-start lg:gap-x-5 lg:gap-y-8">
         {session ? (
           <PremiumBuyForm
-            layout="single"
+            layout="split"
             maxQty={maxQty}
             slug={product.slug}
             backBase={base}
@@ -464,23 +475,21 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             productImage={images[0] || null}
             productColor={product.color}
             variants={product.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, warrantyDays: v.warrantyDays, stock: stockMap.get(v.id) || 0, delivery: resolveDeliveryType(v.deliveryType, product.fulfillment), soldOut: variantSoldOut(v, product.fulfillment), stockQty: isQtyTracked(product.fulfillment, v.stockQty) ? v.stockQty : null }))}
+            belowVariants={infoSections}
             promos={promoPreview}
             flashPct={flashPct}
             cartProduct={{ id: product.id, name: product.name, groups: Object.fromEntries(product.variants.map((v) => [v.id, v.providerGroup ?? null])) }}
           />
         ) : (
           <>
-            <section className="card p-3.5 sm:p-5">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-3.5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-[15px] font-extrabold text-violet-600">1</span>
-                <span className="text-[17px] font-extrabold text-slate-900">{L("Chọn gói")}</span>
-              </div>
-              <div className="mt-4 space-y-3">
+            <div className="lg:col-start-1">
+              <h2 className="text-lg font-extrabold text-slate-900">{L("Chọn gói sản phẩm")}</h2>
+              <div className="mt-4 space-y-2.5">
                 {product.variants.map((v) => {
                   const soldOut = variantSoldOut(v, product.fulfillment);
                   const delivery = resolveDeliveryType(v.deliveryType, product.fulfillment);
                   return (
-                    <div key={v.id} className={`flex items-center justify-between gap-3 rounded-2xl border-2 border-slate-200 px-4 py-3.5 ${soldOut ? "bg-slate-50 opacity-70" : ""}`}>
+                    <div key={v.id} className={`flex items-center justify-between gap-3 rounded-2xl border-2 border-slate-200 px-4 py-3.5 ${soldOut ? "bg-slate-50 opacity-70" : "bg-white"}`}>
                       <span className="min-w-0">
                         <span className="block break-words font-bold text-slate-900">{v.name}</span>
                         <span className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${delivery === "FAST" ? "border-teal-200 bg-teal-50 text-teal-700" : "border-slate-200 bg-slate-100 text-slate-600"}`}>
@@ -497,27 +506,26 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
                   );
                 })}
               </div>
-            </section>
-            <section className="card p-6 text-center">
+            </div>
+            <div className="lg:col-start-1">{infoSections}</div>
+            <div className="card p-6 text-center lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-start lg:sticky lg:top-24">
               <p className="mb-4 text-sm text-slate-500">{L("Đăng nhập để mua bằng số dư — nạp tiền bằng chuyển khoản, cộng tự động.")}</p>
               <Link href="/login" className="btn-primary">{L("Đăng nhập")}</Link>
               <Link href="/register" className="btn-ghost ml-2">{L("Đăng ký")}</Link>
-            </section>
+            </div>
           </>
         )}
-        {infoSections}
-        {reviewsCard}
+        <div className="order-4 lg:col-start-1">{reviewsCard}</div>
       </div>
 
       {related.length > 0 && (
-        <div className="mt-10">
-          <h2 className="mb-4 text-xl font-extrabold text-slate-900">{L("Sản phẩm liên quan")}</h2>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            {related.map((item) => <PremiumCard key={item.slug} item={item} base={base} />)}
+        <div className="mt-12">
+          <h2 className="mb-5 text-xl font-extrabold text-slate-900">{L("Sản phẩm liên quan")}</h2>
+          <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto py-1 -my-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5 lg:grid lg:grid-cols-3 lg:overflow-visible xl:grid-cols-4">
+            {related.map((item) => <PremiumCard key={item.slug} item={item} base={base} className="w-[72%] shrink-0 snap-start sm:w-[54%] md:w-[44%] lg:w-auto" />)}
           </div>
         </div>
       )}
-      </div>
     </>
   );
 }
