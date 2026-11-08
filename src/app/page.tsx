@@ -70,7 +70,7 @@ export default async function HomePage() {
   return (
     <PublicFrame>
       {homeModal && user ? <HomeModal content={homeModal} /> : null}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
         {premiumOff ? (
           <div className="card mt-10 p-8 text-center">
             <div className="text-lg font-bold text-slate-900">{L("Mảng Premium đang tạm ngưng")}</div>

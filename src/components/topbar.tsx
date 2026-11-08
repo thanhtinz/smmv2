@@ -4,6 +4,7 @@ import { MobileSideNav, type NavEntry } from "@/components/nav";
 import { DisplaySettings } from "@/components/display";
 import { NotificationBell } from "@/components/notification-bell";
 import { CartHeaderLink } from "@/components/cart";
+import { HeaderSearch } from "@/components/header-search";
 import { logoutAction } from "@/app/actions/auth";
 
 export type TopBarUser = { username: string; balance: number; role: string; levelLabel: string };
@@ -35,6 +36,7 @@ export function AppTopBar({ user, siteName, logoText, drawerLogoUrl, items, menu
           <span className="font-extrabold text-slate-900 hidden sm:inline">{siteName}</span>
         </Link>
         <div className="ml-auto flex items-center gap-1 sm:gap-2.5">
+          <HeaderSearch placeholder={L("Tìm sản phẩm...")} searchLabel={L("Tìm kiếm")} closeLabel={L("Đóng")} />
           {user ? (
             <>
               <NotificationBell />
