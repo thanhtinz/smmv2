@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { Flash, Badge, Empty, I } from "@/components/ui";
+import { Flash, Badge, Empty, I, Stat } from "@/components/ui";
 import { PremiumOrderCards, type PremiumOrderCard } from "@/components/client";
-import { PremiumOrderTabs } from "@/components/premium-order-tabs";
 import { num, SMM_STATUS, PRE_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { resolveDeliveryType } from "@/lib/variant-stock";
@@ -41,6 +40,16 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
     prisma.smmOrder.count({ where }),
     prisma.smmOrder.findMany({ where, orderBy: { id: sortOld ? "asc" : "desc" }, skip: (page - 1) * size, take: size, include: { service: true } }),
   ]);
+  // 4 thẻ thống kê như trang lịch sử Telegram (fix7 task B): tổng hợp THẬT
+  // trên toàn bộ đơn của khách (không theo bộ lọc hiện tại). "Tổng đã chi" =
+  // tổng tiền trừ − tổng đã hoàn trên mọi đơn.
+  const [statTotal, statDone, statRunning, spentAgg] = await Promise.all([
+    prisma.smmOrder.count({ where: { userId } }),
+    prisma.smmOrder.count({ where: { userId, status: "COMPLETED" } }),
+    prisma.smmOrder.count({ where: { userId, status: { in: ["PENDING", "PROCESSING", "IN_PROGRESS", "PARTIAL"] } } }),
+    prisma.smmOrder.aggregate({ where: { userId }, _sum: { charge: true, refundedAmount: true } }),
+  ]);
+  const spent = (spentAgg._sum.charge || 0) - (spentAgg._sum.refundedAmount || 0);
   const pages = Math.max(1, Math.ceil(total / size));
   const href = (p: number) => {
     const u = new URLSearchParams();
@@ -55,60 +64,47 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
     return `?${u.toString()}`;
   };
   return (
-    <div className="mx-auto w-full max-w-[860px]">
-      {/* Thẻ header kiểu Telegram như các trang đơn khác (fix6 task 3: trang này
-          còn h1 + bảng cũ trong khi đặt đơn/chi tiết đã đổi ở fix5) */}
+    <div>
+      {/* Khung trang GIỐNG HỆT trang lịch sử Telegram (fix7 task B): thẻ
+          header gradient → 4 thẻ thống kê → thẻ lọc dạng lưới nhãn → thẻ
+          đơn. Bỏ cột max-w-860 riêng của trang này. */}
       <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-brand-50/60 to-white px-6 py-6 sm:px-7">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-[22px] font-black leading-tight text-slate-900">{L("Đơn hàng đã tạo")}</h1>
-            <p className="mt-1 text-sm text-slate-500">{L("Theo dõi chi tiết lịch sử đơn hàng đã tạo")}</p>
-          </div>
-          <div className="text-right">
-            <div className="text-[22px] font-black leading-tight text-slate-900">{num(total)}</div>
-            <div className="text-xs text-slate-500">{L("đơn")}</div>
-          </div>
-        </div>
+        <h1 className="text-[22px] font-black leading-tight text-slate-900">{L("Đơn hàng đã tạo")}</h1>
+        <p className="mt-1 text-sm text-slate-500">{L("Theo dõi chi tiết lịch sử đơn hàng đã tạo")}</p>
       </div>
       <div className="mt-5"><Flash msg={one(sp.msg)} err={one(sp.err)} /></div>
-      <form className="card p-4 mb-5 space-y-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <Stat icon={I.list} label={L("Tổng số đơn")} value={num(statTotal)} />
+        <Stat icon={I.check} label={L("Đã hoàn thành")} value={num(statDone)} />
+        <Stat icon={I.clock} label={L("Đang xử lý")} value={num(statRunning)} />
+        <Stat icon={I.money} label={L("Tổng đã chi")} value={M(spent)} />
+      </div>
+      <form method="get" className="card mt-5 grid grid-cols-2 gap-3 p-4 lg:grid-cols-[1.4fr_1fr_1fr_1fr_0.75fr_0.85fr_auto]">
         <input type="hidden" name="f" value="1" />
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-semibold text-slate-500 mr-1">{L("Chọn trạng thái")}</span>
-          <label className="cursor-pointer">
-            <input type="radio" name="st" value="ALL" defaultChecked={activeTab === "ALL"} className="peer sr-only" />
-            <span className="inline-block rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900">{L("Tất cả")}</span>
-          </label>
-          {ALL.map((k) => (
-            <label key={k} className="cursor-pointer">
-              <input type="radio" name="st" value={k} defaultChecked={activeTab === k} className="peer sr-only" />
-              <span className="inline-block rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition peer-checked:bg-slate-900 peer-checked:text-white peer-checked:border-slate-900">{L(SMM_STATUS[k].label)}</span>
-            </label>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">{L("Hiển thị")}
-            <select className="inp !w-28 !py-2" name="size" defaultValue={String(size)}>
-              {[10, 20, 30, 50, 100].map((n) => <option key={n} value={n}>{n}{L(" mục")}</option>)}
-            </select>
-          </label>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">{L("Sắp xếp")}
-            <select className="inp !w-32 !py-2" name="sort" defaultValue={sortOld ? "old" : "new"}>
-              <option value="new">{L("Mới nhất")}</option>
-              <option value="old">{L("Cũ nhất")}</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">{L("Ngày bắt đầu")}
-            <input className="inp !w-40 !py-2" type="date" name="from" defaultValue={from} />
-          </label>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">{L("Ngày kết thúc")}
-            <input className="inp !w-40 !py-2" type="date" name="to" defaultValue={to} />
-          </label>
-          <input className="inp flex-1 min-w-[200px] !py-2" name="q" placeholder={L("Mã đơn 1, Mã đơn 2,...")} defaultValue={q} />
-          <button className="btn-dark !py-2">{L("Tìm kiếm")}</button>
+        <div><label className="lbl">{L("Tìm kiếm")}</label><input className="inp" name="q" placeholder={L("Mã đơn 1, Mã đơn 2,...")} defaultValue={q} /></div>
+        <div><label className="lbl">{L("Trạng thái")}</label>
+          <select className="inp" name="st" defaultValue={activeTab}>
+            <option value="ALL">{L("Tất cả")}</option>
+            {ALL.map((k) => <option key={k} value={k}>{L(SMM_STATUS[k].label)}</option>)}
+          </select></div>
+        <div><label className="lbl">{L("Từ ngày")}</label><input className="inp" type="date" name="from" defaultValue={from} /></div>
+        <div><label className="lbl">{L("Đến ngày")}</label><input className="inp" type="date" name="to" defaultValue={to} /></div>
+        <div><label className="lbl">{L("Hiển thị")}</label>
+          <select className="inp" name="size" defaultValue={String(size)}>
+            {[10, 20, 30, 50, 100].map((n) => <option key={n} value={n}>{n}{L(" mục")}</option>)}
+          </select></div>
+        <div><label className="lbl">{L("Sắp xếp")}</label>
+          <select className="inp" name="sort" defaultValue={sortOld ? "old" : "new"}>
+            <option value="new">{L("Mới nhất")}</option>
+            <option value="old">{L("Cũ nhất")}</option>
+          </select></div>
+        <div className="flex items-end gap-2">
+          <button className="btn-primary !py-2.5">{L("Lọc")}</button>
+          {filtering && <Link href="/dashboard/don-hang" className="btn-ghost !py-2.5">{L("Xoá lọc")}</Link>}
         </div>
       </form>
-      {orders.length === 0 ? <Empty text={L("Không có đơn hàng nào")} /> : (
+      <div className="mt-5">
+      {orders.length === 0 ? <div className="card"><Empty text={L("Không có đơn hàng nào")} /></div> : (
         <div className="space-y-3.5">
           {orders.map((o) => {
             const drip = (() => { try { const p = JSON.parse(o.params || "{}"); return p.dripfeed as { runs: number; interval: number } | undefined; } catch { return undefined; } })();
@@ -143,6 +139,7 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
           })}
         </div>
       )}
+      </div>
       {pages > 1 && (
         <div className="flex flex-wrap items-center gap-1.5 mt-5">
           <Link href={href(page - 1)} className={`px-3 py-2 rounded-lg text-sm font-semibold ${page <= 1 ? "pointer-events-none opacity-40 bg-white border border-slate-200" : "bg-white border border-slate-200"}`}><span className="inline-flex rotate-90 items-center justify-center [&_svg]:h-4 [&_svg]:w-4">{I.chevron}</span></Link>
@@ -157,61 +154,115 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
   );
 }
 
-/* ================= ĐƠN PREMIUM — bố cục kiểu thatim (SẢN PHẨM ĐÃ MUA) ================= */
-const PRE_TABS: { key: string; label: string; statuses: string[] | null }[] = [
-  { key: "all", label: "Tất cả", statuses: null },
-  { key: "pending", label: "Chờ xử lý", statuses: ["PENDING"] },
-  { key: "delivered", label: "Đã giao", statuses: ["DELIVERED", "COMPLETED", "WARRANTY"] },
-  { key: "canceled", label: "Đã hủy", statuses: ["CANCELED", "REFUNDED"] },
-];
-
+/* ================= ĐƠN PREMIUM — khung giống hệt trang lịch sử Telegram ================= */
 export async function PremiumOrdersView({ userId, sp, base }: { userId: number; sp: SP; base: string }) {
-  const { L } = await getServerI18n();
-  void base; // base không còn dùng cho tab (tab đã chuyển client-side tại chỗ)
-  const initial = (PRE_TABS.find((t) => t.key === one(sp.tab)) || PRE_TABS[0]).key;
-  // Tải sẵn cả 4 tab (mỗi tab tối đa 50 đơn như trước) để chuyển tab tại chỗ
-  const tabs = await Promise.all(PRE_TABS.map(async (t) => {
-    const where: any = { userId };
-    if (t.statuses) where.status = { in: t.statuses };
-    const orders = await prisma.premiumOrder.findMany({
-      where,
-      orderBy: { id: "desc" },
-      take: 50,
-      include: { variant: { include: { product: true } } },
-    });
-    const cards: PremiumOrderCard[] = orders.map((o) => ({
-      id: o.id,
-      code: o.code,
-      name: o.variant.product.name,
-      variant: o.variant.name,
-      desc: (o.variant.product.description || "").split("\n")[0].slice(0, 140),
-      total: o.total,
-      quantity: o.quantity,
-      status: o.status,
-      statusLabel: L(PRE_STATUS[o.status].label),
-      statusCls: PRE_STATUS[o.status].cls,
-      created: o.createdAt.toISOString(),
-      updated: o.updatedAt.toISOString(),
-      delivery: o.deliveryData || "",
-      deliveryType: resolveDeliveryType(o.variant.deliveryType, o.variant.product.fulfillment),
-      buyerInfo: o.buyerInfo || "",
-      warrantyUntil: o.warrantyUntil ? o.warrantyUntil.toISOString() : null,
-    }));
-    return {
-      key: t.key,
-      label: L(t.label),
-      content: cards.length === 0 ? <Empty text={L("Chưa có sản phẩm nào")} /> : <PremiumOrderCards orders={cards} />,
-    };
+  const { L, M } = await getServerI18n();
+  // Khung trang GIỐNG HỆT trang lịch sử Telegram (fix7 task B): thẻ header
+  // gradient → 4 thẻ thống kê → thẻ lọc (tìm kiếm / trạng thái / khoảng ngày)
+  // → thẻ đơn + phân trang phía server. Cơ chế tab tải-sẵn-50-đơn cũ được
+  // thay bằng bộ lọc này; tham số ?tab= cũ vẫn được dịch sang trạng thái
+  // tương đương để các liên kết cũ không gãy. Bấm Chi tiết vẫn mở modal tại
+  // chỗ qua PremiumOrderCards như trước.
+  const PAGE_SIZE = 15;
+  const [statTotal, statDelivered, statPending, spentAgg] = await Promise.all([
+    prisma.premiumOrder.count({ where: { userId } }),
+    prisma.premiumOrder.count({ where: { userId, status: { in: ["DELIVERED", "COMPLETED"] } } }),
+    prisma.premiumOrder.count({ where: { userId, status: "PENDING" } }),
+    prisma.premiumOrder.aggregate({ where: { userId, status: { notIn: ["CANCELED", "REFUNDED"] } }, _sum: { total: true } }),
+  ]);
+  const q = one(sp.q).trim();
+  const tabStatus = ({ pending: "PENDING", delivered: "DELIVERED", canceled: "CANCELED" } as Record<string, string>)[one(sp.tab)] || "";
+  const status = Object.keys(PRE_STATUS).includes(one(sp.status)) ? one(sp.status) : tabStatus;
+  const fromD = one(sp.from) ? new Date(`${one(sp.from)}T00:00:00`) : null;
+  const toD = one(sp.to) ? new Date(`${one(sp.to)}T23:59:59`) : null;
+  const where: any = {
+    userId,
+    ...(status ? { status } : {}),
+    ...(fromD || toD ? { createdAt: { ...(fromD ? { gte: fromD } : {}), ...(toD ? { lte: toD } : {}) } } : {}),
+    ...(q ? { OR: [
+      { code: { contains: q, mode: "insensitive" } },
+      { buyerInfo: { contains: q, mode: "insensitive" } },
+      { variant: { product: { name: { contains: q, mode: "insensitive" } } } },
+    ] } : {}),
+  };
+  const filtered = await prisma.premiumOrder.count({ where });
+  const pages = Math.max(1, Math.ceil(filtered / PAGE_SIZE));
+  const page = Math.min(pages, Math.max(1, parseInt(one(sp.page) || "1") || 1));
+  const orders = await prisma.premiumOrder.findMany({
+    where,
+    orderBy: { id: "desc" },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
+    include: { variant: { include: { product: true } } },
+  });
+  const cards: PremiumOrderCard[] = orders.map((o) => ({
+    id: o.id,
+    code: o.code,
+    name: o.variant.product.name,
+    variant: o.variant.name,
+    desc: (o.variant.product.description || "").split("\n")[0].slice(0, 140),
+    total: o.total,
+    quantity: o.quantity,
+    status: o.status,
+    statusLabel: L(PRE_STATUS[o.status].label),
+    statusCls: PRE_STATUS[o.status].cls,
+    created: o.createdAt.toISOString(),
+    updated: o.updatedAt.toISOString(),
+    delivery: o.deliveryData || "",
+    deliveryType: resolveDeliveryType(o.variant.deliveryType, o.variant.product.fulfillment),
+    buyerInfo: o.buyerInfo || "",
+    warrantyUntil: o.warrantyUntil ? o.warrantyUntil.toISOString() : null,
   }));
+  const hasFilter = !!(q || status || one(sp.from) || one(sp.to));
+  const qs = (patch: Record<string, string | number>) => {
+    const p = new URLSearchParams();
+    const cur: Record<string, string> = { q, status, from: one(sp.from), to: one(sp.to), page: String(page) };
+    for (const [k, v] of Object.entries({ ...cur, ...patch })) if (v) p.set(k, String(v));
+    return `${base}?${p.toString()}`;
+  };
   return (
-    <div className="mx-auto w-full max-w-[860px]">
-      {/* Thẻ header kiểu Telegram như các trang đơn khác (fix6 task 3) */}
+    <div>
       <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-brand-50/60 to-white px-6 py-6 sm:px-7">
         <h1 className="text-[22px] font-black leading-tight text-slate-900">{L("Sản phẩm đã mua")}</h1>
         <p className="mt-1 text-sm text-slate-500">{L("Danh sách sản phẩm đã mua của bạn")}</p>
       </div>
       <div className="mt-5"><Flash msg={one(sp.msg)} err={one(sp.err)} /></div>
-      <PremiumOrderTabs initial={initial} tabs={tabs} />
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <Stat icon={I.list} label={L("Tổng số đơn")} value={String(statTotal)} />
+        <Stat icon={I.check} label={L("Đã giao")} value={String(statDelivered)} />
+        <Stat icon={I.clock} label={L("Chờ xử lý")} value={String(statPending)} />
+        <Stat icon={I.money} label={L("Tổng đã chi")} value={M(spentAgg._sum.total || 0)} />
+      </div>
+      <form method="get" className="card mt-5 grid grid-cols-2 gap-3 p-4 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
+        <div><label className="lbl">{L("Tìm kiếm")}</label><input className="inp" name="q" defaultValue={q} placeholder={L("Mã đơn, tên sản phẩm")} /></div>
+        <div><label className="lbl">{L("Trạng thái")}</label>
+          <select className="inp" name="status" defaultValue={status}>
+            <option value="">{L("Tất cả")}</option>
+            {Object.entries(PRE_STATUS).map(([k, v]) => <option key={k} value={k}>{L(v.label)}</option>)}
+          </select></div>
+        <div><label className="lbl">{L("Từ ngày")}</label><input className="inp" type="date" name="from" defaultValue={one(sp.from)} /></div>
+        <div><label className="lbl">{L("Đến ngày")}</label><input className="inp" type="date" name="to" defaultValue={one(sp.to)} /></div>
+        <div className="flex items-end gap-2">
+          <button className="btn-primary !py-2.5">{L("Lọc")}</button>
+          {hasFilter && <Link href={base} className="btn-ghost !py-2.5">{L("Xoá lọc")}</Link>}
+        </div>
+      </form>
+      <div className="mt-5">
+        {cards.length === 0 ? (
+          <div className="card"><Empty text={hasFilter ? L("Không có đơn nào khớp bộ lọc") : L("Chưa có sản phẩm nào")} /></div>
+        ) : (
+          <PremiumOrderCards orders={cards} />
+        )}
+      </div>
+      {pages > 1 && (
+        <div className="mt-4 flex items-center justify-between text-sm">
+          <span className="text-slate-500">{L("Trang")} {page}/{pages} · {filtered} {L("đơn")}</span>
+          <span className="flex gap-2">
+            {page > 1 && <Link className="btn-ghost btn-sm" href={qs({ page: page - 1 })}>{L("Trang trước")}</Link>}
+            {page < pages && <Link className="btn-ghost btn-sm" href={qs({ page: page + 1 })}>{L("Trang sau")}</Link>}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -3487,6 +3487,7 @@ export const DICT: Record<string, Tr> = {
   "Mọi đơn Stars và Premium bạn đã đặt.": e("All the Stars and Premium orders you have placed.", "您下过的所有星星和 Premium 订单。", "คำสั่งซื้อ Stars และ Premium ทั้งหมดของคุณ", "注文したすべてのStarsとPremiumの注文。", "주문한 모든 스타 및 Premium 주문입니다."),
   "Chưa có đơn Telegram nào — đặt đơn đầu tiên ở mục Đặt đơn": e("No Telegram orders yet — place your first order in New order", "暂无 Telegram 订单——请在“下单”中提交第一笔订单", "ยังไม่มีคำสั่งซื้อ Telegram — สั่งซื้อครั้งแรกได้ที่เมนู สั่งซื้อ", "Telegramの注文はまだありません。最初の注文は「注文」からどうぞ", "Telegram 주문이 없습니다. '주문'에서 첫 주문을 해 보세요"),
   "Mã đơn, username, Telegram ID": e("Order ID, username, Telegram ID", "订单号、用户名、Telegram ID", "รหัสคำสั่งซื้อ ชื่อผู้ใช้ Telegram ID", "注文ID、ユーザー名、Telegram ID", "주문 ID, 사용자 이름, Telegram ID"),
+  "Mã đơn, tên sản phẩm": e("Order code, product name", "订单号、产品名称", "รหัสคำสั่งซื้อ, ชื่อสินค้า", "注文コード、商品名", "주문 코드, 상품명"),
   "Chi tiết giao": e("Delivery details", "交付详情", "รายละเอียดการจัดส่ง", "配送詳細", "전달 상세"),
   "Trang trước": e("Previous page", "上一页", "หน้าก่อนหน้า", "前のページ", "이전 페이지"),
   "Trang sau": e("Next page", "下一页", "หน้าถัดไป", "次のページ", "다음 페이지"),

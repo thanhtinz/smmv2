@@ -1099,26 +1099,30 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
   const { t, td, m } = useLang();
   const [sel, setSel] = useState<PremiumOrderCard | null>(null);
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5">
       {orders.map((o) => (
-        <div key={o.id} className="card p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 flex-wrap">
+        <div key={o.id} className="card p-4 sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-mono text-sm font-black text-slate-900">{o.code}</span>
               <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${o.statusCls}`}>{t(o.statusLabel)}</span>
               <DeliveryBadge type={o.deliveryType} t={t} />
-              <span className="text-xs text-slate-400">{dtf(o.created)}</span>
             </div>
-            <div className="text-sm text-slate-500">{t("Tổng tiền")} <b className="text-brand-600 text-base">{m(o.total)}</b></div>
+            <div className="font-black text-slate-900">{m(o.total)}</div>
           </div>
-          <div className="border-t border-slate-100 mt-4 pt-4 flex items-center gap-3.5">
-            <span className="w-11 h-11 shrink-0 rounded-xl bg-brand-600 text-white flex items-center justify-center font-black">{o.name.charAt(0).toUpperCase()}</span>
-            <div className="flex-1 min-w-0">
-              <div className="font-bold text-slate-900 truncate">{o.name} ({o.variant})</div>
-              {o.desc && <div className="text-[13px] text-slate-500 truncate">{o.desc}</div>}
-              <div className="mt-0.5 text-xs text-slate-400">{t("Số lượng")}: {o.quantity}</div>
+          <div className="mt-3.5 border-t border-slate-100 pt-3.5">
+            <div className="flex items-center gap-3.5">
+              <span className="w-11 h-11 shrink-0 rounded-xl bg-brand-600 text-white flex items-center justify-center font-black">{o.name.charAt(0).toUpperCase()}</span>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-slate-900 truncate">{o.name} ({o.variant})</div>
+                {o.desc && <div className="text-[13px] text-slate-500 truncate">{o.desc}</div>}
+                <div className="mt-0.5 text-xs text-slate-400">{t("Số lượng")}: {o.quantity}</div>
+              </div>
             </div>
-            <button type="button" onClick={() => setSel(o)} className="btn-dark shrink-0">{t("Chi tiết")}</button>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs text-slate-400">{dtf(o.created)}</span>
+              <button type="button" onClick={() => setSel(o)} className="btn-dark btn-sm shrink-0">{t("Chi tiết")}</button>
+            </div>
           </div>
         </div>
       ))}
