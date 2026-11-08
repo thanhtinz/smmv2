@@ -3,7 +3,6 @@ import { AuthShell } from "@/components/auth-shell";
 import { Flash } from "@/components/ui";
 import { loginAction } from "@/app/actions/auth";
 import { getSettings } from "@/lib/settings";
-import { panelByHost } from "@/lib/panel-host";
 import { RecaptchaWidget } from "@/components/recaptcha";
 import { PasskeyLoginButton } from "@/components/passkey";
 import { authCardClass } from "@/lib/auth-style";
@@ -11,13 +10,11 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export default async function LoginPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const settings = await getSettings().catch(() => null);
-  // Ở tên miền panel con: kiểu khung đăng nhập + nút Google theo cấu hình riêng của panel.
-  const panel = await panelByHost().catch(() => null);
-  const googleOn = panel ? !!panel.googleClientId : settings?.google_enabled === "1" && !!settings?.google_client_id;
-  const style = panel?.authStyle || settings?.auth_style;
+  const googleOn = settings?.google_enabled === "1" && !!settings?.google_client_id;
+  const style = settings?.auth_style;
   const { L, Ld } = await getServerI18n();
   return (
-    <AuthShell style={style} brandName={panel?.name || settings?.site_name || "SMMv2"} tagline={panel?.tagline || settings?.site_tagline} panel={panel ? { name: panel.name, slug: panel.slug } : undefined} announcement={panel?.announcement} accent={panel?.accent}>
+    <AuthShell style={style} brandName={settings?.site_name || "SMMv2"} tagline={settings?.site_tagline}>
         <div className={authCardClass(style)}>
           <h1 className="text-2xl font-extrabold text-slate-900">{L("Đăng nhập")}</h1>
           <p className="text-sm text-slate-500 mt-1.5 mb-6">{L("Vào bảng điều khiển để đặt đơn và quản lý số dư.")}</p>

@@ -4,7 +4,6 @@ import { getPending2fa, clearPending2fa, createSession } from "@/lib/auth";
 import { verifyLoginCode } from "@/lib/twofa";
 import { recordLoginEvent } from "@/lib/login-events";
 import { clientIp, rateLimitExceeded } from "@/lib/rate-limit";
-import { panelByHost } from "@/lib/panel-host";
 
 /** Bước 2 của đăng nhập: kiểm mã TOTP / mã dự phòng từ cookie chờ (hạn 5 phút).
  *  Đúng mã mới tạo phiên thật + ghi LoginEvent thành công; sai mã ghi sự kiện
@@ -25,13 +24,12 @@ export async function POST(req: NextRequest) {
     clearPending2fa();
     return NextResponse.json({ ok: false, error: "Phiên xác thực không hợp lệ, vui lòng đăng nhập lại" }, { status: 401 });
   }
-  const hostPanel = await panelByHost().catch(() => null);
   const kind = code ? await verifyLoginCode(user, code) : null;
   if (!kind) {
-    await recordLoginEvent({ userId: user.id, username: user.username, success: false, reason: "Sai mã xác thực 2FA", ip, userAgent: ua, panelId: user.panelId ?? hostPanel?.id ?? null });
+    await recordLoginEvent({ userId: user.id, username: user.username, success: false, reason: "Sai mã xác thực 2FA", ip, userAgent: ua});
     return NextResponse.json({ ok: false, error: "Mã xác thực không đúng, thử lại" }, { status: 400 });
   }
-  await recordLoginEvent({ userId: user.id, username: user.username, success: true, reason: kind === "totp" ? "Đăng nhập bằng mật khẩu + mã 2FA" : "Đăng nhập bằng mật khẩu + mã dự phòng 2FA", ip, userAgent: ua, panelId: user.panelId ?? hostPanel?.id ?? null });
+  await recordLoginEvent({ userId: user.id, username: user.username, success: true, reason: kind === "totp" ? "Đăng nhập bằng mật khẩu + mã 2FA" : "Đăng nhập bằng mật khẩu + mã dự phòng 2FA", ip, userAgent: ua});
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   clearPending2fa();
   await createSession({ id: user.id, role: user.role, username: user.username });

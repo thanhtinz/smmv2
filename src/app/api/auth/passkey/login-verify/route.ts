@@ -67,7 +67,6 @@ export async function POST(req: NextRequest) {
       reason: "Tài khoản đã bị khoá (Passkey)",
       ip,
       userAgent: ua,
-      panelId: user.panelId ?? null,
     });
     clearChallenge();
     return fail(403, "Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
@@ -78,7 +77,7 @@ export async function POST(req: NextRequest) {
       .findFirst({
         where: {
           ip,
-          OR: [{ panelId: null }, ...(user.panelId ? [{ panelId: user.panelId }] : [])],
+          panelId: null,
         },
       })
       .catch(() => null);
@@ -90,7 +89,6 @@ export async function POST(req: NextRequest) {
         reason: "IP bị chặn (Passkey)",
         ip,
         userAgent: ua,
-        panelId: user.panelId ?? null,
       });
       clearChallenge();
       return fail(403, "Địa chỉ IP của bạn đã bị chặn" + (ban.reason ? `: ${ban.reason}` : ""));
@@ -106,7 +104,6 @@ export async function POST(req: NextRequest) {
       reason: "Bị chặn do khoá khẩn cấp (lockdown, Passkey)",
       ip,
       userAgent: ua,
-      panelId: user.panelId ?? null,
     });
     clearChallenge();
     return fail(403, lockdownMessage(ld.reason));
@@ -144,7 +141,6 @@ export async function POST(req: NextRequest) {
       reason: "Xác minh Passkey thất bại",
       ip,
       userAgent: ua,
-      panelId: user.panelId ?? null,
     });
     return fail(401, "Passkey không hợp lệ");
   }
@@ -160,7 +156,6 @@ export async function POST(req: NextRequest) {
     reason: "Đăng nhập bằng Passkey",
     ip,
     userAgent: ua,
-    panelId: user.panelId ?? null,
   });
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await createSession({

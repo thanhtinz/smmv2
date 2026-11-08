@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getSettings } from "@/lib/settings";
-import { panelByHost } from "@/lib/panel-host";
 import { getServerI18n } from "@/lib/lang-server";
 import { DisplayEngine } from "@/components/display";
 import { LangProvider } from "@/components/lang";
@@ -16,21 +15,7 @@ export const viewport: Viewport = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => null);
-  // Trên tên miền riêng của panel con: tiêu đề/SEO/favicon dùng bản riêng của panel.
-  const panel = await panelByHost().catch(() => null);
-  const { L } = await getServerI18n(panel?.langConfig ?? undefined).catch(() => ({ L: (t: string) => t }));
-  if (panel) {
-    return {
-      title: `${panel.name} — ${L("SMM Panel & Tài khoản Premium")}`,
-      description: L(panel.metaDescription || panel.tagline || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt"),
-      keywords: panel.metaKeywords ? panel.metaKeywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
-      openGraph: { title: panel.name, description: panel.metaDescription || panel.tagline ? L(panel.metaDescription || panel.tagline || "") : undefined, type: "website", images: panel.ogImageUrl ? [panel.ogImageUrl] : undefined },
-      twitter: { card: "summary_large_image", title: panel.name, description: panel.metaDescription || panel.tagline ? L(panel.metaDescription || panel.tagline || "") : undefined, images: panel.ogImageUrl ? [panel.ogImageUrl] : undefined },
-      manifest: "/manifest.webmanifest",
-      appleWebApp: { capable: true, statusBarStyle: "default", title: panel.name },
-      icons: { icon: panel.faviconUrl || s?.favicon_url || "/icon.svg", apple: panel.faviconUrl || s?.favicon_url || "/icon.svg" },
-    };
-  }
+  const { L } = await getServerI18n().catch(() => ({ L: (t: string) => t }));
   return {
     title: `${s?.site_name || "SMMv2"} — ${L("SMM Panel & Tài khoản Premium")}`,
     description: L(s?.meta_description || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt"),
@@ -52,15 +37,13 @@ const THEME_SCRIPT = `(function(){try{var h=document.documentElement;var a=local
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const s = await getSettings().catch(() => null);
-  const panel = await panelByHost().catch(() => null);
-  const i18n = await getServerI18n(panel?.langConfig ?? undefined).catch(() => null);
+  const i18n = await getServerI18n().catch(() => null);
   const langCfgJson = i18n ? JSON.stringify(i18n.cfg).replace(/</g, "\\u003c") : "{}";
   const themeScript = THEME_SCRIPT.replace("__SERVER_LANG__", i18n?.lang || "en");
-  const accent = panel?.accent || s?.default_accent || "blue";
+  const accent = s?.default_accent || "blue";
   const dark = s?.default_mode === "dark";
-  // Script/HTML: ở tên miền panel thì dùng bản riêng của panel, ở web mẹ dùng bản của mẹ.
-  const headHtml = panel ? panel.customHeadHtml : s?.custom_head_html;
-  const bodyHtml = panel ? panel.customBodyHtml : s?.custom_body_html;
+  const headHtml = s?.custom_head_html;
+  const bodyHtml = s?.custom_body_html;
   return (
     <html lang={i18n?.lang || "en"} data-accent={accent} className={dark ? "dark" : undefined} suppressHydrationWarning>
       <head>

@@ -48,20 +48,3 @@ export async function notifyServiceBot(botId: string | null | undefined, text: s
   }
 }
 
-/** Báo tin cho CHỦ PANEL qua Telegram riêng của panel (nếu họ đã cấu hình trong Panel Admin → Cấu hình). */
-export async function notifyPanelTelegram(panelId: number, text: string) {
-  try {
-    const { prisma } = await import("./db");
-    const panelRaw = await prisma.childPanel.findUnique({ where: { id: panelId }, select: { telegramBotToken: true, telegramChatId: true } });
-    const panel = panelRaw ? { ...panelRaw, telegramBotToken: panelRaw.telegramBotToken ? decryptSecret(panelRaw.telegramBotToken) : null } : null;
-    if (!panel?.telegramBotToken || !panel?.telegramChatId) return;
-    await fetch(`https://api.telegram.org/bot${panel.telegramBotToken}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: panel.telegramChatId, text }),
-      signal: AbortSignal.timeout(5000),
-    });
-  } catch {
-    /* bỏ qua lỗi mạng */
-  }
-}

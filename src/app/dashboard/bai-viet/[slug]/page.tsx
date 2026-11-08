@@ -10,14 +10,11 @@ export const dynamic = "force-dynamic";
 
 export default async function DashPostDetail({ params }: { params: { slug: string } }) {
   const user = (await getCurrentUser())!;
-  const panelLangRaw = user.panelId
-    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
-    : undefined;
-  const { L, Ld } = await getServerI18n(panelLangRaw);
-  if (!(await moduleOn("blog", user.panelId))) redirect("/dashboard");
+  const { L, Ld } = await getServerI18n();
+  if (!(await moduleOn("blog"))) redirect("/dashboard");
   const post = await prisma.post.findUnique({ where: { slug: params.slug }, include: { category: true } });
   if (!post || !post.published) notFound();
-  if (post.panelId !== null && post.panelId !== user.panelId) notFound();
+  if (post.panelId !== null) notFound();
   await prisma.post.update({ where: { id: post.id }, data: { views: { increment: 1 } } });
   const related = await prisma.post.findMany({
     where: { published: true, panelId: post.panelId, id: { not: post.id }, ...(post.categoryId ? { categoryId: post.categoryId } : {}) },

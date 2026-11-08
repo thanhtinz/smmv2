@@ -22,7 +22,7 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
   const status = searchParams.status || "";
   const page = Math.max(1, parseInt(searchParams.page || "1"));
 
-  const where: any = { panelId: null }; // trang này chỉ quản dịch vụ của web mẹ; dịch vụ riêng của panel do chủ panel tự quản
+  const where: any = { panelId: null }; // trang này quản dịch vụ của web mẹ
   if (q) where.OR = [{ name: { contains: q, mode: "insensitive" } }, ...(parseInt(q) ? [{ id: parseInt(q) }] : [])];
   if (cat) where.categoryId = cat;
   if (provider === "manual") where.providerId = null;

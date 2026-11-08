@@ -17,7 +17,7 @@ export default async function AdminDeposits({ searchParams }: {
   await requireAdminPage();
   const { L, Ld, M } = await getServerI18n(null);
   // Chỉ nạp của TÀI KHOẢN WEB MẸ — nạp của khách site con do chủ panel tự quản lý, mẹ không xem
-  const scope = { user: { panelId: null } };
+  const scope = {};
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -67,6 +67,7 @@ export default async function AdminDeposits({ searchParams }: {
     id: d.id, code: d.code, username: d.user.username, email: d.user.email, method: d.method,
     amount: d.amount, bonus: d.bonus, content: d.content, auto: d.auto, status: d.status,
     timeLabel: dt(d.createdAt), relLabel: Ld(relTime(d.createdAt)),
+    bolt: (d.externalId || "").startsWith("bolt:") ? (() => { let data: any = {}; try { data = d.providerData ? JSON.parse(d.providerData) : {}; } catch { /* ignore */ } return { orderId: d.providerRef || null, network: data.network || d.content || "TRON", txHash: data.paidTxHash || null, settlement: data.settlementType || null, status: data.boltStatus || d.status }; })() : null,
   }));
 
   return (

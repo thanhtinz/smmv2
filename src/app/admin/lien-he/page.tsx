@@ -17,7 +17,7 @@ export default async function AdminContactPage({ searchParams }: { searchParams:
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();
-  const items = await listContactWidgets(null);
+  const items = await listContactWidgets();
   const hasLegacy = !!(s.support_zalo || s.support_telegram || s.support_facebook || s.support_hotline);
   const aiOn = s.ai_enabled === "1" && !!s.ai_api_key;
   return (

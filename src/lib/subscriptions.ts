@@ -22,8 +22,8 @@ export async function processSubscriptions(limit = 20) {
 
   for (const sub of due) {
     try {
-      // Mô-đun đăng ký định kỳ đang tắt (web mẹ hoặc panel của chủ gói) -> bỏ qua, giữ nguyên lịch
-      if (!(await moduleOn("subscriptions", sub.user.panelId))) continue;
+      // Mô-đun đăng ký định kỳ đang tắt -> bỏ qua, giữ nguyên lịch
+      if (!(await moduleOn("subscriptions"))) continue;
       // Đủ số lượt (gói Schedule/Loop): đã chạy hết → tự dừng
       if (sub.totalRuns > 0 && sub.runs >= sub.totalRuns) {
         await prisma.subscription.update({ where: { id: sub.id }, data: { active: false, lastError: "Đã chạy đủ số lượt — tự tạm dừng" } });

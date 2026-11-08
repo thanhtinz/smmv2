@@ -10,7 +10,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "invalid tool api key" }, { status: 401 });
   }
   const id = Number(params.id || 0);
-  const order = id ? await findToolOrder(id, ctx.panelId) : null;
+  const order = id ? await findToolOrder(id) : null;
   if (!order) return NextResponse.json({ error: "order not found" }, { status: 404 });
   return NextResponse.json({
     ...toolOrderJson(order),

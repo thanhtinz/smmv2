@@ -26,12 +26,8 @@ async function auditAdmin(actor: { id: number; username: string; role: string },
 }
 
 /* ---------- Người dùng ---------- */
-/** Chốt chặn: tài khoản thuộc site con (panelId != null) là RIÊNG của site con —
- *  web mẹ không xem, không sửa số dư, không đổi vai trò/cấp của họ. */
-async function assertMotherAccount(userId: number, path: string) {
-  const t = await prisma.user.findUnique({ where: { id: userId }, select: { panelId: true } });
-  if (t?.panelId) back(path, "err", "Tài khoản này thuộc site con — web mẹ không quản lý account của site con");
-}
+/** (Tính năng website con đã gỡ — mọi tài khoản đều là khách của web mẹ.) */
+async function assertMotherAccount(_userId: number, _path: string) {}
 
 export async function adminAdjustBalance(formData: FormData) {
   const actor = await requireAdmin();
@@ -149,6 +145,7 @@ export async function adminSaveProvider(formData: FormData) {
   if (rawKey && !rawKey.includes("•")) await assertStepUp(actor.id, "/admin/nha-cung-cap");
   const data: any = {
     kind: (String(formData.get("kind") || "BOTH") as "SMM" | "PREMIUM" | "BOTH"),
+    driver: String(formData.get("driver") || "STANDARD") === "FZR" ? "FZR" : "STANDARD",
     name: String(formData.get("name") || "").trim(),
     apiUrl: String(formData.get("apiUrl") || "").trim(),
     apiKey: String(formData.get("apiKey") || "").trim(),
@@ -197,6 +194,14 @@ export async function adminProviderAction(formData: FormData) {
     if (kind === "balance") {
       const b = await providerBalance(provider);
       done("/admin/nha-cung-cap", `Số dư ${provider.name}: ${b.raw} ${b.currency} (≈ ${b.vnd.toLocaleString("vi-VN")}đ)`);
+    }
+    if (provider.driver === "FZR") {
+      // FazerCards: đồng bộ catalog số vào Premium. Nút "kèm Steam gift" mới gọi
+      // danh sách game Steam (rate-limit 1 lần/3 phút phía FZR).
+      const { syncFzrCatalog } = await import("@/lib/fzr-sync");
+      const withSteam = kind === "sync-steam";
+      const r = await syncFzrCatalog(provider, { includeSteamGifts: withSteam });
+      done("/admin/nha-cung-cap", `Đã đồng bộ catalog FZR ${provider.name} — sản phẩm: tổng ${r.total}, mới ${r.created}, cập nhật ${r.updated} · ${r.variants} gói · tắt ${r.deactivated} gói hết hàng${withSteam ? " · có kèm Steam gift" : ""}`);
     }
     const parts: string[] = [];
     if (provider.kind === "SMM" || provider.kind === "BOTH") {
@@ -265,6 +270,12 @@ export async function adminSyncAllProviders() {
   const parts: string[] = [];
   for (const p of providers) {
     try {
+      if (p.driver === "FZR") {
+        const { syncFzrCatalog } = await import("@/lib/fzr-sync");
+        const rf = await syncFzrCatalog(p);
+        parts.push(`${p.name} FZR: ${rf.total} sản phẩm`);
+        continue;
+      }
       if (p.kind === "SMM" || p.kind === "BOTH") {
         const r = await syncProviderServices(p);
         parts.push(`${p.name}: ${r.total} dịch vụ`);
@@ -467,11 +478,12 @@ export async function adminPremiumOrderAction(formData: FormData) {
   const kind = String(formData.get("kind"));
   const order = await prisma.premiumOrder.findUnique({ where: { id }, include: { variant: { include: { product: { select: { panelId: true } } } } } });
   if (!order) back("/admin/don-premium", "err", "Không tìm thấy đơn");
-  if (order.variant.product.panelId != null) back("/admin/don-premium", "err", "Đơn thuộc sản phẩm của panel con — chủ panel tự xử lý");
   const path = `/admin/don-premium/${id}`;
   if (kind === "sync") {
     try {
-      const after = await syncPremiumOrderStatus(order);
+      const prov = order.providerId ? await prisma.provider.findUnique({ where: { id: order.providerId }, select: { driver: true } }) : null;
+      const { pollFzrPremiumOrder } = await import("@/lib/fzr-orders");
+      const after = prov?.driver === "FZR" ? await pollFzrPremiumOrder(order) : await syncPremiumOrderStatus(order);
       done(path, after?.deliveryData ? "Đã đồng bộ — nhà cung cấp đã bàn giao, đơn chuyển Đã giao" : "Đã đồng bộ — nhà cung cấp chưa bàn giao");
     } catch (e: any) {
       if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
@@ -480,7 +492,6 @@ export async function adminPremiumOrderAction(formData: FormData) {
   }
   if (kind === "cancel") {
     if (order.status === "REFUNDED" || order.status === "CANCELED") back(path, "err", "Đơn đã kết thúc — không hoàn tiền thêm được");
-    const panelOwner = order.panelId ? await prisma.childPanel.findUnique({ where: { id: order.panelId }, select: { ownerId: true } }) : null;
     // Claim chuyển trạng thái sang REFUNDED TRƯỚC trong transaction: huỷ lần hai
     // (hoặc hai người cùng huỷ) sẽ claim trượt và không cộng tiền lần nữa.
     let claimed = false;
@@ -492,9 +503,6 @@ export async function adminPremiumOrderAction(formData: FormData) {
       if (claim.count === 0) return;
       claimed = true;
       await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Admin huỷ đơn premium — hoàn tiền");
-      if (panelOwner && order.commission > 0) {
-        await applyBalance(tx, panelOwner.ownerId, -order.commission, "PANEL_COMMISSION", order.code, "Thu hồi hoa hồng — đơn premium bị huỷ");
-      }
     });
     if (!claimed) back(path, "err", "Đơn đã kết thúc — không hoàn tiền thêm được");
     await clawbackReferralCommission(order.userId, order.total, order.code);
@@ -513,13 +521,34 @@ export async function adminPremiumOrderAction(formData: FormData) {
 }
 
 /* ---------- Nạp tiền ---------- */
+/** Kiểm tra kết nối BoltUtil (GET /api/v1/ping bằng khoá đã cấu hình). */
+export async function adminBoltPingAction() {
+  await requireAdmin();
+  const { getBoltConfig, boltPing } = await import("@/lib/boltutil");
+  const cfg = await getBoltConfig();
+  if (!cfg.apiKey || !cfg.webhookSecret) back("/admin/cau-hinh-nap-tien", "err", "Chưa nhập API key / webhook secret của BoltUtil");
+  try {
+    await boltPing(cfg);
+    back("/admin/cau-hinh-nap-tien", "msg", "Kết nối BoltUtil OK — API key và chữ ký hợp lệ");
+  } catch (e: any) {
+    back("/admin/cau-hinh-nap-tien", "err", `Kết nối BoltUtil thất bại: ${String(e?.message || e).slice(0, 160)}`);
+  }
+}
+
 export async function adminDepositAction(formData: FormData) {
   const actor = await requireAdmin();
   const id = parseInt(String(formData.get("id")));
   const kind = String(formData.get("kind"));
   const dep = await prisma.deposit.findUnique({ where: { id }, include: { user: { select: { panelId: true } } } });
   if (!dep || dep.status !== "PENDING") back("/admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
-  if (dep.user.panelId) back("/admin/nap-tien", "err", "Yêu cầu nạp này của khách site con — do chủ panel tự duyệt");
+  if (kind === "bolt-sync") {
+    // Đồng bộ trạng thái 1 yêu cầu nạp BoltUtil ngay (hỏi cổng + đối soát cộng tiền)
+    const { pollBoltutilDeposit } = await import("@/lib/boltutil");
+    const r = await pollBoltutilDeposit(id).catch((e: any) => ({ ok: false, reason: String(e?.message || e) }));
+    await auditAdmin(actor, "deposit.bolt_sync", "deposit", id, `${dep.code} — ${r.reason}`);
+    if (r.ok && r.reason === "credited") done("/admin/nap-tien", `Đã cộng tiền cho ${dep.code} từ BoltUtil`);
+    back("/admin/nap-tien", r.ok ? "msg" : "err", `BoltUtil: ${r.reason}`);
+  }
   if (kind === "reject") {
     // Claim PENDING -> REJECTED nguyên tử: đã có người duyệt trước thì không ghi đè
     const claim = await prisma.deposit.updateMany({ where: { id, status: "PENDING" }, data: { status: "REJECTED", adminNote: String(formData.get("adminNote") || "") || null } });
@@ -569,24 +598,11 @@ export async function adminManualDeposit(formData: FormData) {
 }
 
 /* ---------- Ticket ---------- */
-export async function adminPanelAction(formData: FormData) {
-  await requireAdmin();
-  const id = parseInt(String(formData.get("id")));
-  const kind = String(formData.get("kind"));
-  const panel = await prisma.childPanel.findUnique({ where: { id } });
-  if (!panel) back("/admin/panel-con", "err", "Không tìm thấy panel");
-  if (kind === "toggle") {
-    await prisma.childPanel.update({ where: { id }, data: { status: panel.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE" } });
-    done("/admin/panel-con", `Đã ${panel.status === "ACTIVE" ? "khoá" : "mở lại"} panel ${panel.name}`);
-  }
-  back("/admin/panel-con", "err", "Thao tác không hợp lệ");
-}
 
 export async function adminReplyTicket(formData: FormData) {
   await requireStaff();
   const ticketId = parseInt(String(formData.get("ticketId")));
   const tk = await prisma.ticket.findUnique({ where: { id: ticketId }, select: { user: { select: { panelId: true } } } });
-  if (tk?.user.panelId) back("/admin/ticket", "err", "Ticket này của khách site con — do panel con tự hỗ trợ");
   const body = String(formData.get("body") || "").trim();
   const close = formData.get("close") === "on";
   if (body) await prisma.ticketMessage.create({ data: { ticketId, body, fromAdmin: true, attachments: cleanAttachments(formData.get("attachments")) } });
@@ -613,12 +629,12 @@ export async function adminSaveSettings(formData: FormData) {
     "smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_from", "smtp_secure",
     "telegram_bot_token", "telegram_chat_id", "telegram_notify",
     "custom_head_html", "custom_body_html", "password_min_length",
-    "ai_enabled", "ai_provider", "ai_base_url", "ai_api_key", "ai_model", "ai_check_enabled", "tool_api_key", "panel_fee",
+    "ai_enabled", "ai_provider", "ai_base_url", "ai_api_key", "ai_model", "ai_check_enabled", "tool_api_key",
     "google_enabled", "google_client_id", "google_client_secret",
     "sepay_secret", "cron_secret",
     "usdt_enabled", "usdt_address", "usdt_network", "usdt_rate",
     "rate_eur", "rate_cny", "rate_thb", "rate_jpy", "rate_krw",
-    "landing_enabled", "landing_headline", "landing_subtitle", "auth_style", "landing_template",
+    "auth_style",
     "logo_url", "logo_menu_url", "favicon_url", "meta_description", "meta_keywords", "og_image_url", "contact_email", "footer_text",
     "home_modal_enabled", "home_modal_content",
     "terms_enabled", "terms_title", "terms_content", "terms_version", "terms_checkbox_text", "terms_button_text",
@@ -627,8 +643,8 @@ export async function adminSaveSettings(formData: FormData) {
     "recaptcha_enabled", "recaptcha_site_key", "recaptcha_secret", "recaptcha_login", "recaptcha_register",
     "bf_enabled", "bf_max_attempts", "bf_lock_seconds",
     "reg_honeypot", "reg_block_disposable", "reg_max_per_ip_hour", "reg_banned_domains",
-    "smtp_enabled", "smtp_from_name", "module_affiliate", "panel_default_markup", "session_days", "premium_max_qty", "order_max_links",
-    "panel_period_days", "panel_renew_horizon_hours", "provider_low_balance_default", "subscription_max_active",
+    "smtp_enabled", "smtp_from_name", "module_affiliate", "session_days", "premium_max_qty", "order_max_links",
+    "provider_low_balance_default", "subscription_max_active",
     "auto_refill_window_days", "auto_refill_settle_minutes", "cleanup_retention_days", "usdt_min",
     "points_per_100k", "points_value_vnd", "points_min_redeem", "ga_id", "gsc_verification",
   ];
@@ -648,10 +664,10 @@ export async function adminDeleteDepositsAction(formData: FormData) {
   // Không xoá yêu cầu nạp ĐÃ DUYỆT: tiền đã cộng vào số dư khách, xoá là mất
   // dấu vết kiểm toán giữa sổ giao dịch và yêu cầu nạp gốc.
   if (formData.get("all") === "1") {
-    await prisma.deposit.deleteMany({ where: { user: { panelId: null }, status: { not: "APPROVED" } } });
+    await prisma.deposit.deleteMany({ where: { status: { not: "APPROVED" } } });
   } else {
     const ids = formData.getAll("ids").map((x) => parseInt(String(x))).filter((n) => n > 0);
-    if (ids.length) await prisma.deposit.deleteMany({ where: { id: { in: ids }, user: { panelId: null }, status: { not: "APPROVED" } } });
+    if (ids.length) await prisma.deposit.deleteMany({ where: { id: { in: ids }, status: { not: "APPROVED" } } });
   }
   redirect("/admin/nap-tien?msg=" + encodeURIComponent("Đã xoá giao dịch nạp"));
 }
@@ -660,13 +676,14 @@ export async function adminDeleteDepositsAction(formData: FormData) {
  *  Chỉ lưu key có mặt trong form; secret để trống = giữ nguyên giá trị cũ. */
 export async function adminSaveMethodsAction(formData: FormData) {
   const actor = await requireAdmin();
-  const SECRET_KEYS = ["sepay_secret", "paypal_client_secret", "stripe_secret_key", "stripe_webhook_secret"];
+  const SECRET_KEYS = ["sepay_secret", "paypal_client_secret", "stripe_secret_key", "stripe_webhook_secret", "boltutil_api_key", "boltutil_webhook_secret"];
   if (SECRET_KEYS.some((k) => { const v = formData.get(k); return v !== null && String(v).trim() !== ""; })) {
     await assertStepUp(actor.id, "/admin/cau-hinh-nap-tien");
   }
   const keys = [
     "sepay_secret", "intl_min_usd", "usd_rate", "deposit_min", "deposit_bonus_tiers", "affiliate_percent",
-    "usdt_enabled", "usdt_address", "usdt_network", "usdt_rate",
+    "usdt_rate", "usdt_min",
+    "boltutil_enabled", "boltutil_api_key", "boltutil_webhook_secret", "boltutil_api_url", "boltutil_default_network", "boltutil_networks", "boltutil_expires_minutes", "boltutil_payment_method",
     "paypal_enabled", "paypal_client_id", "paypal_client_secret", "paypal_mode",
     "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret",
   ];

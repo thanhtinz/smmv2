@@ -1,5 +1,6 @@
 import { prisma } from "./db";
 import { decryptSecret } from "./secret-box";
+import { fzrBalance, decimalToNumber } from "./fzr";
 import type { Provider } from "@prisma/client";
 
 /**
@@ -42,6 +43,14 @@ async function call<T = any>(provider: Provider, params: Record<string, string>)
 }
 
 export async function providerBalance(provider: Provider): Promise<{ raw: number; vnd: number; currency: string }> {
+  if (provider.driver === "FZR") {
+    // FazerCards: GET /api/v2/balance — số dư USD dạng chuỗi thập phân
+    const fb = await fzrBalance(provider);
+    const raw = decimalToNumber(fb.balance);
+    const vnd = Math.round(raw * provider.exchangeRate);
+    await prisma.provider.update({ where: { id: provider.id }, data: { balanceCache: vnd } });
+    return { raw, vnd, currency: fb.currency || "USD" };
+  }
   const r = await call<{ balance: string; currency: string }>(provider, { action: "balance" });
   const raw = parseFloat(r.balance || "0");
   const vnd = Math.round(raw * provider.exchangeRate);

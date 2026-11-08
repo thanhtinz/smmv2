@@ -8,21 +8,20 @@ async function clientIp() {
   const { clientIp: ipOf } = await import("@/lib/rate-limit");
   return ipOf(headers());
 }
-async function assertNotBanned(panelId?: number) {
+async function assertNotBanned() {
   const ip = await clientIp();
   if (!ip) return;
   const ban = await prisma.ipBan
-    .findFirst({ where: { ip, OR: [{ panelId: null }, ...(panelId ? [{ panelId }] : [])] } })
+    .findFirst({ where: { ip, panelId: null } })
     .catch(() => null);
-  if (ban) throw new Error("Địa chỉ IP của bạn đã bị chặn" + (ban.panelId ? " khỏi website này" : " khỏi hệ thống") + (ban.reason ? `: ${ban.reason}` : ""));
+  if (ban) throw new Error("Địa chỉ IP của bạn đã bị chặn khỏi hệ thống" + (ban.reason ? `: ${ban.reason}` : ""));
 }
 import { createSession, destroySession, createPending2fa } from "@/lib/auth";
 import { recordLoginEvent } from "@/lib/login-events";
-import { panelByHost } from "@/lib/panel-host";
 import { getSettings } from "@/lib/settings";
 import { passwordError, loginLockSeconds, recordLoginFail, clearLoginFails, verifyRecaptcha, isDisposableEmail, regIpExceeded, recordRegAttempt } from "@/lib/security";
 
-/** Rào chắn đăng ký dùng chung (mẹ + panel con): honeypot, mật khẩu theo chính sách, email dùng 1 lần, giới hạn IP. */
+/** Rào chắn đăng ký dùng chung: honeypot, mật khẩu theo chính sách, email dùng 1 lần, giới hạn IP. */
 async function registrationGuard(formData: FormData, email: string, password: string, backPath: string) {
   const s = await getSettings();
   if (s.reg_honeypot === "1" && String(formData.get("website") || "")) back(backPath, "err", "Đăng ký không hợp lệ");
@@ -78,56 +77,13 @@ export async function registerAction(formData: FormData) {
   redirect("/dashboard");
 }
 
-/** Đăng ký tài khoản THUỘC panel con — khách sẽ mua theo giá của panel đó */
-export async function panelRegisterAction(formData: FormData) {
-  const gs = await getSettings();
-  if (gs.module_register === "0" || gs.module_panels === "0") back("/register", "err", "Đăng ký đang tạm đóng, vui lòng quay lại sau");
-  try { await assertNotBanned(); } catch (e: any) { back("/register", "err", String(e?.message || "IP bị chặn")); }
-  const slug = String(formData.get("slug") || "");
-  const panel = await prisma.childPanel.findUnique({ where: { slug } });
-  if (!panel || panel.status !== "ACTIVE") back(`/cua-hang/${slug}`, "err", "Panel này đang tạm ngưng nhận khách mới");
-  if (!panel.moduleRegister) back(`/cua-hang/${slug}/dang-ky`, "err", "Website này đang tạm đóng đăng ký mới");
-  try { await assertNotBanned(panel.id); } catch (e: any) { back(`/cua-hang/${slug}/dang-ky`, "err", String(e?.message || "IP bị chặn")); }
-  const username = String(formData.get("username") || "").trim().toLowerCase();
-  const email = String(formData.get("email") || "").trim().toLowerCase();
-  const password = String(formData.get("password") || "");
-  const fullName = String(formData.get("fullName") || "").trim();
-  const phone = String(formData.get("phone") || "").trim();
-  const page = `/cua-hang/${slug}/dang-ky`;
-  if (!/^[a-z0-9_.]{4,30}$/.test(username)) back(page, "err", "Tên đăng nhập 4-30 ký tự, chỉ gồm chữ thường, số, dấu . và _");
-  if (!/^\S+@\S+\.\S+$/.test(email)) back(page, "err", "Email không hợp lệ");
-  const regIp = await registrationGuard(formData, email, password, page);
-  const exists = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
-  if (exists) back(page, "err", "Tên đăng nhập hoặc email đã được sử dụng");
-  const ref = String(formData.get("ref") || "").trim().toUpperCase();
-  const referrer = ref ? await prisma.user.findUnique({ where: { refCode: ref }, select: { id: true } }) : null;
-  const user = await prisma.user.create({
-    data: {
-      username, email, fullName: fullName || null, phone: phone || null,
-      passwordHash: await hashPassword(password),
-      apiKey: randomKey(32),
-      depositCode: randomKey(6).toUpperCase(),
-      refCode: randomKey(8).toUpperCase(),
-      referredById: referrer?.id ?? null,
-      panelId: panel.id,
-    },
-  }).catch((e: any) => { if (e?.code === "P2002") back(page, "err", "Tên đăng nhập hoặc email đã được sử dụng"); throw e; });
-  await recordRegAttempt(regIp);
-  void (async () => { const { issueEmailVerification } = await import("@/lib/email-verify"); await issueEmailVerification({ id: user.id, email: user.email, username: user.username }); })();
-  await recordRegAttempt(regIp);
-  void (async () => { const { alertMother, alertPanelOwner } = await import("@/lib/alerts"); await alertMother("new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản qua panel ${panel.name}`); await alertPanelOwner(panel.id, "new_user", "Khách đăng ký mới", `${username} (${email}) vừa tạo tài khoản tại website của bạn`); })();
-  await createSession({ id: user.id, role: user.role, username: user.username });
-  redirect("/dashboard");
-}
-
 export async function loginAction(formData: FormData) {
   const login = String(formData.get("login") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
   const ip = await clientIp();
   const ua = headers().get("user-agent") || "";
-  const hostPanel = await panelByHost().catch(() => null);
-  const ev = (input: { userId?: number | null; success: boolean; reason?: string; panelId?: number | null }) =>
-    recordLoginEvent({ username: login, ip, userAgent: ua, panelId: input.panelId ?? hostPanel?.id ?? null, ...input });
+  const ev = (input: { userId?: number | null; success: boolean; reason?: string }) =>
+    recordLoginEvent({ username: login, ip, userAgent: ua, ...input });
   try { await assertNotBanned(); } catch (e: any) {
     await ev({ success: false, reason: String(e?.message || "IP bị chặn") });
     back("/login", "err", String(e?.message || "IP bị chặn"));
@@ -152,7 +108,7 @@ export async function loginAction(formData: FormData) {
   }
   if (!(await verifyPassword(user.passwordHash, password))) {
     await recordLoginFail(ip, login);
-    await ev({ userId: user.id, success: false, reason: "Sai tài khoản hoặc mật khẩu", panelId: user.panelId ?? hostPanel?.id ?? null });
+    await ev({ userId: user.id, success: false, reason: "Sai tài khoản hoặc mật khẩu"});
     back("/login", "err", "Sai tài khoản hoặc mật khẩu");
   }
   await clearLoginFails(ip, login);
@@ -162,21 +118,15 @@ export async function loginAction(formData: FormData) {
     if (upgraded) await prisma.user.update({ where: { id: user.id }, data: { passwordHash: upgraded } }).catch(() => null);
   }
   if (user.status === "BANNED") {
-    await ev({ userId: user.id, success: false, reason: "Tài khoản đã bị khoá", panelId: user.panelId ?? hostPanel?.id ?? null });
+    await ev({ userId: user.id, success: false, reason: "Tài khoản đã bị khoá"});
     back("/login", "err", "Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
   }
-  // GĐ2: khoá khẩn cấp — khách thường không đăng nhập mới được (quản trị + chủ/nhân viên panel được miễn)
+  // GĐ2: khoá khẩn cấp — khách thường không đăng nhập mới được (quản trị được miễn)
   {
     const ld = await lockdownState();
     if (ld.on && !(await userCanBypassLockdown(user))) {
-      await ev({ userId: user.id, success: false, reason: "Bị chặn do khoá khẩn cấp (lockdown)", panelId: user.panelId ?? hostPanel?.id ?? null });
+      await ev({ userId: user.id, success: false, reason: "Bị chặn do khoá khẩn cấp (lockdown)"});
       back("/login", "err", lockdownMessage(ld.reason));
-    }
-  }
-  if (user.panelId) {
-    try { await assertNotBanned(user.panelId); } catch (e: any) {
-      await ev({ userId: user.id, success: false, reason: String(e?.message || "IP bị chặn"), panelId: user.panelId });
-      back("/login", "err", String(e?.message || "IP bị chặn"));
     }
   }
   // Đã qua mật khẩu: tài khoản bật 2FA thì CHƯA tạo phiên — cấp cookie chờ 5 phút, sang trang nhập mã.
@@ -185,7 +135,7 @@ export async function loginAction(formData: FormData) {
     await createPending2fa({ id: user.id, username: user.username });
     redirect("/login/2fa");
   }
-  await ev({ userId: user.id, success: true, reason: "Đăng nhập bằng mật khẩu", panelId: user.panelId ?? hostPanel?.id ?? null });
+  await ev({ userId: user.id, success: true, reason: "Đăng nhập bằng mật khẩu"});
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await createSession({ id: user.id, role: user.role, username: user.username });
   // GĐ3: tính lại điểm rủi ro nền sau đăng nhập (dùng chung IP/thiết bị là 1 tín hiệu)

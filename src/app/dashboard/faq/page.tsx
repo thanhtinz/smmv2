@@ -12,17 +12,10 @@ export const dynamic = "force-dynamic";
  *  Khách panel thấy FAQ của panel mình nếu panel có đăng, không thì dùng FAQ của web mẹ. */
 export default async function FaqPage() {
   const user = (await getCurrentUser())!;
-  const panelLangRaw = user.panelId
-    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
-    : undefined;
-  const { L } = await getServerI18n(panelLangRaw);
+  const { L } = await getServerI18n();
   const cat = await prisma.postCategory.findUnique({ where: { slug: "faq" } });
   if (!cat) return <div><PageHead title={L("Hỏi đáp thường gặp")} desc={L("Những câu hỏi khách hàng hay gặp nhất")} /><Empty text={L("Chưa có câu hỏi nào")} /></div>;
-  let scopePid: number | null = user.panelId ?? null;
-  if (scopePid) {
-    const cnt = await prisma.post.count({ where: { published: true, categoryId: cat.id, panelId: scopePid } });
-    if (cnt === 0) scopePid = null;
-  }
+  const scopePid: number | null = null;
   const posts = await prisma.post.findMany({
     where: { published: true, categoryId: cat.id, panelId: scopePid },
     orderBy: [{ pinned: "desc" }, { id: "asc" }],

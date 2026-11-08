@@ -1,9 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useLang } from "@/components/lang";
+import { AddToCartBtn } from "@/components/cart";
 
 /** Dữ liệu thẻ sản phẩm Premium (đã tính sẵn phía server: khoảng giá, đã bán, kho). */
 export type PremiumCardData = {
+  productId: number;
   slug: string;
   name: string;
   image: string | null;
@@ -15,6 +17,9 @@ export type PremiumCardData = {
   hasStock: boolean;
   rating: number; // điểm trung bình 0..5 (0 khi chưa có đánh giá)
   reviewCount: number;
+  // Thêm thẳng vào giỏ được khi sản phẩm có đúng 1 gói, không trường bắt buộc
+  // và không phải nhóm Telegram (đơn theo người nhận — không vào giỏ).
+  cartVariant: { id: number; name: string; price: number; stock: number } | null;
 };
 
 /** Hàng 5 sao với phần tô theo điểm trung bình (dùng ở thẻ, hero chi tiết, mục đánh giá). */
@@ -68,12 +73,19 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
             </span>
           )}
         </div>
-        <div className="mt-auto pt-3">
+        <div className="mt-auto flex items-center justify-between gap-2 pt-3">
           {contact ? (
             <span className="inline-block rounded-lg bg-teal-600 px-3.5 py-1.5 text-[13px] font-bold text-white">{t("Đặt mua")}</span>
+          ) : item.cartVariant ? (
+            <>
+              <span className="text-[13px] font-bold text-teal-700">{t("Đặt mua")}</span>
+              <AddToCartBtn data={{ variantId: item.cartVariant.id, productId: item.productId, productName: item.name, variantName: item.cartVariant.name, image: item.image, price: item.cartVariant.price, stockCap: item.instant ? item.cartVariant.stock : null, group: null, custom: {} }} />
+            </>
           ) : !item.instant || !item.hasStock ? (
             <span className="text-[13px] font-bold text-teal-700">{t("Đặt mua")}</span>
-          ) : null}
+          ) : (
+            <span className="text-[13px] font-bold text-teal-700">{t("Chọn gói")}</span>
+          )}
         </div>
       </div>
     </Link>

@@ -3,7 +3,7 @@ import { requireAdminPage } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
-import { adminSaveMethodsAction } from "@/app/actions/admin";
+import { adminSaveMethodsAction, adminBoltPingAction } from "@/app/actions/admin";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -59,25 +59,53 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
         <form action={adminSaveMethodsAction} className="card space-y-4 p-6">
           <input type="hidden" name="back" value={back} />
           <div className="flex items-center justify-between">
-            <div className="font-bold text-slate-900">USDT (Crypto)</div>
-            {s.usdt_enabled === "1" ? <Badge cls="bg-emerald-100 text-emerald-800">{L("Đang bật")}</Badge> : <Badge cls="bg-slate-100 text-slate-500">{L("Đang tắt")}</Badge>}
+            <div className="font-bold text-slate-900">USDT qua BoltUtil</div>
+            {s.boltutil_enabled === "1" ? <Badge cls="bg-emerald-100 text-emerald-800">{L("Đang bật")}</Badge> : <Badge cls="bg-slate-100 text-slate-500">{L("Đang tắt")}</Badge>}
           </div>
           <div>
             <label className="lbl">{L("Trạng thái")}</label>
-            <select className="inp" name="usdt_enabled" defaultValue={s.usdt_enabled}>{onOff(s.usdt_enabled, L)}</select>
+            <select className="inp" name="boltutil_enabled" defaultValue={s.boltutil_enabled || "0"}>{onOff(s.boltutil_enabled || "0", L)}</select>
           </div>
-          <div><label className="lbl">{L("Địa chỉ ví nhận")}</label><input className="inp" name="usdt_address" defaultValue={s.usdt_address} placeholder="T..." /></div>
+          <div><label className="lbl">{L("API key (X-Bolt-Key)")}</label><input className="inp" type="password" name="boltutil_api_key" placeholder={s.boltutil_api_key ? "•••••••• (đã đặt — nhập để thay)" : "bolt_..."} autoComplete="off" /></div>
+          <div><label className="lbl">{L("Webhook secret (khoá ký HMAC)")}</label><input className="inp" type="password" name="boltutil_webhook_secret" placeholder={s.boltutil_webhook_secret ? "•••••••• (đã đặt — nhập để thay)" : "whsec_..."} autoComplete="off" /></div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="lbl">{L("Mạng")}</label>
-              <select className="inp" name="usdt_network" defaultValue={s.usdt_network}>
-                <option value="TRC20">TRC20</option><option value="BEP20">BEP20</option><option value="ERC20">ERC20</option>
+              <label className="lbl">{L("Mạng mặc định")}</label>
+              <select className="inp" name="boltutil_default_network" defaultValue={s.boltutil_default_network || "TRON"}>
+                {["TRON", "BSC", "ETHEREUM", "SOLANA", "ARBITRUM", "BASE"].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div><label className="lbl">{L("Phiên hết hạn sau (phút)")}</label><input className="inp" name="boltutil_expires_minutes" type="number" min={5} max={60} defaultValue={s.boltutil_expires_minutes || "30"} /></div>
+          </div>
+          <div>
+            <label className="lbl">{L("Các mạng cho phép nạp (phẩy ngăn cách)")}</label>
+            <input className="inp" name="boltutil_networks" defaultValue={s.boltutil_networks || "TRON"} placeholder="TRON,BSC,SOLANA" />
+            <p className="mt-1.5 text-xs text-slate-400">{L("Chỉ hiện các mạng đã cấu hình ví nhận trong dashboard BoltUtil.")}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="lbl">{L("Hình thức thanh toán")}</label>
+              <select className="inp" name="boltutil_payment_method" defaultValue={s.boltutil_payment_method || "MANUAL_TRANSFER"}>
+                <option value="WALLET">WALLET</option><option value="MANUAL_TRANSFER">MANUAL_TRANSFER</option>
               </select>
             </div>
             <div><label className="lbl">{L("Tỉ giá 1 USDT (đ)")}</label><input className="inp" name="usdt_rate" type="number" min={0} defaultValue={s.usdt_rate} placeholder={s.usd_rate || "25000"} /></div>
           </div>
-          <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">{L("Địa chỉ ví phải đúng mạng đã chọn — khách gửi sai mạng có thể mất tiền. Tiền cộng vào ví sau khi giao dịch được ghi nhận.")}</p>
-          <button className="btn-primary !py-2.5">{L("Lưu USDT")}</button>
+          <div>
+            <label className="lbl">{L("URL webhook (dán vào BoltUtil → Integrations → API)")}</label>
+            <input className="inp" readOnly value="https://smmv2-zeta.vercel.app/api/webhooks/boltutil" />
+          </div>
+          <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">{L("BoltUtil không giữ tiền — USDT về thẳng ví nhận đã cấu hình trong dashboard BoltUtil; tiền cộng cho khách theo số thực nhận khi giao dịch đủ xác nhận.")}</p>
+          <div className="flex flex-wrap gap-3">
+            <button className="btn-primary !py-2.5">{L("Lưu BoltUtil")}</button>
+          </div>
+        </form>
+        <form action={adminBoltPingAction} className="card flex items-center justify-between gap-4 p-6">
+          <div>
+            <div className="font-bold text-slate-900">{L("Kiểm tra kết nối BoltUtil")}</div>
+            <p className="mt-0.5 text-sm text-slate-500">{L("Gọi thử endpoint ping bằng API key và khoá ký đã lưu.")}</p>
+          </div>
+          <button className="btn-ghost !py-2.5">{L("Kiểm tra kết nối")}</button>
         </form>
 
         <form action={adminSaveMethodsAction} className="card space-y-4 p-6">

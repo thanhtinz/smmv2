@@ -7,13 +7,14 @@ import { getSettings, DEFAULT_SETTINGS } from "./settings";
 import { orderEvent, orderTransition, notifyUser } from "./notify";
 import { flashPercentFor, flashPercentForProduct, applyFlashAmount } from "./flash";
 import { awardPointsForPremiumOrder } from "./points";
-import { alertMother, alertPanelOwner } from "./alerts";
+import { alertMother } from "./alerts";
 import { assertNotRiskRestricted, evaluateUserRisk } from "./risk";
 import {
   providerAddOrder, providerOrderStatus, providerRefill, mapProviderStatus,
   providerBuyProduct, findPremiumOrderInHistory, extractDelivery,
   type SmmExtraParams,
 } from "./provider";
+import { executeFzrPremiumOrder, refreshFzrQuotePrice, parseBuyerInfoLines } from "./fzr-orders";
 import type { PremiumOrder, SmmOrder, User } from "@prisma/client";
 
 /** Trạng thái drip-feed lưu trong params của đơn (JSON) */
@@ -40,18 +41,6 @@ export function parseDripfeed(params: string | null | undefined): DripfeedState 
   }
 }
 
-/** % giảm theo cấp bậc của khách panel — mỗi panel tự đặt riêng từng bậc */
-export function panelTierDiscount(
-  panel: { discountMember: number; discountReseller: number; discountAgency: number; discountVip: number },
-  level: string
-) {
-  switch (level) {
-    case "RESELLER": return panel.discountReseller;
-    case "AGENCY": return panel.discountAgency;
-    case "VIP": return panel.discountVip;
-    default: return panel.discountMember;
-  }
-}
 
 /** Tạo đơn SMM (dùng chung cho web, API reseller). Ném Error với message hiển thị cho khách. */
 /** Số lượng thực đẩy sang API sau điều chỉnh % của dịch vụ (+tăng / -giảm). */
@@ -75,24 +64,16 @@ export function providerLinkFor(service: { autoUid: boolean }, link: string): st
 /** AI kiểm tra nội dung link đơn (Cấu hình > tab AI Kiểm tra). Chỉ chạy khi admin bật
  *  và đã cấu hình AI; nếu AI kết luận vi phạm thì gắn vào flagNote để admin thấy ở mục
  *  rủi ro + báo admin. Chạy nền sau khi đơn đã tạo — lỗi nào cũng bỏ qua. */
-async function aiCheckOrderLink(orderId: number, link: string, panelId?: number | null) {
-  // Đơn của khách panel: dùng AI + nút bật/tắt RIÊNG của panel; đơn web mẹ: cấu hình chung.
-  const { aiConfigured, aiChat, panelAiConfig } = await import("./ai");
-  let cfg: Parameters<typeof aiChat>[2] = undefined;
-  if (panelId) {
-    const panel = await prisma.childPanel.findUnique({
-      where: { id: panelId },
-      select: { aiCheckEnabled: true, aiEnabled: true, aiProvider: true, aiBaseUrl: true, aiApiKey: true, aiModel: true },
-    });
-    if (!panel?.aiCheckEnabled) return;
-    cfg = panelAiConfig(panel as any);
-  } else {
+async function aiCheckOrderLink(orderId: number, link: string) {
+  const { aiConfigured, aiChat } = await import("./ai");
+  const cfg: Parameters<typeof aiChat>[2] = null;
+  {
     const s = await getSettings();
     if (s.ai_check_enabled !== "1") return;
   }
   if (!(await aiConfigured(cfg))) return;
   const verdict = (await aiChat(
-    "Bạn là bộ lọc nội dung cho một panel SMM. Kiểm tra LINK do người dùng gửi khi đặt đơn. Các nhóm vi phạm: mạo danh cơ quan nhà nước; nội dung khiêu dâm; cờ bạc, cá cược, xổ số; ma tuý; lừa đảo, phishing; bạo lực, khủng bố; chống phá Nhà nước; buôn bán vũ khí; xâm phạm quyền trẻ em. Chỉ trả lời đúng một dòng: OK nếu link không thuộc nhóm nào; hoặc VIOLATION: <tên nhóm vi phạm> nếu thuộc.",
+    "Bạn là bộ lọc nội dung cho một nền tảng SMM. Kiểm tra LINK do người dùng gửi khi đặt đơn. Các nhóm vi phạm: mạo danh cơ quan nhà nước; nội dung khiêu dâm; cờ bạc, cá cược, xổ số; ma tuý; lừa đảo, phishing; bạo lực, khủng bố; chống phá Nhà nước; buôn bán vũ khí; xâm phạm quyền trẻ em. Chỉ trả lời đúng một dòng: OK nếu link không thuộc nhóm nào; hoặc VIOLATION: <tên nhóm vi phạm> nếu thuộc.",
     link,
     cfg,
   )).trim();
@@ -100,12 +81,11 @@ async function aiCheckOrderLink(orderId: number, link: string, panelId?: number 
   if (!cur) return;
   const isViolation = /^VIOLATION/i.test(verdict);
   // Ghi nhật ký kiểm tra (trang Kiểm tra AI) — cả kết quả an toàn lẫn vi phạm
-  const modelName = cfg?.model || (panelId ? null : (await getSettings()).ai_model) || null;
+  const modelName = (cfg as { model?: string | null } | null | undefined)?.model || (await getSettings()).ai_model || null;
   await prisma.aiCheckLog.create({
     data: {
       orderId,
       userId: cur.userId,
-      panelId: panelId ?? null,
       link: link.slice(0, 500),
       verdict: isViolation ? "VIOLATION" : "SAFE",
       reason: isViolation ? verdict.replace(/^VIOLATION:\s*/i, "").slice(0, 500) : null,
@@ -136,21 +116,13 @@ export async function createSmmOrder(input: {
   if ((await getSettings()).module_smm === "0") throw new Error("Mảng dịch vụ SMM đang tạm tắt");
   // GĐ3: tài khoản rủi ro cao (chưa được duyệt lại) bị chặn tạo đơn mới
   await assertNotRiskRestricted(input.user.id);
-  if (input.user.panelId) {
-    const pf = await prisma.childPanel.findUnique({ where: { id: input.user.panelId }, select: { sellSmm: true } });
-    if (pf && !pf.sellSmm) throw new Error("Website đang tắt bán dịch vụ SMM");
-  }
   const service = await prisma.smmService.findUnique({
     where: { id: input.serviceId },
     include: { provider: true },
   });
   if (!service || !service.active) throw new Error("Dịch vụ không tồn tại hoặc đang tạm ngưng");
-  // Dịch vụ riêng của panel: chỉ khách của đúng panel đó (và chủ panel) mới đặt được
-  const isOwn = !!service.panelId;
-  if (isOwn && service.panelId !== input.user.panelId) {
-    const ownPanel = await prisma.childPanel.findFirst({ where: { ownerId: input.user.id }, select: { id: true } });
-    if (!ownPanel || ownPanel.id !== service.panelId) throw new Error("Dịch vụ không tồn tại hoặc đang tạm ngưng");
-  }
+  // Dịch vụ từng thuộc website con (tính năng đã gỡ): không bán trên web mẹ
+  if (service.panelId != null) throw new Error("Dịch vụ không tồn tại hoặc đang tạm ngưng");
   if (!input.link.trim()) throw new Error("Thiếu link");
   if (input.quantity < service.min) throw new Error(`Số lượng tối thiểu là ${service.min}`);
   if (input.quantity > service.max) throw new Error(`Số lượng tối đa là ${service.max}`);
@@ -176,33 +148,14 @@ export async function createSmmOrder(input: {
     };
   }
 
-  // Panel con: khách thuộc panel trả giá đã cộng markup của chủ panel, được giảm thêm theo
-  // cấp bậc mà panel quy định riêng từng bậc; phần chênh lệch còn lại so với giá gốc là hoa hồng của chủ panel.
-  let panel: { id: number; ownerId: number; markup: number; name: string; discountMember: number; discountReseller: number; discountAgency: number; discountVip: number } | null = null;
-  if (input.user.panelId) {
-    const p = await prisma.childPanel.findUnique({ where: { id: input.user.panelId } });
-    if (p && p.status === "ACTIVE") panel = p;
-  }
   const settings = await getSettings();
-  const panelRate = panel && !isOwn ? Math.round(service.rate * (1 + panel.markup / 100)) : service.rate;
-  let effectiveRate = panelRate;
-  let discount = isOwn ? 0 : panel ? panelTierDiscount(panel, input.user.level) : levelDiscountFromSettings(settings, input.user.level);
-  if (panel) {
-    // Giá riêng từng dịch vụ theo từng bậc (kiểu thatim: bảng giá có một cột giá cho mỗi cấp):
-    // chủ panel đặt giá riêng cho đúng dịch vụ + bậc của khách thì giá đó là GIÁ CUỐI, không giảm thêm %.
-    const ov = await prisma.panelServicePrice.findUnique({
-      where: { panelId_serviceId_level: { panelId: panel.id, serviceId: service.id, level: input.user.level } },
-    });
-    if (ov) {
-      effectiveRate = ov.price;
-      discount = 0;
-    }
-  }
+  const effectiveRate = service.rate;
+  const discount = levelDiscountFromSettings(settings, input.user.level);
   let charge = Math.max(1, Math.round(smmCharge(effectiveRate, input.quantity) * (1 - discount / 100)));
-  // Flash sale của site khách thuộc về (mẹ/panel riêng): giảm thêm % trong khung giờ — áp ở server để giá hiển thị và giá trừ tiền nhất quán
-  const flashPct = await flashPercentFor(service.id, input.user.panelId ?? null);
+  // Flash sale: giảm thêm % trong khung giờ — áp ở server để giá hiển thị và giá trừ tiền nhất quán
+  const flashPct = await flashPercentFor(service.id);
   if (flashPct > 0) charge = applyFlashAmount(charge, flashPct);
-  const commission = isOwn ? Math.max(0, charge - smmCharge(service.costRate, input.quantity)) : panel ? Math.max(0, charge - smmCharge(service.rate, input.quantity)) : 0;
+  const commission = 0;
   const cost = smmCharge(service.costRate, input.quantity);
 
   // Profit Protection: không cho đặt đơn nếu giá bán (sau chiết khấu cấp bậc) thấp hơn giá vốn
@@ -214,7 +167,7 @@ export async function createSmmOrder(input: {
   let finalCharge = charge;
   let promo: Awaited<ReturnType<typeof checkPromo>> = null;
   if (input.promoCode?.trim()) {
-    promo = await checkPromo(input.promoCode, "SMM", charge, input.user.panelId ?? null);
+    promo = await checkPromo(input.promoCode, "SMM", charge);
     if (promo) finalCharge = charge - promo.discount;
   }
 
@@ -249,7 +202,6 @@ export async function createSmmOrder(input: {
         fulfillment: service.fulfillment,
         providerId: service.providerId,
         viaApi: !!input.viaApi,
-        panelId: panel?.id,
         campaignId: input.campaignId,
         subscriptionId: input.subscriptionId,
         commission,
@@ -265,10 +217,6 @@ export async function createSmmOrder(input: {
     });
     const code = genCode("SMM", o.id);
     await tx.smmOrder.update({ where: { id: o.id }, data: { code } });
-    // Trả hoa hồng cho chủ panel ngay khi đơn được tạo (hoàn tiền sẽ thu hồi theo tỉ lệ)
-    if (panel && commission > 0) {
-      await applyBalance(tx, panel.ownerId, commission, "PANEL_COMMISSION", code, `Hoa hồng đơn ${code} — panel ${panel.name}`);
-    }
     // Hoa hồng giới thiệu: tính trên giao dịch mua của người được giới thiệu (kiểu thatim)
     await creditReferralCommission(tx, input.user.id, finalCharge, code);
     return { ...o, code, charge: finalCharge };
@@ -284,12 +232,8 @@ export async function createSmmOrder(input: {
     void (async () => { const { notifyServiceBot } = await import("./telegram"); await notifyServiceBot(service.telegramBot, `Đơn SMM mới ${order.code}\nDịch vụ: ${service.name}\nSL: ${order.quantity} · ${finalCharge.toLocaleString("vi-VN")}đ\nLink: ${order.link}`); })();
   }
   if (flagNote) void alertMother("risk", `Đơn rủi ro ${order.code}`, flagNote);
-  if (panel) {
-    void alertPanelOwner(panel.id, "smm_order", `Đơn SMM mới ${order.code}`, `Qua website ${panel.name}: ${service.name} — ${finalCharge.toLocaleString("vi-VN")}đ`);
-    if (flagNote) void alertPanelOwner(panel.id, "risk", `Đơn rủi ro ${order.code}`, flagNote);
-  }
   // AI kiểm tra link (Cấu hình > tab AI Kiểm tra): chạy nền, không chặn luồng đặt đơn
-  void aiCheckOrderLink(order.id, order.link, order.panelId).catch(() => {});
+  void aiCheckOrderLink(order.id, order.link).catch(() => {});
 
   // Đẩy qua provider nếu là đơn API — lỗi thì giữ PENDING để admin xử lý / cron thử lại, KHÔNG mất tiền khách vô ích:
   // nếu provider từ chối dứt khoát, hoàn tiền ngay.
@@ -373,22 +317,6 @@ export async function refundSmmOrder(orderId: number, amount: number, note: stri
     await tx.smmOrder.update({ where: { id: orderId }, data });
   });
   await orderTransition(order, status, amt > 0 ? `${note} — hoàn ${vnd(amt)}` : note);
-  // Thu hồi hoa hồng panel theo đúng tỉ lệ số tiền vừa hoàn (best-effort: chủ panel đã tiêu thì ghi log, không chặn hoàn tiền của khách)
-  if (order.panelId && order.commission > 0 && amt > 0 && order.charge > 0) {
-    const claw = Math.floor((order.commission * amt) / order.charge);
-    if (claw > 0) {
-      try {
-        const panel = await prisma.childPanel.findUnique({ where: { id: order.panelId } });
-        if (panel) {
-          await prisma.$transaction(async (tx) => {
-            await applyBalance(tx, panel.ownerId, -claw, "PANEL_COMMISSION", order.code, `Thu hồi hoa hồng — đơn ${order.code} hoàn tiền`);
-          });
-        }
-      } catch (e: any) {
-        await prisma.apiLog.create({ data: { kind: "panel_commission", ref: order.code, ok: false, detail: `clawback failed ${claw}: ${String(e?.message || e)}` } });
-      }
-    }
-  }
   // Thu hồi hoa hồng giới thiệu theo tỉ lệ số tiền vừa hoàn
   await clawbackReferralCommission(order.userId, amt, order.code);
 }
@@ -510,22 +438,39 @@ export async function createPremiumOrder(input: {
   if ((await getSettings()).module_premium === "0") throw new Error("Mảng Premium đang tạm tắt");
   // GĐ3: tài khoản rủi ro cao (chưa được duyệt lại) bị chặn mua Premium mới
   await assertNotRiskRestricted(input.user.id);
-  if (input.user.panelId) {
-    const pf = await prisma.childPanel.findUnique({ where: { id: input.user.panelId }, select: { sellPremium: true } });
-    if (pf && !pf.sellPremium) throw new Error("Website đang tắt bán Premium");
-  }
   const variant = await prisma.premiumVariant.findUnique({
     where: { id: input.variantId },
     include: { product: true },
   });
   if (!variant || !variant.active || !variant.product.active) throw new Error("Gói không tồn tại hoặc đã ngưng bán");
-  // Sản phẩm do panel con tự thêm: chỉ khách của đúng panel đó mua được
-  const ownProduct = variant.product.panelId != null;
-  if (ownProduct && variant.product.panelId !== input.user.panelId) throw new Error("Gói không tồn tại hoặc đã ngưng bán");
+  // FZR — báo giá tại thời điểm mua cho nhóm giá biến động (sao Telegram, gift Steam):
+  // chốt giá tươi từ provider TRƯỚC khi tính tiền. Nhóm khác giữ giá đã đồng bộ.
+  if (variant.product.fulfillment === "API" && variant.providerId && (variant.providerGroup === "telegram_stars" || variant.providerGroup === "steam_gift")) {
+    const fzrProvider = await prisma.provider.findUnique({ where: { id: variant.providerId } });
+    if (fzrProvider?.driver === "FZR") {
+      const q = await refreshFzrQuotePrice(variant, fzrProvider);
+      variant.price = q.price;
+      variant.cost = q.cost;
+    }
+  }
+  // Sản phẩm từng thuộc website con (tính năng đã gỡ): không bán trên web mẹ
+  if (variant.product.panelId != null) throw new Error("Gói không tồn tại hoặc đã ngưng bán");
   let maxQty = parseInt((await getSettings()).premium_max_qty) || Number(DEFAULT_SETTINGS.premium_max_qty);
-  if (input.user.panelId) {
-    const p = await prisma.childPanel.findUnique({ where: { id: input.user.panelId }, select: { premiumMaxQty: true } });
-    if (p?.premiumMaxQty && p.premiumMaxQty > 0) maxQty = p.premiumMaxQty;
+  // FZR Telegram Stars: số lượng = số sao (preset tới hàng chục nghìn) — trần theo
+  // báo giá phía FZR (min/maxAmount), không theo trần gói Premium thông thường.
+  if (variant.providerGroup === "telegram_stars" && variant.providerId) {
+    const { fzrTelegramStarsQuote } = await import("./fzr");
+    const prov = await prisma.provider.findUnique({ where: { id: variant.providerId } });
+    if (prov?.driver === "FZR") {
+      try {
+        const q = await fzrTelegramStarsQuote(prov);
+        if (q.minAmount && input.quantity < q.minAmount) throw new Error(`Số sao tối thiểu là ${q.minAmount}`);
+        maxQty = q.maxAmount && q.maxAmount > 0 ? q.maxAmount : 1000000;
+      } catch (e: any) {
+        if (String(e?.message || "").startsWith("Số sao tối thiểu")) throw e;
+        maxQty = 1000000; // không lấy được báo giá -> dùng trần cứng, giá vẫn chốt ở bước refresh phía trên
+      }
+    }
   }
   if (input.quantity < 1 || input.quantity > maxQty) throw new Error("Số lượng không hợp lệ");
   // Trường tuỳ chỉnh của sản phẩm: validate trường bắt buộc và gộp thành thông tin bàn giao
@@ -543,40 +488,20 @@ export async function createPremiumOrder(input: {
   if ((variant.product.fulfillment === "MANUAL" || variant.product.fulfillment === "API") && !buyerInfo?.trim())
     throw new Error("Gói này cần thông tin tài khoản/email của bạn để bàn giao");
 
-  // Panel con: khách thuộc panel trả giá panel (cộng markup, giảm theo cấp bậc của panel),
-  // chênh lệch so với giá web mẹ là hoa hồng của chủ panel — cùng nguyên tắc với đơn SMM.
-  const panelRow = input.user.panelId ? await prisma.childPanel.findUnique({ where: { id: input.user.panelId } }) : null;
-  const panel = panelRow && panelRow.status === "ACTIVE" ? panelRow : null;
   let total = variant.price * input.quantity;
-  if (panel && !ownProduct) {
-    // Giá riêng từng gói do chủ panel đặt (nếu có) là giá cuối, thay cho công thức markup + giảm bậc
-    const override = await prisma.panelPremiumPrice.findUnique({ where: { panelId_variantId: { panelId: panel.id, variantId: variant.id } } });
-    if (override) {
-      total = Math.max(1, override.price * input.quantity);
-    } else {
-      const unit = Math.round(variant.price * (1 + panel.markup / 100));
-      const disc = panelTierDiscount(panel, input.user.level);
-      total = Math.max(1, Math.round(unit * input.quantity * (1 - disc / 100)));
-    }
-  }
-  // Flash sale (phạm vi có Premium) của site khách thuộc về (mẹ/panel riêng): giảm thêm %
-  // trên tổng sau giá panel — đúng thứ tự phía SMM: flash áp TRƯỚC hoa hồng panel và
-  // mã giảm giá (mã giảm tính trên số tiền đã trừ flash).
-  const flashPct = await flashPercentForProduct(variant.product.id, input.user.panelId ?? null);
+  // Flash sale (phạm vi có Premium): giảm thêm % trên tổng — đúng thứ tự phía SMM:
+  // flash áp TRƯỚC mã giảm giá (mã giảm tính trên số tiền đã trừ flash).
+  const flashPct = await flashPercentForProduct(variant.product.id);
   if (flashPct > 0) total = applyFlashAmount(total, flashPct);
-  let commission = 0;
-  if (panel && !ownProduct) commission = Math.max(0, total - variant.price * input.quantity);
+  const commission = 0;
   const cost = variant.cost * input.quantity;
 
-  // Mã giảm giá: tính trên tổng tiền sau giá panel + flash sale (nếu có)
+  // Mã giảm giá: tính trên tổng tiền sau flash sale (nếu có)
   let promo: Awaited<ReturnType<typeof checkPromo>> = null;
   if (input.promoCode?.trim()) {
-    promo = await checkPromo(input.promoCode, "PREMIUM", total, input.user.panelId ?? null);
+    promo = await checkPromo(input.promoCode, "PREMIUM", total);
     if (promo) total -= promo.discount;
   }
-
-  // Sản phẩm của chính panel: giá gói là giá cuối, chủ panel nhận toàn bộ tiền bán (tự giao hàng)
-  if (ownProduct && panel) commission = total;
 
   const created = await prisma.$transaction(async (tx) => {
     await applyBalance(tx, input.user.id, -total, "PREMIUM_ORDER", undefined, `Mua ${variant.product.name} — ${variant.name}`);
@@ -593,7 +518,6 @@ export async function createPremiumOrder(input: {
         cost,
         status: "PENDING",
         providerId: variant.product.providerId,
-        panelId: panel?.id,
         commission,
         buyerInfo,
         warrantyUntil: variant.warrantyDays
@@ -603,9 +527,6 @@ export async function createPremiumOrder(input: {
     });
     const code = genCode("PRE", o.id);
     await tx.premiumOrder.update({ where: { id: o.id }, data: { code } });
-    if (panel && commission > 0) {
-      await applyBalance(tx, panel.ownerId, commission, "PANEL_COMMISSION", code, `Hoa hồng đơn ${code} — panel ${panel.name}`);
-    }
     // Hoa hồng giới thiệu: tính trên giao dịch mua (kiểu thatim)
     await creditReferralCommission(tx, input.user.id, total, code);
 
@@ -644,18 +565,30 @@ export async function createPremiumOrder(input: {
     }
     return { ...o, code };
   });
-  if (!ownProduct) void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
+  void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
   await notifyUser(input.user.id, "Đặt hàng Premium thành công", `Đơn ${created.code}: ${variant.product.name} — ${variant.name} × ${input.quantity} — đã trừ ${vnd(created.total)}${created.status === "DELIVERED" ? " — đã giao tự động, xem nội dung trong đơn" : ""}`, "/dashboard/don-premium");
   // GĐ3: tính lại điểm rủi ro nền sau khi mua Premium — lỗi tính điểm không ảnh hưởng đơn
   void evaluateUserRisk(input.user.id);
   if (created.status === "DELIVERED" || created.status === "COMPLETED") await awardPointsForPremiumOrder(created);
-  if (panel) void alertPanelOwner(panel.id, "premium_order", `Đơn Premium mới ${created.code}`, `Qua website ${panel.name}: ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
 
   // Đấu API mua sản phẩm (kiểu ThaTim): gọi action=buy cho từng đơn vị
   if (variant.product.fulfillment === "API") {
     const provider = variant.product.providerId
       ? await prisma.provider.findUnique({ where: { id: variant.product.providerId } })
       : null;
+    // FazerCards (driver FZR): luồng riêng theo nhóm sản phẩm — xem lib/fzr-orders.
+    // Đơn thiếu linkage FZR thì rơi xuống xử lý tay như stub API trước đây.
+    if (provider?.driver === "FZR" && variant.providerGroup && variant.providerItemId) {
+      const fzrOrder = await prisma.premiumOrder.findUnique({ where: { id: created.id } });
+      if (fzrOrder) {
+        return executeFzrPremiumOrder({
+          order: fzrOrder,
+          variant,
+          provider,
+          inputs: input.customData || parseBuyerInfoLines(buyerInfo),
+        });
+      }
+    }
     if (!provider || !variant.product.providerProductId || !variant.providerCycle) {
       // Chưa cấu hình đủ mapping -> giữ đơn PENDING cho admin xử lý tay thay vì mất đơn
       await prisma.premiumOrder.update({
@@ -680,12 +613,9 @@ export async function createPremiumOrder(input: {
       }
     }
     if (codes.length === 0) {
-      // Provider từ chối toàn bộ -> hoàn tiền đủ + thu hồi toàn bộ hoa hồng panel
+      // Provider từ chối toàn bộ -> hoàn tiền đủ
       await prisma.$transaction(async (tx) => {
         await applyBalance(tx, input.user.id, total, "REFUND", created.code, "Nhà cung cấp từ chối đơn premium — hoàn tiền");
-        if (panel && commission > 0) {
-          await applyBalance(tx, panel.ownerId, -commission, "PANEL_COMMISSION", created.code, "Thu hồi hoa hồng — đơn premium bị hoàn toàn bộ");
-        }
         await tx.premiumOrder.update({ where: { id: created.id }, data: { status: "REFUNDED" } });
       });
       await clawbackReferralCommission(input.user.id, total, created.code);
@@ -693,12 +623,8 @@ export async function createPremiumOrder(input: {
     }
     if (failed > 0) {
       const refundAmt = Math.floor((total * failed) / input.quantity);
-      const clawback = panel ? Math.floor((commission * failed) / input.quantity) : 0;
       await prisma.$transaction(async (tx) => {
         await applyBalance(tx, input.user.id, refundAmt, "REFUND", created.code, `Hoàn ${failed} đơn vị provider không nhận`);
-        if (panel && clawback > 0) {
-          await applyBalance(tx, panel.ownerId, -clawback, "PANEL_COMMISSION", created.code, "Thu hồi hoa hồng phần đơn premium bị hoàn");
-        }
       });
       await clawbackReferralCommission(input.user.id, refundAmt, created.code);
     }
@@ -756,7 +682,6 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
     });
     await awardPointsForPremiumOrder(order);
   } else if (canceled === codes.length && codes.length > 0 && order.status !== "REFUNDED") {
-    const panelOwner = order.panelId ? await prisma.childPanel.findUnique({ where: { id: order.panelId }, select: { ownerId: true } }) : null;
     // Claim REFUNDED trong transaction trước khi cộng tiền — đồng bộ chạy trùng
     // với admin bấm huỷ tay thì chỉ một đường hoàn được tiền.
     let claimed = false;
@@ -768,9 +693,6 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
       if (claim.count === 0) return;
       claimed = true;
       await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Nhà cung cấp huỷ đơn premium — hoàn tiền");
-      if (panelOwner && order.commission > 0) {
-        await applyBalance(tx, panelOwner.ownerId, -order.commission, "PANEL_COMMISSION", order.code, "Thu hồi hoa hồng — đơn premium bị hoàn");
-      }
     });
     if (claimed) await clawbackReferralCommission(order.userId, order.total, order.code);
   }

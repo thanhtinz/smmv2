@@ -7,7 +7,6 @@ import { requireAdmin, assertStepUp, currentIp, invalidateSessionSecretsCache } 
 import { getSettings, setSetting } from "@/lib/settings";
 import { writeAudit } from "@/lib/audit";
 import { alertMother } from "@/lib/alerts";
-import { PANEL_SECRET_FIELDS, panelHasPlaintextSecrets } from "@/lib/panel-secrets";
 import { encryptSecret } from "@/lib/secret-box";
 import { evaluateUserRisk, markRiskReviewed } from "@/lib/risk";
 
@@ -36,33 +35,6 @@ export async function toggleLockdownAction(formData: FormData) {
   back("msg", enable ? "Đã BẬT khoá khẩn cấp — khách bị chặn đăng nhập & giao dịch" : "Đã TẮT khoá khẩn cấp — hệ thống mở lại bình thường");
 }
 
-/** Mã hoá toàn bộ secret còn dạng rõ trên các ChildPanel (chạy một lần từ Security
- *  Center; chỉ ADMIN web mẹ, qua step-up). Giá trị đã enc: được bỏ qua. */
-export async function encryptAllPanelSecretsAction() {
-  const admin = await requireAdmin();
-  if (admin.role !== "ADMIN") back("err", "Chỉ ADMIN mới chạy được thao tác này");
-  await assertStepUp(admin.id, PAGE);
-  const panels = await prisma.childPanel.findMany({ select: { id: true, ...Object.fromEntries(PANEL_SECRET_FIELDS.map((f) => [f, true])) } as any });
-  let count = 0;
-  for (const p of panels as any[]) {
-    if (!panelHasPlaintextSecrets(p)) continue;
-    const data: Record<string, string> = {};
-    for (const f of PANEL_SECRET_FIELDS) {
-      const v = p[f];
-      if (typeof v === "string" && v && !v.startsWith("enc:")) data[f] = encryptSecret(v);
-    }
-    if (Object.keys(data).length) {
-      await prisma.childPanel.update({ where: { id: p.id }, data });
-      count++;
-    }
-  }
-  await writeAudit({
-    actorId: admin.id, actorName: admin.username, role: admin.role, scope: "mother", panelId: null,
-    action: "panel.secrets.encrypt_all", targetType: "panel", targetId: "all",
-    detail: `Đã mã hoá secret cho ${count} website con`, ip: currentIp(),
-  });
-  back("msg", count > 0 ? `Đã mã hoá secret cho ${count} website con` : "Không còn secret dạng rõ nào trên các website con");
-}
 
 /* ================= GĐ3: Rủi ro & gian lận ================= */
 

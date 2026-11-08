@@ -302,7 +302,7 @@ export async function sendMarketingEmailAction(formData: FormData) {
   const body = str(formData, "body");
   if (!subject || !body) back("/admin/email-marketing", "err", "Thiếu tiêu đề hoặc nội dung");
   if (!(await smtpConfigured())) back("/admin/email-marketing", "err", "Chưa cấu hình SMTP — vào Cấu hình → tab Email để điền trước");
-  const where: any = { email: { not: null }, status: "ACTIVE", panelId: null }; // email marketing của mẹ chỉ tới khách của mẹ — khách site con do panel tự gửi
+  const where: any = { email: { not: null }, status: "ACTIVE" }; // email marketing gửi mọi khách của web mẹ (child panel đã bỏ — panelId không còn ý nghĩa)
   if (segment === "new") where.createdAt = { gte: new Date(Date.now() - 30 * 86400000) };
   if (segment === "deposited") where.totalDeposited = { gt: 0 };
   const users = await prisma.user.findMany({ where, select: { email: true } });
@@ -357,7 +357,7 @@ export async function bulkPriceAction(formData: FormData) {
 export async function saveModulesAction(formData: FormData) {
   await requireAdmin();
   for (const k of [
-    "module_smm", "module_premium", "module_panels", "module_affiliate", "module_register",
+    "module_smm", "module_premium", "module_affiliate", "module_register",
     "module_bulk", "module_promo", "module_tickets",
     "module_api", "module_blog", "livechat_enabled", "support_widget_enabled",
   ]) {

@@ -33,43 +33,9 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
     { code: "APP", value: "app", name: L("Kiểu App"), tag: L("Thẻ giữa màn hình"), desc: L("Thẻ bo tròn lớn kiểu ứng dụng điện thoại.") },
     { code: "SPLIT", value: "split", name: L("Chia đôi"), tag: L("Hai cột"), desc: L("Cột thương hiệu bên trái, form bên phải — kiểu panel quốc tế.") },
   ];
-  const landingTemplates = [
-    { code: L("HIỆN ĐẠI"), value: "hien-dai", name: L("Hiện đại"), desc: L("Nền tối, header dạng pill, hero lớn — mẫu đang dùng mặc định.") },
-    { code: L("SÁNG RỰC"), value: "sang", name: L("Sáng rực"), desc: L("Nền sáng, dải số liệu, thẻ nền tảng — kiểu SMMFlare quốc tế.") },
-    { code: L("CỔ ĐIỂN"), value: "co-dien", name: L("Cổ điển"), desc: L("Nền navy đậm, bảng nền tảng dạng bảng — kiểu panel SMM truyền thống.") },
-  ];
   const landing = (
     <>
-      <section className="card p-6 space-y-4">
-        <div className="font-bold text-slate-900">{L("Trang giới thiệu (Landing Page)")}</div>
-        <div>
-          <label className="lbl">{L("Hiển thị Landing Page ở trang chủ")}</label>
-          <select className="inp" name="landing_enabled" defaultValue={s.landing_enabled === "0" ? "0" : "1"}>
-            <option value="1">{L("Bật — khách vào trang chủ thấy trang giới thiệu")}</option>
-            <option value="0">{L("Tắt — vào thẳng trang đăng nhập / bảng điều khiển")}</option>
-          </select>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div><label className="lbl">{L("Tiêu đề Hero (H1)")}</label><input className="inp" name="landing_headline" defaultValue={s.landing_headline} placeholder={L("VD: SMM Panel Số 1 Việt Nam")} /><p className="mt-1 text-xs text-slate-400">{L("Tiêu đề chính hiển thị ở trang Landing Page — để trống dùng câu mặc định.")}</p></div>
-          <div><label className="lbl">{L("Phụ đề (Subtitle)")}</label><input className="inp" name="landing_subtitle" defaultValue={s.landing_subtitle} /><p className="mt-1 text-xs text-slate-400">{L("Phụ đề hiển thị ngay dưới tiêu đề chính — để trống dùng khẩu hiệu của site.")}</p></div>
-        </div>
-        <a href="/?preview=1" target="_blank" className="btn-ghost btn-sm inline-block">{L("Xem trước Landing Page")}</a>
-        <div>
-          <label className="lbl">{L("Mẫu Landing Page")}</label>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {landingTemplates.map((a) => (
-              <label key={a.value} className="cursor-pointer">
-                <input type="radio" name="landing_template" value={a.value} defaultChecked={(s.landing_template || "hien-dai") === a.value} className="peer sr-only" />
-                <div className="h-full rounded-2xl border-2 border-slate-200 p-4 transition peer-checked:border-brand-600 peer-checked:bg-brand-50/60">
-                  <span className="rounded-md bg-slate-900 px-2 py-0.5 text-[11px] font-extrabold tracking-wide text-white">{a.code}</span>
-                  <div className="mt-2.5 text-sm font-bold text-slate-900">{a.name}</div>
-                  <p className="mt-2 text-[13px] leading-relaxed text-slate-500">{a.desc}</p>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-      </section>
+
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">{L("Giao diện trang Đăng nhập / Đăng ký")}</div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -153,23 +119,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           </div>
           <p className="text-xs text-slate-400">{L("Bản xem trước theo giá trị đang lưu hiện tại.")}</p>
         </section>
-        <section className="card p-6 space-y-4">
-          <div className="font-bold text-slate-900">{L("NameServer cho website con")}</div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div><label className="lbl">{L("NameServer 1 (NS1)")}</label><input className="inp" name="child_ns1" defaultValue={s.child_ns1} placeholder="vd: ns1.tenmienchinh.vn" /></div>
-            <div><label className="lbl">{L("NameServer 2 (NS2)")}</label><input className="inp" name="child_ns2" defaultValue={s.child_ns2} placeholder="vd: ns2.tenmienchinh.vn" /></div>
-          </div>
-          <div className="rounded-xl bg-slate-50 p-4 text-[13px] leading-relaxed text-slate-600">
-            <div className="mb-1.5 font-semibold text-slate-800">{L("Cách cấu hình NameServer:")}</div>
-            <ol className="list-decimal space-y-1 pl-5">
-              <li>{L("Đây là cặp nameserver của hệ thống. Lấy giá trị từ nơi đang quản lý DNS của tên miền chính (Cloudflare hoặc nhà đăng ký tên miền) — dùng đúng cặp NS mà tên miền chính của bạn đang trỏ tới.")}</li>
-              <li>{L("Sau khi lưu, khách đăng ký website con sẽ thấy đúng 2 giá trị này trong thẻ \"Thông tin NameServer\" ở trang Đăng ký website con và trỏ tên miền của họ về đây.")}</li>
-              <li>{L("Khách trỏ xong, tên miền cần khoảng 15 phút – 24 giờ để cập nhật; sau đó website con tự chạy trên tên miền của khách, hệ thống nhận diện theo tên miền nên bạn không cần thao tác gì thêm.")}</li>
-              <li>{L("Nếu để trống, trang của khách sẽ hiện \"—\" và khách chưa trỏ được tên miền — hãy điền 2 giá trị này trước khi mở cho khách đăng ký website con.")}</li>
-            </ol>
-          </div>
-        </section>
-      </div>
+              </div>
     </div>
   );
 
@@ -191,16 +141,11 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       <section className="card p-6 space-y-4">
         <div className="font-bold text-slate-900">{L("Chính sách nạp tiền")}</div>
         <div><label className="lbl">{L("Nạp tối thiểu (VND)")}</label><input className="inp" name="deposit_min" type="number" defaultValue={s.deposit_min} /></div>
-        <div><label className="lbl">{L("Phí website con theo kỳ (VNĐ /")} {s.panel_period_days} {L("ngày) — áp dụng cho khách của web mẹ, tự gia hạn trừ số dư")}</label><input className="inp" name="panel_fee" type="number" min="0" defaultValue={s.panel_fee} placeholder={L("0 = miễn phí")} /></div>
-        <div><label className="lbl">{L("Markup mặc định cho website con mới (%)")}</label><input className="inp" name="panel_default_markup" type="number" min="0" max="200" defaultValue={s.panel_default_markup} /></div>
-        <div><label className="lbl">{L("Độ dài 1 kỳ phí website con (ngày)")}</label><input className="inp" name="panel_period_days" type="number" min="1" defaultValue={s.panel_period_days} /></div>
-        <div><label className="lbl">{L("Gia hạn website con: trừ phí trước hạn (giờ)")}</label><input className="inp" name="panel_renew_horizon_hours" type="number" min="1" defaultValue={s.panel_renew_horizon_hours} /></div>
         <div><label className="lbl">{L("Ngưỡng cảnh báo số dư nhà cung cấp mặc định (VNĐ) — khi nhà cung cấp chưa đặt riêng")}</label><input className="inp" name="provider_low_balance_default" type="number" min="0" defaultValue={s.provider_low_balance_default} /></div>
         <div><label className="lbl">{L("Tối đa gói định kỳ đang chạy / khách")}</label><input className="inp" name="subscription_max_active" type="number" min="1" defaultValue={s.subscription_max_active} /></div>
         <div><label className="lbl">{L("Auto-refill: cửa sổ xử lý sau khi đơn hoàn thành (ngày)")}</label><input className="inp" name="auto_refill_window_days" type="number" min="1" defaultValue={s.auto_refill_window_days} /></div>
         <div><label className="lbl">{L("Auto-refill: chờ sau hoàn thành (phút)")}</label><input className="inp" name="auto_refill_settle_minutes" type="number" min="0" defaultValue={s.auto_refill_settle_minutes} /></div>
         <div><label className="lbl">{L("Dọn dẹp hệ thống: xoá dữ liệu cũ hơn (ngày)")}</label><input className="inp" name="cleanup_retention_days" type="number" min="1" defaultValue={s.cleanup_retention_days} /></div>
-        <p className="text-xs text-slate-400">{L("Khách đăng ký website con sẽ bị trừ đúng số này vào số dư khi đăng ký thành công (0 = miễn phí như mặc định). Chủ panel con tự đặt phí riêng cho khách của họ trong Panel Admin — khách panel tạo website con thì phí đó thuộc về chủ panel. Mốc thưởng nạp chỉnh ở tab")} <b>{L("Khuyến mãi")}</b>{L(", hoa hồng giới thiệu ở tab")} <b>{L("Giới thiệu")}</b>{L(", nạp USDT ở tab")} <b>USDT</b>{L(".")}</p>
         <div>
           <label className="lbl">{L("Bảo vệ lợi nhuận (chặn đặt đơn khi giá bán sau chiết khấu thấp hơn giá vốn)")}</label>
           <select className="inp" name="profit_protection" defaultValue={s.profit_protection === "0" ? "0" : "1"}><option value="1">{L("Bật")}</option><option value="0">{L("Tắt")}</option></select>
@@ -675,7 +620,7 @@ Content-Type: application/json
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form id="settings-form" action={adminSaveSettings}>
         <SettingsTabs tabs={[
-          { id: "landing", label: "Landing Page", icon: I.home, content: landing },
+          { id: "landing", label: "Đăng nhập / Đăng ký", icon: I.home, content: landing },
           { id: "chung", label: L("Chung"), icon: I.gear, content: chung },
           { id: "thanhtoan", label: L("Thanh toán"), icon: I.wallet, content: thanhtoan },
           { id: "email", label: "Email", icon: I.mail, content: email },

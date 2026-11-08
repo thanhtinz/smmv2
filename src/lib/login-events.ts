@@ -18,7 +18,6 @@ export async function recordLoginEvent(input: {
   reason?: string | null;
   ip: string;
   userAgent?: string | null;
-  panelId?: number | null;
 }): Promise<void> {
   try {
     const ua = (input.userAgent || "").slice(0, 400);
@@ -58,7 +57,6 @@ export async function recordLoginEvent(input: {
         userAgent: ua || null,
         deviceHash,
         isNewDevice,
-        panelId: input.panelId ?? null,
       },
     });
   } catch {

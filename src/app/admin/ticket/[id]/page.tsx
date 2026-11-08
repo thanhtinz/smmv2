@@ -16,7 +16,6 @@ export default async function AdminTicketDetail({ params }: { params: { id: stri
   });
   if (!t) notFound();
   // Ticket của khách site con do panel con tự hỗ trợ — web mẹ không xem
-  if (t.user.panelId) notFound();
   return (
     <div className="max-w-3xl">
       <BackLink href="/admin/ticket">{L("Tất cả ticket")}</BackLink>

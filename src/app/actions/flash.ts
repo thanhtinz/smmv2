@@ -2,7 +2,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireAdmin, getCurrentUser } from "@/lib/auth";
-import { getPanelAccess } from "@/lib/panel-access";
 
 function back(path: string, key: "msg" | "err", text: string): never {
   redirect(`${path}?${key}=${encodeURIComponent(text)}`);
@@ -58,36 +57,4 @@ export async function deleteFlashSaleAction(formData: FormData) {
   await requireAdmin();
   await prisma.flashSale.deleteMany({ where: { id: int(formData, "id"), panelId: null } });
   back("/admin/khuyen-mai", "msg", "Đã xoá flash sale");
-}
-
-/* ----- Panel con (chủ panel tự tạo cho khách của mình) ----- */
-async function ownerPanel() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  const acc = await getPanelAccess(user!.id);
-  if (!acc || !acc.isOwner) back("/panel-admin/khuyen-mai", "err", "Chỉ chủ website mới quản lý flash sale");
-  return acc!.panel;
-}
-
-export async function panelCreateFlashSaleAction(formData: FormData) {
-  const panel = await ownerPanel();
-  const path = "/panel-admin/khuyen-mai";
-  const d = parseSale(formData);
-  validate(path, d);
-  await prisma.flashSale.create({ data: { ...d, panelId: panel.id, active: true } });
-  back(path, "msg", `Đã tạo flash sale "${d.name}" — giảm ${d.percent}%`);
-}
-
-export async function panelToggleFlashSaleAction(formData: FormData) {
-  const panel = await ownerPanel();
-  const id = int(formData, "id");
-  const cur = await prisma.flashSale.findFirst({ where: { id, panelId: panel.id } });
-  if (cur) await prisma.flashSale.update({ where: { id }, data: { active: !cur.active } });
-  back("/panel-admin/khuyen-mai", "msg", "Đã cập nhật flash sale");
-}
-
-export async function panelDeleteFlashSaleAction(formData: FormData) {
-  const panel = await ownerPanel();
-  await prisma.flashSale.deleteMany({ where: { id: int(formData, "id"), panelId: panel.id } });
-  back("/panel-admin/khuyen-mai", "msg", "Đã xoá flash sale");
 }

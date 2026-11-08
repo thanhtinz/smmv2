@@ -19,7 +19,7 @@ import { FlashBanner } from "@/components/flash-banner";
 
 /** Dựng dữ liệu thẻ cho một nhóm sản phẩm: khoảng giá gói, tổng đã bán, còn kho. */
 async function buildCardData(
-  products: { id: number; slug: string; name: string; color: string; images: string | null; imageUrl: string | null; fulfillment: string; variants: { id: number; price: number }[] }[],
+  products: { id: number; slug: string; name: string; color: string; images: string | null; imageUrl: string | null; fulfillment: string; customFields?: string | null; variants: { id: number; name?: string; price: number; providerGroup?: string | null }[] }[],
 ): Promise<PremiumCardData[]> {
   const variantProduct = new Map<number, number>();
   for (const p of products) for (const v of p.variants) variantProduct.set(v.id, p.id);
@@ -36,7 +36,9 @@ async function buildCardData(
     if (pid) soldMap.set(pid, (soldMap.get(pid) || 0) + (typeof r._count === "number" ? r._count : 0));
   }
   const stockByProduct = new Map<number, number>();
+  const stockByVariant = new Map<number, number>();
   for (const r of stockRows) {
+    stockByVariant.set(r.variantId, typeof r._count === "number" ? r._count : 0);
     const pid = variantProduct.get(r.variantId);
     if (pid) stockByProduct.set(pid, (stockByProduct.get(pid) || 0) + (typeof r._count === "number" ? r._count : 0));
   }
@@ -47,7 +49,14 @@ async function buildCardData(
   return products.map((p) => {
     const prices = p.variants.map((v) => v.price).filter((x) => x > 0);
     const rv = reviewMap.get(p.id);
+    const only = p.variants.length === 1 ? p.variants[0] : null;
+    const hasRequiredField = parsePremiumFields(p.customFields).some((f) => f.required);
+    const cartVariant = only && !hasRequiredField && !(only.providerGroup || "").startsWith("telegram_")
+      ? { id: only.id, name: only.name || p.name, price: only.price, stock: stockByVariant.get(only.id) || 0 }
+      : null;
     return {
+      productId: p.id,
+      cartVariant,
       slug: p.slug,
       name: p.name,
       image: productImages(p.images, p.imageUrl)[0] || null,
@@ -61,6 +70,11 @@ async function buildCardData(
       reviewCount: rv?.count || 0,
     };
   });
+}
+
+/** Dữ liệu thẻ cho trang chủ cửa hàng (tái dùng đúng bộ dựng thẻ của trang danh sách). */
+export async function premiumCardsFor(products: Parameters<typeof buildCardData>[0]): Promise<PremiumCardData[]> {
+  return buildCardData(products);
 }
 
 /** Che tên người đánh giá kiểu shopkey: "admin" -> "ad***n". */
@@ -87,14 +101,13 @@ const SORTS = [
 export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: string; q?: string; sort?: string; from?: string; to?: string; base: string }) {
   const { L, Ld } = await getServerI18n();
   const session = await getSession();
-  const viewer = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { panelId: true } }) : null;
   const cats = await prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } });
   const catId = cat ? parseInt(cat) : undefined;
   const needle = (q || "").trim().toLowerCase();
   const allProducts = await prisma.premiumProduct.findMany({
-    where: { active: true, ...(catId ? { categoryId: catId } : {}), OR: [{ panelId: null }, ...(viewer?.panelId ? [{ panelId: viewer.panelId }] : [])] },
+    where: { active: true, ...(catId ? { categoryId: catId } : {}), panelId: null },
     orderBy: { sort: "asc" },
-    include: { category: true, variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, price: true } } },
+    include: { category: true, variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true } } },
   });
   let items = await buildCardData(allProducts);
   const bySlug = new Map(allProducts.map((p) => [p.slug, p]));
@@ -185,22 +198,21 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   });
   if (!product || !product.active) notFound();
   const session = await getSession();
-  const viewer = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { panelId: true } }) : null;
-  if (product.panelId != null && product.panelId !== viewer?.panelId) notFound();
+  if (product.panelId != null) notFound();
   const stocks = await prisma.premiumStock.groupBy({ by: ["variantId"], where: { status: "AVAILABLE", variantId: { in: product.variants.map((v) => v.id) } }, _count: true });
   const stockMap = new Map(stocks.map((x) => [x.variantId, x._count]));
   const sold = await prisma.premiumOrder.count({ where: { variantId: { in: product.variants.map((v) => v.id) }, status: { not: "CANCELED" } } });
   const maxQty = parseInt((await getSettings()).premium_max_qty) || 50;
   // Mã giảm giá đang hiệu lực cho người xem này — chỉ để form XEM TRƯỚC số tiền
   // giảm trong hộp tóm tắt (đúng tiêu chí checkPromo: scope ALL/PREMIUM, mã của
-  // mẹ hoặc của đúng panel người mua, trong khung thời gian, chưa hết lượt).
+  // của web mẹ, trong khung thời gian, chưa hết lượt).
   // Server vẫn tính lại và chốt khi đặt đơn.
-  const promoPreview = session && (await moduleOn("promo", viewer?.panelId ?? null))
+  const promoPreview = session && (await moduleOn("promo"))
     ? (await prisma.discountCode.findMany({
         where: {
           active: true,
           scope: { in: ["ALL", "PREMIUM"] },
-          OR: [{ panelId: null }, ...(viewer?.panelId ? [{ panelId: viewer.panelId }] : [])],
+          panelId: null,
           AND: [
             { OR: [{ startsAt: null }, { startsAt: { lte: new Date() } }] },
             { OR: [{ endsAt: null }, { endsAt: { gte: new Date() } }] },
@@ -214,7 +226,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   // Flash sale (phạm vi có Premium) của site người xem thuộc về — cùng quy tắc
   // server áp khi đặt đơn (lib/flash): một đợt % cao nhất, productIds rỗng =
   // mọi sản phẩm. Chỉ để form hiển thị giá đã giảm + xem trước dòng giảm.
-  const flashSale = await getActiveFlashSale(viewer?.panelId ?? null, "PREMIUM");
+  const flashSale = await getActiveFlashSale("PREMIUM");
   const flashPct = flashAppliesToProduct(flashSale, product.id) ? flashSale!.percent : 0;
   const variantIds = product.variants.map((v) => v.id);
   const [reviewAgg, reviewDist, reviewList] = await Promise.all([
@@ -245,9 +257,9 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
     ? new Set((await prisma.premiumReviewHelpful.findMany({ where: { userId: session.id, reviewId: { in: reviewList.map((r) => r.id) } }, select: { reviewId: true } })).map((x) => x.reviewId))
     : new Set<number>();
   const relatedRaw = await prisma.premiumProduct.findMany({
-    where: { active: true, categoryId: product.categoryId, id: { not: product.id }, OR: [{ panelId: null }, ...(viewer?.panelId ? [{ panelId: viewer.panelId }] : [])] },
+    where: { active: true, categoryId: product.categoryId, id: { not: product.id }, panelId: null },
     orderBy: { sort: "asc" }, take: 4,
-    include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, price: true } } },
+    include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true } } },
   });
   const related = await buildCardData(relatedRaw);
   // Các khối gập nội dung: xếp chồng 1 cột NGAY DƯỚI thẻ chọn gói, VẪN TRONG
@@ -410,7 +422,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
 
       <div className="mt-6"><Flash msg={searchParams.msg} err={searchParams.err} /></div>
 
-      <FlashBanner panelId={viewer?.panelId ?? null} kind="PREMIUM" />
+      <FlashBanner kind="PREMIUM" />
 
       {/* Khu chính theo shopkey: 2 cột ~73/27 — cột trái lần lượt chọn gói →
           khối gập → đánh giá; cột phải CHỈ hộp đặt hàng/đăng nhập, ghim dính
@@ -433,6 +445,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             belowVariants={infoSections}
             promos={promoPreview}
             flashPct={flashPct}
+            cartProduct={{ id: product.id, name: product.name, groups: Object.fromEntries(product.variants.map((v) => [v.id, v.providerGroup ?? null])) }}
           />
         ) : (
           <>

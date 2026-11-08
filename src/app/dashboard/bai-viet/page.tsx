@@ -12,16 +12,9 @@ export const dynamic = "force-dynamic";
    panel mình; panel chưa có bài nào thì thấy bài của web mẹ. */
 export default async function DashPostsPage({ searchParams }: { searchParams: { cat?: string; q?: string } }) {
   const user = (await getCurrentUser())!;
-  const panelLangRaw = user.panelId
-    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
-    : undefined;
-  const { L, Ld } = await getServerI18n(panelLangRaw);
-  if (!(await moduleOn("blog", user.panelId))) redirect("/dashboard");
-  let scopePid: number | null = user.panelId ?? null;
-  if (scopePid) {
-    const cnt = await prisma.post.count({ where: { published: true, panelId: scopePid } });
-    if (cnt === 0) scopePid = null;
-  }
+  const { L, Ld } = await getServerI18n();
+  if (!(await moduleOn("blog"))) redirect("/dashboard");
+  const scopePid: number | null = null;
   const catId = searchParams.cat ? parseInt(searchParams.cat) : undefined;
   const q = (searchParams.q || "").trim();
   const showPinned = !catId && !q;

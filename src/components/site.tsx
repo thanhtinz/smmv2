@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { getServerI18n } from "@/lib/lang-server";
 import { DisplaySettings } from "@/components/display";
 import { NotificationBell } from "@/components/notification-bell";
+import { CartHeaderLink } from "@/components/cart";
 import { LiveChat } from "@/components/livechat";
 import { getFloatingContacts, type FloatingContact } from "@/lib/contact";
 
@@ -58,26 +59,19 @@ export async function SiteHeader() {
 }
 
 
-/** Header công khai kiểu pill tối — dùng cho mọi trang công khai (web mẹ + panel con)
- *  để đồng bộ với landing. `panel` truyền vào khi là trang thuộc website con. */
-export async function PublicHeader({ panel, announcement }: { panel?: { name: string; slug: string }; announcement?: string | null } = {}) {
+/** Header công khai kiểu pill tối — dùng cho mọi trang công khai để đồng bộ với landing. */
+export async function PublicHeader({ announcement }: { announcement?: string | null } = {}) {
   const { L, M } = await getServerI18n();
   const session = await getSession();
   const s = await getSettings();
   const user = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { balance: true, role: true } }) : null;
-  const name = panel?.name || s.site_name;
-  const home = panel ? `/cua-hang/${panel.slug}` : "/";
-  // Mô-đun Bài viết / API đang tắt thì ẩn luôn liên kết trên header
-  const links = panel
-    ? [
-        { href: home, label: L("Trang chủ") },
-        { href: `/cua-hang/${panel.slug}/premium`, label: "Premium" },
-      ]
-    : [
-        { href: home, label: L("Trang chủ") },
-        { href: "/premium", label: "Premium" },
-      ];
-  const registerHref = panel ? `/cua-hang/${panel.slug}/dang-ky` : "/register";
+  const name = s.site_name;
+  const home = "/";
+  const links = [
+    { href: home, label: L("Trang chủ") },
+    { href: "/premium", label: "Premium" },
+  ];
+  const registerHref = "/register";
   const note = announcement ?? s.announcement_bar;
   return (
     <>
@@ -85,8 +79,8 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
         {note && <div className="bg-rose-600 px-4 py-1.5 text-center text-xs font-medium text-white sm:text-sm">{note}</div>}
         <div className="px-3 pt-3 sm:pt-4">
           <header className="mx-auto flex max-w-5xl items-center gap-2 rounded-full border border-white/10 bg-black/60 py-2 pl-2 pr-2 shadow-2xl shadow-black/40 backdrop-blur-xl sm:gap-3 sm:pl-3">
-            <PublicBurger tone="dark" home={home} panelSlug={panel?.slug} loggedIn={!!session} registerHref={registerHref} />
-            <Link href={panel ? home : user ? "/dashboard" : home} className="flex shrink-0 items-center gap-2.5">
+            <PublicBurger tone="dark" home={home} loggedIn={!!session} registerHref={registerHref} />
+            <Link href={user ? "/dashboard" : home} className="flex shrink-0 items-center gap-2.5">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600 text-sm font-black text-white">{name.charAt(0).toUpperCase()}</span>
               <span className="hidden max-w-[140px] truncate text-[15px] font-extrabold tracking-tight text-white min-[420px]:inline">{name}</span>
             </Link>
@@ -97,6 +91,7 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
             </nav>
             <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:ml-0">
               {session && <NotificationBell tone="dark" />}
+              <CartHeaderLink dark />
               <DisplaySettings />
               {session ? (
                 <>
@@ -132,8 +127,7 @@ export type FooterBrand = {
   hotline?: string | null;
 };
 
-/** Footer dùng chung. Trang panel con truyền `brand` để footer + nút liên hệ nổi
- *  mang thương hiệu và kênh hỗ trợ RIÊNG của panel (kênh nào panel để trống thì dùng của web mẹ). */
+/** Footer dùng chung cho mọi trang công khai. */
 export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
   const { L, Ld } = await getServerI18n();
   const s = await getSettings();
@@ -146,14 +140,11 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
         support_hotline: brand.hotline || s.support_hotline,
       }
     : s;
-  const panelRow = brand?.slug
-    ? await prisma.childPanel.findUnique({ where: { slug: brand.slug }, select: { id: true, supportZalo: true, supportTelegram: true, supportFacebook: true, supportHotline: true } }).catch(() => null)
-    : null;
-  const contacts = merged.support_widget_enabled !== "0" ? await getFloatingContacts(panelRow).catch(() => []) : [];
+  const contacts = merged.support_widget_enabled !== "0" ? await getFloatingContacts().catch(() => []) : [];
   return (
     <>
     {contacts.length > 0 && <FloatingSupport items={contacts} />}
-    {merged.livechat_enabled !== "0" && <LiveChat panelSlug={brand?.slug} />}
+    {merged.livechat_enabled !== "0" && <LiveChat />}
     <footer className="bg-slate-950 text-slate-400 mt-20">
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm">
         <div>

@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid tool api key" }, { status: 401 });
   }
   const id = Number(body?.id || 0);
-  const order = id ? await findToolOrder(id, ctx.panelId) : null;
+  const order = id ? await findToolOrder(id) : null;
   if (!order) return NextResponse.json({ error: "order not found" }, { status: 404 });
   if (["COMPLETED", "CANCELED", "REFUNDED"].includes(order.status)) {
     return NextResponse.json({ error: "order already finished" }, { status: 409 });

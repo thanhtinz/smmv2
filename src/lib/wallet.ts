@@ -60,20 +60,12 @@ export async function creditReferralCommission(
   ref?: string
 ) {
   if (amount <= 0) return 0;
-  const buyer = await tx.user.findUnique({ where: { id: buyerId }, select: { referredById: true, username: true, panelId: true } });
+  const buyer = await tx.user.findUnique({ where: { id: buyerId }, select: { referredById: true, username: true } });
   if (!buyer?.referredById) return 0;
   const moduleRow = await tx.setting.findUnique({ where: { key: "module_affiliate" } });
   if (moduleRow?.value === "0") return 0;
-  // Panel của người mua đã tắt mô-đun Kiếm tiền → không tính hoa hồng giới thiệu trong panel đó;
-  // panel có % hoa hồng giới thiệu RIÊNG thì dùng % của panel.
-  let panelAffPct: number | null = null;
-  if (buyer.panelId) {
-    const p = await tx.childPanel.findUnique({ where: { id: buyer.panelId }, select: { moduleAffiliate: true, affiliatePercent: true } });
-    if (p && !p.moduleAffiliate) return 0;
-    if (p?.affiliatePercent != null) panelAffPct = p.affiliatePercent;
-  }
   const row = await tx.setting.findUnique({ where: { key: "affiliate_percent" } });
-  const pct = panelAffPct != null ? panelAffPct : parseFloat(row?.value || DEFAULT_SETTINGS.affiliate_percent) || 0;
+  const pct = parseFloat(row?.value || DEFAULT_SETTINGS.affiliate_percent) || 0;
   if (pct <= 0) return 0;
   const commission = Math.floor((amount * pct) / 100);
   if (commission <= 0) return 0;
@@ -84,14 +76,10 @@ export async function creditReferralCommission(
 /** Thu hồi hoa hồng giới thiệu theo tỉ lệ số tiền đơn bị hoàn (best-effort, không chặn hoàn tiền của khách) */
 export async function clawbackReferralCommission(buyerId: number, refundAmount: number, ref?: string) {
   if (refundAmount <= 0) return;
-  const buyer = await prisma.user.findUnique({ where: { id: buyerId }, select: { referredById: true, panelId: true } });
+  const buyer = await prisma.user.findUnique({ where: { id: buyerId }, select: { referredById: true } });
   if (!buyer?.referredById) return;
   const row = await prisma.setting.findUnique({ where: { key: "affiliate_percent" } });
-  let pct = parseFloat(row?.value || DEFAULT_SETTINGS.affiliate_percent) || 0;
-  if (buyer.panelId) {
-    const p = await prisma.childPanel.findUnique({ where: { id: buyer.panelId }, select: { affiliatePercent: true } });
-    if (p?.affiliatePercent != null) pct = p.affiliatePercent;
-  }
+  const pct = parseFloat(row?.value || DEFAULT_SETTINGS.affiliate_percent) || 0;
   let due = Math.floor((refundAmount * pct) / 100);
   if (due <= 0) return;
   // Chỉ thu hồi tối đa phần hoa hồng THẬT SỰ đã cộng cho đơn này (ròng sau các lần thu hồi trước) —

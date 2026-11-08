@@ -56,8 +56,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/don-premium", label: L("Quản lý đơn hàng"), icon: "box", badge: prePending },
       ],
     } as any,
+    {
+      group: "Telegram", icon: "send",
+      children: [
+        { href: "/admin/telegram", label: L("Đơn Telegram"), icon: "send" } as any,
+        { href: "/admin/telegram/cai-dat", label: L("Cài đặt Telegram"), icon: "gear", adminOnly: true } as any,
+      ],
+    } as any,
     { href: "/admin/nguoi-dung", label: L("Người dùng"), icon: "users", adminOnly: true },
-    { href: "/admin/panel-con", label: L("Panel con"), icon: "panels", adminOnly: true },
     { href: "/admin/ticket", label: L("Ticket hỗ trợ"), icon: "ticket", badge: ticketOpen },
     {
       group: "Tài chính", icon: "wallet",

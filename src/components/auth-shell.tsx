@@ -4,7 +4,7 @@ import { getServerI18n } from "@/lib/lang-server";
 
 /**
  * Khung trang Đăng nhập / Đăng ký theo "Kiểu trang Đăng nhập / Đăng ký" ở
- * Cài đặt → Landing Page (web mẹ) / Cấu hình panel (web con). 5 kiểu:
+ * Cài đặt → Landing Page (web mẹ). 5 kiểu:
  * classic (thẻ giữa, nền tối), glass (kính mờ trên nền gradient), minimal
  * (nền sáng, không khung), app (thẻ bo tròn lớn), split (chia đôi: cột
  * thương hiệu trái — form phải, kiểu panel quốc tế).
@@ -13,14 +13,12 @@ export async function AuthShell(props: {
   style?: string | null;
   brandName: string;
   tagline?: string | null;
-  panel?: { name: string; slug: string };
   accent?: string | null;
   announcement?: string | null;
   children: React.ReactNode;
 }) {
   const { L } = await getServerI18n();
   const style = props.style || "classic";
-  const panelProp = props.panel ? { name: props.panel.name, slug: props.panel.slug } : undefined;
 
   if (style === "split") {
     return (
@@ -28,7 +26,7 @@ export async function AuthShell(props: {
         <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-700 via-brand-900 to-slate-950 p-10 text-white lg:flex">
           <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-brand-400/20 blur-3xl" />
-          <Link href={props.panel ? `/cua-hang/${props.panel.slug}` : "/"} className="relative flex items-center gap-2.5">
+          <Link href="/" className="relative flex items-center gap-2.5">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 text-lg font-black">{props.brandName.charAt(0).toUpperCase()}</span>
             <span className="text-lg font-extrabold tracking-tight">{props.brandName}</span>
           </Link>
@@ -53,13 +51,13 @@ export async function AuthShell(props: {
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-black text-white">{props.brandName.charAt(0).toUpperCase()}</span>
               <span className="font-extrabold text-slate-900">{props.brandName}</span>
             </span>
-            <Link href={props.panel ? `/cua-hang/${props.panel.slug}` : "/"} className="text-sm font-semibold text-brand-600">{L("Trang chủ")}</Link>
+            <Link href="/" className="text-sm font-semibold text-brand-600">{L("Trang chủ")}</Link>
           </div>
           <main className="flex flex-1 items-center justify-center px-4 py-10">
             <div className="w-full max-w-md"><div className="auth-scope contents">{props.children}</div></div>
           </main>
           <div className="hidden px-5 pb-5 text-right lg:block">
-            <Link href={props.panel ? `/cua-hang/${props.panel.slug}` : "/"} className="text-sm font-semibold text-brand-600">{L("← Về trang chủ")}</Link>
+            <Link href="/" className="text-sm font-semibold text-brand-600">{L("← Về trang chủ")}</Link>
           </div>
         </div>
       </div>
@@ -71,7 +69,7 @@ export async function AuthShell(props: {
       <div data-accent={props.accent || undefined} className="dark pub-dark relative min-h-screen flex flex-col overflow-hidden bg-[#0a0f1e] text-slate-300">
         <div className="pointer-events-none absolute -left-32 top-10 h-96 w-96 rounded-full bg-brand-600/30 blur-3xl" />
         <div className="pointer-events-none absolute -right-24 bottom-0 h-[28rem] w-[28rem] rounded-full bg-fuchsia-600/20 blur-3xl" />
-        <PublicHeader panel={panelProp} announcement={props.announcement} />
+        <PublicHeader announcement={props.announcement} />
         <main className="relative flex-1 flex items-center justify-center px-4 py-14"><div className="auth-scope contents">{props.children}</div></main>
         <SiteFooter />
       </div>
@@ -81,7 +79,7 @@ export async function AuthShell(props: {
   if (style === "minimal") {
     return (
       <div data-accent={props.accent || undefined} className="min-h-screen flex flex-col bg-slate-50 text-slate-600">
-        <PublicHeader panel={panelProp} announcement={props.announcement} />
+        <PublicHeader announcement={props.announcement} />
         <main className="flex-1 flex items-center justify-center px-4 py-14"><div className="auth-scope contents">{props.children}</div></main>
         <SiteFooter />
       </div>
@@ -94,7 +92,7 @@ export async function AuthShell(props: {
   const scopeCls = style === "app" ? "auth-scope contents" : "auth-scope auth-on-dark contents";
   return (
     <div data-accent={props.accent || undefined} className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
-      <PublicHeader panel={panelProp} announcement={props.announcement} />
+      <PublicHeader announcement={props.announcement} />
       <main className="flex-1 flex items-center justify-center px-4 py-14"><div className={scopeCls}>{props.children}</div></main>
       <SiteFooter />
     </div>

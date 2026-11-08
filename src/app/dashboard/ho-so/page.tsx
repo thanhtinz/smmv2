@@ -29,10 +29,7 @@ function parseUaLabel(ua?: string | null): string | null {
  *  3 tab Hồ sơ cá nhân | Kết nối API | Bảo mật & Phiên đăng nhập. */
 export default async function ProfilePage({ searchParams }: { searchParams: { msg?: string; err?: string; tab?: string; bat2fa?: string } }) {
   const user = (await getCurrentUser())!;
-  const panelLangRaw = user.panelId
-    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
-    : undefined;
-  const { L, Ld, M } = await getServerI18n(panelLangRaw);
+  const { L, Ld, M } = await getServerI18n();
   const tab = searchParams.tab === "api" ? "api" : searchParams.tab === "security" ? "security" : "profile";
   const s = await getSettings();
   const [preCount, commissionAgg, refCount, loginHistory, mySessions, curSession, myPasskeys] = await Promise.all([

@@ -5,10 +5,9 @@ import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash, Empty, Badge, Stat, I, CardHead, RiskBar, deviceKind } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
-import { toggleLockdownAction, encryptAllPanelSecretsAction, riskRecalcAction, riskReviewAction, riskSaveSettingsAction, rotateSessionSecretAction, rotateCronSecretAction, clearCronSecretOnceAction } from "@/app/actions/security-center";
+import { toggleLockdownAction, riskRecalcAction, riskReviewAction, riskSaveSettingsAction, rotateSessionSecretAction, rotateCronSecretAction, clearCronSecretOnceAction } from "@/app/actions/security-center";
 import { verifyAuditChain, ACTION_LABEL } from "@/lib/audit";
 import { isRiskRestricted, RISK_LEVEL_LABEL, riskFactorText, type RiskFactor } from "@/lib/risk";
-import { PANEL_SECRET_FIELDS, panelHasPlaintextSecrets } from "@/lib/panel-secrets";
 import { dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 
@@ -27,7 +26,6 @@ function actionBadgeCls(action: string): string {
   if (action.startsWith("security.") || action.startsWith("lockdown.") || action.startsWith("secret.") || action.startsWith("apikey.")) return "bg-violet-100 text-violet-700";
   if (action.startsWith("risk.")) return "bg-amber-100 text-amber-700";
   if (action.startsWith("user.")) return "bg-blue-100 text-blue-700";
-  if (action.startsWith("panel.")) return "bg-sky-100 text-sky-700";
   return "bg-slate-100 text-slate-600";
 }
 
@@ -44,7 +42,7 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
   if (actionFilter) auditWhere.action = { contains: actionFilter };
   if (actorFilter) auditWhere.actorName = { contains: actorFilter };
 
-  const [s, fail24, fail7, newDevices7, ipBans, totalUsers, users2fa, adminsNo2fa, recentLogins, auditTotal, audits, chain, panelsRaw] = await Promise.all([
+  const [s, fail24, fail7, newDevices7, ipBans, totalUsers, users2fa, adminsNo2fa, recentLogins, auditTotal, audits, chain] = await Promise.all([
     getSettings(),
     prisma.loginEvent.count({ where: { success: false, createdAt: { gte: d1 } } }),
     prisma.loginEvent.count({ where: { success: false, createdAt: { gte: d7 } } }),
@@ -57,13 +55,11 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
     prisma.auditLog.count({ where: auditWhere }),
     prisma.auditLog.findMany({ where: auditWhere, orderBy: { id: "desc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }),
     verifyAuditChain(),
-    prisma.childPanel.findMany({ select: { id: true, name: true, ...Object.fromEntries(PANEL_SECRET_FIELDS.map((f) => [f, true])) } as any }),
   ]);
-  const panelsPlain = (panelsRaw as any[]).filter((p) => panelHasPlaintextSecrets(p));
   // GĐ3: rủi ro & gian lận + xoay vòng khoá
   const riskTh = { watch: parseInt(s.risk_watch) || 40, restrict: parseInt(s.risk_restrict) || 70, critical: parseInt(s.risk_critical) || 90 };
   const [topRiskRaw, riskWatchCount, riskRestrictedCount] = await Promise.all([
-    prisma.user.findMany({ where: { riskScore: { gt: 0 } }, orderBy: { riskScore: "desc" }, take: 15, select: { id: true, username: true, role: true, panelId: true, riskScore: true, riskLevel: true, riskFactors: true, riskUpdatedAt: true, riskReviewedAt: true } }),
+    prisma.user.findMany({ where: { riskScore: { gt: 0 } }, orderBy: { riskScore: "desc" }, take: 15, select: { id: true, username: true, role: true, riskScore: true, riskLevel: true, riskFactors: true, riskUpdatedAt: true, riskReviewedAt: true } }),
     prisma.user.count({ where: { riskScore: { gte: riskTh.watch } } }),
     prisma.user.count({ where: { riskScore: { gte: riskTh.restrict } } }),
   ]);
@@ -76,7 +72,6 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
   const warnings: string[] = [];
   if (lockdownOn) warnings.push(L("Khoá khẩn cấp đang BẬT — khách không đăng nhập/giao dịch được. Lý do: ") + (s.lockdown_reason || L("(không ghi)")));
   if (adminsNo2fa.length) warnings.push(adminsNo2fa.length + L(" tài khoản quản trị chưa bật 2FA: ") + adminsNo2fa.map((u) => u.username).join(", "));
-  if (panelsPlain.length) warnings.push(panelsPlain.length + L(" website con còn secret lưu dạng rõ trong cơ sở dữ liệu — bấm \"Mã hoá toàn bộ secret panel\" bên dưới."));
   if (!chain.ok) warnings.push(L("CẢNH BÁO: chuỗi hash của AuditLog bị gãy tại bản ghi #") + chain.brokenAt + L(" — nhật ký có thể đã bị can thiệp!"));
 
   return (
@@ -111,7 +106,7 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
             {lockdownOn ? <Badge cls="bg-rose-100 text-rose-700">{L("ĐANG BẬT")}</Badge> : <Badge cls="bg-emerald-100 text-emerald-700">{L("Đang tắt")}</Badge>}
           </CardHead>
           <div className="p-5 pt-4">
-          <p className="text-sm text-slate-500">{L("Khi bật: khách không đăng nhập mới và không đặt đơn/nạp tiền/mua gói được; tài khoản quản trị và chủ panel vẫn vào quản trị bình thường để xử lý sự cố.")}</p>
+          <p className="text-sm text-slate-500">{L("Khi bật: khách không đăng nhập mới và không đặt đơn/nạp tiền/mua gói được; tài khoản quản trị vẫn vào quản trị bình thường để xử lý sự cố.")}</p>
           {lockdownOn && s.lockdown_reason ? <div className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{L("Trạng thái hiện tại: Đang bật — ")}{s.lockdown_reason}</div> : null}
           {lockdownOn ? (
             <form action={toggleLockdownAction} className="mt-4">
@@ -132,23 +127,7 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
           )}
           </div>
         </div>
-
-        <div className="card overflow-hidden">
-          <CardHead icon={I.key} tone="violet" title={Ld("Mã hoá secret của website con")} />
-          <div className="p-5 pt-4">
-          <p className="text-sm text-slate-500">{L("Khoá thanh toán, mật khẩu thư và token báo tin của website con được mã hoá khi lưu. Secret cũ dạng rõ vẫn đọc được và tự mã hoá ở lần lưu kế tiếp — hoặc mã hoá ngay toàn bộ tại đây.")}</p>
-          <div className="mt-3 rounded-xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
-            {Ld("Website con còn secret dạng rõ:")} <b className="text-slate-900">{panelsPlain.length}</b>
-            {panelsPlain.length > 0 && <span className="block truncate text-xs text-slate-400">{panelsPlain.map((p) => p.name).join(", ")}</span>}
-            <span className="mt-1.5 block text-xs text-slate-400">{L("Tổng số website con: ")}{panelsRaw.length}{L(" · Đã mã hoá toàn bộ: ")}{panelsRaw.length - panelsPlain.length}<br />{Ld("Khoá mã hoá APP_ENC_KEY trên máy chủ này:")} <b className="text-slate-600">{process.env.APP_ENC_KEY ? Ld("Đã đặt") : Ld("Chưa đặt")}</b></span>
-          </div>
-          <form action={encryptAllPanelSecretsAction} className="mt-4">
-            <button className="btn-primary w-full" disabled={panelsPlain.length === 0}>{L("Mã hoá toàn bộ secret panel")}</button>
-            <p className="mt-2 text-xs text-slate-400">{L("Chỉ ADMIN web mẹ, yêu cầu xác thực lại (step-up). Cần đặt khoá APP_ENC_KEY trên máy chủ để mã hoá có hiệu lực.")}</p>
-          </form>
-          </div>
         </div>
-      </div>
 
       <div className="card mt-6 overflow-x-auto">
         <CardHead icon={I.chart} tone="amber" title={Ld("Rủi ro & gian lận")}>
@@ -164,7 +143,7 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
                 const fs = ((u.riskFactors as RiskFactor[] | null) || []).slice(0, 3);
                 return (
                   <tr key={u.id} className={i % 2 ? "bg-slate-50/60" : undefined}>
-                    <td className="td"><Link className="font-semibold text-sky-600" href={`/admin/nguoi-dung/${u.id}`}>{u.username}</Link><span className="block text-xs text-slate-400">{u.panelId ? L("Khách website con #") + u.panelId : L("Khách web mẹ")}{u.riskUpdatedAt ? L(" · tính lúc ") + dt(u.riskUpdatedAt) : ""}</span></td>
+                    <td className="td"><Link className="font-semibold text-sky-600" href={`/admin/nguoi-dung/${u.id}`}>{u.username}</Link><span className="block text-xs text-slate-400">{L("Khách web mẹ")}{u.riskUpdatedAt ? L(" · tính lúc ") + dt(u.riskUpdatedAt) : ""}</span></td>
                     <td className="td">
                       <div className="flex items-center gap-2">
                         <RiskBar score={u.riskScore} watch={riskTh.watch} restrict={riskTh.restrict} critical={riskTh.critical} className="w-28" />

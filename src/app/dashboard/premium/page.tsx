@@ -12,10 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPremiumPage({ searchParams }: { searchParams: { cat?: string; q?: string; sort?: string; from?: string; to?: string } }) {
   if ((await getSettings()).module_premium === "0") {
     const user = await getCurrentUser();
-    const panelLangRaw = user?.panelId
-      ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
-      : undefined;
-    const { L } = await getServerI18n(panelLangRaw);
+    const { L } = await getServerI18n();
     return (
       <div className="card p-8 text-center">
         <div className="text-lg font-bold text-slate-900">{L("Mảng Premium đang tạm ngưng")}</div>

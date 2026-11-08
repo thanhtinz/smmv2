@@ -8,6 +8,7 @@ export type DepositRowDTO = {
   id: number; code: string; username: string; email: string; method: string;
   amount: number; bonus: number; content: string | null; auto: boolean;
   status: string; timeLabel: string; relLabel: string;
+  bolt?: { orderId: string | null; network: string; txHash: string | null; settlement: string | null; status: string } | null;
 };
 
 type ActionFn = (fd: FormData) => void | Promise<void>;
@@ -76,6 +77,7 @@ export function DepositTable({ rows, depositAction, deleteAction, sort, dir, bas
                 <td className="td">
                   <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs font-semibold text-slate-600">{d.code}</span>
                   {d.auto && <div className="mt-1 text-[11px] text-emerald-600">{t("tự động (webhook)")}</div>}
+                  {d.bolt && <div className="mt-1 text-[11px] text-slate-400">BoltUtil {d.bolt.orderId || ""} · {d.bolt.network} · {d.bolt.status}{d.bolt.settlement ? ` · ${d.bolt.settlement}` : ""}{d.bolt.txHash ? ` · tx ${d.bolt.txHash.slice(0, 10)}…` : ""}</div>}
                 </td>
                 <td className="td">
                   <div className="font-bold text-brand-600">{m(d.amount)}</div>
@@ -89,6 +91,7 @@ export function DepositTable({ rows, depositAction, deleteAction, sort, dir, bas
                 <td className="td">
                   {d.status === "PENDING" ? (
                     <span className="flex justify-end gap-1.5">
+                      {d.bolt && <form action={depositAction}><input type="hidden" name="id" value={d.id} /><button className="btn-ghost btn-sm !px-3 !py-1.5" name="kind" value="bolt-sync">{t("Đồng bộ BoltUtil")}</button></form>}
                       <form action={depositAction}><input type="hidden" name="id" value={d.id} /><button className="btn-primary btn-sm !px-3 !py-1.5" name="kind" value="approve">{t("Duyệt + cộng tiền")}</button></form>
                       <form action={depositAction}><input type="hidden" name="id" value={d.id} /><button className="btn-ghost btn-sm !px-3 !py-1.5 !text-rose-600" name="kind" value="reject">{t("Từ chối")}</button></form>
                     </span>

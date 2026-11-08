@@ -1,19 +1,11 @@
 import { LANGS } from "./i18n";
 
-/* Cấu hình ngôn ngữ lưu trong DB (Admin → Ngôn ngữ):
- * - Web mẹ: Setting langs_enabled (JSON mảng mã), default_lang, lang_overrides (JSON {lang: {chuỗi Việt: bản dịch}})
- * - Panel con: ChildPanel.langConfig (JSON {enabled?, defaultLang?, overrides?}) — null/thiếu = theo web mẹ,
- *   overrides của panel đè lên overrides của mẹ theo từng chuỗi.
- * Thứ tự áp dụng bản dịch: từ điển gốc (DICT) → override mẹ → override panel. */
+/* Cấu hình ngôn ngữ lưu trong DB (Admin → Ngôn ngữ): Setting langs_enabled
+ * (JSON mảng mã), default_lang, lang_overrides (JSON {lang: {chuỗi Việt: bản dịch}}).
+ * Thứ tự áp dụng bản dịch: từ điển gốc (DICT) → override của admin. */
 
 export const LANG_KEYS: string[] = LANGS.map((l) => l.key);
 export type LangOverrides = Record<string, Record<string, string>>;
-
-export type PanelLangConfig = {
-  enabled?: string[];
-  defaultLang?: string;
-  overrides?: LangOverrides;
-};
 
 export type ResolvedLangConfig = {
   enabled: string[];
@@ -52,37 +44,16 @@ export function sanitizeOverrides(raw: unknown): LangOverrides {
   return out;
 }
 
-export function parsePanelLangConfig(raw: string | null | undefined): PanelLangConfig {
-  const v = parseJson<PanelLangConfig>(raw, {});
-  const out: PanelLangConfig = {};
-  if (Array.isArray(v.enabled)) out.enabled = sanitizeEnabled(v.enabled);
-  if (typeof v.defaultLang === "string" && LANG_KEYS.includes(v.defaultLang)) out.defaultLang = v.defaultLang;
-  if (v.overrides) out.overrides = sanitizeOverrides(v.overrides);
-  return out;
-}
 
-/** Hợp nhất cấu hình mẹ + panel thành cấu hình hiệu lực cho một site. */
-export function resolveLangConfig(
-  settings: Record<string, string>,
-  panelLang?: PanelLangConfig | null
-): ResolvedLangConfig {
-  const motherEnabled = sanitizeEnabled(parseJson<unknown>(settings.langs_enabled, null));
-  const motherOverrides = sanitizeOverrides(parseJson<unknown>(settings.lang_overrides, {}));
-  let enabled = panelLang?.enabled ? sanitizeEnabled(panelLang.enabled) : motherEnabled;
+/** Cấu hình ngôn ngữ hiệu lực từ cấu hình của web mẹ. */
+export function resolveLangConfig(settings: Record<string, string>): ResolvedLangConfig {
+  const enabled0 = sanitizeEnabled(parseJson<unknown>(settings.langs_enabled, null));
+  const overrides = sanitizeOverrides(parseJson<unknown>(settings.lang_overrides, {}));
   let defaultLang =
-    panelLang?.defaultLang && LANG_KEYS.includes(panelLang.defaultLang)
-      ? panelLang.defaultLang
-      : settings.default_lang && LANG_KEYS.includes(settings.default_lang)
-        ? settings.default_lang
-        : "en";
+    settings.default_lang && LANG_KEYS.includes(settings.default_lang) ? settings.default_lang : "en";
+  let enabled = enabled0;
   if (!enabled.includes(defaultLang)) defaultLang = enabled[0] || "en";
   if (!enabled.length) enabled = [...LANG_KEYS];
-  const overrides: LangOverrides = {};
-  for (const src of [motherOverrides, panelLang?.overrides || {}]) {
-    for (const [lang, map] of Object.entries(src)) {
-      overrides[lang] = { ...(overrides[lang] || {}), ...map };
-    }
-  }
   return { enabled, defaultLang, overrides };
 }
 

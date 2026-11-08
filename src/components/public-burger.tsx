@@ -7,10 +7,9 @@ import { useLang } from "@/components/lang";
 
 /** Nút burger cho các header công khai trên điện thoại — gom các mục điều hướng
  *  chính vào một menu thả xuống (thay thanh menu footer dưới đáy đã bỏ). */
-export function PublicBurger({ tone = "dark", home, panelSlug, loggedIn, registerHref, items: itemsOverride }: {
+export function PublicBurger({ tone = "dark", home, loggedIn, registerHref, items: itemsOverride }: {
   tone?: "dark" | "light";
   home: string;
-  panelSlug?: string;
   loggedIn: boolean;
   registerHref: string;
   items?: { href: string; label: string }[];
@@ -23,7 +22,7 @@ export function PublicBurger({ tone = "dark", home, panelSlug, loggedIn, registe
     { href: home, label: t("Trang chủ") },
     { href: "/dashboard/dich-vu", label: t("Bảng giá") },
     { href: "/dashboard/dat-hang", label: t("Đặt đơn SMM") },
-    { href: panelSlug ? `/cua-hang/${panelSlug}/premium` : "/premium", label: "Premium" },
+    { href: "/premium", label: "Premium" },
     ...(loggedIn
       ? [
           { href: "/dashboard", label: t("Bảng điều khiển") },

@@ -13,7 +13,7 @@ export default async function AdminPremiumOrderDetail({ params, searchParams }: 
     where: { id: parseInt(params.id) },
     include: { variant: { include: { product: true } }, user: true },
   });
-  if (!o || o.variant.product.panelId != null) notFound();
+  if (!o) notFound();
   return (
     <div>
       <BackLink href="/admin/don-premium">{L("Danh sách đơn Premium")}</BackLink>
@@ -30,6 +30,7 @@ export default async function AdminPremiumOrderDetail({ params, searchParams }: 
               [L("Sản phẩm"), `${o.variant.product.name} — ${o.variant.name}`],
               [L("Hình thức gốc"), o.variant.product.fulfillment === "AUTO_STOCK" ? L("Kho tự động") : o.variant.product.fulfillment === "API" ? L("Đấu API — order_code phía nguồn:") + " " + (o.providerOrderId || L("chưa có")) : L("Thủ công")],
               [L("Số lượng"), String(o.quantity)],
+              ...(o.providerRaw ? [[L("Trạng thái phía nhà cung cấp"), (() => { try { const r = JSON.parse(o.providerRaw!); const one = Array.isArray(r) ? r[0] : r; return String(one?.status || one?.state || "—"); } catch { return "—"; } })()]] as [string, string][] : []),
               [L("Thu / Vốn / Lãi"), `${M(o.total)} / ${M(o.cost)} / ${M(o.total - o.cost)}`],
               [L("Thông tin khách cung cấp"), o.buyerInfo || "—"],
               [L("Bảo hành đến"), o.warrantyUntil ? dshort(o.warrantyUntil) : L("Không bảo hành")],
@@ -38,6 +39,12 @@ export default async function AdminPremiumOrderDetail({ params, searchParams }: 
               <div key={k} className="py-2.5 grid grid-cols-[170px_1fr] gap-4"><dt className="text-slate-500">{k}</dt><dd className="font-medium break-all">{v}</dd></div>
             ))}
           </dl>
+          {o.providerRaw && (
+            <div className="mt-5">
+              <div className="text-sm font-semibold text-slate-700 mb-2">{L("Dữ liệu thô từ nhà cung cấp")}</div>
+              <pre className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs whitespace-pre-wrap break-all max-h-64 overflow-y-auto">{o.providerRaw}</pre>
+            </div>
+          )}
           {o.deliveryData && (
             <div className="mt-5">
               <div className="text-sm font-semibold text-slate-700 mb-2">{L("Nội dung đã giao")}</div>

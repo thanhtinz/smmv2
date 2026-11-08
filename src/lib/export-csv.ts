@@ -1,7 +1,7 @@
 import { prisma } from "./db";
 
 /** Xuất CSV báo cáo (đợt bổ sung): UTF-8 có BOM để Excel đọc đúng tiếng Việt.
- *  panelId null = phạm vi web mẹ (chỉ dữ liệu khách mẹ), có giá trị = phạm vi panel đó. */
+ *  Phạm vi toàn hệ thống (web mẹ). */
 
 export const EXPORT_TYPES = ["smm", "premium", "deposits", "transactions", "users"] as const;
 export type ExportType = (typeof EXPORT_TYPES)[number];
@@ -13,9 +13,9 @@ function esc(v: unknown): string {
 function row(vals: unknown[]): string { return vals.map(esc).join(","); }
 const dstr = (d: Date) => d.toISOString().replace("T", " ").slice(0, 19);
 
-export async function buildExportCsv(type: ExportType, panelId: number | null, from?: Date, to?: Date): Promise<{ csv: string; filename: string }> {
+export async function buildExportCsv(type: ExportType, from?: Date, to?: Date): Promise<{ csv: string; filename: string }> {
   const dateWhere = (from || to) ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {};
-  const userScope = panelId === null ? { panelId: null } : { panelId };
+  const userScope = {};
   let lines: string[] = [];
   if (type === "smm") {
     const rows = await prisma.smmOrder.findMany({ where: { user: userScope, ...dateWhere }, orderBy: { id: "desc" }, take: 5000, include: { user: { select: { username: true } }, service: { select: { name: true } } } });

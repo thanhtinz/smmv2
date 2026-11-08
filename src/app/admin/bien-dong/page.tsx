@@ -18,7 +18,7 @@ export default async function AdminMovements({ searchParams }: { searchParams: {
   await requireAdminPage();
   const { L, Ld, M } = await getServerI18n(null);
   const page = Math.max(1, parseInt(searchParams.page || "1"));
-  const where: any = { user: { panelId: null } }; // biến động của khách site con là riêng của site con — mẹ không xem
+  const where: any = {};
   if (searchParams.type) where.type = searchParams.type;
   if (searchParams.q) where.OR = [{ note: { contains: searchParams.q } }, { ref: { contains: searchParams.q } }, { user: { username: { contains: searchParams.q } } }];
   const [total, rows] = await Promise.all([

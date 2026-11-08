@@ -1,7 +1,6 @@
 import { prisma } from "./db";
 import { getSettings, levelDiscountFromSettings } from "./settings";
 import { aiConfigured, aiChat, panelAiConfig } from "./ai";
-import { panelTierDiscount } from "./orders";
 import { PLATFORMS } from "./format";
 
 export type FinderPick = {
@@ -34,33 +33,23 @@ function localSearch(services: any[], q: string, platform: string): Pick[] {
 }
 
 /** Tìm dịch vụ theo mô tả tự nhiên — dùng AI khi đã cấu hình, lỗi/không có key thì
- *  rơi về tìm kiếm từ khoá. Giá trả về là giá của chính người xem: khách panel con
- *  thấy giá panel (giá riêng > markup + giảm bậc của panel), khách web mẹ thấy giá
- *  đã giảm theo cấp bậc hệ thống, khách vãng lai thấy giá gốc. */
+ *  rơi về tìm kiếm từ khoá. Giá trả về là giá của chính người xem: khách đã đăng
+ *  nhập thấy giá đã giảm theo cấp bậc hệ thống, khách vãng lai thấy giá gốc. */
 export async function findServices(opts: {
   q: string;
   platform?: string;
-  viewer?: { level: string; panelId?: number | null } | null;
-  panelSlug?: string | null;
+  viewer?: { level: string } | null;
 }): Promise<{ mode: "ai" | "local"; picks: FinderPick[] }> {
   const q = opts.q.trim();
   const platform = (opts.platform || "").trim();
-  const scopePanelId = opts.viewer?.panelId || (opts.panelSlug ? (await prisma.childPanel.findUnique({ where: { slug: opts.panelSlug }, select: { id: true } }))?.id : null);
   const services = await prisma.smmService.findMany({
-    where: { active: true, OR: [{ panelId: null }, ...(scopePanelId ? [{ panelId: scopePanelId }] : [])] },
+    where: { active: true, panelId: null },
     include: { category: true },
     orderBy: { rate: "asc" },
     take: 200,
   });
 
-  // Panel của người xem (nếu có): quyết định cả giá lẫn cấu hình AI —
-  // panel đã tự thêm key AI thì livechat dùng key của panel, chưa có thì dùng AI hệ thống.
-  let panel: any = null;
-  const viewerPanelId = opts.viewer?.panelId || null;
-  if (viewerPanelId) panel = await prisma.childPanel.findUnique({ where: { id: viewerPanelId } });
-  else if (opts.panelSlug) panel = await prisma.childPanel.findUnique({ where: { slug: opts.panelSlug } });
-  if (panel && panel.status !== "ACTIVE") panel = null;
-  const aiCfg = panelAiConfig(panel);
+  const aiCfg = panelAiConfig(null);
 
   let picks: Pick[] = [];
   let mode: "ai" | "local" = "local";
@@ -86,10 +75,6 @@ export async function findServices(opts: {
 
   // Giá theo người xem
   const settings = await getSettings();
-  const overrides = panel
-    ? await prisma.panelServicePrice.findMany({ where: { panelId: panel.id, serviceId: { in: picks.map((p) => p.id) } } })
-    : [];
-  const ovMap = new Map(overrides.map((o) => [o.serviceId, o.price]));
   const level = opts.viewer?.level || "MEMBER";
 
   const byId = new Map(services.map((sv) => [sv.id, sv]));
@@ -97,21 +82,9 @@ export async function findServices(opts: {
   for (const p of picks) {
     const sv = byId.get(p.id);
     if (!sv) continue;
-    let price: number;
-    if (sv.panelId) {
-      price = sv.rate; // dịch vụ riêng của panel: giá chủ panel đặt là giá cuối
-    } else if (panel) {
-      const ov = ovMap.get(sv.id);
-      if (ov) price = ov;
-      else {
-        const base = Math.round(sv.rate * (1 + panel.markup / 100));
-        price = Math.max(1, Math.round(base * (1 - panelTierDiscount(panel, level as any) / 100)));
-      }
-    } else if (opts.viewer) {
-      price = Math.max(1, Math.round(sv.rate * (1 - levelDiscountFromSettings(settings, level as any) / 100)));
-    } else {
-      price = sv.rate;
-    }
+    const price = opts.viewer
+      ? Math.max(1, Math.round(sv.rate * (1 - levelDiscountFromSettings(settings, level as any) / 100)))
+      : sv.rate;
     out.push({
       id: sv.id,
       name: sv.name,

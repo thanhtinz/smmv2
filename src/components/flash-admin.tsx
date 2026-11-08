@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { createFlashSaleAction, toggleFlashSaleAction, deleteFlashSaleAction, panelCreateFlashSaleAction, panelToggleFlashSaleAction, panelDeleteFlashSaleAction } from "@/app/actions/flash";
+import { createFlashSaleAction, toggleFlashSaleAction, deleteFlashSaleAction } from "@/app/actions/flash";
 import { dt } from "@/lib/format";
 import { FlashSaleForm } from "@/components/flash-form";
 import { getServerI18n } from "@/lib/lang-server";
@@ -16,19 +16,18 @@ function scopeDetail(x: { scope: string; serviceIds: string | null; productIds: 
   return parts;
 }
 
-/** Khối quản lý Flash Sale dùng chung cho Admin web mẹ và Panel Admin (parity).
+/** Khối quản lý Flash Sale của Admin web mẹ.
  *  Để cân bằng bố cục: khối này luôn là thẻ full-width nằm DƯỚI lưới 2 cột của trang Khuyến mãi. */
-export async function FlashSaleAdmin({ panelId }: { panelId: number | null }) {
+export async function FlashSaleAdmin() {
   const { L, Ld } = await getServerI18n();
-  const sales = await prisma.flashSale.findMany({ where: { panelId }, orderBy: { id: "desc" }, take: 20 });
+  const sales = await prisma.flashSale.findMany({ where: { panelId: null }, orderBy: { id: "desc" }, take: 20 });
   const products = await prisma.premiumProduct.findMany({
-    where: { active: true, OR: [{ panelId: null }, ...(panelId !== null ? [{ panelId }] : [])] },
+    where: { active: true, panelId: null },
     select: { id: true, name: true }, orderBy: [{ sort: "asc" }, { id: "asc" }],
   });
-  const panel = panelId !== null;
-  const create = panel ? panelCreateFlashSaleAction : createFlashSaleAction;
-  const toggle = panel ? panelToggleFlashSaleAction : toggleFlashSaleAction;
-  const del = panel ? panelDeleteFlashSaleAction : deleteFlashSaleAction;
+  const create = createFlashSaleAction;
+  const toggle = toggleFlashSaleAction;
+  const del = deleteFlashSaleAction;
   const now = new Date();
   const state = (x: (typeof sales)[number]) => !x.active ? "Đã tắt" : now < x.startsAt ? "Sắp chạy" : now > x.endsAt ? "Đã kết thúc" : "Đang chạy";
   return (

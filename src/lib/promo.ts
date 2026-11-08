@@ -2,15 +2,14 @@ import { prisma } from "./db";
 import { moduleOn } from "./modules";
 
 /** Kiểm tra mã giảm giá cho một đơn có tổng tiền `amount`. Trả số tiền được giảm hoặc ném lỗi hiển thị cho khách. */
-export async function checkPromo(rawCode: string, scope: "SMM" | "PREMIUM", amount: number, panelId?: number | null) {
+export async function checkPromo(rawCode: string, scope: "SMM" | "PREMIUM", amount: number) {
   const code = rawCode.trim().toUpperCase();
   if (!code) return null;
-  // Mô-đun mã giảm giá đang tắt (web mẹ hoặc panel của người mua) -> không áp dụng mã nào
-  if (!(await moduleOn("promo", panelId ?? null))) throw new Error("Tính năng mã giảm giá đang tạm tắt");
+  if (!(await moduleOn("promo"))) throw new Error("Tính năng mã giảm giá đang tạm tắt");
   const row = await prisma.discountCode.findUnique({ where: { code } });
   if (!row || !row.active) throw new Error(`Mã giảm giá "${code}" không hợp lệ`);
-  // Mã riêng của panel con chỉ áp dụng cho đơn mua qua đúng panel đó
-  if (row.panelId !== null && row.panelId !== (panelId ?? null)) throw new Error(`Mã giảm giá "${code}" không hợp lệ`);
+  // Mã từng thuộc website con (tính năng đã gỡ) không còn hiệu lực
+  if (row.panelId !== null) throw new Error(`Mã giảm giá "${code}" không hợp lệ`);
   if (row.scope !== "ALL" && row.scope !== scope) throw new Error(`Mã "${code}" không áp dụng cho loại đơn này`);
   const now = new Date();
   if (row.startsAt && row.startsAt > now) throw new Error(`Mã "${code}" chưa đến thời gian áp dụng`);

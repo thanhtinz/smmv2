@@ -13,8 +13,8 @@ const T_STATUS: Record<string, { label: string; cls: string }> = {
 
 export default async function AdminTickets() {
   const { L, Ld } = await getServerI18n(null);
-  const ratingAgg = await prisma.ticket.aggregate({ where: { user: { panelId: null }, rating: { not: null } }, _avg: { rating: true }, _count: { rating: true } });
-  const tickets = await prisma.ticket.findMany({ where: { user: { panelId: null } }, orderBy: [{ status: "asc" }, { updatedAt: "desc" }], take: 60, include: { user: true, _count: { select: { messages: true } } } });
+  const ratingAgg = await prisma.ticket.aggregate({ where: { rating: { not: null } }, _avg: { rating: true }, _count: { rating: true } });
+  const tickets = await prisma.ticket.findMany({ where: {}, orderBy: [{ status: "asc" }, { updatedAt: "desc" }], take: 60, include: { user: true, _count: { select: { messages: true } } } });
   return (
     <div>
       <PageHead title={L("Ticket hỗ trợ")} desc={L("Ticket CHỜ PHẢN HỒI (khách vừa gửi/trả lời) được xếp lên đầu.")} />

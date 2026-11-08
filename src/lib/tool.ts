@@ -1,25 +1,18 @@
 import { prisma } from "./db";
 import { getSettings } from "./settings";
-import { decryptSecret } from "./secret-box";
 import type { SmmOrderStatus } from "@prisma/client";
 
 /** SMM Tool API — cho tool ngoài (xử lý đơn thủ công) lấy đơn chờ + cập nhật trạng thái.
- *  Hai phạm vi key: key của WEB MẸ (setting tool_api_key) thấy mọi đơn thủ công;
- *  key RIÊNG của từng panel (ChildPanel.toolApiKey) chỉ thấy đơn của panel đó.
+ *  Key của web mẹ (setting tool_api_key) thấy mọi đơn thủ công.
  *  Chấp nhận key qua query ?key=, header x-tool-key, hoặc field "key" trong body POST. */
-export type ToolContext = { panelId: number | null };
+export type ToolContext = { ok: true };
 
 export async function toolContext(req: Request, bodyKey?: unknown): Promise<ToolContext | null> {
   const url = new URL(req.url);
   const given = (url.searchParams.get("key") || req.headers.get("x-tool-key") || (typeof bodyKey === "string" ? bodyKey : "")).trim();
   if (!given) return null;
   const s = await getSettings();
-  if ((s.tool_api_key || "").trim() && given === (s.tool_api_key || "").trim()) return { panelId: null };
-  // Key panel có thể đã mã hoá (enc:) — quét + giải mã để so khớp
-  const panels = await prisma.childPanel.findMany({ where: { toolApiKey: { not: null } }, select: { id: true, toolApiKey: true }, take: 500 }).catch(() => []);
-  for (const cand of panels) {
-    if (cand.toolApiKey && decryptSecret(cand.toolApiKey) === given) return { panelId: cand.id };
-  }
+  if ((s.tool_api_key || "").trim() && given === (s.tool_api_key || "").trim()) return { ok: true };
   return null;
 }
 
@@ -54,14 +47,12 @@ export function toolOrderJson(o: {
   };
 }
 
-/** Tool chỉ xử lý đơn của dịch vụ THỦ CÔNG (không đấu API). Phạm vi panel: đơn phải
- *  thuộc đúng panel của key (panelId null = key web mẹ, không giới hạn panel). */
-export async function findToolOrder(id: number, panelId?: number | null) {
+/** Tool chỉ xử lý đơn của dịch vụ THỦ CÔNG (không đấu API). */
+export async function findToolOrder(id: number) {
   const order = await prisma.smmOrder.findUnique({
     where: { id },
     include: { service: { select: { fulfillment: true, name: true } } },
   });
   if (!order || order.service.fulfillment !== "MANUAL") return null;
-  if (panelId != null && order.panelId !== panelId) return null;
   return order;
 }

@@ -10,6 +10,6 @@ export async function GET() {
   if (!user || (user.role !== "ADMIN" && user.role !== "STAFF")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const feed = await getRealtimeFeed({});
+  const feed = await getRealtimeFeed();
   return NextResponse.json(feed);
 }

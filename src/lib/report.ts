@@ -1,5 +1,3 @@
-import { prisma } from "./db";
-import { decryptPanelSecrets } from "./panel-secrets";
 import { getSettings, setSetting } from "./settings";
 import { getStats, Scope, StatsBundle } from "./stats";
 import { sendDiscord, sendTelegramTo } from "./alerts";
@@ -7,7 +5,7 @@ import { sendMail } from "./mailer";
 import { vnd, num } from "./format";
 
 /** Báo cáo ngày: thu nhập + mặt hàng bán chạy + top khách + việc chờ xử lý.
- *  Gửi qua Email / Telegram / Discord theo cấu hình của web mẹ hoặc từng panel.
+ *  Gửi qua Email / Telegram / Discord theo cấu hình của web mẹ.
  *  Chạy từ cron (maybeSendDailyReports) hoặc bấm "Gửi báo cáo ngay". */
 
 export type ReportChannel = "email" | "telegram" | "discord";
@@ -81,14 +79,14 @@ export function buildReportHtml(st: StatsBundle, dateLabel: string) {
 }
 
 /** Gửi báo cáo cho 1 phạm vi qua các kênh chỉ định. Trả về kết quả từng kênh để hiện lên giao diện. */
-export async function sendReport(scope: Scope, channels: ReportChannel[]): Promise<{ channel: string; ok: boolean; note: string }[]> {
-  const st = await getStats(scope);
+export async function sendReport(_scope: Scope, channels: ReportChannel[]): Promise<{ channel: string; ok: boolean; note: string }[]> {
+  const st = await getStats(_scope);
   const dateLabel = new Date().toLocaleDateString("vi-VN");
   const text = buildReportText(st, dateLabel);
   const title = `Báo cáo ngày ${dateLabel} — ${st.scopeName}`;
   const out: { channel: string; ok: boolean; note: string }[] = [];
 
-  if (!scope.panelId) {
+  {
     const s = await getSettings();
     for (const ch of channels) {
       try {
@@ -109,29 +107,6 @@ export async function sendReport(scope: Scope, channels: ReportChannel[]): Promi
         out.push({ channel: ch, ok: false, note: String(e?.message || e) });
       }
     }
-  } else {
-    const panel = decryptPanelSecrets(await prisma.childPanel.findUnique({ where: { id: scope.panelId } }));
-    if (!panel) return [{ channel: "panel", ok: false, note: "Không tìm thấy panel" }];
-    for (const ch of channels) {
-      try {
-        if (ch === "telegram") {
-          if (!panel.telegramBotToken || !panel.telegramChatId) throw new Error("Panel chưa cấu hình Telegram");
-          await sendTelegramTo(panel.telegramBotToken, panel.telegramChatId, text);
-        } else if (ch === "discord") {
-          if (!panel.discordWebhook) throw new Error("Panel chưa cấu hình Discord Webhook");
-          await sendDiscord(panel.discordWebhook, `**${title}**\n${text}`);
-        } else {
-          if (!panel.alertEmail) throw new Error("Panel chưa nhập email nhận báo cáo");
-          const override = panel.smtpHost && panel.smtpUser && panel.smtpFrom
-            ? { host: panel.smtpHost, port: panel.smtpPort, user: panel.smtpUser, pass: panel.smtpPass, from: panel.smtpFrom, secure: panel.smtpSecure }
-            : null;
-          await sendMail([panel.alertEmail], title, buildReportHtml(st, dateLabel), override);
-        }
-        out.push({ channel: ch, ok: true, note: "Đã gửi" });
-      } catch (e: any) {
-        out.push({ channel: ch, ok: false, note: String(e?.message || e) });
-      }
-    }
   }
   return out;
 }
@@ -142,9 +117,9 @@ function vnNow() {
   return { date: `${parts.year}-${parts.month}-${parts.day}`, hm: `${parts.hour}:${parts.minute}` };
 }
 
-/** Cron gọi: đến giờ cấu hình và hôm nay chưa gửi thì gửi báo cáo ngày (web mẹ + từng panel). */
+/** Cron gọi: đến giờ cấu hình và hôm nay chưa gửi thì gửi báo cáo ngày của web mẹ. */
 export async function maybeSendDailyReports() {
-  const res: any = { mother: null, panels: [] as any[] };
+  const res: any = { mother: null };
   const { date, hm } = vnNow();
   try {
     const s = await getSettings();
@@ -154,17 +129,5 @@ export async function maybeSendDailyReports() {
       if (res.mother.some((r: any) => r.ok)) await setSetting("report_last_sent", date);
     }
   } catch (e: any) { res.mother = String(e?.message || e); }
-  try {
-    const panels = (await prisma.childPanel.findMany({ where: { reportDaily: true } })).map((p) => decryptPanelSecrets(p)!);
-    for (const p of panels) {
-      if (p.reportLastSent === date) continue;
-      if (hm < (p.reportTime || "21:00")) continue;
-      const channels = (p.reportChannels || "telegram").split(",").map((x) => x.trim()).filter(Boolean) as ReportChannel[];
-      if (!channels.length) continue;
-      const r = await sendReport({ panelId: p.id }, channels);
-      res.panels.push({ panel: p.name, result: r });
-      if (r.some((x) => x.ok)) await prisma.childPanel.update({ where: { id: p.id }, data: { reportLastSent: date } });
-    }
-  } catch {}
   return res;
 }

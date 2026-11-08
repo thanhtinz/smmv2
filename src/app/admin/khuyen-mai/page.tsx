@@ -71,7 +71,7 @@ export default async function AdminPromotions({ searchParams }: { searchParams: 
           <p className="text-xs leading-relaxed text-slate-400">{L("Tạo mã mới, đặt % giảm, giới hạn lượt dùng và thời hạn áp dụng ở trang Mã giảm giá.")}</p>
         </div>
       </div>
-      <FlashSaleAdmin panelId={null} />
+      <FlashSaleAdmin />
       <form action={adminSaveSettings} className="card mt-6 space-y-4 p-6">
         <div className="font-bold text-slate-900">{L("Tích điểm khách hàng thân thiết")}</div>
         <p className="text-sm text-slate-500">{L("Khách được cộng điểm tự động khi đơn SMM/Premium hoàn thành, đổi điểm ra số dư ví ngay trong trang Hồ sơ.")}</p>

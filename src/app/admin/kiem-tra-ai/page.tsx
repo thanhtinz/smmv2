@@ -67,7 +67,7 @@ export default async function AdminAiCheck({ searchParams }: { searchParams: { v
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="font-medium text-slate-800">{r.userId ? nameOf.get(r.userId) || `#${r.userId}` : "—"}{r.panelId ? <span className="text-slate-400">{Ld(` · panel #${r.panelId}`)}</span> : null}</td>
+                  <td className="font-medium text-slate-800">{r.userId ? nameOf.get(r.userId) || `#${r.userId}` : "—"}</td>
                   <td className="max-w-[320px] truncate text-slate-500">{r.link}</td>
                   <td>{r.verdict === "VIOLATION" ? <Badge cls="bg-rose-50 text-rose-600">{L("Vi phạm")}</Badge> : <Badge cls="bg-emerald-50 text-emerald-600">{L("An toàn")}</Badge>}</td>
                   <td className="max-w-[260px] truncate text-slate-500">{r.reason || "—"}</td>

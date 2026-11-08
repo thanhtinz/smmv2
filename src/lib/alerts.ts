@@ -1,9 +1,8 @@
 import { prisma } from "./db";
-import { decryptPanelSecrets } from "./panel-secrets";
 import { getSettings } from "./settings";
 import { sendMail } from "./mailer";
 
-/** Báo tin đa kênh cho admin web mẹ + chủ panel con: Telegram / Discord / Email.
+/** Báo tin đa kênh cho admin web mẹ: Telegram / Discord / Email.
  *  Mỗi kênh bật/tắt riêng, chọn được sự kiện nào thì báo. Mọi hàm best-effort:
  *  lỗi gửi tin KHÔNG bao giờ làm hỏng luồng đơn hàng / tiền. */
 
@@ -77,25 +76,3 @@ export async function alertMother(event: string, title: string, text: string) {
   } catch {}
 }
 
-/** Báo tin cho CHỦ PANEL qua kênh riêng của panel (Telegram sẵn có + Discord + Email mới). */
-export async function alertPanelOwner(panelId: number, event: string, title: string, text: string) {
-  try {
-    const panel = decryptPanelSecrets(await prisma.childPanel.findUnique({ where: { id: panelId } }));
-    if (!panel) return;
-    if (!eventEnabled(panel.alertEvents, event)) return;
-    const jobs: Promise<any>[] = [];
-    if (panel.alertTelegram && panel.telegramBotToken && panel.telegramChatId) {
-      jobs.push(sendTelegramTo(panel.telegramBotToken, panel.telegramChatId, `${title}\n${text}`).catch(() => {}));
-    }
-    if (panel.alertDiscord && panel.discordWebhook) {
-      jobs.push(sendDiscord(panel.discordWebhook, `**${title}**\n${text}`).catch(() => {}));
-    }
-    if (panel.alertEmailOn && panel.alertEmail) {
-      const override = panel.smtpHost && panel.smtpUser && panel.smtpFrom
-        ? { host: panel.smtpHost, port: panel.smtpPort, user: panel.smtpUser, pass: panel.smtpPass, from: panel.smtpFrom, secure: panel.smtpSecure }
-        : null;
-      jobs.push(sendMail([panel.alertEmail], title, alertEmailHtml(title, text), override).catch(() => {}));
-    }
-    await Promise.all(jobs);
-  } catch {}
-}

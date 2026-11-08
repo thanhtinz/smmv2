@@ -20,11 +20,8 @@ const T_CAT: Record<string, string> = { smm: "Đơn SMM", premium: "Đơn Premiu
  *  tìm kiếm, bảng ticket và form tạo ở cuối trang. */
 export default async function TicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string; st?: string; q?: string; subject?: string; category?: string; body?: string } }) {
   const user = (await getCurrentUser())!;
-  const panelLangRaw = user.panelId
-    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
-    : undefined;
-  const { L, Ld } = await getServerI18n(panelLangRaw);
-  if (!(await moduleOn("tickets", user.panelId))) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
+  const { L, Ld } = await getServerI18n();
+  if (!(await moduleOn("tickets"))) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
   const st = searchParams.st && T_STATUS[searchParams.st] ? searchParams.st : "";
   const q = (searchParams.q || "").trim();
   const [counts, tickets] = await Promise.all([

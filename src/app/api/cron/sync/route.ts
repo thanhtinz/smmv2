@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { syncSmmOrderStatus, syncPremiumOrderStatus, processDripfeedOrders, processAutoRefills } from "@/lib/orders";
 import { syncProviderServices, syncProviderPremium, providerBalance } from "@/lib/provider";
-import { processPanelRenewals } from "@/lib/panel-billing";
+import { pollFzrPremiumOrder } from "@/lib/fzr-orders";
+import { syncFzrCatalog } from "@/lib/fzr-sync";
 
 /**
  * Cron đồng bộ (gọi mỗi 5-10 phút bởi crontab / Vercel Cron):
@@ -45,11 +46,6 @@ export async function GET(req: NextRequest) {
   // mới từ subscription. Dữ liệu gói cũ giữ nguyên trong DB, không xử lý nữa.
 
   // Gia hạn website con theo tháng: trừ phí tự động, hết tiền thì tạm ngưng
-  try {
-    result.panelRenewals = await processPanelRenewals(50);
-  } catch (e: any) {
-    result.panelRenewalsError = String(e?.message || e);
-  }
 
   // Service Health Monitor: kiểm tra số dư/kết nối mọi provider đang bật; lỗi thì ghi log cảnh báo
   try {
@@ -111,20 +107,48 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Đơn premium đấu API đang chờ giao -> hỏi history của provider
+  // Đơn premium đấu API đang chờ giao -> hỏi trạng thái phía provider.
+  // Driver FZR poll bằng GET /orders/{id} (tối đa 50 đơn/vòng, bỏ qua đơn < 1 phút);
+  // chuẩn ThaTim giữ nguyên đường history cũ.
   const preOrders = await prisma.premiumOrder.findMany({
     where: { providerId: { not: null }, providerOrderId: { not: null }, status: "PENDING" },
     take: 100,
     orderBy: { updatedAt: "asc" },
+    include: { provider: { select: { driver: true } } },
   });
+  let fzrPolled = 0;
   for (const o of preOrders) {
     try {
-      await syncPremiumOrderStatus(o);
+      if (o.provider?.driver === "FZR") {
+        if (fzrPolled >= 50) continue;
+        fzrPolled++;
+        await pollFzrPremiumOrder(o, { skipYoung: true });
+      } else {
+        await syncPremiumOrderStatus(o);
+      }
       result.premiumSynced++;
     } catch {
       result.premiumFailed++;
     }
   }
+  result.fzrPolled = fzrPolled;
+
+  // BoltUtil: webhook của họ KHÔNG tự gửi lại — poll là xương sống độ tin cậy.
+  // Đối soát tối đa 30 yêu cầu nạp USDT-BoltUtil đang PENDING trong 24 giờ qua;
+  // gặp 429 thì dừng phần còn lại tới lượt sau.
+  try {
+    const boltDeps = await prisma.deposit.findMany({
+      where: { method: "USDT", status: "PENDING", externalId: { startsWith: "bolt:" }, createdAt: { gt: new Date(Date.now() - 24 * 3600 * 1000) } },
+      orderBy: { id: "asc" }, take: 30, select: { id: true },
+    });
+    const { pollBoltutilDeposit, BoltError } = await import("@/lib/boltutil");
+    let boltPolled = 0;
+    for (const d of boltDeps) {
+      try { await pollBoltutilDeposit(d.id); boltPolled++; }
+      catch (e: any) { if (e instanceof BoltError && e.httpStatus === 429) break; }
+    }
+    (result as any).boltPolled = boltPolled;
+  } catch { /* lỗi poll BoltUtil không chặn các job khác */ }
 
   if (req.nextUrl.searchParams.get("services") === "1") {
     const providers = await prisma.provider.findMany({ where: { active: true } });
@@ -132,12 +156,22 @@ export async function GET(req: NextRequest) {
       try {
         const bal = await providerBalance(p);
         const entry: any = { name: p.name, balanceVnd: bal.vnd };
-        if (p.kind === "SMM" || p.kind === "BOTH") entry.smm = await syncProviderServices(p);
-        if (p.kind === "PREMIUM" || p.kind === "BOTH") {
+        if (p.driver === "FZR") {
+          // FZR: chỉ đồng bộ catalog Premium; Steam gift KHÔNG đồng bộ ở cron
+          // (endpoint danh sách bị rate-limit 1 lần/3 phút — chỉ admin bấm tay).
           try {
-            entry.premium = await syncProviderPremium(p);
+            entry.fzr = await syncFzrCatalog(p);
           } catch (e: any) {
-            entry.premiumError = String(e?.message || e);
+            entry.fzrError = String(e?.message || e);
+          }
+        } else {
+          if (p.kind === "SMM" || p.kind === "BOTH") entry.smm = await syncProviderServices(p);
+          if (p.kind === "PREMIUM" || p.kind === "BOTH") {
+            try {
+              entry.premium = await syncProviderPremium(p);
+            } catch (e: any) {
+              entry.premiumError = String(e?.message || e);
+            }
           }
         }
         result.providers.push(entry);

@@ -6,6 +6,7 @@ import { logoutAction } from "@/app/actions/auth";
 import { SideNav, MobileSideNav, MenuBottomCluster, type NavEntry } from "@/components/nav";
 import { DisplaySettings } from "@/components/display";
 import { NotificationBell } from "@/components/notification-bell";
+import { CartHeaderLink } from "@/components/cart";
 import { LiveChat } from "@/components/livechat";
 import { TermsGate, HomeModal } from "@/components/gates";
 import { I } from "@/components/ui";
@@ -19,39 +20,27 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!user) redirect("/login");
   const s = await getSettings();
   const openTickets = await prisma.ticket.count({ where: { userId: user.id, status: "ANSWERED" } });
-  // Khách của panel: điều khoản + modal trang chủ dùng bản RIÊNG của panel (nếu panel có bật);
-  // panel không bật thì theo web mẹ như cũ.
-  const myPanelGate = user.panelId ? await prisma.childPanel.findUnique({
-    where: { id: user.panelId },
-    select: { termsEnabled: true, termsTitle: true, termsContent: true, termsVersion: true, termsCheckboxText: true, termsButtonText: true, homeModalEnabled: true, homeModalContent: true, langConfig: true, logoUrl: true, logoMenuUrl: true },
-  }) : null;
-  const i18n = await getServerI18n(myPanelGate?.langConfig ?? undefined);
+  const i18n = await getServerI18n();
   const { L, M } = i18n;
   if (s.maintenance === "1" && user.role === "USER") {
     return <div className="min-h-screen flex items-center justify-center p-6 text-center"><div><h1 className="text-2xl font-bold mb-2">{L("Hệ thống đang bảo trì")}</h1><p className="text-slate-500">{L("Vui lòng quay lại sau ít phút.")}</p></div></div>;
   }
-  const panelTermsOn = !!(myPanelGate?.termsEnabled && myPanelGate.termsContent?.trim());
   let termsGate: React.ReactNode = null;
-  if (panelTermsOn || (s.terms_enabled === "1" && s.terms_content?.trim())) {
+  if (s.terms_enabled === "1" && s.terms_content?.trim()) {
     const fresh = await prisma.user.findUnique({ where: { id: user.id }, select: { termsAcceptedVersion: true } });
-    const ver = panelTermsOn ? myPanelGate!.termsVersion : parseInt(s.terms_version || "1") || 1;
+    const ver = parseInt(s.terms_version || "1") || 1;
     if ((fresh?.termsAcceptedVersion || 0) < ver) {
-      termsGate = panelTermsOn
-        ? <TermsGate title={myPanelGate!.termsTitle || "Điều khoản sử dụng"} content={myPanelGate!.termsContent!} checkboxText={myPanelGate!.termsCheckboxText || ""} buttonText={myPanelGate!.termsButtonText || ""} version={ver} />
-        : <TermsGate title={s.terms_title} content={s.terms_content} checkboxText={s.terms_checkbox_text} buttonText={s.terms_button_text} version={ver} />;
+      termsGate = <TermsGate title={s.terms_title} content={s.terms_content} checkboxText={s.terms_checkbox_text} buttonText={s.terms_button_text} version={ver} />;
     }
   }
-  const homeModalContent = myPanelGate?.homeModalEnabled && myPanelGate.homeModalContent?.trim()
-    ? myPanelGate.homeModalContent
-    : s.home_modal_enabled === "1" && s.home_modal_content?.trim() ? s.home_modal_content : null;
-  const myPanelFlags = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sellSmm: true, sellPremium: true, moduleAffiliate: true, moduleBulk: true, moduleTickets: true, moduleApi: true, hiddenCats: true } }) : null;
-  const smmOn = s.module_smm !== "0" && (myPanelFlags ? myPanelFlags.sellSmm : true);
-  const premiumOn = s.module_premium !== "0" && (myPanelFlags ? myPanelFlags.sellPremium : true);
-  const affiliateOn = s.module_affiliate !== "0" && (myPanelFlags ? myPanelFlags.moduleAffiliate : true);
-  // Mô-đun tính năng: web mẹ tắt là tắt chung; panel tắt chỉ áp cho khách của panel đó
-  const bulkOn = s.module_bulk !== "0" && (myPanelFlags ? myPanelFlags.moduleBulk : true);
-  const ticketsOn = s.module_tickets !== "0" && (myPanelFlags ? myPanelFlags.moduleTickets : true);
-  const apiOn = s.module_api !== "0" && (myPanelFlags ? myPanelFlags.moduleApi : true);
+  const homeModalContent = s.home_modal_enabled === "1" && s.home_modal_content?.trim() ? s.home_modal_content : null;
+  const smmOn = s.module_smm !== "0";
+  const premiumOn = s.module_premium !== "0";
+  const affiliateOn = s.module_affiliate !== "0";
+  const bulkOn = s.module_bulk !== "0";
+  const ticketsOn = s.module_tickets !== "0";
+  const apiOn = s.module_api !== "0";
+  const telegramOn = s.telegram_enabled !== "0";
   const unreadNoti = await prisma.notification.count({ where: { userId: user.id, read: false } });
   // Menu gom nhóm dropdown cho gọn: nhóm nào đang chứa trang hiện tại thì tự mở
   const smmChildren = [
@@ -62,6 +51,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const premiumChildren = [
     ...(premiumOn ? [{ href: "/dashboard/premium", label: L("Mua Premium") }] : []),
     { href: "/dashboard/don-premium", label: L("Đơn hàng Premium") },
+  ];
+  const telegramChildren = [
+    { href: "/dashboard/telegram", label: L("Đặt đơn") },
+    { href: "/dashboard/telegram/lich-su", label: L("Lịch sử") },
   ];
   const financeChildren = [
     { href: "/dashboard/giao-dich", label: L("Lịch sử số dư") },
@@ -79,9 +72,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard", label: L("Tổng quan"), icon: I.home },
     ...(smmChildren.length ? [{ label: L("Đơn SMM"), icon: I.cart, children: smmChildren }] : []),
     ...(premiumChildren.length ? [{ label: L("Premium"), icon: I.gem, children: premiumChildren }] : []),
+    ...(telegramOn ? [{ label: "Telegram Premium", icon: I.star, children: telegramChildren }] : []),
     ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),
     ...(apiOn ? [{ href: "/dashboard/api-docs", label: L("Tài liệu API"), icon: I.key }] : []),
-    ...(s.module_panels !== "0" ? [{ href: "/dashboard/panel-cua-toi", label: L("Đăng ký panel con"), icon: I.panels }] : []),
     ...(supportChildren.length ? [{ label: L("Hỗ trợ"), icon: I.ticket, children: supportChildren }] : []),
     { href: "/dashboard/ho-so", label: L("Hồ sơ"), icon: I.users },
   ];
@@ -90,10 +83,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const nameParts = (user.fullName || user.username).trim().split(/\s+/);
   const accountInitials = (nameParts.length > 1 ? nameParts[0][0] + nameParts[nameParts.length - 1][0] : (user.fullName || user.username).slice(0, 2)).toUpperCase();
   const menuFooter = <MenuBottomCluster accountName={user.fullName || user.username} accountEmail={user.email} accountInitials={accountInitials} depositLabel={L("Nạp tiền")} adminLabel={user.role === "ADMIN" ? "Admin Panel" : null} logoutLabel={L("Đăng xuất")} />;
-  // Logo đầu ngăn kéo menu = LOGO MENU (ảnh chữ nhật ngang): logo menu của panel →
-  // logo nhỏ của panel → logo menu web mẹ (logo_menu_url) → logo nhỏ web mẹ (logo_url)
-  // → ô chữ viết tắt mặc định. Header vẫn dùng logo nhỏ như cũ.
-  const drawerLogoUrl = myPanelGate?.logoMenuUrl || myPanelGate?.logoUrl || s.logo_menu_url || s.logo_url || null;
+  // Logo đầu ngăn kéo menu = LOGO MENU (ảnh chữ nhật ngang): logo menu web mẹ
+  // (logo_menu_url) → logo nhỏ web mẹ (logo_url) → ô chữ viết tắt mặc định.
+  // Header vẫn dùng logo nhỏ như cũ.
+  const drawerLogoUrl = s.logo_menu_url || s.logo_url || null;
   return (
     <LangProvider lang={i18n.lang} ov={i18n.cfg.overrides[i18n.lang]} cur={i18n.cur} rates={i18n.rates}>
     <div className="min-h-screen">
@@ -110,6 +103,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               {L("Bảng giá")}
             </Link>
             <NotificationBell />
+              <CartHeaderLink />
             <DisplaySettings />
             <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hidden sm:inline-block">{L(LEVEL_NAME[user.level])}</span>
             <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-1.5 text-xs font-bold sm:px-3.5 sm:text-sm">{M(user.balance)}</span>

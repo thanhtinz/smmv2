@@ -1,10 +1,9 @@
 import { prisma } from "./db";
 
-/** Thống kê dùng chung cho trang Phân tích + Báo cáo (web mẹ và panel con).
- *  scope.panelId trống = toàn hệ thống; có panelId = chỉ dữ liệu của panel đó.
- *  Lợi nhuận: web mẹ = doanh thu − vốn; panel = hoa hồng nhận được. */
+/** Thống kê dùng chung cho trang Phân tích + Báo cáo của web mẹ.
+ *  Lợi nhuận = doanh thu − vốn. */
 
-export type Scope = { panelId?: number };
+export type Scope = Record<string, never>;
 
 export type PeriodStat = { revenue: number; profit: number; orders: number; deposits: number; newUsers: number };
 export type BestSmm = { name: string; orders: number; quantity: number; revenue: number; profit: number };
@@ -30,18 +29,6 @@ async function period(scope: Scope, from: Date): Promise<PeriodStat> {
   const pw: any = { createdAt: { gte: from }, status: PRE_OK };
   const dw: any = { status: "APPROVED", createdAt: { gte: from } };
   const uw: any = { createdAt: { gte: from } };
-  if (scope.panelId) {
-    sw.panelId = scope.panelId;
-    pw.panelId = scope.panelId;
-    dw.user = { panelId: scope.panelId };
-    uw.panelId = scope.panelId;
-  } else {
-    // Góc nhìn WEB MẸ: nạp tiền + khách mới chỉ tính TÀI KHOẢN CỦA MẸ — tài khoản của
-    // site con là riêng, mẹ không xem số dư/account của site con (đơn hàng qua nguồn
-    // của mẹ vẫn là doanh thu nguồn nên giữ nguyên).
-    dw.user = { panelId: null };
-    uw.panelId = null;
-  }
   const [smm, pre, dep, nu] = await Promise.all([
     prisma.smmOrder.aggregate({ where: sw, _sum: { charge: true, cost: true, commission: true }, _count: true }),
     prisma.premiumOrder.aggregate({ where: pw, _sum: { total: true, cost: true, commission: true }, _count: true }),
@@ -49,9 +36,7 @@ async function period(scope: Scope, from: Date): Promise<PeriodStat> {
     prisma.user.count({ where: uw }),
   ]);
   const revenue = (smm._sum.charge || 0) + (pre._sum.total || 0);
-  const profit = scope.panelId
-    ? (smm._sum.commission || 0) + (pre._sum.commission || 0)
-    : (smm._sum.charge || 0) - (smm._sum.cost || 0) + ((pre._sum.total || 0) - (pre._sum.cost || 0));
+  const profit = (smm._sum.charge || 0) - (smm._sum.cost || 0) + ((pre._sum.total || 0) - (pre._sum.cost || 0));
   return { revenue, profit, orders: (smm._count || 0) + (pre._count || 0), deposits: dep._sum.amount || 0, newUsers: nu };
 }
 
@@ -64,7 +49,6 @@ export async function getStats(scope: Scope): Promise<StatsBundle> {
 
   const sw30: any = { createdAt: { gte: start30 }, status: SMM_OK };
   const pw30: any = { createdAt: { gte: start30 }, status: PRE_OK };
-  if (scope.panelId) { sw30.panelId = scope.panelId; pw30.panelId = scope.panelId; }
 
   const [today, last7, last30, month, smmGroup, preGroup, smmUsers, preUsers] = await Promise.all([
     period(scope, startDay),
@@ -73,8 +57,8 @@ export async function getStats(scope: Scope): Promise<StatsBundle> {
     period(scope, startMonth),
     prisma.smmOrder.groupBy({ by: ["serviceId"], where: sw30, _count: true, _sum: { charge: true, cost: true, commission: true, quantity: true }, orderBy: { _count: { serviceId: "desc" } }, take: 8 }),
     prisma.premiumOrder.groupBy({ by: ["variantId"], where: pw30, _count: true, _sum: { total: true, quantity: true }, orderBy: { _count: { variantId: "desc" } }, take: 8 }),
-    prisma.smmOrder.groupBy({ by: ["userId"], where: { status: SMM_OK, ...(scope.panelId ? { panelId: scope.panelId } : { user: { panelId: null } }) }, _sum: { charge: true }, _count: true }),
-    prisma.premiumOrder.groupBy({ by: ["userId"], where: { status: PRE_OK, ...(scope.panelId ? { panelId: scope.panelId } : { user: { panelId: null } }) }, _sum: { total: true }, _count: true }),
+    prisma.smmOrder.groupBy({ by: ["userId"], where: { status: SMM_OK }, _sum: { charge: true }, _count: true }),
+    prisma.premiumOrder.groupBy({ by: ["userId"], where: { status: PRE_OK }, _sum: { total: true }, _count: true }),
   ]);
 
   const svcRows = smmGroup.length
@@ -86,7 +70,7 @@ export async function getStats(scope: Scope): Promise<StatsBundle> {
     orders: g._count,
     quantity: g._sum.quantity || 0,
     revenue: g._sum.charge || 0,
-    profit: scope.panelId ? g._sum.commission || 0 : (g._sum.charge || 0) - (g._sum.cost || 0),
+    profit: (g._sum.charge || 0) - (g._sum.cost || 0),
   }));
 
   const varRows = preGroup.length
@@ -122,19 +106,15 @@ export async function getStats(scope: Scope): Promise<StatsBundle> {
     deposited: userMap.get(id)?.totalDeposited || 0,
   }));
 
-  const pendW: any = scope.panelId ? { panelId: scope.panelId } : {};
+  const pendW: any = {};
   const [smmManual, premiumP, depositsP, ticketsO] = await Promise.all([
     prisma.smmOrder.count({ where: { ...pendW, fulfillment: "MANUAL", status: { in: ["PENDING", "PROCESSING"] } } }),
     prisma.premiumOrder.count({ where: { ...pendW, status: "PENDING" } }),
-    prisma.deposit.count({ where: { status: "PENDING", user: { panelId: scope.panelId ?? null } } }),
-    prisma.ticket.count({ where: { status: "OPEN", user: { panelId: scope.panelId ?? null } } }),
+    prisma.deposit.count({ where: { status: "PENDING" } }),
+    prisma.ticket.count({ where: { status: "OPEN" } }),
   ]);
 
-  let scopeName = "Toàn hệ thống";
-  if (scope.panelId) {
-    const p = await prisma.childPanel.findUnique({ where: { id: scope.panelId }, select: { name: true } });
-    scopeName = p?.name || `Panel #${scope.panelId}`;
-  }
+  const scopeName = "Toàn hệ thống";
   return {
     scopeName,
     today, last7, last30, month,

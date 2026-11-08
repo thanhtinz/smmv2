@@ -3,7 +3,6 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "./db";
 import { getSettings } from "./settings";
-import { panelByHost } from "./panel-host";
 import { clientIp } from "./rate-limit";
 
 /* Khoá ký phiên: production KHÔNG dùng khoá dự phòng công khai (ai đọc code cũng
@@ -47,11 +46,7 @@ export async function getSessionSecrets(): Promise<{ current: Uint8Array; prev: 
 export type SessionUser = { id: number; role: string; username: string; sv?: number; sid?: string; authMethod?: string; amr?: string };
 
 export async function createSession(user: SessionUser) {
-  let days = Math.min(90, Math.max(1, parseInt((await getSettings()).session_days) || 7));
-  try {
-    const hostPanel = await panelByHost();
-    if (hostPanel?.sessionDays && hostPanel.sessionDays > 0) days = Math.min(90, Math.max(1, hostPanel.sessionDays));
-  } catch { /* ngoài ngữ cảnh request thì dùng cấu hình chung */ }
+  const days = Math.min(90, Math.max(1, parseInt((await getSettings()).session_days) || 7));
   const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { sessionVersion: true } }).catch(() => null);
   // GĐ2: tạo dòng UserSession để quản lý thiết bị + đăng xuất từ xa; JWT mang sid trỏ về dòng này.
   let sid: string | undefined;

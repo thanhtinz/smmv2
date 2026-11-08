@@ -21,10 +21,7 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
  *  dưới là 2 cột (đơn gần đây | bảng giá / API / giao dịch ví). */
 export default async function DashboardHome() {
   const user = (await getCurrentUser())!;
-  const panelLangRaw = user.panelId
-    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
-    : undefined;
-  const { L, Ld, M } = await getServerI18n(panelLangRaw);
+  const { L, Ld, M } = await getServerI18n();
   const [smmCount, smmRunning, recent, statusGroup, txCount, spendSmmAgg, spendPreAgg, recentTx] = await Promise.all([
     prisma.smmOrder.count({ where: { userId: user.id } }),
     prisma.smmOrder.count({ where: { userId: user.id, status: { in: ["PENDING", "PROCESSING", "IN_PROGRESS"] } } }),
@@ -38,27 +35,16 @@ export default async function DashboardHome() {
   const stCount = (st: string) => statusGroup.find((g) => g.status === st)?._count || 0;
   const totalSpent = (spendSmmAgg._sum.charge || 0) + (spendPreAgg._sum.total || 0);
 
-  // Banner thông báo hệ thống (như panel mẫu): 1 banner duy nhất ngay dưới lời chào —
-  // khách panel thấy banner của panel mình, panel chưa đặt thì dùng của web mẹ.
+  // Banner thông báo hệ thống: 1 banner duy nhất ngay dưới lời chào (Cài đặt → Thông báo).
   const s = await getSettings();
   let bannerHtml: string | null = null;
   let panelTagline: string | null = null;
-  if (user.panelId) {
-    const p = await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { sysAnnounceEnabled: true, sysAnnounceContent: true, tagline: true } });
-    if (p?.sysAnnounceEnabled && p.sysAnnounceContent) bannerHtml = p.sysAnnounceContent;
-    panelTagline = p?.tagline || null;
-  }
-  if (!bannerHtml && s.sys_announce_enabled === "1" && s.sys_announce_content) bannerHtml = s.sys_announce_content;
+  if (s.sys_announce_enabled === "1" && s.sys_announce_content) bannerHtml = s.sys_announce_content;
 
-  // Timeline thông báo: bài viết thuộc chuyên mục "Thông báo" (admin đăng ở mục Bài viết),
-  // khách panel thấy bài của panel mình, panel chưa có thì dùng của web mẹ — như trang Bài viết.
+  // Timeline thông báo: bài viết thuộc chuyên mục "Thông báo" (admin đăng ở mục Bài viết).
   let notices: { id: number; title: string; slug: string; excerpt: string | null; content: string; createdAt: Date }[] = [];
-  if (await moduleOn("blog", user.panelId)) {
-    let scopePid: number | null = user.panelId ?? null;
-    if (scopePid !== null) {
-      const cnt = await prisma.post.count({ where: { published: true, panelId: scopePid } });
-      if (cnt === 0) scopePid = null;
-    }
+  if (await moduleOn("blog")) {
+    const scopePid: number | null = null;
     const cat = await prisma.postCategory.findUnique({ where: { slug: "thong-bao" }, select: { id: true } });
     if (cat) {
       notices = await prisma.post.findMany({
@@ -80,7 +66,7 @@ export default async function DashboardHome() {
 
   return (
     <div>
-      <FlashBanner panelId={user.panelId ?? null} />
+      <FlashBanner />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{L("Chào mừng, ")}{name}!</h1>

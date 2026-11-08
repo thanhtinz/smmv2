@@ -22,7 +22,6 @@ export async function GET(req: Request) {
     where: {
       service: { fulfillment: "MANUAL" },
       status: { in: statuses },
-      ...(ctx.panelId != null ? { panelId: ctx.panelId } : {}),
       ...(serviceId ? { serviceId } : {}),
       ...(search ? { OR: [{ link: { contains: search, mode: "insensitive" } }, { code: { contains: search, mode: "insensitive" } }] } : {}),
     },

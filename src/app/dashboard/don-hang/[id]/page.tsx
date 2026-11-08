@@ -11,10 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SmmOrderDetail({ params }: { params: { id: string } }) {
   const user = (await getCurrentUser())!;
-  const panelLangRaw = user.panelId
-    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
-    : undefined;
-  const { L, Ld, M } = await getServerI18n(panelLangRaw);
+  const { L, Ld, M } = await getServerI18n();
   const o = await prisma.smmOrder.findFirst({ where: { id: parseInt(params.id), userId: user.id }, include: { service: { include: { category: true } } } });
   if (!o) notFound();
   const events = await prisma.orderEvent.findMany({ where: { orderId: o.id }, orderBy: { id: "asc" } });

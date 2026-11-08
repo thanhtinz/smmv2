@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const type = (EXPORT_TYPES as readonly string[]).includes(sp.get("type") || "") ? (sp.get("type") as ExportType) : "smm";
   const r = parseRange(sp);
-  const { csv, filename } = await buildExportCsv(type, null, r.from, r.to);
+  const { csv, filename } = await buildExportCsv(type, r.from, r.to);
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

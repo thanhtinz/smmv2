@@ -11,10 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TicketDetail({ params }: { params: { id: string } }) {
   const user = (await getCurrentUser())!;
-  const panelLangRaw = user.panelId
-    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
-    : undefined;
-  const { L, Ld } = await getServerI18n(panelLangRaw);
+  const { L, Ld } = await getServerI18n();
   const t = await prisma.ticket.findFirst({
     where: { id: parseInt(params.id), userId: user.id },
     include: { messages: { orderBy: { id: "asc" } } },

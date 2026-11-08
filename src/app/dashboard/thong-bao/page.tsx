@@ -12,10 +12,7 @@ export const dynamic = "force-dynamic";
 /** Thông báo của khách: đơn hoàn thành / hoàn một phần / huỷ / hoàn tiền — mở trang là đánh dấu đã đọc */
 export default async function NotificationsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
-  const panelLangRaw = user.panelId
-    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
-    : undefined;
-  const { L, Ld } = await getServerI18n(panelLangRaw);
+  const { L, Ld } = await getServerI18n();
   await prisma.notification.updateMany({ where: { userId: user.id, read: false }, data: { read: true } });
   const items = await prisma.notification.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 50 });
   const prefs = parseNotifyPrefs(user.notifyPrefs);

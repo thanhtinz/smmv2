@@ -6,10 +6,12 @@ import { decryptSecret } from "./secret-box";
  *  Panel con có thể truyền AiConfig riêng (key của chính chủ panel) để ghi đè. */
 export type AiConfig = { enabled: boolean; provider: string; baseUrl?: string | null; apiKey?: string | null; model?: string | null };
 
-export function panelAiConfig(panel: { aiEnabled: boolean; aiProvider: string; aiBaseUrl?: string | null; aiApiKey?: string | null; aiModel?: string | null } | null | undefined): AiConfig | null {
-  if (!panel || !panel.aiEnabled || !(panel.aiApiKey || "").trim()) return null;
-  // aiApiKey của panel có thể đang mã hoá (enc:) — giải mã tại phễu dùng chung này (idempotent với bản rõ)
-  return { enabled: true, provider: panel.aiProvider || "openai", baseUrl: panel.aiBaseUrl, apiKey: panel.aiApiKey ? decryptSecret(panel.aiApiKey) : panel.aiApiKey, model: panel.aiModel };
+/** Cấu hình AI riêng từ một bộ trường cấu hình (aiEnabled/aiProvider/aiApiKey…);
+ *  null = dùng cấu hình AI chung của hệ thống. */
+export function panelAiConfig(cfg: { aiEnabled: boolean; aiProvider: string; aiBaseUrl?: string | null; aiApiKey?: string | null; aiModel?: string | null } | null | undefined): AiConfig | null {
+  if (!cfg || !cfg.aiEnabled || !(cfg.aiApiKey || "").trim()) return null;
+  // aiApiKey có thể đang mã hoá (enc:) — giải mã tại phễu dùng chung này (idempotent với bản rõ)
+  return { enabled: true, provider: cfg.aiProvider || "openai", baseUrl: cfg.aiBaseUrl, apiKey: cfg.aiApiKey ? decryptSecret(cfg.aiApiKey) : cfg.aiApiKey, model: cfg.aiModel };
 }
 
 async function resolveConfig(cfg?: AiConfig | null): Promise<AiConfig> {

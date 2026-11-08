@@ -11,8 +11,8 @@ const QUICK = ["Tăng follow TikTok cho kênh bán hàng", "Follow Facebook giá
 
 /** Livechat nổi: trợ lý tư vấn dịch vụ ngay trong khung chat — khách mô tả nhu cầu,
  *  hệ thống (AI nếu đã cấu hình, không thì tìm từ khoá) gợi ý dịch vụ kèm giá của
- *  chính khách và nút đặt đơn. panelSlug: khi đặt trong website con thì giá theo panel. */
-export function LiveChat({ panelSlug }: { panelSlug?: string }) {
+ *  chính khách và nút đặt đơn. */
+export function LiveChat() {
   const { t, td, m } = useLang();
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([
@@ -37,7 +37,7 @@ export function LiveChat({ panelSlug }: { panelSlug?: string }) {
       const r = await fetch("/api/chat/suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ q, panelSlug: panelSlug || undefined }),
+        body: JSON.stringify({ q }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j?.error || t("Có lỗi xảy ra"));

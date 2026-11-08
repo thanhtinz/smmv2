@@ -40,7 +40,7 @@ const lbl = "lbl";
 
 /* ================= NHÀ CUNG CẤP ================= */
 export type ProviderDTO = {
-  id: number; kind: string; name: string; apiUrl: string; currency: string; exchangeRate: number;
+  id: number; kind: string; driver: string; name: string; apiUrl: string; currency: string; exchangeRate: number;
   markupPercent: number; balanceCache: number; active: boolean; note: string | null;
   syncServices: boolean; syncCategories: boolean; autoUpdatePrice: boolean;
   syncContent: boolean; filterHtml: boolean; syncAdvanced: boolean; coupon: string | null; cronSyncLimit: number;
@@ -84,6 +84,14 @@ export function ProviderModal({ provider, onClose }: { provider?: ProviderDTO; o
                 <label className={lbl}>{t("Kiểu kiểm tra API")}</label>
                 <select className={inp} defaultValue="balance"><option value="balance">{t("Balance (số dư)")}</option><option value="services">{t("Services (danh sách)")}</option></select>
               </div>
+            </div>
+            <div>
+              <label className={lbl}>{t("Giao thức API")}</label>
+              <select name="driver" defaultValue={p?.driver || "STANDARD"} className={inp}>
+                <option value="STANDARD">{t("Chuẩn SMM v2 / sản phẩm đối tác")}</option>
+                <option value="FZR">FazerCards (fzr.cards)</option>
+              </select>
+              <p className="mt-1 text-xs text-slate-400">{t("FazerCards: đồng bộ sản phẩm số (game key, gift card, nạp dịch vụ, Telegram, Steam) vào Premium.")}</p>
             </div>
             <Switch name="active" defaultChecked={p ? p.active : true} label={t("Trạng thái (đang hoạt động)")} />
             <div><label className={lbl}>{t("Mô tả")}</label><textarea name="note" rows={2} defaultValue={p?.note || ""} className={inp} placeholder={t("Nhập mô tả về nhà cung cấp...")} /></div>
@@ -263,6 +271,7 @@ export function ProvidersClient({ providers }: { providers: ProviderDTO[] }) {
                     <button className={iconBtn} title={t("Sửa")} onClick={() => { setEditing(p); setOpen(true); }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg></button>
                     {p.kind !== "PREMIUM" && <button className={iconBtn} title={t("Import dịch vụ (chọn lọc)")} onClick={() => setImporting(p)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg></button>}
                     <form action={adminProviderAction}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="kind" value="sync" /><button className={iconBtn} title={t("Đồng bộ")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6" /></svg></button></form>
+                    {p.driver === "FZR" && <form action={adminProviderAction}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="kind" value="sync-steam" /><button className={iconBtn} title={t("Đồng bộ kèm Steam gift")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" /></svg></button></form>}
                     <form action={adminProviderAction}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="kind" value="balance" /><button className={iconBtn} title={t("Kiểm tra số dư")}><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.5v15l13-7.5-13-7.5Z" /></svg></button></form>
                     <form action={adminDeleteProvider} onSubmit={(e) => { if (!confirm(`${t("Xoá nhà cung cấp")} ${p.name}? ${t("Dịch vụ liên kết sẽ chuyển về thủ công.")}`)) e.preventDefault(); }}><input type="hidden" name="id" value={p.id} /><button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6" /></svg></button></form>
                   </div>

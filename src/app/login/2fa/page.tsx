@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
 import { getPending2fa } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { panelByHost } from "@/lib/panel-host";
 import { authCardClass } from "@/lib/auth-style";
 import { TwofaVerifyForm } from "@/components/twofa-verify";
 
@@ -15,10 +14,9 @@ export default async function LoginTwofaPage() {
   const pending = await getPending2fa();
   if (!pending) redirect("/login");
   const settings = await getSettings().catch(() => null);
-  const panel = await panelByHost().catch(() => null);
-  const style = panel?.authStyle || settings?.auth_style;
+  const style = settings?.auth_style;
   return (
-    <AuthShell style={style} brandName={panel?.name || settings?.site_name || "SMMv2"} tagline={panel?.tagline || settings?.site_tagline} panel={panel ? { name: panel.name, slug: panel.slug } : undefined} announcement={panel?.announcement} accent={panel?.accent}>
+    <AuthShell style={style} brandName={settings?.site_name || "SMMv2"} tagline={settings?.site_tagline}>
       <div className={authCardClass(style)}>
         <h1 className="text-2xl font-extrabold text-slate-900">Xác thực hai lớp</h1>
         <p className="mt-1.5 mb-6 text-sm text-slate-500">

@@ -37,24 +37,11 @@ function fromLegacy(entries: { name: string; value?: string | null }[]): Floatin
     .map((e) => ({ name: e.name, href: normalizeContactLink(e.name, e.value!), image: null, bg: contactColor(e.name) }));
 }
 
-/** Danh sách nút liên hệ nổi cho một phạm vi hiển thị.
- *  Panel con: widget riêng của panel → kênh riêng cũ của panel → widget của web mẹ → kênh của web mẹ.
- *  Web mẹ: widget của web mẹ → kênh cấu hình cũ (settings). */
-export async function getFloatingContacts(panel?: { id: number; supportZalo?: string | null; supportTelegram?: string | null; supportFacebook?: string | null; supportHotline?: string | null } | null): Promise<FloatingContact[]> {
+/** Danh sách nút liên hệ nổi: widget của web mẹ → kênh cấu hình cũ (settings). */
+export async function getFloatingContacts(): Promise<FloatingContact[]> {
   const toDto = (rows: { name: string; link: string; image: string | null }[]): FloatingContact[] =>
     rows.map((r) => ({ name: r.name, href: normalizeContactLink(r.name, r.link), image: r.image, bg: contactColor(r.name) }));
 
-  if (panel) {
-    const own = await prisma.contactWidget.findMany({ where: { panelId: panel.id, active: true }, orderBy: [{ sort: "asc" }, { id: "asc" }] });
-    if (own.length) return toDto(own);
-    const legacy = fromLegacy([
-      { name: "Zalo", value: panel.supportZalo },
-      { name: "Telegram", value: panel.supportTelegram },
-      { name: "Facebook", value: panel.supportFacebook },
-      { name: "Hotline", value: panel.supportHotline },
-    ]);
-    if (legacy.length) return legacy;
-  }
   const mother = await prisma.contactWidget.findMany({ where: { panelId: null, active: true }, orderBy: [{ sort: "asc" }, { id: "asc" }] });
   if (mother.length) return toDto(mother);
   const s = await getSettings();
@@ -67,7 +54,7 @@ export async function getFloatingContacts(panel?: { id: number; supportZalo?: st
 }
 
 /** Widget dạng DTO cho trang quản lý (gồm cả đang ẩn). */
-export async function listContactWidgets(panelId: number | null) {
-  const rows = await prisma.contactWidget.findMany({ where: { panelId }, orderBy: [{ sort: "asc" }, { id: "asc" }] });
+export async function listContactWidgets() {
+  const rows = await prisma.contactWidget.findMany({ where: { panelId: null }, orderBy: [{ sort: "asc" }, { id: "asc" }] });
   return rows.map((r) => ({ id: r.id, name: r.name, link: r.link, image: r.image, active: r.active, bg: contactColor(r.name) }));
 }

@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
 import { getCurrentUser, hasStepUp } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { panelByHost } from "@/lib/panel-host";
 import { authCardClass } from "@/lib/auth-style";
 import { Flash, I, AuthBadge } from "@/components/ui";
 import { verifyStepUpAction } from "@/app/actions/stepup";
@@ -25,11 +24,10 @@ export default async function StepUpPage({ searchParams }: { searchParams: { nex
   const next = safeNext(searchParams.next);
   if (await hasStepUp(user.id)) redirect(next);
   const settings = await getSettings().catch(() => null);
-  const panel = await panelByHost().catch(() => null);
-  const style = panel?.authStyle || settings?.auth_style;
+  const style = settings?.auth_style;
   const { L, Ld } = await getServerI18n();
   return (
-    <AuthShell style={style} brandName={panel?.name || settings?.site_name || "SMMv2"} tagline={panel?.tagline || settings?.site_tagline} panel={panel ? { name: panel.name, slug: panel.slug } : undefined} announcement={panel?.announcement} accent={panel?.accent}>
+    <AuthShell style={style} brandName={settings?.site_name || "SMMv2"} tagline={settings?.site_tagline}>
       <div className={authCardClass(style)}>
         <AuthBadge icon={I.lock} cls="bg-brand-50 text-brand-600 ring-brand-100" />
         <h1 className="text-center text-2xl font-extrabold text-slate-900">{L("Xác thực lại để tiếp tục")}</h1>

@@ -1,7 +1,6 @@
 import crypto from "crypto";
 import { headers } from "next/headers";
 import { prisma } from "./db";
-import { decryptPanelSecrets } from "./panel-secrets";
 import { applyBalance } from "./wallet";
 import { getSettings, calcBonus, bonusTiersFor, DEFAULT_SETTINGS } from "./settings";
 import { genCode } from "./format";
@@ -12,12 +11,10 @@ import { genCode } from "./format";
  *  trang quay về gọi cùng lúc cũng chỉ cộng đúng 1 lần. */
 export const MIN_USD = 5;
 
-/** Cấu hình cổng quốc tế HIỆU LỰC cho một khách: khách thuộc panel nào thì dùng
- *  PayPal/Stripe RIÊNG của panel đó nếu chủ panel đã bật + điền key (tiền về tài khoản
- *  của chủ panel); chưa cấu hình thì dùng cổng của web mẹ. Tỉ giá cũng ưu tiên tỉ giá
- *  riêng của panel (trang Tiền tệ). Dùng cho cả lúc tạo checkout, trang quay về và webhook. */
+/** Cấu hình cổng quốc tế của web mẹ (PayPal/Stripe + tỉ giá + mức nạp tối thiểu).
+ *  Dùng cho cả lúc tạo checkout, trang quay về và webhook. */
 export type IntlConfig = {
-  source: "panel" | "mother";
+  source: "mother";
   rate: number;
   minUsd: number;
   paypal: { clientId: string; secret: string; mode: string } | null;
@@ -35,26 +32,8 @@ export async function resolveIntlConfig(userId: number): Promise<IntlConfig> {
     s.stripe_enabled === "1" && s.stripe_secret_key
       ? { secretKey: s.stripe_secret_key, webhookSecret: s.stripe_webhook_secret || null }
       : null;
-  let minUsd = parseInt(s.intl_min_usd) || MIN_USD;
-  let source: IntlConfig["source"] = "mother";
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { panelId: true } });
-  const panelRaw = user?.panelId
-    ? await prisma.childPanel.findUnique({ where: { id: user.panelId } })
-    : await prisma.childPanel.findFirst({ where: { ownerId: userId } });
-  const panel = decryptPanelSecrets(panelRaw);
-  if (panel) {
-    if (panel.intlMinUsd && panel.intlMinUsd > 0) minUsd = panel.intlMinUsd;
-    const pr = parseFloat(panel.rateUsd || "");
-    if (Number.isFinite(pr) && pr > 0) rate = Math.round(pr);
-    if (panel.paypalEnabled && panel.paypalClientId && panel.paypalSecret) {
-      paypal = { clientId: panel.paypalClientId, secret: panel.paypalSecret, mode: panel.paypalMode || "sandbox" };
-      source = "panel";
-    }
-    if (panel.stripeEnabled && panel.stripeSecretKey) {
-      stripe = { secretKey: panel.stripeSecretKey, webhookSecret: panel.stripeWebhookSecret || null };
-      source = "panel";
-    }
-  }
+  const minUsd = parseInt(s.intl_min_usd) || MIN_USD;
+  const source: IntlConfig["source"] = "mother";
   return { source, rate, paypal, stripe, minUsd };
 }
 
@@ -66,7 +45,7 @@ export async function resolveIntlConfigByExternalId(externalId: string): Promise
 }
 
 /** Origin để dựng URL quay về sau thanh toán: CHỈ tin Host thuộc hệ thống
- *  (domain chính hoặc domain website con đang ACTIVE) — không lấy thẳng header
+ *  (domain chính đã cấu hình) — không lấy thẳng header
  *  Host lạ (kẻ tấn công chèn Host để link quay về trỏ sang trang giả mạo). */
 export async function siteOrigin(): Promise<string> {
   const h = headers();
@@ -75,10 +54,6 @@ export async function siteOrigin(): Promise<string> {
   if (host === "localhost" || host.startsWith("127.")) return `http://${rawHost}`;
   const mainHost = (process.env.MAIN_HOST || "").toLowerCase();
   if (host && mainHost && host === mainHost) return `https://${host}`;
-  if (host) {
-    const p = await prisma.childPanel.findFirst({ where: { domain: host, status: "ACTIVE" }, select: { id: true } }).catch(() => null);
-    if (p) return `https://${host}`;
-  }
   const envUrl = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
   return envUrl || "http://localhost:3000";
 }
@@ -105,9 +80,7 @@ export async function creditExternalDeposit(externalId: string, paidUsdCents?: n
   if (dep.status !== "PENDING") return { ok: false, reason: "not_pending" };
   if (paidUsdCents != null && dep.usdCents != null && paidUsdCents !== dep.usdCents) return { ok: false, reason: "amount_mismatch" };
   const settings = await getSettings();
-  const depUser = await prisma.user.findUnique({ where: { id: dep.userId }, select: { panelId: true } });
-  const depPanel = depUser?.panelId ? await prisma.childPanel.findUnique({ where: { id: depUser.panelId }, select: { depositBonusTiers: true } }) : null;
-  const bonus = calcBonus(dep.amount, bonusTiersFor(depPanel?.depositBonusTiers, !!depUser?.panelId, settings.deposit_bonus_tiers));
+  const bonus = calcBonus(dep.amount, bonusTiersFor(null, false, settings.deposit_bonus_tiers));
   const credited = await prisma.$transaction(async (tx) => {
     const claim = await tx.deposit.updateMany({ where: { id: dep.id, status: "PENDING" }, data: { status: "APPROVED", bonus } });
     if (claim.count !== 1) return false;

@@ -128,7 +128,7 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
             <tbody className="divide-y divide-slate-100">
               {logins.map((ev, i) => (
                 <tr key={ev.id} className={i % 2 ? "bg-slate-50/60" : undefined}>
-                  <td className="td font-medium">@{ev.username}{ev.panelId ? <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-700">Panel #{ev.panelId}</span> : null}</td>
+                  <td className="td font-medium">@{ev.username}</td>
                   <td className="td">{ev.success ? <Badge cls="bg-emerald-100 text-emerald-700">{L("Thành công")}</Badge> : <Badge cls="bg-rose-100 text-rose-700">{L("Thất bại")}</Badge>}{ev.isNewDevice ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">{L("Thiết bị mới")}</span> : null}</td>
                   <td className="td font-mono text-[13px]">{ev.ip}</td>
                   <td className="td max-w-[260px] truncate text-slate-500" title={ev.userAgent || ""}>{ev.reason ? Ld(ev.reason) : "—"}</td>

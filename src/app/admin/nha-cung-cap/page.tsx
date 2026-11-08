@@ -16,7 +16,7 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
     prisma.smmService.count({ where: { active: true } }),
   ]);
   const dtos: ProviderDTO[] = providers.map((p) => ({
-    id: p.id, kind: p.kind, name: p.name, apiUrl: p.apiUrl, currency: p.currency, exchangeRate: p.exchangeRate,
+    id: p.id, kind: p.kind, driver: p.driver, name: p.name, apiUrl: p.apiUrl, currency: p.currency, exchangeRate: p.exchangeRate,
     markupPercent: p.markupPercent, balanceCache: p.balanceCache, active: p.active, note: p.note,
     syncServices: p.syncServices, syncCategories: p.syncCategories, autoUpdatePrice: p.autoUpdatePrice,
     syncContent: p.syncContent, filterHtml: p.filterHtml, syncAdvanced: p.syncAdvanced, coupon: p.coupon, cronSyncLimit: p.cronSyncLimit,

@@ -33,7 +33,6 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   intl_min_usd: "5",
   premium_max_qty: "50",
   order_max_links: "50",
-  panel_default_markup: "20",
   session_days: "7",
   paypal_enabled: "0",
   paypal_client_id: "",
@@ -52,11 +51,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   sys_announce_enabled: "1",
   sys_announce_content: "",
   // Landing + thương hiệu mở rộng + SEO (Cài đặt → Landing Page / Chung)
-  landing_enabled: "1",
-  landing_headline: "",
-  landing_subtitle: "",
   auth_style: "classic",
-  landing_template: "hien-dai",
   logo_url: "",
   logo_menu_url: "",
   favicon_url: "",
@@ -165,7 +160,6 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   password_min_length: "6",
   module_register: "1",
   module_affiliate: "1",
-  module_panels: "1",
   module_bulk: "1",
   module_subscriptions: "1",
   module_campaigns: "1",
@@ -173,18 +167,20 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   module_tickets: "1",
   module_api: "1",
   module_blog: "1",
-  // NameServer khách trỏ tên miền website con về (admin điền theo hạ tầng thật; trống = chưa cấu hình)
-  child_ns1: "",
-  child_ns2: "",
   module_premium: "1",
+  // Telegram (khu riêng Admin → Telegram): bật/tắt + nhà cung cấp FZR phục vụ
+  telegram_enabled: "1",
+  fzr_webhook_secret: "", // secret webhook FazerCards (lưu mã hoá qua secret-box)
+  telegram_topup_offer_id: "", // offer top-up Telegram (theo username) do đồng bộ FZR ghi nhận
+  telegram_topup_field: "",
+  telegram_topup_provider_id: "",
+  telegram_provider_id: "",
   module_smm: "1",
   ai_enabled: "0",
   // AI Kiểm tra: quét link đơn hàng bằng AI, gắn cờ rủi ro nếu vi phạm (tab AI Kiểm tra)
   ai_check_enabled: "0",
   // SMM Tool API: key cho tool ngoài lấy đơn thủ công chờ xử lý + cập nhật trạng thái (tab SMM Tool API)
   tool_api_key: "",
-  // Phí tạo website con cho khách của WEB MẸ (VNĐ, 0 = miễn phí) — panel con tự đặt phí riêng cho khách của mình
-  panel_fee: "0",
   ai_provider: "openai",
   ai_base_url: "",
   ai_api_key: "",
@@ -202,9 +198,17 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   rate_jpy: "165",
   rate_krw: "18",
   usdt_rate: "", // tỉ giá riêng 1 USDT (VNĐ) — để trống = dùng usd_rate
+  // BoltUtil thay nạp USDT thủ công (2026-11-07): cổng stablecoin không giữ tiền,
+  // tiền về thẳng ví nhận của shop cấu hình trong dashboard BoltUtil.
+  boltutil_enabled: "0",
+  boltutil_api_key: "", // X-Bolt-Key (mã hoá secret-box qua setSetting)
+  boltutil_webhook_secret: "", // khoá ký HMAC webhook + gọi API (mã hoá secret-box)
+  boltutil_api_url: "", // để trống = https://api.boltutil.com (chỉ đổi khi test mock)
+  boltutil_default_network: "TRON",
+  boltutil_networks: "TRON", // các mạng được phép chọn khi nạp (phẩy ngăn cách)
+  boltutil_expires_minutes: "30",
+  boltutil_payment_method: "MANUAL_TRANSFER", // MANUAL_TRANSFER = phí 0% vĩnh viễn, hợp thói quen chuyển tay của khách
   usdt_min: "5", // số USDT tối thiểu mỗi lần khai nạp
-  panel_period_days: "30", // độ dài 1 kỳ phí website con (ngày)
-  panel_renew_horizon_hours: "36", // gia hạn website con: bắt đầu trừ phí trước hạn bao nhiêu giờ
   provider_low_balance_default: "200000", // ngưỡng cảnh báo số dư nhà cung cấp khi nhà cung cấp chưa đặt riêng
   subscription_max_active: "10", // tối đa gói định kỳ đang chạy của mỗi khách
   auto_refill_window_days: "7", // auto-refill: chỉ xử lý đơn hoàn thành trong số ngày này

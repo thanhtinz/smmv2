@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { userByApiKey } from "@/lib/auth";
-import { createSmmOrder, createPremiumOrder, refundSmmOrder, panelTierDiscount } from "@/lib/orders";
+import { createSmmOrder, createPremiumOrder, refundSmmOrder } from "@/lib/orders";
 import { smmCharge, vnd } from "@/lib/format";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { getActiveFlashSale, flashAppliesTo, applyFlashAmount } from "@/lib/flash";
@@ -47,8 +47,7 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
   }
   // GĐ3: whitelist IP cho từng API key — chủ key đặt ở Hồ sơ → Kết nối API;
-  // danh sách trống = không giới hạn. Khoá liên kết của panel con đi qua tài
-  // khoản CHỦ PANEL nên whitelist của chủ panel áp cho khoá đó.
+  // danh sách trống = không giới hạn.
   {
     const ip = clientIp(req.headers);
     if (!ipAllowed(ip, user.apiKeyIps)) {
@@ -61,7 +60,7 @@ async function handle(req: NextRequest) {
       return NextResponse.json({ error: "IP not whitelisted" }, { status: 403 });
     }
   }
-  if (!(await moduleOn("api", user.panelId))) {
+  if (!(await moduleOn("api"))) {
     return NextResponse.json({ error: "API module is disabled" }, { status: 403 });
   }
 
@@ -71,37 +70,19 @@ async function handle(req: NextRequest) {
     }
 
     if (action === "services") {
-      // Chỉ dịch vụ CHUNG + dịch vụ riêng của đúng panel người gọi (trước đây trả
-      // cả dịch vụ riêng của panel khác — lộ catalog + giá của đối thủ cùng hệ).
+      // Chỉ dịch vụ của web mẹ.
       const services = await prisma.smmService.findMany({
-        where: { active: true, OR: [{ panelId: null }, ...(user.panelId ? [{ panelId: user.panelId }] : [])] },
+        where: { active: true, panelId: null },
         include: { category: true },
         orderBy: [{ categoryId: "asc" }, { sort: "asc" }, { id: "asc" }],
       });
-      // Giá hiển thị phải KHỚP giá thực thu trong createSmmOrder: khách panel trả
-      // giá đã cộng markup rồi giảm theo bậc của panel (hoặc giá riêng chủ panel
-      // đặt); khách web mẹ giảm theo bậc trong Cấu hình.
+      // Giá hiển thị phải KHỚP giá thực thu trong createSmmOrder: giảm theo
+      // bậc khách hàng trong Cấu hình.
       const settings = await getSettings();
       const discount = levelDiscountFromSettings(settings, user.level);
-      const myPanel = user.panelId
-        ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }).catch(() => null)
-        : null;
-      const panelActive = myPanel && myPanel.status === "ACTIVE" ? myPanel : null;
-      const overrides = panelActive
-        ? await prisma.panelServicePrice.findMany({ where: { panelId: panelActive.id, level: user.level as any } })
-        : [];
-      const ovMap = new Map(overrides.map((o) => [o.serviceId, o.price]));
-      const flashSale = await getActiveFlashSale(user.panelId ?? null, "SMM");
+      const flashSale = await getActiveFlashSale("SMM");
       const withFlash = (svc: (typeof services)[number], v: number) => applyFlashAmount(v, flashAppliesTo(flashSale, svc.id) ? flashSale!.percent : 0);
-      const rateFor = (svc: (typeof services)[number]) => {
-        if (panelActive) {
-          const ov = ovMap.get(svc.id);
-          if (ov) return withFlash(svc, ov);
-          const marked = Math.round(svc.rate * (1 + panelActive.markup / 100));
-          return withFlash(svc, Math.round(marked * (1 - panelTierDiscount(panelActive, user.level) / 100)));
-        }
-        return withFlash(svc, Math.round(svc.rate * (1 - discount / 100)));
-      };
+      const rateFor = (svc: (typeof services)[number]) => withFlash(svc, Math.round(svc.rate * (1 - discount / 100)));
       return NextResponse.json(
         services.map((s) => ({
           service: s.id,
@@ -230,8 +211,8 @@ async function handle(req: NextRequest) {
         orderBy: { sort: "asc" },
         include: {
           products: {
-            // Chỉ sản phẩm chung + sản phẩm riêng của đúng panel người gọi
-            where: { active: true, OR: [{ panelId: null }, ...(user.panelId ? [{ panelId: user.panelId }] : [])] },
+            // Chỉ sản phẩm của web mẹ
+            where: { active: true, panelId: null },
             include: { variants: { where: { active: true }, orderBy: { price: "asc" } } },
           },
         },

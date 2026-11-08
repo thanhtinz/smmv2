@@ -9,25 +9,21 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-/* Bảng giá nằm TRONG khu khách (lệnh Tín 2026-11-05): khách panel thấy giá
-   panel (đã gồm markup / giá riêng của panel) như ở trang đặt đơn. */
+/* Bảng giá nằm TRONG khu khách (lệnh Tín 2026-11-05): giá web mẹ như ở trang đặt đơn. */
 export default async function DashPricePage() {
   const user = (await getCurrentUser())!;
-  const panel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;
-  const panelActive = panel && panel.status === "ACTIVE" ? panel : null;
-  const panelLangRaw = user.panelId ? (panel?.langConfig ?? null) : undefined;
-  const { L } = await getServerI18n(panelLangRaw);
-  const services = await prisma.smmService.findMany({ where: { active: true, OR: [{ panelId: null }, ...(user.panelId ? [{ panelId: user.panelId }] : [])] }, include: { category: true }, orderBy: [{ categoryId: "asc" }, { sort: "asc" }] });
-  const hiddenCatIds = new Set((panelActive?.hiddenCats || "").split(",").map((x) => parseInt(x.trim())).filter((n) => Number.isFinite(n)));
+  const { L } = await getServerI18n();
+  const services = await prisma.smmService.findMany({ where: { active: true, panelId: null }, include: { category: true }, orderBy: [{ categoryId: "asc" }, { sort: "asc" }] });
+  const hiddenCatIds = new Set<number>();
   const avgMap = await avgTimesFromRecentOrders(services.map((s) => s.id));
-  const flashSale = await getActiveFlashSale(user.panelId ?? null, "SMM");
+  const flashSale = await getActiveFlashSale("SMM");
   const dto: ServiceDTO[] = services.filter((s) => !hiddenCatIds.has(s.categoryId)).map((s) => ({
-    id: s.id, name: s.name, description: s.description, notice: s.notice, rate: applyFlashAmount(s.panelId ? s.rate : panelActive ? Math.round(s.rate * (1 + panelActive.markup / 100)) : s.rate, flashAppliesTo(flashSale, s.id) ? flashSale!.percent : 0), min: s.min, max: s.max,
+    id: s.id, name: s.name, description: s.description, notice: s.notice, rate: applyFlashAmount(s.rate, flashAppliesTo(flashSale, s.id) ? flashSale!.percent : 0), min: s.min, max: s.max,
     avgTime: avgMap.get(s.id) ?? s.avgTime, refill: s.refill, dripfeed: s.dripfeed, categoryId: s.categoryId, categoryName: s.category.name, platform: s.category.platform,
   }));
   return (
     <div>
-      <FlashBanner panelId={user.panelId ?? null} kind="SMM" />
+      <FlashBanner kind="SMM" />
       <PageHead title={L("Bảng giá dịch vụ")} desc={L("Toàn bộ dịch vụ SMM đang mở bán kèm giá và giới hạn mỗi đơn.")} />
       <ServicesExplorer services={dto} orderMode />
     </div>
