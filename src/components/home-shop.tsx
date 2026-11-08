@@ -24,6 +24,7 @@ function ChevronBtn({ dir, onClick, label, className = "" }: { dir: "prev" | "ne
 /** Slider hero trang chủ kiểu shopkey: banner rộng ~3.2:1, tự chuyển, có
  *  mũi tên + chấm chỉ vị trí. Slide dựng từ dữ liệu thật (site + danh mục). */
 function HeroSlider({ slides }: { slides: HomeSlide[] }) {
+  const { t } = useLang();
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const n = slides.length;
@@ -47,7 +48,7 @@ function HeroSlider({ slides }: { slides: HomeSlide[] }) {
               </>
             ) : (
               <>
-                <div className="absolute inset-0" style={{ background: `linear-gradient(120deg, ${s.color}, #0ea5e9)` }} />
+                <div className="absolute inset-0" style={{ background: `linear-gradient(120deg, ${s.color}, rgb(var(--b500)))` }} />
                 <span className="absolute -right-2 top-1/2 -translate-y-1/2 select-none text-[150px] font-black leading-none text-white/15 sm:text-[220px]">{s.title.charAt(0).toUpperCase()}</span>
               </>
             )}
@@ -63,8 +64,8 @@ function HeroSlider({ slides }: { slides: HomeSlide[] }) {
       </div>
       {n > 1 && (
         <>
-          <div className="absolute inset-y-0 left-3 flex items-center sm:left-4"><ChevronBtn dir="prev" label="‹" onClick={() => go(-1)} /></div>
-          <div className="absolute inset-y-0 right-3 flex items-center sm:right-4"><ChevronBtn dir="next" label="›" onClick={() => go(1)} /></div>
+          <div className="absolute inset-y-0 left-3 flex items-center sm:left-4"><ChevronBtn dir="prev" label={t("Trang trước")} onClick={() => go(-1)} /></div>
+          <div className="absolute inset-y-0 right-3 flex items-center sm:right-4"><ChevronBtn dir="next" label={t("Trang sau")} onClick={() => go(1)} /></div>
           <div className="absolute bottom-3.5 left-1/2 flex -translate-x-1/2 gap-1.5">
             {slides.map((_, i) => (
               <button key={i} type="button" aria-label={`Slide ${i + 1}`} onClick={() => setIdx(i)} className={`h-2 rounded-full transition-all ${i === idx ? "w-6 bg-white" : "w-2 bg-white/45 hover:bg-white/70"}`} />
@@ -89,7 +90,7 @@ function SectionHead({ icon, title, subtitle, href, extra }: { icon: React.React
       </div>
       <div className="flex shrink-0 items-center gap-3">
         {extra}
-        <Link href={href} className="text-sm font-bold text-brand-600 hover:text-brand-500">{t("Xem tất cả")} →</Link>
+        <Link href={href} className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-600 hover:text-brand-500">{t("Xem tất cả")}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span></Link>
       </div>
     </div>
   );

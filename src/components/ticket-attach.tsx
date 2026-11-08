@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { I } from "@/components/ui";
 import { parseAttachments } from "@/lib/attachments";
 import { useLang } from "@/components/lang";
 
@@ -40,7 +41,7 @@ export function TicketAttachInput() {
           <span key={i} className="relative inline-block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={u} alt="" className="h-12 w-12 rounded-lg object-cover border border-slate-200" />
-            <button type="button" onClick={() => setImgs(imgs.filter((_, j) => j !== i))} className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[11px] text-white">×</button>
+            <button type="button" onClick={() => setImgs(imgs.filter((_, j) => j !== i))} className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-white [&_svg]:h-3 [&_svg]:w-3">{I.x}</button>
           </span>
         ))}
         <span className="text-xs text-slate-400">{imgs.length}/3{t(" ảnh")}</span>

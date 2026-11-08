@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { Empty } from "@/components/ui";
+import { Empty, I } from "@/components/ui";
 import { num, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 
@@ -110,11 +110,11 @@ export async function CashflowView({ userId, sp, base }: { userId: number; sp: S
       </div>
       {pages > 1 && (
         <div className="mt-5 flex flex-wrap items-center gap-1.5">
-          <Link href={href(page - 1)} className={`rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold ${page <= 1 ? "pointer-events-none opacity-40" : ""}`}>‹</Link>
+          <Link href={href(page - 1)} className={`rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold ${page <= 1 ? "pointer-events-none opacity-40" : ""}`}><span className="inline-flex rotate-90 items-center justify-center [&_svg]:h-4 [&_svg]:w-4">{I.chevron}</span></Link>
           {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
             <Link key={p} href={href(p)} className={`rounded-lg px-3 py-2 text-sm font-semibold ${p === page ? "bg-slate-900 text-white" : "border border-slate-200 bg-white"}`}>{p}</Link>
           ))}
-          <Link href={href(page + 1)} className={`rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold ${page >= pages ? "pointer-events-none opacity-40" : ""}`}>›</Link>
+          <Link href={href(page + 1)} className={`rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold ${page >= pages ? "pointer-events-none opacity-40" : ""}`}><span className="inline-flex -rotate-90 items-center justify-center [&_svg]:h-4 [&_svg]:w-4">{I.chevron}</span></Link>
           <span className="ml-2 text-xs text-slate-400">{num(total)}{L(" giao dịch")}</span>
         </div>
       )}

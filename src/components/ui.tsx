@@ -149,6 +149,7 @@ export const I = {
   history: <P d="M3 12a9 9 0 1 0 2.6-6.4L3 8M3 3v5h5M12 7v5l4 2" />,
   chevron: <P d="m6 9 6 6 6-6" />,
   arrowRight: <P d="M5 12h14M13 6l6 6-6 6" />,
+  x: <P d="M18 6 6 18M6 6l12 12" />,
 };
 
 /** Đầu thẻ chuẩn toàn hệ: ô icon gradient + tiêu đề đậm + cụm phải (badge/nút). */

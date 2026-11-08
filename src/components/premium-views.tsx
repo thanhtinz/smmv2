@@ -145,7 +145,7 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
           <div>
             <div className="text-[13px] font-medium text-white/75">
               <Link href={homeHref} className="hover:text-white">{L("Trang chủ")}</Link>
-              <span className="mx-1.5">›</span>
+              <span className="mx-1 inline-flex -rotate-90 align-middle [&_svg]:h-3.5 [&_svg]:w-3.5">{I.chevron}</span>
               <span className="text-white">{L("Sản phẩm")}</span>
             </div>
             <h1 className="mt-3 text-3xl font-extrabold">{L("Tất cả sản phẩm")}</h1>
@@ -454,9 +454,9 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
       <div className="rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-brand-500 px-6 py-6 text-white sm:px-8">
         <div className="text-[13px] font-medium text-white/75">
           <Link href={homeHref} className="hover:text-white">{L("Trang chủ")}</Link>
-          <span className="mx-1.5">›</span>
+          <span className="mx-1 inline-flex -rotate-90 align-middle [&_svg]:h-3.5 [&_svg]:w-3.5">{I.chevron}</span>
           <Link href={base} className="hover:text-white">{L("Sản phẩm")}</Link>
-          <span className="mx-1.5">›</span>
+          <span className="mx-1 inline-flex -rotate-90 align-middle [&_svg]:h-3.5 [&_svg]:w-3.5">{I.chevron}</span>
           <span className="text-white">{product.name}</span>
         </div>
         <div className="mt-5 grid grid-cols-1 items-start gap-6 md:grid-cols-[minmax(0,31fr)_minmax(0,69fr)]">

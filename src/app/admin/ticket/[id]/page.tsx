@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { BackLink, Badge } from "@/components/ui";
+import { Stars } from "@/components/premium-card";
 import { adminReplyTicket } from "@/app/actions/admin";
 import { TicketAttachInput, TicketAttachments } from "@/components/ticket-attach";
 import { dt } from "@/lib/format";
@@ -25,7 +26,7 @@ export default async function AdminTicketDetail({ params }: { params: { id: stri
           <Badge cls={t.status === "CLOSED" ? "bg-slate-200 text-slate-600" : "bg-amber-100 text-amber-800"}>{t.status}</Badge>
         </div>
         <p className="text-sm text-slate-500 mb-6">{L("Khách:")} {t.user.username} ({t.user.email}) · {L("Chủ đề:")} {t.category}</p>
-        {t.rating ? <p className="mb-6 -mt-4 text-sm text-slate-500">{L("Khách đánh giá hỗ trợ:")} <b className="text-amber-500">{"★".repeat(t.rating)}{"☆".repeat(5 - t.rating)}</b>{t.ratingNote ? ` — ${t.ratingNote}` : ""}</p> : null}
+        {t.rating ? <p className="mb-6 -mt-4 text-sm text-slate-500">{L("Khách đánh giá hỗ trợ:")} <span className="inline-flex align-middle"><Stars value={t.rating} className="h-4 w-4" /></span>{t.ratingNote ? ` — ${t.ratingNote}` : ""}</p> : null}
         <div className="space-y-4">
           {t.messages.map((m) => (
             <div key={m.id} className={`flex ${m.fromAdmin ? "justify-end" : ""}`}>

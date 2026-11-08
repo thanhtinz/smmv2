@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { PageHead, Badge, Empty } from "@/components/ui";
+import { PageHead, Badge, Empty, I } from "@/components/ui";
 import { dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 
@@ -18,7 +18,7 @@ export default async function AdminTickets() {
   return (
     <div>
       <PageHead title={L("Ticket hỗ trợ")} desc={L("Ticket CHỜ PHẢN HỒI (khách vừa gửi/trả lời) được xếp lên đầu.")} />
-      {ratingAgg._count.rating > 0 && <p className="mb-4 text-sm text-slate-500">{L("Đánh giá hỗ trợ trung bình:")} <b className="text-amber-500">{(ratingAgg._avg.rating || 0).toFixed(1)}★</b> {L("từ")} {ratingAgg._count.rating} {L("lượt chấm của khách")}</p>}
+      {ratingAgg._count.rating > 0 && <p className="mb-4 text-sm text-slate-500">{L("Đánh giá hỗ trợ trung bình:")} <b className="inline-flex items-center gap-1 text-amber-500">{(ratingAgg._avg.rating || 0).toFixed(1)}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.star}</span></b> {L("từ")} {ratingAgg._count.rating} {L("lượt chấm của khách")}</p>}
       {tickets.length === 0 ? <Empty text={L("Chưa có ticket nào")} /> : (
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[720px]">

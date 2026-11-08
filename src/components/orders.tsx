@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { Flash, Badge, Empty } from "@/components/ui";
+import { Flash, Badge, Empty, I } from "@/components/ui";
 import { PremiumOrderCards, type PremiumOrderCard } from "@/components/client";
 import { PremiumOrderTabs } from "@/components/premium-order-tabs";
 import { num, SMM_STATUS, PRE_STATUS, dt } from "@/lib/format";
@@ -145,11 +145,11 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
       )}
       {pages > 1 && (
         <div className="flex flex-wrap items-center gap-1.5 mt-5">
-          <Link href={href(page - 1)} className={`px-3 py-2 rounded-lg text-sm font-semibold ${page <= 1 ? "pointer-events-none opacity-40 bg-white border border-slate-200" : "bg-white border border-slate-200"}`}>‹</Link>
+          <Link href={href(page - 1)} className={`px-3 py-2 rounded-lg text-sm font-semibold ${page <= 1 ? "pointer-events-none opacity-40 bg-white border border-slate-200" : "bg-white border border-slate-200"}`}><span className="inline-flex rotate-90 items-center justify-center [&_svg]:h-4 [&_svg]:w-4">{I.chevron}</span></Link>
           {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
             <Link key={p} href={href(p)} className={`px-3 py-2 rounded-lg text-sm font-semibold ${p === page ? "bg-slate-900 text-white" : "bg-white border border-slate-200"}`}>{p}</Link>
           ))}
-          <Link href={href(page + 1)} className={`px-3 py-2 rounded-lg text-sm font-semibold ${page >= pages ? "pointer-events-none opacity-40 bg-white border border-slate-200" : "bg-white border border-slate-200"}`}>›</Link>
+          <Link href={href(page + 1)} className={`px-3 py-2 rounded-lg text-sm font-semibold ${page >= pages ? "pointer-events-none opacity-40 bg-white border border-slate-200" : "bg-white border border-slate-200"}`}><span className="inline-flex -rotate-90 items-center justify-center [&_svg]:h-4 [&_svg]:w-4">{I.chevron}</span></Link>
           <span className="text-xs text-slate-400 ml-2">{num(total)}{L(" đơn")}</span>
         </div>
       )}

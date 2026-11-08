@@ -109,7 +109,7 @@ export default async function AdminDeposits({ searchParams }: {
             <label className="lbl">{L("Thời gian")}</label>
             <div className="flex items-center gap-2">
               <input className="inp min-w-0 flex-1" type="date" name="from" defaultValue={searchParams.from || ""} />
-              <span className="text-slate-400">→</span>
+              <span className="shrink-0 text-slate-400 [&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span>
               <input className="inp min-w-0 flex-1" type="date" name="to" defaultValue={searchParams.to || ""} />
             </div>
           </div>

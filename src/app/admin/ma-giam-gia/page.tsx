@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { PageHead, Flash, Badge, Empty } from "@/components/ui";
+import { PageHead, Flash, Badge, Empty, I } from "@/components/ui";
 import { saveDiscountCodeAction, deleteDiscountCodeAction } from "@/app/actions/admin-features";
 import { num, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
@@ -44,7 +44,7 @@ export default async function AdminDiscountCodes({ searchParams }: { searchParam
                         {c.usageLimit > 0 && <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} /></div>}
                       </td>
                       <td className="td text-slate-500">{c.minOrder > 0 ? L("Đơn từ") + " " + M(c.minOrder) : L("Không")}</td>
-                      <td className="td text-xs text-slate-500">{c.startsAt ? dt(c.startsAt) : "—"} → {c.endsAt ? dt(c.endsAt) : "—"}</td>
+                      <td className="td text-xs text-slate-500">{c.startsAt ? dt(c.startsAt) : "—"} <span className="inline-flex align-middle [&_svg]:h-3.5 [&_svg]:w-3.5">{I.arrowRight}</span> {c.endsAt ? dt(c.endsAt) : "—"}</td>
                       <td className="td">{c.active ? <Badge cls="bg-emerald-100 text-emerald-700">{L("Hoạt động")}</Badge> : <Badge cls="bg-slate-200 text-slate-500">{L("Đã tắt")}</Badge>}</td>
                       <td className="td whitespace-nowrap">
                         <Link href={`/admin/ma-giam-gia?edit=${c.id}`} className="btn-ghost btn-sm">{L("Sửa")}</Link>{" "}

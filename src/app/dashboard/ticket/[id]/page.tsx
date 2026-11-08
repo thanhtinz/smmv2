@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { BackLink, Badge } from "@/components/ui";
+import { BackLink, Badge, I } from "@/components/ui";
+import { Stars } from "@/components/premium-card";
 import { replyTicketAction, rateTicketAction } from "@/app/actions/user";
 import { TicketAttachInput, TicketAttachments } from "@/components/ticket-attach";
 import { dt } from "@/lib/format";
@@ -49,7 +50,7 @@ export default async function TicketDetail({ params }: { params: { id: string } 
           <div className="mt-6 border-t border-slate-100 pt-5">
             <p className="text-center text-sm text-slate-400">{L("Ticket đã đóng. Tạo ticket mới nếu cần hỗ trợ thêm.")}</p>
             {t.rating ? (
-              <p className="mt-3 text-center text-sm text-slate-600">{L("Bạn đã đánh giá hỗ trợ:")} <b className="text-amber-500">{"★".repeat(t.rating)}{"☆".repeat(5 - t.rating)}</b>{t.ratingNote ? ` — ${t.ratingNote}` : ""}</p>
+              <p className="mt-3 text-center text-sm text-slate-600">{L("Bạn đã đánh giá hỗ trợ:")} <span className="inline-flex align-middle"><Stars value={t.rating} className="h-4 w-4" /></span>{t.ratingNote ? ` — ${t.ratingNote}` : ""}</p>
             ) : (
               <form action={rateTicketAction} className="mx-auto mt-4 max-w-md space-y-3">
                 <input type="hidden" name="ticketId" value={t.id} />
@@ -57,7 +58,7 @@ export default async function TicketDetail({ params }: { params: { id: string } 
                 <div className="flex justify-center gap-2">
                   {[5, 4, 3, 2, 1].map((n) => (
                     <label key={n} className="cursor-pointer rounded-full border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:border-amber-300 hover:text-amber-600">
-                      <input type="radio" name="rating" value={n} className="mr-1 accent-amber-500" />{n}★
+                      <input type="radio" name="rating" value={n} className="mr-1 accent-amber-500" /><span className="inline-flex items-center gap-0.5">{n}<span className="text-amber-500 [&_svg]:h-3.5 [&_svg]:w-3.5">{I.star}</span></span>
                     </label>
                   ))}
                 </div>

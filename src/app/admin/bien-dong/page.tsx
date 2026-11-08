@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { PageHead, Flash, Badge, Empty } from "@/components/ui";
+import { PageHead, Flash, Badge, Empty, I } from "@/components/ui";
 import { dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 
@@ -84,7 +84,7 @@ export default async function AdminMovements({ searchParams }: { searchParams: {
               <Link href={qs(p)} className={p === page ? "btn-primary btn-sm" : "btn-ghost btn-sm"}>{p}</Link>
             </span>
           ))}
-          {page < pages && <Link href={qs(page + 1)} className="btn-ghost btn-sm">{L("Sau →")}</Link>}
+          {page < pages && <Link href={qs(page + 1)} className="btn-ghost btn-sm">{L("Sau")} <span className="ml-1 inline-flex align-middle [&_svg]:h-3.5 [&_svg]:w-3.5">{I.arrowRight}</span></Link>}
         </div>
       )}
     </div>
