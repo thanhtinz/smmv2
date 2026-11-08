@@ -67,6 +67,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/telegram/cai-dat", label: L("Cài đặt Telegram"), icon: "gear", adminOnly: true } as any,
       ],
     } as any,
+    // FIX7 E4: khu Steam trong admin (gương theo khu Telegram) — đơn hàng
+    // Steam (STAFF xử lý được như mọi đơn Premium) + sản phẩm Steam (ADMIN).
+    {
+      group: "Steam", icon: "gamepad",
+      children: [
+        { href: "/admin/steam", label: L("Đơn hàng Steam"), icon: "box" } as any,
+        { href: "/admin/steam/san-pham", label: L("Sản phẩm Steam"), icon: "gem", adminOnly: true } as any,
+      ],
+    } as any,
     { href: "/admin/nguoi-dung", label: L("Người dùng"), icon: "users", adminOnly: true },
     { href: "/admin/ticket", label: L("Ticket hỗ trợ"), icon: "ticket", badge: ticketOpen },
     {
