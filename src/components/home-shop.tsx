@@ -146,34 +146,22 @@ export function HomeShop({ slides, cats, all, best }: { slides: HomeSlide[]; cat
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 [&>svg]:h-5 [&>svg]:w-5">{I.layers}</span>
             <h2 className="text-lg font-extrabold text-slate-900 sm:text-xl">{t("Danh mục sản phẩm")}</h2>
           </div>
-          {/* Lưới ô danh mục (thiết kế lại 2026-11-08): một lưới đều ô nào
-              cũng bằng ô nào — ảnh thật của sản phẩm đầu danh mục (hoặc ô
-              chữ cái gradient brand), tên 1 dòng + số sản phẩm thật từ DB.
-              Bấm ô = lọc lưới nổi bật tại chỗ như trước (Tất cả = bỏ lọc). */}
-          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+          {/* Ô danh mục GỌN, KHÔNG ảnh (lệnh Tín 2026-11-08 01:30 đính
+              chính): icon registry + tên + số lượng, ô nào cũng bằng ô nào
+              trong lưới; bấm ô = lọc lưới nổi bật tại chỗ (Tất cả = bỏ lọc). */}
+          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5">
             <button type="button" onClick={() => pickCat(null)}
-              className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${cat == null ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500/40" : "border-slate-200 bg-white hover:border-brand-300 hover:bg-brand-50/50"}`}>
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white [&>svg]:h-6 [&>svg]:w-6">{I.layers}</span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-bold text-slate-800">{t("Tất cả")}</span>
-                <span className="block text-xs text-slate-500">{all.length} {t("sản phẩm")}</span>
-              </span>
+              className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition ${cat == null ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500/40" : "border-slate-200 bg-white hover:border-brand-300 hover:bg-brand-50/50"}`}>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white [&_svg]:h-5 [&_svg]:w-5">{I.layers}</span>
+              <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">{t("Tất cả")}</span>
+              <span className="shrink-0 text-xs font-semibold text-slate-400">{all.length}</span>
             </button>
             {cats.map((c) => (
               <button key={c.id} type="button" onClick={() => pickCat(c.id, true)}
-                className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${cat === c.id ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500/40" : "border-slate-200 bg-white hover:border-brand-300 hover:bg-brand-50/50"}`}>
-                <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-xl">
-                  {c.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.image} alt="" className="h-full w-full object-cover" loading="lazy" />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center text-2xl font-black text-white/90" style={{ background: `linear-gradient(135deg, ${c.color}, rgb(var(--b500)))` }}>{c.name.charAt(0).toUpperCase()}</span>
-                  )}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold text-slate-800">{c.name}</span>
-                  <span className="block text-xs text-slate-500">{c.count} {t("sản phẩm")}</span>
-                </span>
+                className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition ${cat === c.id ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500/40" : "border-slate-200 bg-white hover:border-brand-300 hover:bg-brand-50/50"}`}>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 [&_svg]:h-5 [&_svg]:w-5">{I.box}</span>
+                <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">{c.name}</span>
+                <span className="shrink-0 text-xs font-semibold text-slate-400">{c.count}</span>
               </button>
             ))}
           </div>

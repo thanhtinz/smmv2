@@ -108,15 +108,9 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
   const { L, Ld } = await getServerI18n();
   const session = await getSession();
   const cats = await prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } });
-  // Số sản phẩm + ảnh/màu đại diện cho từng danh mục (chip lọc mới): đếm và
-  // lấy sản phẩm đầu mỗi danh mục từ DB thật, không hardcode.
-  const [catCountRows, catFirstRows] = await Promise.all([
-    prisma.premiumProduct.groupBy({ by: ["categoryId"], where: { active: true, panelId: null }, _count: true }),
-    prisma.premiumProduct.findMany({ where: { active: true, panelId: null }, orderBy: { sort: "asc" }, select: { categoryId: true, color: true, images: true, imageUrl: true, name: true } }),
-  ]);
+  // Số sản phẩm cho từng danh mục (chip lọc): đếm từ DB thật, không hardcode.
+  const catCountRows = await prisma.premiumProduct.groupBy({ by: ["categoryId"], where: { active: true, panelId: null }, _count: true });
   const catCount = new Map<number, number>(catCountRows.map((r) => [r.categoryId || 0, typeof r._count === "number" ? r._count : 0]));
-  const catFirst = new Map<number, (typeof catFirstRows)[number]>();
-  for (const p of catFirstRows) if (p.categoryId && !catFirst.has(p.categoryId)) catFirst.set(p.categoryId, p);
   const catId = cat ? parseInt(cat) : undefined;
   const needle = (q || "").trim().toLowerCase();
   const allProducts = await prisma.premiumProduct.findMany({
@@ -176,32 +170,21 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
             <label className="cursor-pointer">
               <input type="radio" name="cat" value="" defaultChecked={!catId} className="peer sr-only" />
               <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3.5 text-sm font-bold text-slate-600 transition peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700 hover:border-brand-300">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-white [&>svg]:h-4 [&>svg]:w-4">{I.layers}</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-600 text-white [&_svg]:h-3.5 [&_svg]:w-3.5">{I.layers}</span>
                 {L("Tất cả")}
                 <span className="text-xs font-semibold text-slate-400">{Array.from(catCount.values()).reduce((a, b) => a + b, 0)}</span>
               </span>
             </label>
-            {cats.map((c) => {
-              const first = catFirst.get(c.id);
-              const img = first ? productImages(first.images, first.imageUrl)[0] || null : null;
-              return (
-                <label key={c.id} className="cursor-pointer">
-                  <input type="radio" name="cat" value={c.id} defaultChecked={catId === c.id} className="peer sr-only" />
-                  <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3.5 text-sm font-bold text-slate-600 transition peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700 hover:border-brand-300">
-                    <span className="block h-7 w-7 shrink-0 overflow-hidden rounded-full">
-                      {img ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" />
-                      ) : (
-                        <span className="flex h-full w-full items-center justify-center text-[13px] font-black text-white/90" style={{ background: `linear-gradient(135deg, ${first?.color || "#64748b"}, rgb(var(--b500)))` }}>{c.name.charAt(0).toUpperCase()}</span>
-                      )}
-                    </span>
-                    {c.name}
-                    <span className="text-xs font-semibold text-slate-400">{catCount.get(c.id) || 0}</span>
-                  </span>
-                </label>
-              );
-            })}
+            {cats.map((c) => (
+              <label key={c.id} className="cursor-pointer">
+                <input type="radio" name="cat" value={c.id} defaultChecked={catId === c.id} className="peer sr-only" />
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3.5 text-sm font-bold text-slate-600 transition peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700 hover:border-brand-300">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-50 text-brand-600 [&_svg]:h-3.5 [&_svg]:w-3.5">{I.box}</span>
+                  {c.name}
+                  <span className="text-xs font-semibold text-slate-400">{catCount.get(c.id) || 0}</span>
+                </span>
+              </label>
+            ))}
           </div>
         </div>
         <div>

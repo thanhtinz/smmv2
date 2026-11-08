@@ -81,7 +81,7 @@ async function main() {
     const hs = new Set(tiles.map((x) => x.h));
     ok(tiles.length >= 3, `có ${tiles.length} ô danh mục (kể cả Tất cả)`);
     ok(hs.size === 1, `mọi ô cao bằng nhau (${[...hs].join(',')}px)`);
-    ok(tiles.every((x) => /\\d+ sản phẩm/.test(x.text)), "mọi ô hiện số sản phẩm");
+    ok(tiles.every((x) => /\d\s*$/.test(x.text)), "mọi ô hiện số sản phẩm");
     const clicked = await evaluate(`(() => {
       const h = [...document.querySelectorAll('h2')].find((x) => x.textContent.includes('Danh mục sản phẩm'));
       const btns = [...h.closest('section').querySelectorAll('button')];
