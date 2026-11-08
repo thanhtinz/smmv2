@@ -8,8 +8,8 @@ import { DisplaySettings } from "@/components/display";
 import { NotificationBell } from "@/components/notification-bell";
 import { LiveChat } from "@/components/livechat";
 import { TermsGate, HomeModal } from "@/components/gates";
-import { I, PLATFORM_COLORS } from "@/components/ui";
-import { vnd, LEVEL_NAME, PLATFORMS } from "@/lib/format";
+import { I } from "@/components/ui";
+import { vnd, LEVEL_NAME } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { LangProvider } from "@/components/lang";
 import { prisma } from "@/lib/db";
@@ -73,34 +73,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/thong-bao", label: L("Thông báo"), badge: unreadNoti },
     ...(s.module_blog !== "0" ? [{ href: "/dashboard/bai-viet", label: L("Bài viết") }] : []),
   ];
-  // Phân đoạn DỊCH VỤ SMM (mẫu trumapi): từng nền tảng là một mục dropdown riêng, mục con là
-  // các phân loại của nền tảng đó; bấm phân loại mở trang đặt đơn đã chọn sẵn nền tảng + phân loại.
-  // Nguồn dữ liệu = đúng truy vấn trang đặt đơn dùng (dịch vụ đang bật theo phạm vi site hiện tại,
-  // phân loại đang bật, trừ phân loại panel ẩn) để menu không bao giờ lệch catalog thật.
-  let platformEntries: NavEntry[] = [];
-  if (smmOn) {
-    const [svcRows, catRows] = await Promise.all([
-      prisma.smmService.findMany({ where: { active: true, OR: [{ panelId: null }, ...(user.panelId ? [{ panelId: user.panelId }] : [])] }, select: { categoryId: true } }),
-      prisma.smmCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } }),
-    ]);
-    const hiddenCatIds = new Set((myPanelFlags?.hiddenCats || "").split(",").map((x) => parseInt(x.trim())).filter((n) => Number.isFinite(n)));
-    const withSvc = new Set(svcRows.map((r) => r.categoryId));
-    const visCats = catRows.filter((c) => withSvc.has(c.id) && !hiddenCatIds.has(c.id));
-    const platOrder = ["facebook", "tiktok", "youtube", "instagram", "telegram", "x", "twitter", "threads", "discord", "google"];
-    const rank = (p: string) => (p === "other" ? 999 : platOrder.indexOf(p) >= 0 ? platOrder.indexOf(p) : 100);
-    const plats = Array.from(new Set(visCats.map((c) => c.platform))).sort((a, b) => rank(a) - rank(b) || (PLATFORMS[a] || a).localeCompare(PLATFORMS[b] || b));
-    if (plats.length) {
-      platformEntries = [
-        { section: L("Dịch vụ SMM") },
-        ...plats.map((p) => ({
-          label: p === "other" ? L("Khác") : PLATFORMS[p] || p,
-          icon: <span className="flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-black text-white" style={{ background: PLATFORM_COLORS[p] || "#64748b" }}>{(PLATFORMS[p] || p).charAt(0)}</span>,
-          scrollChildren: true,
-          children: visCats.filter((c) => c.platform === p).map((c) => ({ href: `/dashboard/dat-hang?platform=${encodeURIComponent(p)}&cat=${c.id}`, label: c.name })),
-        })),
-      ];
-    }
-  }
+  // (Đã bỏ phân đoạn nền tảng SMM riêng trong menu theo lệnh Tín 2026-11-07 20:33 —
+  // khách đặt đơn qua mục Đặt đơn SMM và tự chọn nền tảng/phân loại trong form.)
   const items: NavEntry[] = [
     { href: "/dashboard", label: L("Tổng quan"), icon: I.home },
     ...(smmChildren.length ? [{ label: L("Đơn SMM"), icon: I.cart, children: smmChildren }] : []),
@@ -109,7 +83,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ...(apiOn ? [{ href: "/dashboard/api-docs", label: L("Tài liệu API"), icon: I.key }] : []),
     ...(s.module_panels !== "0" ? [{ href: "/dashboard/panel-cua-toi", label: L("Đăng ký panel con"), icon: I.panels }] : []),
     ...(supportChildren.length ? [{ label: L("Hỗ trợ"), icon: I.ticket, children: supportChildren }] : []),
-    ...platformEntries,
     { href: "/dashboard/ho-so", label: L("Hồ sơ"), icon: I.users },
   ];
   // Cụm đáy menu ghim cố định: tài khoản + Nạp tiền + Điều khoản + Admin Panel (chỉ đúng
