@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
 import { useLang } from "@/components/lang";
-import { AddToCartBtn } from "@/components/cart";
 
 /** Dữ liệu thẻ sản phẩm Premium (đã tính sẵn phía server: khoảng giá, đã bán, kho). */
 export type PremiumCardData = {
@@ -18,8 +17,10 @@ export type PremiumCardData = {
   rating: number; // điểm trung bình 0..5 (0 khi chưa có đánh giá)
   reviewCount: number;
   flashPct: number; // % giảm flash sale đang áp cho sản phẩm (0 = không có)
-  // Thêm thẳng vào giỏ được khi sản phẩm có đúng 1 gói, không trường bắt buộc
-  // và không phải nhóm Telegram (đơn theo người nhận — không vào giỏ).
+  // Sản phẩm mua thẳng được ngay ở trang chi tiết khi có đúng 1 gói, không
+  // trường bắt buộc và không phải nhóm Telegram — chỉ còn để chọn NHÃN nút
+  // "Đặt mua"/"Chọn gói": nút thêm vào giỏ CHỈ có trong trang chi tiết
+  // (lệnh Tín 2026-11-07 22:59), thẻ không còn nút giỏ.
   cartVariant: { id: number; name: string; price: number; stock: number } | null;
 };
 
@@ -87,12 +88,7 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
         <div className="mt-auto flex items-center justify-between gap-2 pt-3">
           {contact ? (
             <span className="inline-block rounded-lg bg-teal-600 px-3.5 py-1.5 text-[13px] font-bold text-white">{t("Đặt mua")}</span>
-          ) : item.cartVariant ? (
-            <>
-              <span className="text-[13px] font-bold text-teal-700">{t("Đặt mua")}</span>
-              <AddToCartBtn data={{ variantId: item.cartVariant.id, productId: item.productId, productName: item.name, variantName: item.cartVariant.name, image: item.image, price: item.cartVariant.price, stockCap: item.instant ? item.cartVariant.stock : null, group: null, custom: {} }} />
-            </>
-          ) : !item.instant || !item.hasStock ? (
+          ) : item.cartVariant || !item.instant || !item.hasStock ? (
             <span className="text-[13px] font-bold text-teal-700">{t("Đặt mua")}</span>
           ) : (
             <span className="text-[13px] font-bold text-teal-700">{t("Chọn gói")}</span>
