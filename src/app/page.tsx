@@ -117,8 +117,15 @@ export default async function HomePage() {
       ) : (
         <>
           {/* Hero FULL-BLEED: render ngoài <main> để tràn hết bề ngang
-              viewport (lệnh Tín 2026-11-08 "banner bự ra hết cỡ"). */}
-          <HeroSlider slides={slides} />
+              viewport (lệnh Tín 2026-11-08 "banner bự ra hết cỡ"). Cách
+              header một khoảng trống bằng khoảng nội dung chuẩn của trang
+              (20px mobile / 24px desktop — Tín 2026-11-08 14:09 "vẫn sát
+              header, thấp xuống nữa cái banner"): hero hạ xuống, khoảng
+              trống hiện nền trang chứ không dính sát topbar. Chỉ gói ở
+              trang chủ — các trang khác dùng chung PublicFrame không đổi. */}
+          <div className="mt-5 sm:mt-6">
+            <HeroSlider slides={slides} />
+          </div>
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
             <HomeShop slides={slides} cats={cats} all={all} best={best} gifts={gifts} hero={false} />
           </main>
