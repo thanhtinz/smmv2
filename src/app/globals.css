@@ -57,20 +57,59 @@ input:focus, select:focus, textarea:focus { @apply ring-2 ring-brand-500/40 bord
   .td { @apply px-4 py-3 text-sm align-middle; }
 }
 
-/* ============ iOS SAFARI — Ô NGÀY/GIỜ PHÌNH TO (lệnh Tín 2026-11-07 23:11) ============
+/* ============ iOS SAFARI — Ô NGÀY/GIỜ (vòng 1: WS5 2026-11-07; vòng 2: fix6
+   task 4, 2026-11-08 — Tín vẫn thấy phình trên iPhone thật) ============
    Gốc lỗi: iOS Safari vẽ input date/time/datetime-local bằng control native
-   và BỎ QUA padding + chiều cao của .inp, nên ô ngày/giờ cao và dài hơn hẳn
-   các ô chữ/select đứng cạnh trong cùng hàng lọc. Cách sửa chuẩn: gỡ
-   appearance để Safari tôn trọng đúng hộp CSS của .inp như ô chữ thường
-   (mọi nơi dùng ngày/giờ trong app đều mang .inp hoặc inputCls chung của
-   hàng — kể cả các hàng gọn !py-2, mọi ô trong hàng cùng một cỡ nên KHÔNG
-   ghim min-height cứng, tránh làm riêng ô ngày cao hơn hàng), chuẩn hoá
-   phần tử giá trị bên trong và nút mở lịch. */
+   và BỎ QUA padding + chiều cao suy từ padding của .inp.
+   Vòng 1 chỉ gỡ appearance + chuẩn hoá phần tử con — Chromium đo khớp ô kề
+   nhưng iOS vẫn phình, vì iOS cần thêm: (a) HEIGHT TƯỜNG MINH (chỉ
+   min-height/padding thì control native vẫn tự suy chiều cao nội tại),
+   (b) display:flex + align-items:center để phần giá trị trong shadow DOM
+   bám đúng hộp CSS thay vì hộp native.
+   Vòng 2 giữ nguyên diện mạo gọn của vòng 1 (giá trị 13px, nút lịch 16px
+   mờ 45%, căn trái) và cộng:
+   - height + min-height TƯỜNG MINH theo đúng 3 cỡ hộp đang dùng trong app
+     (đo thật trong Chromium trước khi ghim — xem scripts/shots-fix6-dates.mjs):
+     .inp chuẩn = 42px · .inp !py-2 (hàng lọc gọn) + ô xuất CSV (py-2) = 38px
+     · form flash sale (py-1.5) = 34px. Mọi ô ngày/giờ trong app đều thuộc
+     một trong ba cỡ này (kiểm kê: lọc đơn SMM, lịch sử Telegram, lọc admin
+     nạp tiền/telegram/báo cáo, giờ báo cáo, mã giảm giá datetime-local,
+     flash sale datetime-local, xuất CSV) và mỗi cỡ bằng đúng ô chữ/select
+     đứng cạnh trong Chromium nên ghim tường minh không đổi giao diện
+     desktop — chỉ khoá cứng cho iOS.
+   - Selector specificity cao hơn: nhân đôi dạng input.inp[type=…] để thắng
+     các class component, và selector theo token class cho hai cỡ gọn. */
 input[type="date"], input[type="time"], input[type="datetime-local"],
-input[type="month"], input[type="week"] {
+input[type="month"], input[type="week"],
+input.inp[type="date"], input.inp[type="time"], input.inp[type="datetime-local"],
+input.inp[type="month"], input.inp[type="week"] {
   -webkit-appearance: none;
   appearance: none;
+  display: flex;
+  align-items: center;
+  height: 2.625rem; /* 42px tường minh — cỡ .inp chuẩn */
+  min-height: 2.625rem;
   line-height: 1.25rem; /* bằng line-height của text-sm trong .inp */
+  text-align: left;
+  font-size: 13px;
+  color: #334155;
+}
+/* Cỡ gọn 38px: hàng lọc mang !py-2 (đơn SMM, dòng tiền) và ô xuất CSV (py-2) */
+input[type="date"][class~="!py-2"], input[type="time"][class~="!py-2"],
+input[type="datetime-local"][class~="!py-2"], input[type="month"][class~="!py-2"],
+input[type="week"][class~="!py-2"],
+input[type="date"][class~="py-2"], input[type="time"][class~="py-2"],
+input[type="datetime-local"][class~="py-2"], input[type="month"][class~="py-2"],
+input[type="week"][class~="py-2"] {
+  height: 2.375rem;
+  min-height: 2.375rem;
+}
+/* Cỡ nhỏ 34px: form flash sale (py-1.5) */
+input[type="date"][class~="py-1.5"], input[type="time"][class~="py-1.5"],
+input[type="datetime-local"][class~="py-1.5"], input[type="month"][class~="py-1.5"],
+input[type="week"][class~="py-1.5"] {
+  height: 2.125rem;
+  min-height: 2.125rem;
 }
 input[type="date"]::-webkit-date-and-time-value,
 input[type="time"]::-webkit-date-and-time-value,
@@ -89,6 +128,7 @@ input[type="week"]::-webkit-datetime-edit-fields-wrapper {
   padding: 0; /* UA của Chromium/WebKit cộng ~2px đệm dọc vào wrapper này — gỡ để bằng đúng chiều cao ô chữ */
 }
 input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator,
 input[type="month"]::-webkit-calendar-picker-indicator,
 input[type="week"]::-webkit-calendar-picker-indicator {
@@ -98,20 +138,6 @@ input[type="week"]::-webkit-calendar-picker-indicator {
   padding: 0;
   opacity: 0.45;
   cursor: pointer;
-}
-/* Thiết kế gọn gàng cho ô ngày/giờ (bổ sung WS5 theo lệnh Tín 23:46 — "làm
-   cho nó đẹp lên, nhỏ xíu"): giá trị 13px gọn, màu chữ mềm như ô lọc bên
-   cạnh, vùng sửa ngày không đệm thừa — ô đọc như một field được thiết kế
-   của site (viền/bán kính/nền/focus lấy nguyên từ .inp mà nó mang theo).
-   CHIỀU CAO không ghim riêng: ô đi theo .inp của hàng nó đứng (hàng lọc
-   !py-2 = 38px, hàng chuẩn = 42px) nên luôn bằng đúng ô text/select kề. */
-input[type="date"],
-input[type="time"],
-input[type="datetime-local"],
-input[type="month"],
-input[type="week"] {
-  font-size: 13px;
-  color: #334155;
 }
 input[type="date"]::-webkit-datetime-edit,
 input[type="time"]::-webkit-datetime-edit,
