@@ -795,7 +795,7 @@ export async function adminSaveMethodsAction(formData: FormData) {
   const keys = [
     "sepay_secret", "intl_min_usd", "usd_rate", "deposit_min", "deposit_bonus_tiers", "affiliate_percent",
     "usdt_rate", "usdt_min",
-    "boltutil_enabled", "boltutil_api_key", "boltutil_webhook_secret", "boltutil_api_url", "boltutil_default_network", "boltutil_networks", "boltutil_expires_minutes", "boltutil_payment_method",
+    "boltutil_enabled", "boltutil_api_key", "boltutil_webhook_secret", "boltutil_api_url", "boltutil_default_network", "boltutil_expires_minutes", "boltutil_payment_method",
     "paypal_enabled", "paypal_client_id", "paypal_client_secret", "paypal_mode",
     "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret",
   ];
@@ -805,6 +805,13 @@ export async function adminSaveMethodsAction(formData: FormData) {
     const val = String(v).trim();
     if (!val && SECRET_KEYS.includes(k)) continue;
     await setSetting(k, val);
+  }
+  // Mạng BoltUtil là CHIP chọn sẵn (không gõ tay): nhiều checkbox cùng tên —
+  // gom lại thành đúng định dạng cũ "TRON,BSC", chỉ nhận mã trong BOLT_NETWORKS.
+  if (formData.get("boltutil_networks_present") === "1") {
+    const { BOLT_NETWORKS } = await import("@/lib/boltutil");
+    const nets = formData.getAll("boltutil_networks").map(String).filter((n) => (BOLT_NETWORKS as readonly string[]).includes(n));
+    await setSetting("boltutil_networks", nets.filter((n, i) => nets.indexOf(n) === i).join(","));
   }
   await auditAdmin(actor, "settings.update", "setting", "adminSaveMethods", "Lưu cấu hình phương thức nạp/khuyến mãi");
   const backTo = String(formData.get("back") || "/admin/cau-hinh-nap-tien");

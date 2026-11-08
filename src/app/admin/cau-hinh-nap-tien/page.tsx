@@ -80,9 +80,30 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
             <div><label className="lbl">{L("Phiên hết hạn sau (phút)")}</label><input className="inp" name="boltutil_expires_minutes" type="number" min={5} max={60} defaultValue={s.boltutil_expires_minutes || "30"} /></div>
           </div>
           <div>
-            <label className="lbl">{L("Các mạng cho phép nạp (phẩy ngăn cách)")}</label>
-            <input className="inp" name="boltutil_networks" defaultValue={s.boltutil_networks || "TRON"} placeholder="TRON,BSC,SOLANA" />
-            <p className="mt-1.5 text-xs text-slate-400">{L("Chỉ hiện các mạng đã cấu hình ví nhận trong dashboard BoltUtil.")}</p>
+            <label className="lbl">{L("Các mạng cho phép nạp")}</label>
+            <input type="hidden" name="boltutil_networks_present" value="1" />
+            <div className="flex flex-wrap gap-2">
+              {([
+                { code: "TRON", name: "Tron" },
+                { code: "ETHEREUM", name: "Ethereum" },
+                { code: "BSC", name: "BNB Chain" },
+                { code: "ARBITRUM", name: "Arbitrum" },
+                { code: "BASE", name: "Base" },
+                { code: "SOLANA", name: "Solana" },
+              ] as const).map((n) => {
+                const selected = String(s.boltutil_networks || "TRON").split(",").map((x) => x.trim().toUpperCase()).includes(n.code);
+                return (
+                  <label key={n.code} className="cursor-pointer">
+                    <input type="checkbox" name="boltutil_networks" value={n.code} defaultChecked={selected} className="peer sr-only" />
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-500 transition peer-checked:border-brand-600 peer-checked:bg-brand-600 peer-checked:text-white">
+                      <span className="font-extrabold tracking-wide">{n.code}</span>
+                      <span className="font-medium opacity-70">· {n.name}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-xs text-slate-400">{L("Bấm để chọn — không cần gõ tay mã mạng. Chỉ hiện các mạng đã cấu hình ví nhận trong dashboard BoltUtil.")}</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
