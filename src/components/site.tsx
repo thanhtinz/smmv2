@@ -1,124 +1,9 @@
 import { RichText } from "@/components/rich-text";
 import Link from "next/link";
-import { getSession } from "@/lib/auth";
-import { PublicBurger } from "@/components/public-burger";
 import { getSettings } from "@/lib/settings";
-import { logoutAction } from "@/app/actions/auth";
-import { prisma } from "@/lib/db";
 import { getServerI18n } from "@/lib/lang-server";
-import { DisplaySettings } from "@/components/display";
-import { NotificationBell } from "@/components/notification-bell";
-import { CartHeaderLink } from "@/components/cart";
 import { LiveChat } from "@/components/livechat";
 import { getFloatingContacts, type FloatingContact } from "@/lib/contact";
-
-export async function SiteHeader() {
-  const { L, M } = await getServerI18n();
-  const session = await getSession();
-  const s = await getSettings();
-  const user = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { balance: true, role: true } }) : null;
-  return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
-      {s.announcement_bar && (
-        <div className="bg-brand-600 text-white text-center text-xs sm:text-sm py-2 px-4 font-medium">{s.announcement_bar}</div>
-      )}
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3 sm:gap-6">
-        <PublicBurger tone="light" home="/" loggedIn={!!session} registerHref="/register" />
-        <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <span className="w-9 h-9 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center text-lg">{s.site_logo_text || "S"}</span>
-          <span className="font-extrabold text-lg text-slate-900 hidden min-[420px]:inline">{s.site_name}</span>
-        </Link>
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-          <Link href="/premium" className="hover:text-brand-600">{L("Tài khoản Premium")}</Link>
-        </nav>
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5">
-          {session && <NotificationBell />}
-          <DisplaySettings />
-          {session ? (
-            <>
-              {user && <span className="hidden sm:inline-flex rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 text-sm font-bold">{M(user.balance)}</span>}
-              <Link href="/dashboard/ho-so" className="btn-primary btn-sm !px-4 !py-2 whitespace-nowrap">{L("Bảng điều khiển")}</Link>
-              {/* Link Admin Panel CHỈ hiện khi role đúng ADMIN — STAFF và USER không thấy */}
-              {user?.role === "ADMIN" && (
-                <Link href="/admin" className="btn btn-sm !px-4 !py-2 whitespace-nowrap bg-slate-900 text-white hover:bg-slate-700">Admin Panel</Link>
-              )}
-              <form action={logoutAction} className="hidden sm:block">
-                <button className="btn-ghost btn-sm !px-3 !py-2">{L("Đăng xuất")}</button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="btn-ghost btn-sm !px-4 !py-2 whitespace-nowrap">{L("Đăng nhập")}</Link>
-              <Link href="/register" className="btn-primary btn-sm !px-4 !py-2 whitespace-nowrap"><span className="hidden sm:inline">{L("Đăng ký miễn phí")}</span><span className="sm:hidden">{L("Đăng ký")}</span></Link>
-            </>
-          )}
-        </div>
-      </div>
-    </header>
-  );
-}
-
-
-/** Header công khai kiểu pill tối — thiết kế CŨ được Tín chốt giữ lại
- *  (2026-11-07 22:44): pill đen bo tròn, chữ sáng, điểm nhấn rose. Khác bản cũ
- *  ở đúng một điểm: nền pill ĐẶC (không blur/xuyên thấu) để nội dung cuộn
- *  không lem qua header. */
-export async function PublicHeader({ announcement }: { announcement?: string | null } = {}) {
-  const { L, M } = await getServerI18n();
-  const session = await getSession();
-  const s = await getSettings();
-  const user = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { balance: true, role: true } }) : null;
-  const name = s.site_name;
-  const home = "/";
-  const links = [
-    { href: home, label: L("Trang chủ") },
-    { href: "/premium", label: "Premium" },
-  ];
-  const registerHref = "/register";
-  const note = announcement ?? s.announcement_bar;
-  return (
-    <>
-      <div className="fixed inset-x-0 top-0 z-50">
-        {note && <div className="bg-rose-600 px-4 py-1.5 text-center text-xs font-medium text-white sm:text-sm">{note}</div>}
-        <div className="px-3 pt-3 sm:pt-4">
-          <header className="mx-auto flex max-w-5xl items-center gap-2 rounded-full border border-white/10 bg-neutral-950 py-2 pl-2 pr-2 shadow-2xl shadow-black/40 sm:gap-3 sm:pl-3">
-            <PublicBurger tone="dark" home={home} loggedIn={!!session} registerHref={registerHref} />
-            <Link href={home} className="flex shrink-0 items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600 text-sm font-black text-white">{name.charAt(0).toUpperCase()}</span>
-              <span className="hidden max-w-[140px] truncate text-[15px] font-extrabold tracking-tight text-white min-[420px]:inline">{name}</span>
-            </Link>
-            <nav className="mx-auto hidden items-center gap-6 text-sm font-medium text-slate-300 lg:flex">
-              {links.map((l) => (
-                <Link key={l.href} href={l.href} className="transition hover:text-white">{l.label}</Link>
-              ))}
-            </nav>
-            <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:ml-0">
-              {session && <NotificationBell tone="dark" />}
-              <CartHeaderLink dark />
-              <DisplaySettings />
-              {session ? (
-                <>
-                  {user && <span className="hidden rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-sm font-bold text-emerald-300 sm:inline-flex">{M(user.balance)}</span>}
-                  <Link href="/dashboard/ho-so" className="rounded-full bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-500">{L("Bảng điều khiển")}</Link>
-                  {user?.role === "ADMIN" && <Link href="/admin" className="hidden rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white sm:inline-block">Admin</Link>}
-                  <form action={logoutAction} className="hidden sm:block">
-                    <button className="rounded-full px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white">{L("Đăng xuất")}</button>
-                  </form>
-                </>
-              ) : (
-                <>
-                  <Link href={registerHref} className="hidden px-2 py-2 text-sm font-semibold text-slate-200 transition hover:text-white sm:inline-block">{L("Đăng ký")}</Link>
-                  <Link href="/login" className="rounded-full bg-rose-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-rose-500">{L("Đăng nhập →")}</Link>
-                </>
-              )}
-            </div>
-          </header>
-        </div>
-      </div>
-      <div className={note ? "h-[104px]" : "h-[76px]"} />
-    </>
-  );
-}
 
 export type FooterBrand = {
   name: string;
@@ -148,38 +33,38 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
     <>
     {contacts.length > 0 && <FloatingSupport items={contacts} />}
     {merged.livechat_enabled !== "0" && <LiveChat />}
-    <footer className="bg-slate-950 text-slate-400 mt-20">
+    <footer className="bg-white border-t border-slate-200 text-slate-500 mt-20">
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm">
         <div>
-          <div className="text-white font-extrabold text-lg mb-3">{brand?.name || s.site_name}</div>
+          <div className="text-slate-900 font-extrabold text-lg mb-3">{brand?.name || s.site_name}</div>
           <p className="leading-relaxed">{L(brand?.tagline || s.site_tagline)}</p>
         </div>
         <div>
-          <div className="text-white font-semibold mb-3">{L("Dịch vụ")}</div>
+          <div className="text-slate-900 font-semibold mb-3">{L("Dịch vụ")}</div>
           <ul className="space-y-2">
-            <li><Link href="/premium" className="hover:text-white">{L("Tài khoản Premium")}</Link></li>
-            <li><Link href="/dashboard/dich-vu" className="hover:text-white">{L("Bảng giá dịch vụ")}</Link></li>
+            <li><Link href="/premium" className="hover:text-brand-600">{L("Tài khoản Premium")}</Link></li>
+            <li><Link href="/dashboard/dich-vu" className="hover:text-brand-600">{L("Bảng giá dịch vụ")}</Link></li>
           </ul>
         </div>
         <div>
-          <div className="text-white font-semibold mb-3">{L("Tài khoản")}</div>
+          <div className="text-slate-900 font-semibold mb-3">{L("Tài khoản")}</div>
           <ul className="space-y-2">
-            <li><Link href="/register" className="hover:text-white">{L("Đăng ký")}</Link></li>
-            <li><Link href="/login" className="hover:text-white">{L("Đăng nhập")}</Link></li>
-            <li><Link href="/dashboard/nap-tien" className="hover:text-white">{L("Nạp tiền")}</Link></li>
+            <li><Link href="/register" className="hover:text-brand-600">{L("Đăng ký")}</Link></li>
+            <li><Link href="/login" className="hover:text-brand-600">{L("Đăng nhập")}</Link></li>
+            <li><Link href="/dashboard/nap-tien" className="hover:text-brand-600">{L("Nạp tiền")}</Link></li>
           </ul>
         </div>
         <div>
-          <div className="text-white font-semibold mb-3">{L("Hỗ trợ 24/7")}</div>
+          <div className="text-slate-900 font-semibold mb-3">{L("Hỗ trợ 24/7")}</div>
           <ul className="space-y-2">
             {merged.support_hotline && <li>{L("Hotline:")} {merged.support_hotline}</li>}
             {merged.support_telegram && <li>Telegram: {merged.support_telegram}</li>}
             {merged.support_facebook && <li>Facebook: {merged.support_facebook}</li>}
-            <li><Link href="/dashboard/ticket" className="hover:text-white">{L("Gửi ticket hỗ trợ")}</Link></li>
+            <li><Link href="/dashboard/ticket" className="hover:text-brand-600">{L("Gửi ticket hỗ trợ")}</Link></li>
           </ul>
         </div>
       </div>
-      <div className="border-t border-slate-800 py-5 text-center text-xs">© {new Date().getFullYear()} {brand?.name || s.site_name}. {L("Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.")}</div>
+      <div className="border-t border-slate-200 py-5 text-center text-xs">© {new Date().getFullYear()} {brand?.name || s.site_name}. {L("Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.")}</div>
     </footer>
     </>
   );

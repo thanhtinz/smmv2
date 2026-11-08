@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSettings } from "@/lib/settings";
-import { SiteFooter, PublicHeader } from "@/components/site";
+import { PublicFrame } from "@/components/public-frame";
 import { PremiumShopView } from "@/components/premium-views";
 import { getServerI18n } from "@/lib/lang-server";
 
@@ -13,8 +13,7 @@ export default async function PremiumPage({ searchParams }: { searchParams: { ca
   const { L } = await getServerI18n();
   if ((await getSettings()).module_premium === "0") {
     return (
-      <div className="flex min-h-screen flex-col">
-        <PublicHeader />
+      <PublicFrame>
         <main className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-12">
           <div className="card max-w-md p-8 text-center">
             <div className="text-lg font-bold text-slate-900">{L("Mảng Premium đang tạm ngưng")}</div>
@@ -22,17 +21,14 @@ export default async function PremiumPage({ searchParams }: { searchParams: { ca
             <Link href="/dashboard/dich-vu" className="btn-primary mt-5 inline-block">{L("Xem dịch vụ SMM")}</Link>
           </div>
         </main>
-        <SiteFooter />
-      </div>
+      </PublicFrame>
     );
   }
   return (
-    <div className="min-h-screen flex flex-col">
-      <PublicHeader />
+    <PublicFrame>
       <main className="flex-1 max-w-7xl mx-auto px-4 py-12 w-full">
         <PremiumShopView cat={searchParams.cat} q={searchParams.q} sort={searchParams.sort} from={searchParams.from} to={searchParams.to} base="/premium" />
       </main>
-      <SiteFooter />
-    </div>
+    </PublicFrame>
   );
 }

@@ -1,4 +1,4 @@
-import { SiteFooter, PublicHeader } from "@/components/site";
+import { PublicFrame } from "@/components/public-frame";
 import { PremiumDetailView } from "@/components/premium-views";
 
 export const dynamic = "force-dynamic";
@@ -8,12 +8,10 @@ export const dynamic = "force-dynamic";
  *  trong tự hiện theo phiên đăng nhập; xem chi tiết không cần đăng nhập. */
 export default async function PremiumDetail({ params, searchParams }: { params: { slug: string }; searchParams: { msg?: string; err?: string } }) {
   return (
-    <div className="min-h-screen flex flex-col">
-      <PublicHeader />
+    <PublicFrame>
       <main className="flex-1 max-w-5xl mx-auto px-4 py-12 w-full">
         <PremiumDetailView slug={params.slug} searchParams={searchParams} base="/premium" />
       </main>
-      <SiteFooter />
-    </div>
+    </PublicFrame>
   );
 }

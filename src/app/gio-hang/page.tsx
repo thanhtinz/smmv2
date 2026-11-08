@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getSession } from "@/lib/auth";
-import { SiteFooter, PublicHeader } from "@/components/site";
+import { PublicFrame } from "@/components/public-frame";
 import { getServerI18n } from "@/lib/lang-server";
 import { CartView } from "@/components/cart-view";
 import { getActiveFlashSale } from "@/lib/flash";
@@ -31,13 +31,11 @@ export default async function CartPage() {
     suggested = (ranked.length > 0 ? ranked : cards).slice(0, 4);
   }
   return (
-    <div className="min-h-screen flex flex-col">
-      <PublicHeader />
+    <PublicFrame>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10">
         <h1 className="mb-6 text-2xl font-extrabold text-slate-900 sm:text-3xl">{L("Giỏ hàng")}</h1>
         <CartView loggedIn={!!session} flash={flash} suggested={suggested} />
       </main>
-      <SiteFooter />
-    </div>
+    </PublicFrame>
   );
 }

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth";
-import { SiteFooter, PublicHeader } from "@/components/site";
+import { PublicFrame } from "@/components/public-frame";
 import { HomeModal } from "@/components/gates";
 import { getServerI18n } from "@/lib/lang-server";
 import { premiumCardsFor } from "@/components/premium-views";
@@ -68,8 +68,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <PublicHeader />
+    <PublicFrame>
       {homeModal && user ? <HomeModal content={homeModal} /> : null}
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4">
         {premiumOff ? (
@@ -85,7 +84,6 @@ export default async function HomePage() {
           <HomeShop slides={slides} cats={cats} all={all} best={best} />
         )}
       </main>
-      <SiteFooter />
-    </div>
+    </PublicFrame>
   );
 }
