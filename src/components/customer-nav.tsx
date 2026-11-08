@@ -54,13 +54,13 @@ export async function buildCustomerNav(
   const items: NavEntry[] = [
     { href: "/", label: L("Trang chủ"), icon: I.home },
     ...(premiumOn ? [{ href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem }] : []),
-    { href: "/dashboard/don-premium", label: L("Đơn Premium của tôi"), icon: I.list },
+    { href: "/dashboard/don-premium", label: L("Đơn Premium của tôi"), icon: I.box },
     ...(smmChildren.length ? [{ label: L("Đơn SMM"), icon: I.cart, children: smmChildren }] : []),
-    ...(telegramOn ? [{ label: "Telegram Premium", icon: I.star, children: telegramChildren }] : []),
+    ...(telegramOn ? [{ label: "Telegram Premium", icon: I.send, children: telegramChildren }] : []),
     ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),
     ...(apiOn ? [{ href: "/dashboard/api-docs", label: L("Tài liệu API"), icon: I.key }] : []),
     ...(supportChildren.length ? [{ label: L("Hỗ trợ"), icon: I.ticket, children: supportChildren }] : []),
-    { href: "/dashboard/ho-so", label: L("Hồ sơ"), icon: I.users },
+    { href: "/dashboard/ho-so", label: L("Hồ sơ"), icon: I.user },
   ];
   // Cụm đáy menu ghim cố định: tài khoản + Nạp tiền + Admin Panel (chỉ đúng
   // tài khoản đang thấy link Admin Panel như hiện tại: role ADMIN) + Đăng xuất.
