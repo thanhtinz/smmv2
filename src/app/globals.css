@@ -155,18 +155,6 @@ input:focus, select:focus, textarea:focus { @apply ring-2 ring-brand-500/40 bord
 }
 
 
-/* Trang công khai dùng tông tối trung tính khớp landing (thay vì navy của .dark) */
-.dark.pub-dark .card, .dark.pub-dark .bg-white { background-color: #0d1017; border-color: rgba(255,255,255,.08); }
-.dark.pub-dark .bg-slate-50 { background-color: #090b10; }
-.dark.pub-dark .bg-slate-100 { background-color: #141824; }
-.dark.pub-dark .bg-slate-200 { background-color: #1b2130; }
-.dark.pub-dark .inp { background: #0a0c11; border-color: rgba(255,255,255,.14); color: #e6edf7; }
-.dark.pub-dark .btn-ghost { background: #141824; border-color: rgba(255,255,255,.12); color: #dbe4f0; }
-.dark.pub-dark .btn-ghost:hover { background: #1b2130; }
-.dark.pub-dark .border-slate-100, .dark.pub-dark .border-slate-200, .dark.pub-dark .border-slate-300 { border-color: rgba(255,255,255,.09); }
-.dark.pub-dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]), .dark.pub-dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255,255,255,.08); }
-.dark.pub-dark .hover\:bg-slate-50:hover, .dark.pub-dark .hover\:bg-white:hover { background-color: #141824; }
-
 /* Nền hero trang chủ: sáng thoáng / tối sâu theo chế độ */
 .hero-bg {
   background:
@@ -268,24 +256,6 @@ html[data-font="rounded"] body { font-family: Verdana, Geneva, "Segoe UI", sans-
 .dark .admin-scope .hover\:bg-slate-50:hover { background-color: #f8fafc; }
 .dark .admin-scope .hover\:bg-white:hover { background-color: #ffffff; }
 .dark .admin-scope .hover\:text-slate-900:hover { color: #0f172a; }
-
-/* Trang auth: form luôn theo tông sáng (thẻ trắng/kính) kể cả khi app ở dark mode */
-.auth-scope { color-scheme: light; }
-.auth-scope .inp { background-color: #fff !important; color: #0f172a !important; border-color: #e2e8f0 !important; }
-.auth-scope .inp::placeholder { color: #94a3b8 !important; }
-.auth-scope .lbl { color: #475569 !important; }
-.auth-scope h1 { color: #0f172a !important; }
-.auth-scope .text-slate-500 { color: #64748b !important; }
-.auth-scope .text-slate-400 { color: #94a3b8 !important; }
-/* Thẻ classic của trang auth nằm trên nền tối cố định (khung .dark): đảo chữ sang tông sáng,
-   riêng ô nhập vẫn trắng như các kiểu thẻ sáng. Chỉ áp khi AuthShell gắn thêm .auth-on-dark. */
-.auth-scope.auth-on-dark h1 { color: #f1f5f9 !important; }
-.auth-scope.auth-on-dark .lbl { color: #aebdd2 !important; }
-.auth-scope.auth-on-dark .text-slate-500 { color: #94a3b8 !important; }
-.auth-scope.auth-on-dark .text-slate-400 { color: #94a3b8 !important; }
-.auth-scope.auth-on-dark .text-slate-900 { color: #f1f5f9 !important; }
-.auth-scope.auth-on-dark .text-slate-700 { color: #d7e1ef !important; }
-.auth-scope.auth-on-dark .text-slate-600 { color: #aebdd2 !important; }
 
 /* Chống "chớp dịch": ngôn ngữ khác tiếng Việt thì ẩn trang tới khi lớp hiển thị dịch xong
    lượt đầu (script tiền vẽ gắn cờ data-i18n-pending, DisplayEngine gỡ cờ; hẹn giờ dự phòng 1.6s). */

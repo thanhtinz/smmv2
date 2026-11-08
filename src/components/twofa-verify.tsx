@@ -36,7 +36,7 @@ export function TwofaVerifyForm() {
       <div>
         <label className="lbl">{t("Mã xác thực 6 số hoặc mã dự phòng")}</label>
         <input
-          className="inp text-center font-mono text-lg tracking-[0.3em]"
+          className="inp border-slate-200 bg-slate-100 text-center font-mono text-lg tracking-[0.3em] focus:bg-white"
           name="code"
           value={code}
           onChange={(e) => setCode(e.target.value)}

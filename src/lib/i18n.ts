@@ -3573,6 +3573,19 @@ export const DICT: Record<string, Tr> = {
   "Cần thanh toán": e("To pay", "应付金额", "ยอดที่ต้องชำระ", "お支払い金額", "결제 금액"),
   "Min": e("Min", "最小", "ขั้นต่ำ", "最小", "최소"),
   "Max": e("Max", "最大", "สูงสุด", "最大", "최대"),
+  "Vui lòng nhập thông tin đăng nhập": e("Please enter your login information", "请输入登录信息", "กรุณากรอกข้อมูลเข้าสู่ระบบ", "ログイン情報を入力してください", "로그인 정보를 입력해 주세요"),
+  "Vui lòng nhập thông tin đăng ký": e("Please enter your registration information", "请输入注册信息", "กรุณากรอกข้อมูลสมัครสมาชิก", "登録情報を入力してください", "가입 정보를 입력해 주세요"),
+  "Vui lòng nhập username": e("Please enter your username", "请输入用户名", "กรุณากรอกชื่อผู้ใช้", "ユーザー名を入力してください", "아이디를 입력해 주세요"),
+  "Vui lòng nhập mật khẩu": e("Please enter your password", "请输入密码", "กรุณากรอกรหัสผ่าน", "パスワードを入力してください", "비밀번호를 입력해 주세요"),
+  "Tài khoản đăng nhập": e("Login username", "登录账号", "บัญชีเข้าสู่ระบบ", "ログインアカウント", "로그인 계정"),
+  "Địa chỉ Email": e("Email address", "电子邮箱地址", "ที่อยู่อีเมล", "メールアドレス", "이메일 주소"),
+  "Nhập lại mật khẩu": e("Re-enter your password", "再次输入密码", "กรอกรหัสผ่านอีกครั้ง", "パスワードを再入力してください", "비밀번호 재입력"),
+  "Tôi đồng ý với điều khoản/chính sách": e("I agree to the terms and policies", "我同意条款与政策", "ฉันยอมรับข้อกำหนดและนโยบาย", "利用規約とポリシーに同意します", "이용약관 및 정책에 동의합니다"),
+  "Bạn chưa có tài khoản?": e("Don't have an account yet?", "还没有账号？", "ยังไม่มีบัญชีใช่ไหม?", "アカウントをお持ちでないですか？", "아직 계정이 없으신가요?"),
+  "Đăng Ký Ngay": e("Sign Up Now", "立即注册", "สมัครเลย", "今すぐ登録", "지금 가입하기"),
+  "Bạn đã có tài khoản?": e("Already have an account?", "已有账号？", "มีบัญชีอยู่แล้วใช่ไหม?", "すでにアカウントをお持ちですか？", "이미 계정이 있으신가요?"),
+  "Mật khẩu nhập lại không khớp, vui lòng kiểm tra lại.": e("The re-entered password does not match, please check again.", "两次输入的密码不一致，请重新检查。", "รหัสผ่านที่กรอกซ้ำไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง", "再入力したパスワードが一致しません。もう一度ご確認ください。", "재입력한 비밀번호가 일치하지 않습니다. 다시 확인해 주세요."),
+  "đã bật 2FA. Nhập mã 6 số trong ứng dụng Authenticator, hoặc một mã dự phòng đã lưu.": e("has 2FA enabled. Enter the 6-digit code from your Authenticator app, or a saved backup code.", "已启用双重验证。请输入 Authenticator 应用中的 6 位验证码，或已保存的备用码。", "เปิดใช้ 2FA แล้ว กรอกรหัส 6 หลักจากแอป Authenticator หรือรหัสสำรองที่บันทึกไว้", "は2FAを有効化しています。Authenticatorアプリの6桁コード、または保存したバックアップコードを入力してください。", "계정은 2FA가 활성화되어 있습니다. Authenticator 앱의 6자리 코드 또는 저장한 백업 코드를 입력하세요."),
 
 };
 

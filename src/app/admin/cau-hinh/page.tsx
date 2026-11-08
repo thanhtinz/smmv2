@@ -10,10 +10,11 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-/** Trang Cài đặt admin — dựng theo bố cục panel mẫu: 15 tab gạch chân cuộn ngang đúng
- *  thứ tự (Landing Page → Chung → Thanh toán → Email → Telegram → Thông báo → Google →
- *  Khuyến mãi → Giới thiệu → Bảo mật → Cron Job → SMM Tool API → AI Kiểm tra → USDT →
- *  Script/HTML), MỘT nút Lưu cài đặt ở góc phải header cho toàn trang. */
+/** Trang Cài đặt admin — dựng theo bố cục panel mẫu: các tab gạch chân cuộn ngang
+ *  (Chung → Thanh toán → Email → Telegram → Thông báo → Google → Khuyến mãi →
+ *  Giới thiệu → Bảo mật → Cron Job → SMM Tool API → AI Kiểm tra → USDT →
+ *  Script/HTML), MỘT nút Lưu cài đặt ở góc phải header cho toàn trang.
+ *  (Tab chọn kiểu trang Đăng nhập/Đăng ký đã bỏ — auth chỉ còn MỘT thiết kế.) */
 export default async function AdminSettings({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
@@ -24,36 +25,6 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
 
   const infoBox = "rounded-xl bg-brand-50 px-4 py-3 text-[13px] leading-relaxed text-slate-600";
   const warnBox = "rounded-xl bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-700";
-
-  /* ---------------- Landing Page ---------------- */
-  const authStyles = [
-    { code: "CLASSIC", value: "classic", name: L("Cổ điển"), tag: L("Thẻ giữa màn hình"), desc: L("Thẻ trắng truyền thống, lịch sự, dễ dùng.") },
-    { code: "GLASS", value: "glass", name: L("Kính mờ"), tag: L("Nền tối"), desc: L("Kính mờ trên nền gradient — phong cách hiện đại.") },
-    { code: "MINIMAL", value: "minimal", name: L("Tối giản"), tag: L("Thẻ giữa màn hình"), desc: L("Không khung, ít chi tiết, tập trung vào form.") },
-    { code: "APP", value: "app", name: L("Kiểu App"), tag: L("Thẻ giữa màn hình"), desc: L("Thẻ bo tròn lớn kiểu ứng dụng điện thoại.") },
-    { code: "SPLIT", value: "split", name: L("Chia đôi"), tag: L("Hai cột"), desc: L("Cột thương hiệu bên trái, form bên phải — kiểu panel quốc tế.") },
-  ];
-  const landing = (
-    <>
-
-      <section className="card p-6 space-y-4">
-        <div className="font-bold text-slate-900">{L("Giao diện trang Đăng nhập / Đăng ký")}</div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          {authStyles.map((a) => (
-            <label key={a.value} className="cursor-pointer">
-              <input type="radio" name="auth_style" value={a.value} defaultChecked={(s.auth_style || "classic") === a.value} className="peer sr-only" />
-              <div className="h-full rounded-2xl border-2 border-slate-200 p-4 transition peer-checked:border-brand-600 peer-checked:bg-brand-50/60">
-                <span className="rounded-md bg-slate-900 px-2 py-0.5 text-[11px] font-extrabold tracking-wide text-white">{a.code}</span>
-                <div className="mt-2.5 text-sm font-bold text-slate-900">{a.name}</div>
-                <span className="mt-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">{a.tag}</span>
-                <p className="mt-2 text-[13px] leading-relaxed text-slate-500">{a.desc}</p>
-              </div>
-            </label>
-          ))}
-        </div>
-      </section>
-    </>
-  );
 
   /* ---------------- Chung ---------------- */
   const chung = (
@@ -620,7 +591,6 @@ Content-Type: application/json
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form id="settings-form" action={adminSaveSettings}>
         <SettingsTabs tabs={[
-          { id: "landing", label: "Đăng nhập / Đăng ký", icon: I.home, content: landing },
           { id: "chung", label: L("Chung"), icon: I.gear, content: chung },
           { id: "thanhtoan", label: L("Thanh toán"), icon: I.wallet, content: thanhtoan },
           { id: "email", label: "Email", icon: I.mail, content: email },
