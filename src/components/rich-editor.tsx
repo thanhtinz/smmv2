@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useLang } from "@/components/lang";
 
 /** Trình soạn thảo văn bản giàu (WYSIWYG nhẹ): đậm/nghiêng/gạch chân, tiêu đề,
  *  danh sách, liên kết — lưu HTML vào input ẩn cùng tên để form gửi như thường. */
 export function RichTextEditor({ name, defaultValue, minHeight = 130 }: { name: string; defaultValue?: string | null; minHeight?: number }) {
+  const { t, td } = useLang();
   const boxRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -17,11 +19,11 @@ export function RichTextEditor({ name, defaultValue, minHeight = 130 }: { name: 
     sync();
   };
   const addLink = () => {
-    const url = window.prompt("Nhập link (https://...)", "https://");
+    const url = window.prompt(t("Nhập link (https://...)"), "https://");
     if (url) cmd("createLink", url);
   };
   const addImage = () => {
-    const url = window.prompt("Nhập link ảnh (https://...)", "https://");
+    const url = window.prompt(t("Nhập link ảnh (https://...)"), "https://");
     if (url) cmd("insertImage", url);
   };
   const btn = "flex h-8 min-w-8 items-center justify-center rounded-lg px-1.5 text-sm text-slate-600 transition hover:bg-slate-200 hover:text-slate-900";
@@ -29,26 +31,26 @@ export function RichTextEditor({ name, defaultValue, minHeight = 130 }: { name: 
     <div className="overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-brand-500">
       <input type="hidden" name={name} ref={inputRef} defaultValue={defaultValue || ""} />
       <div className="flex flex-wrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
-        <button type="button" className={btn} title="Đậm" onMouseDown={(e) => { e.preventDefault(); cmd("bold"); }}><b>B</b></button>
-        <button type="button" className={btn} title="Nghiêng" onMouseDown={(e) => { e.preventDefault(); cmd("italic"); }}><i>I</i></button>
-        <button type="button" className={btn} title="Gạch chân" onMouseDown={(e) => { e.preventDefault(); cmd("underline"); }}><u>U</u></button>
+        <button type="button" className={btn} title={t("Đậm")} onMouseDown={(e) => { e.preventDefault(); cmd("bold"); }}><b>B</b></button>
+        <button type="button" className={btn} title={t("Nghiêng")} onMouseDown={(e) => { e.preventDefault(); cmd("italic"); }}><i>I</i></button>
+        <button type="button" className={btn} title={t("Gạch chân")} onMouseDown={(e) => { e.preventDefault(); cmd("underline"); }}><u>U</u></button>
         <span className="mx-1 h-5 w-px bg-slate-300" />
-        <button type="button" className={`${btn} text-xs font-bold`} title="Tiêu đề" onMouseDown={(e) => { e.preventDefault(); cmd("formatBlock", "H3"); }}>H3</button>
-        <button type="button" className={`${btn} text-xs`} title="Đoạn thường" onMouseDown={(e) => { e.preventDefault(); cmd("formatBlock", "P"); }}>Đoạn</button>
+        <button type="button" className={`${btn} text-xs font-bold`} title={t("Tiêu đề")} onMouseDown={(e) => { e.preventDefault(); cmd("formatBlock", "H3"); }}>H3</button>
+        <button type="button" className={`${btn} text-xs`} title={t("Đoạn thường")} onMouseDown={(e) => { e.preventDefault(); cmd("formatBlock", "P"); }}>{t("Đoạn")}</button>
         <span className="mx-1 h-5 w-px bg-slate-300" />
-        <button type="button" className={btn} title="Danh sách chấm" onMouseDown={(e) => { e.preventDefault(); cmd("insertUnorderedList"); }}>
+        <button type="button" className={btn} title={t("Danh sách chấm")} onMouseDown={(e) => { e.preventDefault(); cmd("insertUnorderedList"); }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M9 6h11M9 12h11M9 18h11" /><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none" /><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none" /><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none" /></svg>
         </button>
-        <button type="button" className={btn} title="Danh sách số" onMouseDown={(e) => { e.preventDefault(); cmd("insertOrderedList"); }}>
+        <button type="button" className={btn} title={t("Danh sách số")} onMouseDown={(e) => { e.preventDefault(); cmd("insertOrderedList"); }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M10 6h10M10 12h10M10 18h10" /><path d="M4 6h1v4M4 10h2M5 14H3.5L5 16.5H3.5" /></svg>
         </button>
-        <button type="button" className={btn} title="Chèn link" onMouseDown={(e) => { e.preventDefault(); addLink(); }}>
+        <button type="button" className={btn} title={t("Chèn link")} onMouseDown={(e) => { e.preventDefault(); addLink(); }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.7 1.7" /><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.7-1.7" /></svg>
         </button>
-        <button type="button" className={btn} title="Chèn ảnh" onMouseDown={(e) => { e.preventDefault(); addImage(); }}>
+        <button type="button" className={btn} title={t("Chèn ảnh")} onMouseDown={(e) => { e.preventDefault(); addImage(); }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" /></svg>
         </button>
-        <button type="button" className={`${btn} text-xs`} title="Xoá định dạng" onMouseDown={(e) => { e.preventDefault(); cmd("removeFormat"); }}>Xoá kiểu</button>
+        <button type="button" className={`${btn} text-xs`} title={t("Xoá định dạng")} onMouseDown={(e) => { e.preventDefault(); cmd("removeFormat"); }}>{t("Xoá kiểu")}</button>
       </div>
       <div
         ref={boxRef}
@@ -65,18 +67,19 @@ export function RichTextEditor({ name, defaultValue, minHeight = 130 }: { name: 
 
 /** Nhiều ảnh sản phẩm: danh sách ô nhập URL, thêm/xoá từng ảnh — gửi qua các input cùng tên "images". */
 export function ImagesField({ defaults }: { defaults: string[] }) {
+  const { t, td } = useLang();
   const [list, setList] = useState<string[]>(defaults.length ? defaults : [""]);
   return (
     <div className="space-y-2">
       {list.map((v, i) => (
         <div key={i} className="flex items-center gap-2">
-          <input className="inp flex-1" name="images" value={v} onChange={(e) => setList((l) => l.map((x, j) => (j === i ? e.target.value : x)))} placeholder={`Link ảnh ${i + 1} (https://...)`} />
+          <input className="inp flex-1" name="images" value={v} onChange={(e) => setList((l) => l.map((x, j) => (j === i ? e.target.value : x)))} placeholder={td(`Link ảnh ${i + 1} (https://...)`)} />
           {v ? <img src={v} alt="" className="h-9 w-9 rounded-lg object-cover" /> : null}
-          <button type="button" className="btn-ghost btn-sm !px-2.5 !py-1.5 !text-rose-600" onClick={() => setList((l) => (l.length > 1 ? l.filter((_, j) => j !== i) : [""]))}>Xoá</button>
+          <button type="button" className="btn-ghost btn-sm !px-2.5 !py-1.5 !text-rose-600" onClick={() => setList((l) => (l.length > 1 ? l.filter((_, j) => j !== i) : [""]))}>{t("Xoá")}</button>
         </div>
       ))}
-      <button type="button" className="btn-ghost btn-sm" onClick={() => setList((l) => [...l, ""])}>+ Thêm ảnh</button>
-      <p className="text-xs text-slate-400">Ảnh đầu tiên là ảnh bìa hiện ở danh sách.</p>
+      <button type="button" className="btn-ghost btn-sm" onClick={() => setList((l) => [...l, ""])}>{t("+ Thêm ảnh")}</button>
+      <p className="text-xs text-slate-400">{t("Ảnh đầu tiên là ảnh bìa hiện ở danh sách.")}</p>
     </div>
   );
 }

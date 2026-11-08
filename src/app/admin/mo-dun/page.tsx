@@ -2,6 +2,7 @@ import { requireAdminPage } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Flash, I } from "@/components/ui";
 import { saveModulesAction } from "@/app/actions/admin-features";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +27,14 @@ const MODULES: Mod[] = [
  *  Panel con còn có công tắc riêng cho khách của panel đó ở trang Mô-đun của panel. */
 export default async function AdminModules({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   await requireAdminPage();
+  const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();
   return (
     <div>
-      <PageHead title="Mô-đun" desc="Bật / tắt từng mảng chức năng của hệ thống.">
-        <button className="btn-primary !py-2.5" form="modules-form" type="submit">Lưu thay đổi</button>
+      <PageHead title={L("Mô-đun")} desc={L("Bật / tắt từng mảng chức năng của hệ thống.")}>
+        <button className="btn-primary !py-2.5" form="modules-form" type="submit">{L("Lưu thay đổi")}</button>
       </PageHead>
-      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form id="modules-form" action={saveModulesAction}>
         <div className="card divide-y divide-slate-100 p-0">
           {MODULES.map((m) => {
@@ -41,16 +43,16 @@ export default async function AdminModules({ searchParams }: { searchParams: { m
               <label key={m.key} className="flex cursor-pointer items-center gap-4 px-6 py-4 transition hover:bg-slate-50">
                 <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${on ? "bg-brand-50 text-brand-600" : "bg-slate-100 text-slate-400"}`}>{m.icon}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-bold text-slate-900">{m.name}</span>
-                  <span className="mt-0.5 block text-sm leading-relaxed text-slate-500">{m.desc}</span>
+                  <span className="block font-bold text-slate-900">{L(m.name)}</span>
+                  <span className="mt-0.5 block text-sm leading-relaxed text-slate-500">{L(m.desc)}</span>
                 </span>
-                <span className={`shrink-0 text-sm font-semibold ${on ? "text-emerald-600" : "text-slate-400"}`}>{on ? "Đang bật" : "Đang tắt"}</span>
+                <span className={`shrink-0 text-sm font-semibold ${on ? "text-emerald-600" : "text-slate-400"}`}>{on ? L("Đang bật") : L("Đang tắt")}</span>
                 <input type="checkbox" name={m.key} defaultChecked={on} className="h-5 w-5 shrink-0 accent-brand-600" />
               </label>
             );
           })}
         </div>
-        <button className="btn-primary mt-5 w-full !py-3 md:w-auto">Lưu thay đổi</button>
+        <button className="btn-primary mt-5 w-full !py-3 md:w-auto">{L("Lưu thay đổi")}</button>
       </form>
     </div>
   );

@@ -3,12 +3,14 @@ import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash } from "@/components/ui";
 import { PanelProductsClient, type PanelProductDTO } from "@/components/panel-premium";
 import { productImages } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
 /** Sản phẩm Premium do panel tự thêm — chỉ khách của panel thấy và mua, chủ panel tự giao. */
 export default async function PanelPremiumProducts({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { panel } = await requirePanelOwnerPage();
+  const { L, Ld } = await getServerI18n((panel as { langConfig?: string | null }).langConfig ?? null);
   const [products, categories] = await Promise.all([
     prisma.premiumProduct.findMany({
       where: { panelId: panel.id },
@@ -29,8 +31,8 @@ export default async function PanelPremiumProducts({ searchParams }: { searchPar
   }));
   return (
     <div>
-      <PageHead title="Sản phẩm & Gói" desc="Sản phẩm Premium bạn tự bán tại website." />
-      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <PageHead title={L("Sản phẩm & Gói")} desc={L("Sản phẩm Premium bạn tự bán tại website.")} />
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <PanelProductsClient products={dtos} categories={categories.map((c) => ({ id: c.id, name: c.name }))} />
     </div>
   );

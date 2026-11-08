@@ -5,7 +5,8 @@ import { vietqrUrl } from "@/lib/vietqr";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { DepositCard } from "@/components/deposit-card";
 import { createPanelBankDepositAction } from "@/app/actions/user";
-import { vnd, num, DEP_STATUS, dt } from "@/lib/format";
+import { num, DEP_STATUS, dt } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
     content, min: minDep,
   }));
   const myPanel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;
+  const panelLangRaw = user.panelId ? (myPanel?.langConfig ?? null) : undefined;
+  const { L, Ld, M } = await getServerI18n(panelLangRaw);
   const myPanelBanks = myPanel ? await prisma.panelBankAccount.findMany({ where: { panelId: myPanel.id, active: true }, orderBy: [{ sort: "asc" }, { id: "asc" }] }) : [];
   // Panel đã nối SePay RIÊNG → nạp ngân hàng của khách panel TỰ ĐỘNG như web mẹ (QR là ngân hàng của panel, hết duyệt tay)
   const panelSepayOn = !!(myPanel && myPanel.status === "ACTIVE" && myPanel.sepayEnabled && myPanel.sepaySecret && myPanelBanks.length > 0);
@@ -45,8 +48,8 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
   const stripeOn = !!intlCfg.stripe;
   return (
     <div>
-      <PageHead title="Nạp tiền" desc="Chọn phương thức nạp bên dưới. QR ngân hàng (ngân hàng & MoMo) cộng tự động khi đúng nội dung; PayPal/Stripe cộng tự động theo tỉ giá ngay khi thanh toán thành công." />
-      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <PageHead title={L("Nạp tiền")} desc={L("Chọn phương thức nạp bên dưới. QR ngân hàng (ngân hàng & MoMo) cộng tự động khi đúng nội dung; PayPal/Stripe cộng tự động theo tỉ giá ngay khi thanh toán thành công.")} />
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <DepositCard
           banks={panelSepayOn ? myPanelBanks.map((b) => ({ name: b.bankName, account: b.accountNo, holder: b.accountName, qr: vietQrUrl(b.bankName, b.accountNo, 0, content, b.accountName), content, min: effMin })) : banksProp}
@@ -58,43 +61,43 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
         />
         {myPanel && myPanel.status === "ACTIVE" && !panelSepayOn && (myPanel.bankAccount || myPanelBanks.length > 0) && (
           <form action={createPanelBankDepositAction} className="card p-5">
-            <div className="font-bold text-slate-900">Chuyển khoản cho shop {myPanel.name}</div>
+            <div className="font-bold text-slate-900">{Ld(`Chuyển khoản cho shop ${myPanel.name}`)}</div>
             {myPanelBanks.length > 0 ? (
               <div className="mt-2 space-y-2">
                 {myPanelBanks.map((b) => (
                   <div key={b.id} className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-sm text-slate-600">
-                    <b className="text-slate-800">{b.bankName}</b> · STK <b className="text-slate-800">{b.accountNo}</b> · {b.accountName}
+                    <b className="text-slate-800">{b.bankName}</b> · {L("STK")} <b className="text-slate-800">{b.accountNo}</b> · {b.accountName}
                     {b.note && <div className="text-xs text-slate-400">{b.note}</div>}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="mt-1 text-sm text-slate-500">{myPanel.bankName} · STK <b className="text-slate-700">{myPanel.bankAccount}</b>{myPanel.bankHolder ? ` · ${myPanel.bankHolder}` : ""}</p>
+              <p className="mt-1 text-sm text-slate-500">{myPanel.bankName} · {L("STK")} <b className="text-slate-700">{myPanel.bankAccount}</b>{myPanel.bankHolder ? ` · ${myPanel.bankHolder}` : ""}</p>
             )}
-            <p className="mt-2 text-sm text-slate-500">Chuyển xong hãy gửi yêu cầu bên dưới — chủ shop duyệt và cộng tiền cho bạn.</p>
+            <p className="mt-2 text-sm text-slate-500">{L("Chuyển xong hãy gửi yêu cầu bên dưới — chủ shop duyệt và cộng tiền cho bạn.")}</p>
             <div className="mt-3 flex gap-2">
-              <input name="amount" type="number" min={10000} step={1000} required placeholder="Số tiền đã chuyển (đ)" className="inp" />
-              <button className="btn-primary shrink-0 !py-2.5">Gửi yêu cầu duyệt</button>
+              <input name="amount" type="number" min={10000} step={1000} required placeholder={L("Số tiền đã chuyển (đ)")} className="inp" />
+              <button className="btn-primary shrink-0 !py-2.5">{L("Gửi yêu cầu duyệt")}</button>
             </div>
           </form>
         )}
 
         <div className="card overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-100 font-bold text-slate-900">Lịch sử nạp</div>
-          {deposits.length === 0 ? <div className="p-8 text-center text-sm text-slate-400">Chưa có giao dịch nạp nào</div> : (
+          <div className="px-5 py-4 border-b border-slate-100 font-bold text-slate-900">{L("Lịch sử nạp")}</div>
+          {deposits.length === 0 ? <div className="p-8 text-center text-sm text-slate-400">{L("Chưa có giao dịch nạp nào")}</div> : (
             <table className="w-full">
               <tbody className="divide-y divide-slate-100">
                 {deposits.map((d) => (
                   <tr key={d.id}>
-                    <td className="td"><div className="font-mono text-xs">{d.code}</div><div className="text-xs text-slate-400">{dt(d.createdAt)}{d.auto ? " · tự động" : ""}</div></td>
-                    <td className="td font-semibold">{vnd(d.amount)}{d.bonus > 0 && <div className="text-xs text-emerald-600">+{vnd(d.bonus)} thưởng</div>}</td>
-                    <td className="td text-right"><Badge cls={DEP_STATUS[d.status].cls}>{DEP_STATUS[d.status].label}</Badge></td>
+                    <td className="td"><div className="font-mono text-xs">{d.code}</div><div className="text-xs text-slate-400">{dt(d.createdAt)}{d.auto ? L(" · tự động") : ""}</div></td>
+                    <td className="td font-semibold">{M(d.amount)}{d.bonus > 0 && <div className="text-xs text-emerald-600">{Ld(`+${M(d.bonus)} thưởng`)}</div>}</td>
+                    <td className="td text-right"><Badge cls={DEP_STATUS[d.status].cls}>{L(DEP_STATUS[d.status].label)}</Badge></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
-          <div className="px-5 py-4 bg-slate-50 text-sm text-slate-500">Tổng đã nạp: <b className="text-slate-800">{vnd(user.totalDeposited)}</b> · Đã chi tiêu: <b className="text-slate-800">{vnd(user.totalSpent)}</b> · Số dư: <b className="text-emerald-700">{num(user.balance)}đ</b></div>
+          <div className="px-5 py-4 bg-slate-50 text-sm text-slate-500">{L("Tổng đã nạp:")} <b className="text-slate-800">{M(user.totalDeposited)}</b> · {L("Đã chi tiêu:")} <b className="text-slate-800">{M(user.totalSpent)}</b> · {L("Số dư:")} <b className="text-emerald-700">{M(user.balance)}</b></div>
         </div>
       </div>
     </div>

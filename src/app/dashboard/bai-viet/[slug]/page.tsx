@@ -4,11 +4,16 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { moduleOn } from "@/lib/modules";
 import { dshort } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashPostDetail({ params }: { params: { slug: string } }) {
   const user = (await getCurrentUser())!;
+  const panelLangRaw = user.panelId
+    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
+    : undefined;
+  const { L, Ld } = await getServerI18n(panelLangRaw);
   if (!(await moduleOn("blog", user.panelId))) redirect("/dashboard");
   const post = await prisma.post.findUnique({ where: { slug: params.slug }, include: { category: true } });
   if (!post || !post.published) notFound();
@@ -21,10 +26,10 @@ export default async function DashPostDetail({ params }: { params: { slug: strin
   const blocks = post.content.split(/\n+/).map((x) => x.trim()).filter(Boolean);
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <Link href="/dashboard/bai-viet" className="text-sm font-medium text-brand-600">← Tất cả bài viết</Link>
+      <Link href="/dashboard/bai-viet" className="text-sm font-medium text-brand-600">{L("← Tất cả bài viết")}</Link>
       <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
         {post.category && <span className="rounded-full bg-brand-50 px-2 py-0.5 font-semibold text-brand-600">{post.category.name}</span>}
-        <span>{dshort(post.createdAt)}</span><span>·</span><span>{post.views + 1} lượt xem</span>
+        <span>{dshort(post.createdAt)}</span><span>·</span><span>{Ld(`${post.views + 1} lượt xem`)}</span>
       </div>
       <h1 className="mt-3 text-3xl font-extrabold leading-tight text-slate-900">{post.title}</h1>
       {post.excerpt && <p className="mt-3 text-lg text-slate-500">{post.excerpt}</p>}
@@ -40,7 +45,7 @@ export default async function DashPostDetail({ params }: { params: { slug: strin
       </article>
       {related.length > 0 && (
         <div className="mt-12 border-t border-slate-100 pt-6">
-          <div className="mb-4 font-bold text-slate-900">Bài viết liên quan</div>
+          <div className="mb-4 font-bold text-slate-900">{L("Bài viết liên quan")}</div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {related.map((r) => (
               <Link key={r.id} href={`/dashboard/bai-viet/${r.slug}`} className="card p-4 transition hover:shadow-md">

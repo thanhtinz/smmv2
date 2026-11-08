@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useLang } from "@/components/lang";
 
 export const ACCENTS: { key: string; name: string; hex: string }[] = [
   { key: "blue", name: "Xanh dương", hex: "#4680ff" },
@@ -19,6 +20,7 @@ const MoonIcon = (
 
 /** Bộ đổi giao diện: 6 tông màu + sáng/tối. Lựa chọn lưu trên máy khách. */
 export function ThemePicker({ tone = "light" }: { tone?: "light" | "dark" }) {
+  const { t } = useLang();
   const [accent, setAccent] = useState<string>("blue");
   const [dark, setDark] = useState(false);
   const [open, setOpen] = useState(false);
@@ -44,32 +46,32 @@ export function ThemePicker({ tone = "light" }: { tone?: "light" | "dark" }) {
   const current = ACCENTS.find((a) => a.key === accent) || ACCENTS[0];
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} title="Đổi giao diện"
+      <button type="button" onClick={() => setOpen((o) => !o)} title={t("Đổi giao diện")}
         className={`flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition ${tone === "dark" ? "bg-white/10 border-white/15 text-white hover:bg-white/20" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
         <span className="w-4 h-4 rounded-full border border-white/60 shadow-inner" style={{ background: current.hex }} />
-        <span className="hidden xl:inline">Giao diện</span>
+        <span className="hidden xl:inline">{t("Giao diện")}</span>
         {dark ? MoonIcon : SunIcon}
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-11 z-50 w-60 card p-4 text-left">
-            <div className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2.5">Màu chủ đạo</div>
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2.5">{t("Màu chủ đạo")}</div>
             <div className="grid grid-cols-2 gap-1.5">
               {ACCENTS.map((a) => (
                 <button key={a.key} type="button" onClick={() => pick(a.key)}
                   className={`flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-medium transition ${accent === a.key ? "bg-brand-50 text-brand-700 ring-1 ring-brand-500" : "text-slate-600 hover:bg-slate-50"}`}>
                   <span className="w-5 h-5 rounded-full shrink-0" style={{ background: a.hex }} />
-                  {a.name}
+                  {t(a.name)}
                 </button>
               ))}
             </div>
-            <div className="text-xs font-bold uppercase tracking-wide text-slate-400 mt-4 mb-2.5">Chế độ nền</div>
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-400 mt-4 mb-2.5">{t("Chế độ nền")}</div>
             <div className="grid grid-cols-2 gap-1.5">
-              <button type="button" onClick={() => dark && toggleMode()} className={`flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-sm font-medium ${!dark ? "bg-brand-50 text-brand-700 ring-1 ring-brand-500" : "text-slate-600 hover:bg-slate-50"}`}>{SunIcon} Sáng</button>
-              <button type="button" onClick={() => !dark && toggleMode()} className={`flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-sm font-medium ${dark ? "bg-brand-50 text-brand-700 ring-1 ring-brand-500" : "text-slate-600 hover:bg-slate-50"}`}>{MoonIcon} Tối</button>
+              <button type="button" onClick={() => dark && toggleMode()} className={`flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-sm font-medium ${!dark ? "bg-brand-50 text-brand-700 ring-1 ring-brand-500" : "text-slate-600 hover:bg-slate-50"}`}>{SunIcon} {t("Sáng")}</button>
+              <button type="button" onClick={() => !dark && toggleMode()} className={`flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-sm font-medium ${dark ? "bg-brand-50 text-brand-700 ring-1 ring-brand-500" : "text-slate-600 hover:bg-slate-50"}`}>{MoonIcon} {t("Tối")}</button>
             </div>
-            <p className="text-[11px] text-slate-400 mt-3 leading-relaxed">Giao diện được lưu trên thiết bị này và áp dụng cho mọi trang.</p>
+            <p className="text-[11px] text-slate-400 mt-3 leading-relaxed">{t("Giao diện được lưu trên thiết bị này và áp dụng cho mọi trang.")}</p>
           </div>
         </>
       )}

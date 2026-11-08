@@ -4,6 +4,7 @@ import { getSettings } from "@/lib/settings";
 import { panelByHost } from "@/lib/panel-host";
 import { getServerI18n } from "@/lib/lang-server";
 import { DisplayEngine } from "@/components/display";
+import { LangProvider } from "@/components/lang";
 
 export const viewport: Viewport = {
   viewportFit: "cover",
@@ -42,15 +43,18 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// Áp tuỳ chọn hiển thị khách đã chọn (localStorage) trước khi trang vẽ để không chớp
-const THEME_SCRIPT = `(function(){try{var h=document.documentElement;var a=localStorage.getItem('smmv2-accent');var m=localStorage.getItem('smmv2-mode');if(a)h.setAttribute('data-accent',a);if(m==='dark')h.classList.add('dark');else if(m==='light')h.classList.remove('dark');var d=localStorage.getItem('smmv2-dir');if(d)h.setAttribute('dir',d);var f=localStorage.getItem('smmv2-font');if(f)h.setAttribute('data-font',f);var s=localStorage.getItem('smmv2-fsize');if(s)h.setAttribute('data-fsize',s);var l=localStorage.getItem('smmv2-lang');if(l)h.setAttribute('lang',l);if((l||'__DEFAULT_LANG__')!=='vi'){h.setAttribute('data-i18n-pending','1');setTimeout(function(){h.removeAttribute('data-i18n-pending');},1600);}}catch(e){}})();`;
+// Áp tuỳ chọn hiển thị khách đã chọn (localStorage) trước khi trang vẽ để không chớp.
+// Giao diện nay được dịch LÚC RENDER theo cookie nên chỉ cần chống chớp khi ngôn ngữ
+// đã lưu ở máy khách KHÁC ngôn ngữ server vừa render (lần vào đầu trước khi đồng bộ
+// cookie xong): ẩn thân trang tới khi DisplayEngine đồng bộ + refresh xong (tối đa 1.6s).
+const THEME_SCRIPT = `(function(){try{var h=document.documentElement;var a=localStorage.getItem('smmv2-accent');var m=localStorage.getItem('smmv2-mode');if(a)h.setAttribute('data-accent',a);if(m==='dark')h.classList.add('dark');else if(m==='light')h.classList.remove('dark');var d=localStorage.getItem('smmv2-dir');if(d)h.setAttribute('dir',d);var f=localStorage.getItem('smmv2-font');if(f)h.setAttribute('data-font',f);var s=localStorage.getItem('smmv2-fsize');if(s)h.setAttribute('data-fsize',s);var l=localStorage.getItem('smmv2-lang');if(l)h.setAttribute('lang',l);if(l&&l!=='__SERVER_LANG__'){h.setAttribute('data-i18n-pending','1');setTimeout(function(){h.removeAttribute('data-i18n-pending');},1600);}}catch(e){}})();`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const s = await getSettings().catch(() => null);
   const panel = await panelByHost().catch(() => null);
   const i18n = await getServerI18n(panel?.langConfig ?? undefined).catch(() => null);
   const langCfgJson = i18n ? JSON.stringify(i18n.cfg).replace(/</g, "\\u003c") : "{}";
-  const themeScript = THEME_SCRIPT.replace("__DEFAULT_LANG__", i18n?.cfg.defaultLang || "en");
+  const themeScript = THEME_SCRIPT.replace("__SERVER_LANG__", i18n?.lang || "en");
   const accent = panel?.accent || s?.default_accent || "blue";
   const dark = s?.default_mode === "dark";
   // Script/HTML: ở tên miền panel thì dùng bản riêng của panel, ở web mẹ dùng bản của mẹ.
@@ -70,7 +74,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ) : null}
         {headHtml ? <div hidden dangerouslySetInnerHTML={{ __html: headHtml }} /> : null}
       </head>
-      <body>{children}<DisplayEngine />{bodyHtml ? <div hidden dangerouslySetInnerHTML={{ __html: bodyHtml }} /> : null}</body>
+      <body>
+        <LangProvider lang={i18n?.lang || "en"} ov={i18n ? i18n.cfg.overrides[i18n.lang] : undefined} cur={i18n?.cur || "VND"} rates={i18n?.rates || {}}>
+          {children}
+        </LangProvider>
+        <DisplayEngine />
+        {bodyHtml ? <div hidden dangerouslySetInnerHTML={{ __html: bodyHtml }} /> : null}
+      </body>
     </html>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { I } from "@/components/ui";
+import { useLang } from "@/components/lang";
 
 export type AdminNavItem = { href: string; label: string; icon: string; badge?: number };
 export type AdminNavEntry = AdminNavItem | { group: string; icon: string; children: AdminNavItem[] };
@@ -78,6 +79,7 @@ function Group({ entry, pathname }: { entry: { group: string; icon: string; chil
 }
 
 function NavBody({ siteName, logoText, entries, pathname, onNavigate }: { siteName: string; logoText: string; entries: AdminNavEntry[]; pathname: string; onNavigate?: () => void }) {
+  const { t } = useLang();
   return (
     <>
       <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-white/10 px-5">
@@ -94,7 +96,7 @@ function NavBody({ siteName, logoText, entries, pathname, onNavigate }: { siteNa
       <div className="shrink-0 border-t border-white/10 p-3">
         <Link href="/" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white">
           <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /></svg>
-          <span>Về website</span>
+          <span>{t("Về website")}</span>
         </Link>
       </div>
     </>
@@ -102,6 +104,7 @@ function NavBody({ siteName, logoText, entries, pathname, onNavigate }: { siteNa
 }
 
 export default function AdminNav({ siteName, logoText, entries }: { siteName: string; logoText: string; entries: AdminNavEntry[] }) {
+  const { t } = useLang();
   const pathname = usePathname() || "/admin";
   const [open, setOpen] = useState(false);
   return (
@@ -111,7 +114,7 @@ export default function AdminNav({ siteName, logoText, entries }: { siteName: st
       </aside>
       {/* Điện thoại: nút burger cố định ở góc trái thanh trên + ngăn kéo trượt chứa toàn bộ menu
           (thay thanh menu footer dưới đáy đã bỏ). Layout chừa ml cho logo để không đè nút. */}
-      <button type="button" onClick={() => setOpen(true)} aria-label="Mở menu"
+      <button type="button" onClick={() => setOpen(true)} aria-label={t("Mở menu")}
         className="fixed left-3 top-[13px] z-[60] flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 lg:hidden">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
       </button>

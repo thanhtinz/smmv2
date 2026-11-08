@@ -4,9 +4,10 @@ import { prisma } from "@/lib/db";
 import { PageHead, Flash } from "@/components/ui";
 import { AddServiceButton, ServiceRowActions, ServiceStatusToggle, type ServiceDTO2, type CategoryDTO, type ProviderOpt } from "@/components/admin-catalog";
 import { adminSyncAllProviders } from "@/app/actions/admin";
-import { vnd, num, dt } from "@/lib/format";
+import { num, dt } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { parseTelegramBots } from "@/lib/telegram";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ const PAGE_SIZE = 50;
 
 export default async function AdminServices({ searchParams }: { searchParams: { msg?: string; err?: string; q?: string; cat?: string; provider?: string; status?: string; page?: string } }) {
   await requireAdminPage();
+  const { L, Ld, M } = await getServerI18n(null);
   const q = (searchParams.q || "").trim();
   const cat = searchParams.cat ? parseInt(searchParams.cat) : undefined;
   const provider = searchParams.provider || "";
@@ -55,37 +57,37 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
 
   return (
     <div>
-      <PageHead title="Quản lý Dịch vụ" desc={`Tổng: ${num(total)} dịch vụ`} />
-      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <PageHead title={L("Quản lý Dịch vụ")} desc={Ld(`Tổng: ${num(total)} dịch vụ`)} />
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <form className="flex flex-1 flex-wrap items-center gap-2" method="get">
-          <input name="q" defaultValue={q} placeholder="Tìm kiếm theo tên, ID hoặc nhà cung cấp..." className="inp min-w-[240px] flex-1" />
+          <input name="q" defaultValue={q} placeholder={L("Tìm kiếm theo tên, ID hoặc nhà cung cấp...")} className="inp min-w-[240px] flex-1" />
           <select name="cat" defaultValue={cat || ""} className="inp w-auto">
-            <option value="">Tất cả danh mục</option>
+            <option value="">{L("Tất cả danh mục")}</option>
             {catDTOs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <select name="provider" defaultValue={provider} className="inp w-auto">
-            <option value="">Tất cả nhà cung cấp</option>
-            <option value="manual">Thủ công</option>
+            <option value="">{L("Tất cả nhà cung cấp")}</option>
+            <option value="manual">{L("Thủ công")}</option>
             {provOpts.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <select name="status" defaultValue={status} className="inp w-auto">
-            <option value="">Tất cả trạng thái</option>
-            <option value="on">Đang bật</option>
-            <option value="off">Đã tắt</option>
+            <option value="">{L("Tất cả trạng thái")}</option>
+            <option value="on">{L("Đang bật")}</option>
+            <option value="off">{L("Đã tắt")}</option>
           </select>
-          <button className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">Lọc</button>
-          {(q || cat || provider || status) && <Link href="/admin/dich-vu" className="btn-ghost btn-sm !px-4 !py-2.5">Đặt lại</Link>}
+          <button className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{L("Lọc")}</button>
+          {(q || cat || provider || status) && <Link href="/admin/dich-vu" className="btn-ghost btn-sm !px-4 !py-2.5">{L("Đặt lại")}</Link>}
         </form>
-        <form action={adminSyncAllProviders}><button className="btn-ghost btn-sm !px-4 !py-2.5">Đồng bộ dịch vụ</button></form>
+        <form action={adminSyncAllProviders}><button className="btn-ghost btn-sm !px-4 !py-2.5">{L("Đồng bộ dịch vụ")}</button></form>
         <AddServiceButton categories={catDTOs} providers={provOpts} bots={botOpts} />
       </div>
 
       <div className="card overflow-x-auto">
         <table className="w-full min-w-[920px]">
           <thead><tr className="border-b border-slate-100">
-            <th className="th">Dịch vụ</th><th className="th">Nhà cung cấp</th><th className="th">Bảng giá (1k)</th><th className="th">Trạng thái</th><th className="th">Cập nhật</th><th className="th text-right">Tuỳ chọn</th>
+            <th className="th">{L("Dịch vụ")}</th><th className="th">{L("Nhà cung cấp")}</th><th className="th">{L("Bảng giá (1k)")}</th><th className="th">{L("Trạng thái")}</th><th className="th">{L("Cập nhật")}</th><th className="th text-right">{L("Tuỳ chọn")}</th>
           </tr></thead>
           <tbody className="divide-y divide-slate-100">
             {services.map((sv) => {
@@ -104,10 +106,10 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
                 <tr key={sv.id} className="hover:bg-slate-50/60">
                   <td className="td max-w-[380px]">
                     <div className="font-bold leading-snug text-slate-800">{sv.name}</div>
-                    <div className="mt-0.5 text-xs text-slate-400">ID: {sv.id} • Min: {num(sv.min)} • Max: {num(sv.max)}</div>
+                    <div className="mt-0.5 text-xs text-slate-400">{Ld(`ID: ${sv.id} • Min: ${num(sv.min)} • Max: ${num(sv.max)}`)}</div>
                     <div className="mt-1 flex gap-1">
                       {sv.refill && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-600">Refill</span>}
-                      {sv.cancelable && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-600">Hủy</span>}
+                      {sv.cancelable && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-600">{L("Hủy")}</span>}
                       {sv.dripfeed && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-600">Dripfeed</span>}
                     </div>
                   </td>
@@ -115,15 +117,15 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
                     {sv.provider ? (
                       <div className="flex items-center gap-1.5 text-sm text-slate-600">
                         <span className="font-semibold">{sv.provider.name}</span>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">NCC: +{sv.customMarkup ?? sv.provider.markupPercent}%</span>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">{Ld(`NCC: +${sv.customMarkup ?? sv.provider.markupPercent}%`)}</span>
                       </div>
-                    ) : <span className="text-sm text-slate-400">Thủ công</span>}
+                    ) : <span className="text-sm text-slate-400">{L("Thủ công")}</span>}
                     <div className="text-xs text-slate-400">{sv.category.name}</div>
                   </td>
                   <td className="td whitespace-nowrap">
-                    <div className="text-sm">Bán: <b className="text-rose-600">{vnd(sv.rate)}</b></div>
-                    {sv.costRate > 0 && <div className="text-xs text-slate-400">Gốc: <span className="line-through">{vnd(sv.costRate)}</span></div>}
-                    {sv.costRate > 0 && <div className={`text-xs font-semibold ${profit >= 0 ? "text-blue-600" : "text-rose-600"}`}>Lãi: {profit >= 0 ? "+" : ""}{vnd(profit)}</div>}
+                    <div className="text-sm">{L("Bán:")} <b className="text-rose-600">{M(sv.rate)}</b></div>
+                    {sv.costRate > 0 && <div className="text-xs text-slate-400">{L("Gốc:")} <span className="line-through">{M(sv.costRate)}</span></div>}
+                    {sv.costRate > 0 && <div className={`text-xs font-semibold ${profit >= 0 ? "text-blue-600" : "text-rose-600"}`}>{L("Lãi:")} {profit >= 0 ? "+" : ""}{M(profit)}</div>}
                   </td>
                   <td className="td"><ServiceStatusToggle service={dto} /></td>
                   <td className="td whitespace-nowrap text-sm text-slate-500">{dt(sv.updatedAt)}</td>
@@ -131,7 +133,7 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
                 </tr>
               );
             })}
-            {services.length === 0 && <tr><td colSpan={6} className="td py-10 text-center text-slate-400">Không có dịch vụ nào khớp bộ lọc.</td></tr>}
+            {services.length === 0 && <tr><td colSpan={6} className="td py-10 text-center text-slate-400">{L("Không có dịch vụ nào khớp bộ lọc.")}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -144,7 +146,7 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
               <Link href={qs({ page: String(n) })} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${n === page ? "bg-blue-600 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{n}</Link>
             </span>
           ))}
-          <span className="ml-2 text-sm text-slate-400">Trang {page} / {pages}</span>
+          <span className="ml-2 text-sm text-slate-400">{Ld(`Trang ${page} / ${pages}`)}</span>
         </div>
       )}
     </div>

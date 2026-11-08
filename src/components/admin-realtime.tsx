@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useLang } from "@/components/lang";
 
 type RtEvent = { id: string; kind: string; title: string; body: string; link: string; at: string };
 type Feed = { counts: { total: number; depPending: number; smmManual: number; prePending: number; ticketOpen: number }; events: RtEvent[] };
@@ -30,6 +31,7 @@ function splitId(id: string): [string, number] {
 /** Chuông thông báo realtime cho Admin (web mẹ + panel con): tự poll máy chủ,
  *  có tin mới (đơn / nạp / ticket / khách mới / rủi ro) là bật toast + kêu bíp. */
 export default function AdminRealtime({ endpoint, suffix }: { endpoint: string; suffix: string }) {
+  const { t, td } = useLang();
   const [feed, setFeed] = useState<Feed | null>(null);
   const [open, setOpen] = useState(false);
   const [toasts, setToasts] = useState<RtEvent[]>([]);
@@ -120,27 +122,27 @@ export default function AdminRealtime({ endpoint, suffix }: { endpoint: string; 
           type="button"
           onClick={() => setOpen(!open)}
           className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
-          title="Thông báo realtime"
+          title={t("Thông báo realtime")}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" title="Đang theo dõi trực tiếp" />
+          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" title={t("Đang theo dõi trực tiếp")} />
           {total > 0 && <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-gradient-to-r from-rose-500 to-red-500 px-1 text-center text-[10px] font-bold leading-[18px] text-white shadow">{total}</span>}
         </button>
         {open && (
           <div className="absolute right-0 top-12 z-50 w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
             <div className="flex items-center gap-2 border-b border-slate-100 bg-gradient-to-r from-blue-600 to-violet-600 px-4 py-3 text-white">
               <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" /></span>
-              <span className="text-sm font-bold">Thông báo realtime</span>
+              <span className="text-sm font-bold">{t("Thông báo realtime")}</span>
               <button type="button" onClick={toggleSound} className="ml-auto rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold hover:bg-white/25">
-                {sound ? "Âm thanh: Bật" : "Âm thanh: Tắt"}
+                {sound ? t("Âm thanh: Bật") : t("Âm thanh: Tắt")}
               </button>
             </div>
             {feed && (
               <div className="flex flex-wrap gap-1.5 border-b border-slate-100 px-4 py-2.5 text-[11px] font-semibold">
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">{feed.counts.depPending} nạp chờ duyệt</span>
-                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">{feed.counts.smmManual} đơn thủ công</span>
-                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-violet-800">{feed.counts.prePending} Premium chờ</span>
-                <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-800">{feed.counts.ticketOpen} ticket mở</span>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">{td(`${feed.counts.depPending} nạp chờ duyệt`)}</span>
+                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">{td(`${feed.counts.smmManual} đơn thủ công`)}</span>
+                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-violet-800">{td(`${feed.counts.prePending} Premium chờ`)}</span>
+                <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-800">{td(`${feed.counts.ticketOpen} ticket mở`)}</span>
               </div>
             )}
             <div className="max-h-[380px] overflow-y-auto">
@@ -152,13 +154,13 @@ export default function AdminRealtime({ endpoint, suffix }: { endpoint: string; 
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-semibold text-slate-800">{ev.title}</span>
                       <span className="block truncate text-xs text-slate-500">{ev.body}</span>
-                      <span className="mt-0.5 block text-[11px] text-slate-400">{st.label} · {ago(ev.at)}</span>
+                      <span className="mt-0.5 block text-[11px] text-slate-400">{t(st.label)} · {td(ago(ev.at))}</span>
                     </span>
                   </Link>
                 );
               })}
-              {feed && feed.events.length === 0 && <p className="px-4 py-6 text-center text-sm text-slate-400">Chưa có sự kiện nào</p>}
-              {!feed && <p className="px-4 py-6 text-center text-sm text-slate-400">Đang kết nối...</p>}
+              {feed && feed.events.length === 0 && <p className="px-4 py-6 text-center text-sm text-slate-400">{t("Chưa có sự kiện nào")}</p>}
+              {!feed && <p className="px-4 py-6 text-center text-sm text-slate-400">{t("Đang kết nối...")}</p>}
             </div>
           </div>
         )}
@@ -173,7 +175,7 @@ export default function AdminRealtime({ endpoint, suffix }: { endpoint: string; 
                 <span className="block truncate text-sm font-bold text-slate-900">{ev.title}</span>
                 <span className="block truncate text-xs text-slate-500">{ev.body}</span>
               </button>
-              <button type="button" aria-label="Đóng" className="shrink-0 text-slate-400 hover:text-slate-600" onClick={() => setToasts((t) => t.filter((x) => x.id !== ev.id))}>
+              <button type="button" aria-label={t("Đóng")} className="shrink-0 text-slate-400 hover:text-slate-600" onClick={() => setToasts((tst) => tst.filter((x) => x.id !== ev.id))}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
               </button>
             </div>

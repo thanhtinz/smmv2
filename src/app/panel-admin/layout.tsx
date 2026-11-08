@@ -8,6 +8,7 @@ import { PanelSwitcher } from "@/components/panel-switcher";
 import { DisplaySettings } from "@/components/display";
 import { prisma } from "@/lib/db";
 import { getServerI18n } from "@/lib/lang-server";
+import { LangProvider } from "@/components/lang";
 import { vnd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,8 @@ export default async function PanelAdminLayout({ children }: { children: React.R
   // Thứ tự + tên mục bám đúng sidebar admin web mẹ / panel mẫu: Tổng quan → Quản lý SMM ▾ →
   // Tài khoản Premium ▾ → Khách hàng → Ticket hỗ trợ → tiền → ... → Mô-đun → Cài đặt →
   // Bảo mật nâng cao → Bài viết ▾ → Dọn dẹp hệ thống (mọi mục đều trong phạm vi dữ liệu của panel).
-  const { L } = await getServerI18n(panel.langConfig);
+  const i18n = await getServerI18n(panel.langConfig);
+  const { L, M } = i18n;
   const allEntries: AdminNavEntry[] = [
     { href: "/panel-admin", label: L("Tổng quan"), icon: "home" },
     { href: "/panel-admin/phan-tich", label: L("Phân tích"), icon: "chart" },
@@ -123,6 +125,7 @@ export default async function PanelAdminLayout({ children }: { children: React.R
   }
   const initial = (user.username || "A").slice(0, 1).toUpperCase();
   return (
+    <LangProvider lang={i18n.lang} ov={i18n.cfg.overrides[i18n.lang]} cur={i18n.cur} rates={i18n.rates}>
     <div data-accent={panel.accent} className="admin-scope min-h-screen bg-[#f4f6fb]">
       <AdminNav siteName={panel.name} logoText={panel.name.charAt(0).toUpperCase()} entries={entries} />
       <div className="flex min-h-screen flex-col lg:pl-[260px]">
@@ -137,40 +140,40 @@ export default async function PanelAdminLayout({ children }: { children: React.R
                 <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
                   <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
                 </span>
-                <input name="q" placeholder="Tìm đơn hàng của panel..." className="inp !rounded-full !pl-10" />
+                <input name="q" placeholder={L("Tìm đơn hàng của panel...")} className="inp !rounded-full !pl-10" />
               </div>
             </form>
             <div className="ml-auto flex items-center gap-2.5">
 {accessiblePanels.length > 1 && <PanelSwitcher panels={accessiblePanels.map((a) => ({ id: a.panel.id, label: a.panel.domain || a.panel.name }))} currentId={panel.id} />}
                             <AdminRealtime endpoint="/api/panel-admin/realtime" suffix={`panel-${panel.id}`} />
               <DisplaySettings />
-              <Link href={`/cua-hang/${panel.slug}`} className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Xem website</Link>
-              <Link href="/dashboard" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Khu khách hàng</Link>
+              <Link href={`/cua-hang/${panel.slug}`} className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">{L("Xem website")}</Link>
+              <Link href="/dashboard" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">{L("Khu khách hàng")}</Link>
               <span className="hidden items-center gap-2 rounded-full bg-slate-100 py-1 pl-1 pr-3 sm:flex">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-xs font-bold text-white">{initial}</span>
                 <span className="text-sm font-semibold text-slate-800">{user.username}</span>
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{vnd(user.balance)}</span>
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isOwner ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-700"}`}>{isOwner ? "CHỦ PANEL" : "NHÂN VIÊN"}</span>
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{M(user.balance)}</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isOwner ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-700"}`}>{isOwner ? L("CHỦ PANEL") : L("NHÂN VIÊN")}</span>
               </span>
-              <form action={logoutAction}><button className="btn btn-sm whitespace-nowrap bg-slate-900 text-white hover:bg-slate-700">Đăng xuất</button></form>
+              <form action={logoutAction}><button className="btn btn-sm whitespace-nowrap bg-slate-900 text-white hover:bg-slate-700">{L("Đăng xuất")}</button></form>
             </div>
           </div>
         </header>
         <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 lg:px-6">
           {!isOwner && (
             <div className="card px-5 py-4 mb-6 border !border-amber-200 bg-amber-50 text-sm text-amber-800">
-              Bạn đang vào Panel Admin của <b>{panel.name}</b> với quyền <b>Nhân viên</b> — chỉ xử lý đơn hàng, trả lời ticket và xem khách hàng/thống kê. Giá, tiền, cấu hình và nhân sự do chủ panel quản lý.
+              {L("Bạn đang vào Panel Admin của")} <b>{panel.name}</b> {L("với quyền")} <b>{L("Nhân viên")}</b> — {L("chỉ xử lý đơn hàng, trả lời ticket và xem khách hàng/thống kê. Giá, tiền, cấu hình và nhân sự do chủ panel quản lý.")}
             </div>
           )}
           {panel.status !== "ACTIVE" && (
             <div className="card px-5 py-4 mb-6 border !border-rose-200 bg-rose-50 text-sm text-rose-700">
-              Panel đang bị <b>tạm ngưng</b> — khách tạm thời mua theo giá gốc của web mẹ và bạn không nhận hoa hồng. Liên hệ quản trị hệ thống nếu cần mở lại.
+              {L("Panel đang bị")} <b>{L("tạm ngưng")}</b> — {L("khách tạm thời mua theo giá gốc của web mẹ và bạn không nhận hoa hồng. Liên hệ quản trị hệ thống nếu cần mở lại.")}
             </div>
           )}
           {isOwner && !panel.setupDone && panel.status === "ACTIVE" && (
             <div className="card px-5 py-4 mb-6 flex flex-wrap items-center gap-3 border !border-amber-200 bg-amber-50">
-              <p className="text-sm text-amber-800 flex-1 min-w-[240px]">Panel của bạn chưa qua <b>cấu hình lần đầu</b> — hoàn tất để đặt giá theo cấp bậc, API key liên kết, tên miền riêng và liên hệ hỗ trợ.</p>
-              <Link href="/dashboard/panel-cua-toi/thiet-lap" className="btn-primary btn-sm !px-4 !py-2 shrink-0">Cấu hình ngay</Link>
+              <p className="text-sm text-amber-800 flex-1 min-w-[240px]">{L("Panel của bạn chưa qua")} <b>{L("cấu hình lần đầu")}</b> — {L("hoàn tất để đặt giá theo cấp bậc, API key liên kết, tên miền riêng và liên hệ hỗ trợ.")}</p>
+              <Link href="/dashboard/panel-cua-toi/thiet-lap" className="btn-primary btn-sm !px-4 !py-2 shrink-0">{L("Cấu hình ngay")}</Link>
             </div>
           )}
           {children}
@@ -178,5 +181,6 @@ export default async function PanelAdminLayout({ children }: { children: React.R
         <footer className="pb-6 text-center text-xs text-slate-400">© {new Date().getFullYear()} {panel.name} · Panel Admin</footer>
       </div>
     </div>
+    </LangProvider>
   );
 }

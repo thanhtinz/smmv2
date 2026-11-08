@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { PageHead, Flash, Badge, Empty } from "@/components/ui";
-import { vnd, num, SMM_STATUS, dt } from "@/lib/format";
+import { num, SMM_STATUS, dt } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 const PAGE = 25;
 
 export default async function AdminSmmOrders({ searchParams }: { searchParams: { status?: string; mode?: string; q?: string; page?: string; msg?: string; err?: string } }) {
+  const { L, Ld, M } = await getServerI18n(null);
   const page = Math.max(1, parseInt(searchParams.page || "1"));
   const where: any = {};
   if (searchParams.status) where.status = searchParams.status;
@@ -19,24 +21,24 @@ export default async function AdminSmmOrders({ searchParams }: { searchParams: {
   ]);
   return (
     <div>
-      <PageHead title="Đơn SMM" desc={`${num(total)} đơn · ${manualPending} đơn thủ công đang chờ xử lý`} />
-      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <PageHead title={L("Đơn SMM")} desc={Ld(`${num(total)} đơn · ${manualPending} đơn thủ công đang chờ xử lý`)} />
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form className="flex flex-wrap gap-2 mb-5">
-        <input className="inp !w-72" name="q" placeholder="Mã đơn / link / username..." defaultValue={searchParams.q || ""} />
+        <input className="inp !w-72" name="q" placeholder={L("Mã đơn / link / username...")} defaultValue={searchParams.q || ""} />
         <select className="inp !w-44" name="mode" defaultValue={searchParams.mode || ""}>
-          <option value="">Tất cả hình thức</option><option value="API">Qua API provider</option><option value="MANUAL">Thủ công</option>
+          <option value="">{L("Tất cả hình thức")}</option><option value="API">{L("Qua API provider")}</option><option value="MANUAL">{L("Thủ công")}</option>
         </select>
         <select className="inp !w-48" name="status" defaultValue={searchParams.status || ""}>
-          <option value="">Tất cả trạng thái</option>
+          <option value="">{L("Tất cả trạng thái")}</option>
           {Object.entries(SMM_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <button className="btn-dark">Lọc</button>
+        <button className="btn-dark">{L("Lọc")}</button>
       </form>
-      {orders.length === 0 ? <Empty text="Không có đơn nào khớp bộ lọc" /> : (
+      {orders.length === 0 ? <Empty text={L("Không có đơn nào khớp bộ lọc")} /> : (
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[920px]">
             <thead className="bg-slate-50 border-b border-slate-200"><tr>
-              <th className="th">Mã đơn</th><th className="th">Khách</th><th className="th">Dịch vụ</th><th className="th">SL</th><th className="th">Thu / Vốn</th><th className="th">Hình thức</th><th className="th">Trạng thái</th><th className="th">Thời gian</th>
+              <th className="th">{L("Mã đơn")}</th><th className="th">{L("Khách")}</th><th className="th">{L("Dịch vụ")}</th><th className="th">SL</th><th className="th">{L("Thu / Vốn")}</th><th className="th">{L("Hình thức")}</th><th className="th">{L("Trạng thái")}</th><th className="th">{L("Thời gian")}</th>
             </tr></thead>
             <tbody className="divide-y divide-slate-100">
               {orders.map((o) => (
@@ -45,9 +47,9 @@ export default async function AdminSmmOrders({ searchParams }: { searchParams: {
                   <td className="td font-medium">{o.user.username}</td>
                   <td className="td"><div className="max-w-[240px] truncate font-medium">{o.service.name}</div><div className="max-w-[240px] truncate text-xs text-slate-400">{o.link}</div></td>
                   <td className="td">{num(o.quantity)}</td>
-                  <td className="td"><div className="font-semibold">{vnd(o.charge)}</div><div className="text-xs text-slate-400">vốn {vnd(o.cost)}</div></td>
-                  <td className="td"><Badge cls={o.fulfillment === "API" ? "bg-indigo-100 text-indigo-800" : "bg-amber-100 text-amber-800"}>{o.fulfillment === "API" ? "API" : "Thủ công"}</Badge></td>
-                  <td className="td"><Badge cls={SMM_STATUS[o.status].cls}>{SMM_STATUS[o.status].label}</Badge></td>
+                  <td className="td"><div className="font-semibold">{M(o.charge)}</div><div className="text-xs text-slate-400">{L("vốn")} {M(o.cost)}</div></td>
+                  <td className="td"><Badge cls={o.fulfillment === "API" ? "bg-indigo-100 text-indigo-800" : "bg-amber-100 text-amber-800"}>{o.fulfillment === "API" ? "API" : L("Thủ công")}</Badge></td>
+                  <td className="td"><Badge cls={SMM_STATUS[o.status].cls}>{L(SMM_STATUS[o.status].label)}</Badge></td>
                   <td className="td text-xs text-slate-500">{dt(o.createdAt)}</td>
                 </tr>
               ))}
@@ -55,7 +57,7 @@ export default async function AdminSmmOrders({ searchParams }: { searchParams: {
           </table>
         </div>
       )}
-      {Math.ceil(total / PAGE) > 1 && <p className="text-sm text-slate-400 mt-4">Trang {page}/{Math.ceil(total / PAGE)}</p>}
+      {Math.ceil(total / PAGE) > 1 && <p className="text-sm text-slate-400 mt-4">{Ld(`Trang ${page}/${Math.ceil(total / PAGE)}`)}</p>}
     </div>
   );
 }

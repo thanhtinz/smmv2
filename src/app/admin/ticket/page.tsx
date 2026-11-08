@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { PageHead, Badge, Empty } from "@/components/ui";
 import { dt } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 const T_STATUS: Record<string, { label: string; cls: string }> = {
@@ -11,16 +12,17 @@ const T_STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 export default async function AdminTickets() {
+  const { L, Ld } = await getServerI18n(null);
   const ratingAgg = await prisma.ticket.aggregate({ where: { user: { panelId: null }, rating: { not: null } }, _avg: { rating: true }, _count: { rating: true } });
   const tickets = await prisma.ticket.findMany({ where: { user: { panelId: null } }, orderBy: [{ status: "asc" }, { updatedAt: "desc" }], take: 60, include: { user: true, _count: { select: { messages: true } } } });
   return (
     <div>
-      <PageHead title="Ticket hỗ trợ" desc="Ticket CHỜ PHẢN HỒI (khách vừa gửi/trả lời) được xếp lên đầu." />
-      {ratingAgg._count.rating > 0 && <p className="mb-4 text-sm text-slate-500">Đánh giá hỗ trợ trung bình: <b className="text-amber-500">{(ratingAgg._avg.rating || 0).toFixed(1)}★</b> từ {ratingAgg._count.rating} lượt chấm của khách</p>}
-      {tickets.length === 0 ? <Empty text="Chưa có ticket nào" /> : (
+      <PageHead title={L("Ticket hỗ trợ")} desc={L("Ticket CHỜ PHẢN HỒI (khách vừa gửi/trả lời) được xếp lên đầu.")} />
+      {ratingAgg._count.rating > 0 && <p className="mb-4 text-sm text-slate-500">{Ld(`Đánh giá hỗ trợ trung bình: `)}<b className="text-amber-500">{(ratingAgg._avg.rating || 0).toFixed(1)}★</b> {Ld(`từ ${ratingAgg._count.rating} lượt chấm của khách`)}</p>}
+      {tickets.length === 0 ? <Empty text={L("Chưa có ticket nào")} /> : (
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[720px]">
-            <thead className="bg-slate-50 border-b border-slate-200"><tr><th className="th">Tiêu đề</th><th className="th">Khách</th><th className="th">Chủ đề</th><th className="th">Tin nhắn</th><th className="th">Cập nhật</th><th className="th">Trạng thái</th></tr></thead>
+            <thead className="bg-slate-50 border-b border-slate-200"><tr><th className="th">{L("Tiêu đề")}</th><th className="th">{L("Khách")}</th><th className="th">{L("Chủ đề")}</th><th className="th">{L("Tin nhắn")}</th><th className="th">{L("Cập nhật")}</th><th className="th">{L("Trạng thái")}</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {tickets.map((t) => (
                 <tr key={t.id} className="hover:bg-slate-50/60">
@@ -29,7 +31,7 @@ export default async function AdminTickets() {
                   <td className="td text-slate-500">{t.category}</td>
                   <td className="td">{t._count.messages}</td>
                   <td className="td text-xs text-slate-500">{dt(t.updatedAt)}</td>
-                  <td className="td"><Badge cls={T_STATUS[t.status].cls}>{T_STATUS[t.status].label}</Badge></td>
+                  <td className="td"><Badge cls={T_STATUS[t.status].cls}>{L(T_STATUS[t.status].label)}</Badge></td>
                 </tr>
               ))}
             </tbody>

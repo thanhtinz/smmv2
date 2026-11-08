@@ -8,6 +8,7 @@ import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
 import { panelTierDiscount } from "@/lib/orders";
 import { placeSmmOrderAction } from "@/app/actions/user";
 import { avgTimesFromRecentOrders } from "@/lib/avg-time";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +18,15 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
   // Khách của panel con: giá hiển thị đã cộng markup của chủ panel, không chiết khấu cấp bậc
   const panel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;
   const panelActive = panel && panel.status === "ACTIVE" ? panel : null;
+  const panelLangRaw = user.panelId ? (panel?.langConfig ?? null) : undefined;
+  const { L, Ld } = await getServerI18n(panelLangRaw);
   if (settings.module_smm === "0" || (panelActive && !panelActive.sellSmm)) {
     return (
       <div>
-        <PageHead title="Đặt đơn SMM" />
+        <PageHead title={L("Đặt đơn SMM")} />
         <div className="card p-8 text-center">
-          <div className="text-lg font-bold text-slate-900">Mảng dịch vụ SMM đang tắt</div>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{panelActive && settings.module_smm !== "0" ? "Website của bạn hiện không bán dịch vụ SMM." : "Hệ thống đang tạm ngưng mảng dịch vụ SMM. Vui lòng quay lại sau."}</p>
+          <div className="text-lg font-bold text-slate-900">{L("Mảng dịch vụ SMM đang tắt")}</div>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{panelActive && settings.module_smm !== "0" ? L("Website của bạn hiện không bán dịch vụ SMM.") : L("Hệ thống đang tạm ngưng mảng dịch vụ SMM. Vui lòng quay lại sau.")}</p>
         </div>
       </div>
     );
@@ -53,11 +56,11 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
   }
   return (
     <div>
-      <PageHead title="Đặt đơn SMM" />
-      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <PageHead title={L("Đặt đơn SMM")} />
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <FlashBanner panelId={user.panelId ?? null} kind="SMM" />
       {panelActive && (
-        <div className="card px-5 py-3.5 mb-5 text-sm text-slate-600">Bạn đang mua qua panel <b className="text-slate-900">{panelActive.name}</b> — giá đã gồm phụ phí {panelActive.markup}% của panel{panelTierDiscount(panelActive, user.level) > 0 ? `, cấp bậc của bạn được giảm thêm ${panelTierDiscount(panelActive, user.level)}%` : ""}.</div>
+        <div className="card px-5 py-3.5 mb-5 text-sm text-slate-600">{L("Bạn đang mua qua panel")} <b className="text-slate-900">{panelActive.name}</b> {Ld(`— giá đã gồm phụ phí ${panelActive.markup}% của panel${panelTierDiscount(panelActive, user.level) > 0 ? `, cấp bậc của bạn được giảm thêm ${panelTierDiscount(panelActive, user.level)}%` : ""}.`)}</div>
       )}
       <OrderForm services={dto} categories={cats} discount={panelActive ? panelTierDiscount(panelActive, user.level) : levelDiscountFromSettings(settings, user.level)} preselect={preselect} campaignId={searchParams.campaign ? parseInt(searchParams.campaign) : undefined} action={placeSmmOrderAction}
         balance={user.balance} initialLink={searchParams.link} initialQty={searchParams.qty ? parseInt(searchParams.qty) : undefined} />

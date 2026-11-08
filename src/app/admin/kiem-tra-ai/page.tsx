@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { PageHead, Badge, Empty, Stat, I } from "@/components/ui";
 import { dt } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
  *  Dữ liệu ghi bởi aiCheckOrderLink mỗi khi AI kết luận một link. */
 export default async function AdminAiCheck({ searchParams }: { searchParams: { verdict?: string; q?: string } }) {
   await requireAdminPage();
+  const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();
   const verdict = searchParams.verdict === "VIOLATION" || searchParams.verdict === "SAFE" ? searchParams.verdict : undefined;
   const q = (searchParams.q || "").trim();
@@ -32,42 +34,42 @@ export default async function AdminAiCheck({ searchParams }: { searchParams: { v
   const nameOf = new Map(users.map((u) => [u.id, u.username]));
   return (
     <div>
-      <PageHead title="Kiểm tra AI" desc="Nhật ký AI rà soát link khách gửi khi đặt đơn — chặn các link thuộc nhóm nội dung vi phạm.">
-        <Link href="/admin/cau-hinh" className="btn-ghost">Cấu hình AI kiểm tra</Link>
+      <PageHead title={L("Kiểm tra AI")} desc={L("Nhật ký AI rà soát link khách gửi khi đặt đơn — chặn các link thuộc nhóm nội dung vi phạm.")}>
+        <Link href="/admin/cau-hinh" className="btn-ghost">{L("Cấu hình AI kiểm tra")}</Link>
       </PageHead>
       {s.ai_check_enabled !== "1" && (
         <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          AI kiểm tra link đang <b>tắt</b> — bật tại Cài đặt → tab AI Kiểm tra thì các link đơn mới mới được rà soát và ghi vào nhật ký này.
+          {L("AI kiểm tra link đang")} <b>{L("tắt")}</b> {L("— bật tại Cài đặt → tab AI Kiểm tra thì các link đơn mới mới được rà soát và ghi vào nhật ký này.")}
         </div>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Stat label="Tổng kiểm tra" value={String(total)} icon={I.cpu} tone="brand" />
-        <Stat label="An toàn" value={String(safe)} icon={I.check} tone="emerald" />
-        <Stat label="Vi phạm" value={String(violation)} icon={I.shield} tone="rose" />
+        <Stat label={L("Tổng kiểm tra")} value={String(total)} icon={I.cpu} tone="brand" />
+        <Stat label={L("An toàn")} value={String(safe)} icon={I.check} tone="emerald" />
+        <Stat label={L("Vi phạm")} value={String(violation)} icon={I.shield} tone="rose" />
       </div>
       <form className="card mt-5 flex flex-wrap items-center gap-3 p-4" method="get">
         <select name="verdict" defaultValue={verdict || ""} className="inp !w-auto">
-          <option value="">Tất cả kết quả</option>
-          <option value="SAFE">An toàn</option>
-          <option value="VIOLATION">Vi phạm</option>
+          <option value="">{L("Tất cả kết quả")}</option>
+          <option value="SAFE">{L("An toàn")}</option>
+          <option value="VIOLATION">{L("Vi phạm")}</option>
         </select>
-        <input name="q" defaultValue={q} placeholder="Tìm link hoặc lý do..." className="inp !w-72" />
-        <button className="btn-primary !py-2">Lọc</button>
+        <input name="q" defaultValue={q} placeholder={L("Tìm link hoặc lý do...")} className="inp !w-72" />
+        <button className="btn-primary !py-2">{L("Lọc")}</button>
       </form>
       <div className="card mt-4 overflow-x-auto p-0">
         {rows.length === 0 ? (
-          <Empty text="Chưa có lượt kiểm tra nào." />
+          <Empty text={L("Chưa có lượt kiểm tra nào.")} />
         ) : (
           <table className="tbl">
             <thead>
-              <tr><th>Người dùng</th><th>Liên kết</th><th>Kết quả</th><th>Lý do</th><th>Model</th><th>Thời gian</th></tr>
+              <tr><th>{L("Người dùng")}</th><th>{L("Liên kết")}</th><th>{L("Kết quả")}</th><th>{L("Lý do")}</th><th>Model</th><th>{L("Thời gian")}</th></tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="font-medium text-slate-800">{r.userId ? nameOf.get(r.userId) || `#${r.userId}` : "—"}{r.panelId ? <span className="text-slate-400"> · panel #{r.panelId}</span> : null}</td>
+                  <td className="font-medium text-slate-800">{r.userId ? nameOf.get(r.userId) || `#${r.userId}` : "—"}{r.panelId ? <span className="text-slate-400">{Ld(` · panel #${r.panelId}`)}</span> : null}</td>
                   <td className="max-w-[320px] truncate text-slate-500">{r.link}</td>
-                  <td>{r.verdict === "VIOLATION" ? <Badge cls="bg-rose-50 text-rose-600">Vi phạm</Badge> : <Badge cls="bg-emerald-50 text-emerald-600">An toàn</Badge>}</td>
+                  <td>{r.verdict === "VIOLATION" ? <Badge cls="bg-rose-50 text-rose-600">{L("Vi phạm")}</Badge> : <Badge cls="bg-emerald-50 text-emerald-600">{L("An toàn")}</Badge>}</td>
                   <td className="max-w-[260px] truncate text-slate-500">{r.reason || "—"}</td>
                   <td className="text-slate-500">{r.model || "—"}</td>
                   <td className="whitespace-nowrap text-slate-500">{dt(r.createdAt)}</td>

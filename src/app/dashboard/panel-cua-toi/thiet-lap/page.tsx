@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { PageHead, Flash } from "@/components/ui";
 import { PanelSetupWizard, type PanelWizardData } from "@/components/client";
 import { createPanelAction, updatePanelAction } from "@/app/actions/user";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,10 @@ export const dynamic = "force-dynamic";
  *  dùng cho cả tạo mới và bổ sung cấu hình */
 export default async function PanelSetupPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
+  const panelLangRaw = user.panelId
+    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
+    : undefined;
+  const { L, Ld } = await getServerI18n(panelLangRaw);
   const panel = (await getPanelAccess(user.id))?.panel ?? null;
   const samples = await prisma.smmService.findMany({ where: { active: true }, take: 3, orderBy: { id: "asc" }, select: { name: true, rate: true } });
   const host = headers().get("host") || "localhost";
@@ -28,10 +33,10 @@ export default async function PanelSetupPage({ searchParams }: { searchParams: {
   return (
     <div>
       <PageHead
-        title={panel ? "Cấu hình panel con" : "Cấu hình panel con lần đầu"}
-        desc={panel ? "Chỉnh lại thông tin, giá theo cấp bậc, API key liên kết, tên miền và hỗ trợ của website." : "Năm bước ngắn để website của bạn sẵn sàng mở bán: thông tin, giá theo cấp bậc, nhập API key liên kết web mẹ, tên miền và hỗ trợ."}
+        title={panel ? L("Cấu hình panel con") : L("Cấu hình panel con lần đầu")}
+        desc={panel ? L("Chỉnh lại thông tin, giá theo cấp bậc, API key liên kết, tên miền và hỗ trợ của website.") : L("Năm bước ngắn để website của bạn sẵn sàng mở bán: thông tin, giá theo cấp bậc, nhập API key liên kết web mẹ, tên miền và hỗ trợ.")}
       />
-      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <PanelSetupWizard mode={panel ? "edit" : "create"} initial={initial} samples={samples} apiUrl={apiUrl} action={panel ? updatePanelAction : createPanelAction} />
     </div>
   );

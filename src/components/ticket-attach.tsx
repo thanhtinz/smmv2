@@ -1,10 +1,12 @@
 "use client";
 import { useRef, useState } from "react";
 import { parseAttachments } from "@/lib/attachments";
+import { useLang } from "@/components/lang";
 
 /** Ô đính kèm ảnh cho ticket: nén ảnh phía client (canvas, tối đa 1000px, JPEG)
  *  rồi nhét JSON data-URL vào hidden input "attachments" (tối đa 3 ảnh/tin). */
 export function TicketAttachInput() {
+  const { t, td } = useLang();
   const [imgs, setImgs] = useState<string[]>([]);
   const [err, setErr] = useState("");
   const ref = useRef<HTMLInputElement>(null);
@@ -14,13 +16,13 @@ export function TicketAttachInput() {
     if (!files) return;
     const next = [...imgs];
     for (const f of Array.from(files)) {
-      if (next.length >= 3) { setErr("Tối đa 3 ảnh mỗi tin nhắn"); break; }
-      if (!f.type.startsWith("image/")) { setErr("Chỉ đính kèm được file hình ảnh"); continue; }
+      if (next.length >= 3) { setErr(t("Tối đa 3 ảnh mỗi tin nhắn")); break; }
+      if (!f.type.startsWith("image/")) { setErr(t("Chỉ đính kèm được file hình ảnh")); continue; }
       try {
         const url = await compress(f);
-        if (url.length > 950 * 1024) { setErr("Ảnh quá lớn sau khi nén, chọn ảnh nhỏ hơn"); continue; }
+        if (url.length > 950 * 1024) { setErr(t("Ảnh quá lớn sau khi nén, chọn ảnh nhỏ hơn")); continue; }
         next.push(url);
-      } catch { setErr("Không đọc được ảnh này"); }
+      } catch { setErr(t("Không đọc được ảnh này")); }
     }
     setImgs(next);
     if (ref.current) ref.current.value = "";
@@ -31,7 +33,7 @@ export function TicketAttachInput() {
       <input type="hidden" name="attachments" value={imgs.length ? JSON.stringify(imgs) : ""} />
       <div className="flex flex-wrap items-center gap-2">
         <label className="btn-ghost btn-sm cursor-pointer">
-          Đính kèm ảnh
+          {t("Đính kèm ảnh")}
           <input ref={ref} type="file" accept="image/*" multiple className="hidden" onChange={(e) => onFiles(e.target.files)} />
         </label>
         {imgs.map((u, i) => (
@@ -41,7 +43,7 @@ export function TicketAttachInput() {
             <button type="button" onClick={() => setImgs(imgs.filter((_, j) => j !== i))} className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[11px] text-white">×</button>
           </span>
         ))}
-        <span className="text-xs text-slate-400">{imgs.length}/3 ảnh</span>
+        <span className="text-xs text-slate-400">{td(`${imgs.length}/3 ảnh`)}</span>
       </div>
       {err && <p className="mt-1 text-xs text-rose-600">{err}</p>}
     </div>

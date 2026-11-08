@@ -6,7 +6,8 @@ import { getSession } from "@/lib/auth";
 import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
 import { buyPremiumAction, submitPremiumReviewAction, toggleReviewHelpfulAction } from "@/app/actions/user";
-import { vnd, parsePremiumFields, productImages } from "@/lib/format";
+import { parsePremiumFields, productImages } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 import { ProductGallery } from "@/components/rich-editor";
 import { RichText } from "@/components/rich-text";
 import { PremiumCard, Stars, type PremiumCardData } from "@/components/premium-card";
@@ -84,6 +85,7 @@ const SORTS = [
  *  gradient + breadcrumb, thẻ lọc (tìm kiếm / danh mục / mức giá / sắp xếp),
  *  lưới thẻ 4 cột và nút "Tải thêm sản phẩm". base = gốc link nội bộ. */
 export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: string; q?: string; sort?: string; from?: string; to?: string; base: string }) {
+  const { L, Ld } = await getServerI18n();
   const session = await getSession();
   const viewer = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { panelId: true } }) : null;
   const cats = await prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } });
@@ -114,47 +116,47 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
     <>
       <div className="rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-cyan-500 px-6 py-6 text-white sm:px-8">
         <div className="text-[13px] font-medium text-white/75">
-          <Link href={homeHref} className="hover:text-white">Trang chủ</Link>
+          <Link href={homeHref} className="hover:text-white">{L("Trang chủ")}</Link>
           <span className="mx-1.5">›</span>
-          <span className="text-white">Sản phẩm</span>
+          <span className="text-white">{L("Sản phẩm")}</span>
         </div>
-        <h1 className="mt-3 text-3xl font-extrabold">Tất cả sản phẩm</h1>
-        <p className="mt-1.5 max-w-xl text-sm text-white/85">Tài khoản premium chính hãng — giao ngay tự động từ kho, bảo hành rõ ràng theo từng gói.</p>
+        <h1 className="mt-3 text-3xl font-extrabold">{L("Tất cả sản phẩm")}</h1>
+        <p className="mt-1.5 max-w-xl text-sm text-white/85">{L("Tài khoản premium chính hãng — giao ngay tự động từ kho, bảo hành rõ ràng theo từng gói.")}</p>
       </div>
 
       <form method="get" action={base} className="card mt-6 grid grid-cols-2 items-end gap-4 p-5 lg:grid-cols-[1.15fr_1fr_1.25fr_1fr_auto]">
         <div>
-          <label className="lbl">Tìm kiếm</label>
-          <input className="inp" name="q" placeholder="Tìm sản phẩm..." defaultValue={q || ""} />
+          <label className="lbl">{L("Tìm kiếm")}</label>
+          <input className="inp" name="q" placeholder={L("Tìm sản phẩm...")} defaultValue={q || ""} />
         </div>
         <div>
-          <label className="lbl">Danh mục</label>
+          <label className="lbl">{L("Danh mục")}</label>
           <select className="inp" name="cat" defaultValue={catId ? String(catId) : ""}>
-            <option value="">Tất cả</option>
+            <option value="">{L("Tất cả")}</option>
             {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="lbl">Mức giá</label>
+          <label className="lbl">{L("Mức giá")}</label>
           <div className="flex items-center gap-2">
-            <input className="inp" name="from" type="number" min={0} placeholder="Từ" defaultValue={from || ""} />
+            <input className="inp" name="from" type="number" min={0} placeholder={L("Từ")} defaultValue={from || ""} />
             <span className="text-slate-400">—</span>
-            <input className="inp" name="to" type="number" min={0} placeholder="Đến" defaultValue={to || ""} />
+            <input className="inp" name="to" type="number" min={0} placeholder={L("Đến")} defaultValue={to || ""} />
           </div>
         </div>
         <div>
-          <label className="lbl">Sắp xếp</label>
+          <label className="lbl">{L("Sắp xếp")}</label>
           <select className="inp" name="sort" defaultValue={sortKey}>
-            {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+            {SORTS.map((s) => <option key={s.key} value={s.key}>{L(s.label)}</option>)}
           </select>
         </div>
         <div className="col-span-2 flex gap-2 lg:col-span-1">
-          <button className="btn flex-1 !bg-slate-900 !px-5 font-bold text-white hover:!bg-slate-700 lg:flex-none">Lọc</button>
-          <Link href={base} title="Đặt lại bộ lọc" className="btn-ghost !px-3" aria-label="Đặt lại bộ lọc">{I.refresh}</Link>
+          <button className="btn flex-1 !bg-slate-900 !px-5 font-bold text-white hover:!bg-slate-700 lg:flex-none">{L("Lọc")}</button>
+          <Link href={base} title={L("Đặt lại bộ lọc")} className="btn-ghost !px-3" aria-label={L("Đặt lại bộ lọc")}>{I.refresh}</Link>
         </div>
       </form>
 
-      <p className="mb-4 mt-8 text-sm text-slate-500"><b className="text-slate-800">{items.length}</b> sản phẩm</p>
+      <p className="mb-4 mt-8 text-sm text-slate-500"><b className="text-slate-800">{items.length}</b> {Ld("sản phẩm")}</p>
       <PremiumGrid items={items} base={base} />
     </>
   );
@@ -176,6 +178,7 @@ function DetailSection({ title, open, children }: { title: string; open?: boolea
  *  sản phẩm" + cột phải hộp đặt hàng dính, các khối gập Chi tiết gói / Giới
  *  thiệu, rồi Sản phẩm liên quan cùng định dạng thẻ. */
 export async function PremiumDetailView({ slug, searchParams, base }: { slug: string; searchParams: { msg?: string; err?: string }; base: string }) {
+  const { L, Ld, M } = await getServerI18n();
   const product = await prisma.premiumProduct.findUnique({
     where: { slug },
     include: { category: true, variants: { where: { active: true }, orderBy: [{ sort: "asc" }, { price: "asc" }] } },
@@ -253,18 +256,18 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   const sectionItems: React.ReactNode[] = [];
   if (product.description) {
     sectionItems.push(
-      <DetailSection key="desc" title="Thông tin sản phẩm" open>
+      <DetailSection key="desc" title={L("Thông tin sản phẩm")} open>
         <RichText value={product.description} className="text-sm leading-relaxed text-slate-600" />
       </DetailSection>
     );
   }
   sectionItems.push(
-    <DetailSection key="variants" title="Chi tiết gói">
+    <DetailSection key="variants" title={L("Chi tiết gói")}>
       <ul className="space-y-2 text-sm text-slate-600">
         {product.variants.map((v) => (
           <li key={v.id} className="flex flex-wrap items-baseline justify-between gap-2">
-            <span><b className="text-slate-800">{v.name}</b> — {v.warrantyDays ? `bảo hành ${v.warrantyDays} ngày` : "không bảo hành"}{product.fulfillment === "AUTO_STOCK" ? (stockMap.get(v.id) ? ` · còn ${stockMap.get(v.id)} trong kho` : " · hết kho, giao tay") : ""}</span>
-            <span className="font-bold text-rose-600">{vnd(v.price)}</span>
+            <span><b className="text-slate-800">{v.name}</b> — {v.warrantyDays ? Ld(`bảo hành ${v.warrantyDays} ngày`) : L("không bảo hành")}{product.fulfillment === "AUTO_STOCK" ? (stockMap.get(v.id) ? Ld(` · còn ${stockMap.get(v.id)} trong kho`) : L(" · hết kho, giao tay")) : ""}</span>
+            <span className="font-bold text-rose-600">{M(v.price)}</span>
           </li>
         ))}
       </ul>
@@ -272,14 +275,14 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   );
   if (product.warrantyInfo) {
     sectionItems.push(
-      <DetailSection key="warranty" title="Thông tin bảo hành">
+      <DetailSection key="warranty" title={L("Thông tin bảo hành")}>
         <RichText value={product.warrantyInfo} className="text-sm leading-relaxed text-slate-600" />
       </DetailSection>
     );
   }
   if (product.usageGuide) {
     sectionItems.push(
-      <DetailSection key="usage" title="Hướng dẫn sử dụng">
+      <DetailSection key="usage" title={L("Hướng dẫn sử dụng")}>
         <RichText value={product.usageGuide} className="text-sm leading-relaxed text-slate-600" />
       </DetailSection>
     );
@@ -289,14 +292,14 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
     <div className="card p-6">
       <div className="flex items-center gap-2">
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="#f59e0b"><path d="M12 3.5l2.55 5.37 5.9.72-4.34 4.06 1.1 5.83L12 16.9l-5.21 2.58 1.1-5.83L3.55 9.59l5.9-.72L12 3.5z" /></svg>
-        <h2 className="text-base font-extrabold text-slate-900">Đánh giá sản phẩm</h2>
-        <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">{reviewCount} đánh giá</span>
+        <h2 className="text-base font-extrabold text-slate-900">{L("Đánh giá sản phẩm")}</h2>
+        <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">{Ld(`${reviewCount} đánh giá`)}</span>
       </div>
       <div className="mt-5 grid grid-cols-1 items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,3fr)]">
         <div className="text-center">
           <div className="text-[40px] font-black leading-none text-slate-900">{reviewCount > 0 ? reviewAvg.toFixed(1) : "—"}</div>
           <div className="mt-2.5 flex justify-center"><Stars value={reviewAvg} className="h-5 w-5" /></div>
-          <div className="mt-2 text-[13px] text-slate-500">{reviewCount} đánh giá</div>
+          <div className="mt-2 text-[13px] text-slate-500">{Ld(`${reviewCount} đánh giá`)}</div>
         </div>
         <div className="space-y-2">
         {[5, 4, 3, 2, 1].map((n) => (
@@ -312,7 +315,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
       </div>
       <div className="mt-6 border-t border-slate-100 pt-2">
         {reviewList.length === 0 ? (
-          <p className="py-4 text-center text-sm text-slate-500">Chưa có đánh giá nào cho sản phẩm này.</p>
+          <p className="py-4 text-center text-sm text-slate-500">{L("Chưa có đánh giá nào cho sản phẩm này.")}</p>
         ) : (
           <ul className="divide-y divide-slate-100">
             {reviewList.map((r) => (
@@ -324,7 +327,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
                   <div className="min-w-0">
                     <div className="truncate text-sm font-bold text-slate-900">{maskName(r.user.username)}</div>
                     <div className="flex items-center gap-1 text-xs font-semibold text-emerald-600">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Đã mua hàng
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {L("Đã mua hàng")}
                     </div>
                   </div>
                 </div>
@@ -344,7 +347,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
                 ) : (
                   <Link href="/login" className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700">
                     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinejoin="round" d="M7 22V11L12.5 2.5c1.6 0 2.7 1.2 2.5 2.8L14.3 9H20a2 2 0 0 1 2 2.4l-1.2 8A2 2 0 0 1 18.8 21H7zm0 0H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3" /></svg>
-                    Hữu ích{(helpfulMap.get(r.id) || 0) > 0 ? ` (${helpfulMap.get(r.id)})` : ""}
+                    {Ld(`Hữu ích${(helpfulMap.get(r.id) || 0) > 0 ? ` (${helpfulMap.get(r.id)})` : ""}`)}
                   </Link>
                 )}
               </li>
@@ -353,28 +356,28 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
         )}
       </div>
       <div className="mt-6 border-t border-slate-100 pt-5">
-        <div className="text-sm font-extrabold text-slate-900">{myReview ? "Đánh giá của bạn" : "Viết đánh giá"}</div>
+        <div className="text-sm font-extrabold text-slate-900">{myReview ? L("Đánh giá của bạn") : L("Viết đánh giá")}</div>
         {session && myPurchase ? (
           <PremiumReviewForm slug={product.slug} returnTo={`${base}/${product.slug}`} action={submitPremiumReviewAction} mine={myReview} />
         ) : session ? (
-          <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">Chỉ khách đã mua sản phẩm mới được đánh giá.</p>
+          <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">{L("Chỉ khách đã mua sản phẩm mới được đánh giá.")}</p>
         ) : (
-          <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">Chỉ khách đã mua sản phẩm mới được đánh giá. <Link href="/login" className="font-bold text-brand-700">Đăng nhập</Link></p>
+          <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">{L("Chỉ khách đã mua sản phẩm mới được đánh giá.")} <Link href="/login" className="font-bold text-brand-700">{L("Đăng nhập")}</Link></p>
         )}
       </div>
     </div>
   );
   const images = productImages(product.images, product.imageUrl);
   const homeHref = base.startsWith("/dashboard") ? "/dashboard" : "/";
-  const fulfillmentTag = product.fulfillment === "AUTO_STOCK" ? "Giao ngay" : product.fulfillment === "API" ? "Giao qua đối tác" : "Nâng cấp chính chủ";
+  const fulfillmentTag = product.fulfillment === "AUTO_STOCK" ? L("Giao ngay") : product.fulfillment === "API" ? L("Giao qua đối tác") : L("Nâng cấp chính chủ");
 
   return (
     <>
       <div className="rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-cyan-500 px-6 py-6 text-white sm:px-8">
         <div className="text-[13px] font-medium text-white/75">
-          <Link href={homeHref} className="hover:text-white">Trang chủ</Link>
+          <Link href={homeHref} className="hover:text-white">{L("Trang chủ")}</Link>
           <span className="mx-1.5">›</span>
-          <Link href={base} className="hover:text-white">Sản phẩm</Link>
+          <Link href={base} className="hover:text-white">{L("Sản phẩm")}</Link>
           <span className="mx-1.5">›</span>
           <span className="text-white">{product.name}</span>
         </div>
@@ -396,8 +399,8 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             <h1 className="mt-3 text-3xl font-extrabold leading-tight">{product.name}</h1>
             {product.tagline && <p className="mt-2 text-sm leading-relaxed text-white/85">{product.tagline}</p>}
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-              {reviewCount > 0 && <span className="inline-flex items-center gap-1.5 font-semibold text-white/95"><Stars value={reviewAvg} /> {reviewAvg.toFixed(1)} ({reviewCount} đánh giá)</span>}
-              {sold > 0 && <span className="font-semibold text-white/90">Đã bán {sold.toLocaleString("vi-VN")}</span>}
+              {reviewCount > 0 && <span className="inline-flex items-center gap-1.5 font-semibold text-white/95"><Stars value={reviewAvg} /> {Ld(`${reviewAvg.toFixed(1)} (${reviewCount} đánh giá)`)}</span>}
+              {sold > 0 && <span className="font-semibold text-white/90">{Ld(`Đã bán ${sold.toLocaleString("vi-VN")}`)}</span>}
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{fulfillmentTag}</span>
               {session && <Link href="/dashboard/api-docs" className="rounded-lg border border-white/40 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/10">API</Link>}
             </div>
@@ -434,21 +437,21 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
         ) : (
           <>
             <div className="lg:col-start-1">
-              <h2 className="text-lg font-extrabold text-slate-900">Chọn gói sản phẩm</h2>
+              <h2 className="text-lg font-extrabold text-slate-900">{L("Chọn gói sản phẩm")}</h2>
               <div className="mt-4 space-y-2.5">
                 {product.variants.map((v) => (
                   <div key={v.id} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3.5">
                     <span className="font-bold text-slate-900">{v.name}</span>
-                    <span className="font-extrabold text-rose-600">{vnd(v.price)}</span>
+                    <span className="font-extrabold text-rose-600">{M(v.price)}</span>
                   </div>
                 ))}
               </div>
             </div>
             <div className="lg:col-start-1">{infoSections}</div>
             <div className="card p-6 text-center lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-start lg:sticky lg:top-24">
-              <p className="mb-4 text-sm text-slate-500">Đăng nhập để mua bằng số dư — nạp tiền bằng chuyển khoản, cộng tự động.</p>
-              <Link href="/login" className="btn-primary">Đăng nhập</Link>
-              <Link href="/register" className="btn-ghost ml-2">Đăng ký</Link>
+              <p className="mb-4 text-sm text-slate-500">{L("Đăng nhập để mua bằng số dư — nạp tiền bằng chuyển khoản, cộng tự động.")}</p>
+              <Link href="/login" className="btn-primary">{L("Đăng nhập")}</Link>
+              <Link href="/register" className="btn-ghost ml-2">{L("Đăng ký")}</Link>
             </div>
           </>
         )}
@@ -457,7 +460,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
 
       {related.length > 0 && (
         <div className="mt-12">
-          <h2 className="mb-5 text-xl font-extrabold text-slate-900">Sản phẩm liên quan</h2>
+          <h2 className="mb-5 text-xl font-extrabold text-slate-900">{L("Sản phẩm liên quan")}</h2>
           <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto py-1 -my-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5 lg:grid lg:grid-cols-3 lg:overflow-visible xl:grid-cols-4">
             {related.map((item) => <PremiumCard key={item.slug} item={item} base={base} className="w-[72%] shrink-0 snap-start sm:w-[54%] md:w-[44%] lg:w-auto" />)}
           </div>

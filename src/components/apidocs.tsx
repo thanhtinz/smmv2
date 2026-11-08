@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { ApiTabs, CopyBtn, type ApiActionDoc } from "@/components/client";
+import { getServerI18n } from "@/lib/lang-server";
 
 const KEY: [string, string, string] = ["key", "string", "API key cá nhân của bạn"];
 
@@ -20,37 +21,38 @@ const PRODUCT_ACTIONS: ApiActionDoc[] = [
   { id: "history", label: "Lịch sử mua hàng", params: [KEY, ["action", "string", "history"], ["ids", "string", "Lọc theo mã đơn, cách nhau dấu phẩy (tuỳ chọn — bỏ trống lấy các đơn gần nhất)"]], response: `[\n  {\n    "order_code": "PRE100042",\n    "product": "Netflix Premium 4K",\n    "variant": "1 Tháng",\n    "price": 70000,\n    "status": "DELIVERED",\n    "delivery": "Email: ... | Mật khẩu: ...",\n    "created_at": "2026-01-01 10:00:00"\n  }\n]` },
 ];
 
-function InfoCards({ endpoint, method, methodDesc, apiKey }: { endpoint: string; method: string; methodDesc: string; apiKey?: string | null }) {
+async function InfoCards({ endpoint, method, methodDesc, apiKey }: { endpoint: string; method: string; methodDesc: string; apiKey?: string | null }) {
+  const { L } = await getServerI18n();
   return (
     <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       <div className="card p-5">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Địa chỉ API (Endpoint)</div>
+        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{L("Địa chỉ API (Endpoint)")}</div>
         <div className="font-mono text-[13px] font-semibold text-slate-800 mt-2 break-all">{endpoint}</div>
-        <div className="mt-3"><CopyBtn text={endpoint} label="Sao chép URL" /></div>
+        <div className="mt-3"><CopyBtn text={endpoint} label={L("Sao chép URL")} /></div>
       </div>
       <div className="card p-5">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Khoá API (Token)</div>
+        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{L("Khoá API (Token)")}</div>
         {apiKey ? (
           <>
             <div className="font-mono text-[13px] font-semibold text-slate-800 mt-2">{apiKey.slice(0, 6)}••••••••••••••••</div>
-            <Link href="/dashboard/api" className="inline-block mt-3 text-sm font-semibold text-brand-600 hover:underline">Hiện / Tạo mới tại API đại lý</Link>
+            <Link href="/dashboard/api" className="inline-block mt-3 text-sm font-semibold text-brand-600 hover:underline">{L("Hiện / Tạo mới tại API đại lý")}</Link>
           </>
         ) : (
           <>
             <div className="font-mono text-[13px] text-slate-400 mt-2">••••••••••••••••</div>
-            <Link href="/login" className="inline-block mt-3 text-sm font-semibold text-brand-600 hover:underline">Đăng nhập để xem key của bạn</Link>
+            <Link href="/login" className="inline-block mt-3 text-sm font-semibold text-brand-600 hover:underline">{L("Đăng nhập để xem key của bạn")}</Link>
           </>
         )}
       </div>
       <div className="card p-5">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Phương thức HTTP</div>
+        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{L("Phương thức HTTP")}</div>
         <div className="font-bold text-slate-800 mt-2">{method}</div>
-        <div className="text-xs text-slate-400 mt-1">{methodDesc}</div>
+        <div className="text-xs text-slate-400 mt-1">{L(methodDesc)}</div>
       </div>
       <div className="card p-5">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Định dạng phản hồi</div>
+        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{L("Định dạng phản hồi")}</div>
         <div className="font-bold text-slate-800 mt-2">JSON</div>
-        <div className="text-xs text-slate-400 mt-1">Mã hoá ký tự UTF-8</div>
+        <div className="text-xs text-slate-400 mt-1">{L("Mã hoá ký tự UTF-8")}</div>
       </div>
     </div>
   );
@@ -58,27 +60,31 @@ function InfoCards({ endpoint, method, methodDesc, apiKey }: { endpoint: string;
 
 /* ===== Tài liệu API — bố cục kiểu thatim (DEVELOPER CENTER) ===== */
 export async function ApiDocsView({ apiKey }: { apiKey?: string | null }) {
+  const { L } = await getServerI18n();
   const h = headers();
   const host = h.get("host") || "localhost:3000";
   const proto = h.get("x-forwarded-proto") || (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
   const endpoint = `${proto}://${host}/api/v2`;
+  // Nhãn + mô tả tham số ở module scope được dịch tại đây (điểm hiển thị phía server)
+  // trước khi truyền cho ApiTabs; chuỗi ví dụ response là mẫu dữ liệu nên giữ nguyên.
+  const localize = (actions: ApiActionDoc[]): ApiActionDoc[] => actions.map((a) => ({ ...a, label: L(a.label), params: a.params.map(([n, ty, d]) => [n, ty, L(d)] as [string, string, string]) }));
   return (
     <div>
       <div className="mb-8">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-[26px] font-black tracking-tight text-slate-900">Tài liệu API</h1>
+          <h1 className="text-[26px] font-black tracking-tight text-slate-900">{L("Tài liệu API")}</h1>
           <span className="rounded-md bg-slate-900 text-white text-[11px] font-black px-2 py-1">V2</span>
         </div>
-        <p className="text-slate-500 mt-1.5">Tài liệu hướng dẫn tích hợp API V2: dịch vụ Social và mua sản phẩm Premium tự động dành cho đại lý</p>
+        <p className="text-slate-500 mt-1.5">{L("Tài liệu hướng dẫn tích hợp API V2: dịch vụ Social và mua sản phẩm Premium tự động dành cho đại lý")}</p>
       </div>
 
-      <h2 className="text-lg font-black text-slate-900 mb-4">Tài liệu API dịch vụ Social</h2>
+      <h2 className="text-lg font-black text-slate-900 mb-4">{L("Tài liệu API dịch vụ Social")}</h2>
       <InfoCards endpoint={endpoint} method="POST" methodDesc="application/x-www-form-urlencoded" apiKey={apiKey} />
-      <ApiTabs actions={SMM_ACTIONS} />
+      <ApiTabs actions={localize(SMM_ACTIONS)} />
 
-      <h2 className="text-lg font-black text-slate-900 mt-12 mb-4">Tài liệu API mua sản phẩm <span className="ml-1 rounded-md bg-brand-600 text-white text-[11px] font-black px-2 py-1 align-middle">PRODUCT</span></h2>
+      <h2 className="text-lg font-black text-slate-900 mt-12 mb-4">{L("Tài liệu API mua sản phẩm")} <span className="ml-1 rounded-md bg-brand-600 text-white text-[11px] font-black px-2 py-1 align-middle">PRODUCT</span></h2>
       <InfoCards endpoint={endpoint} method="GET / POST" methodDesc="Hỗ trợ cả hai giao thức nhận tin" apiKey={apiKey} />
-      <ApiTabs actions={PRODUCT_ACTIONS} />
+      <ApiTabs actions={localize(PRODUCT_ACTIONS)} />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { getSettings } from "@/lib/settings";
 import { LANG_KEYS, sanitizeEnabled, sanitizeOverrides, countOverrides } from "@/lib/lang-config";
 import { LangAdminView, buildLangRows } from "@/components/lang-admin";
 import { adminSaveLangSettingsAction, adminSaveLangOverridesAction, adminResetLangOverrideAction } from "@/app/actions/admin";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
  *  sửa bản dịch trực tiếp (lưu Setting lang_overrides, áp dụng ngay). */
 export default async function AdminLangPage({ searchParams }: { searchParams: { msg?: string; err?: string; lang?: string; q?: string } }) {
   await requireAdminPage();
+  const { Ld } = await getServerI18n(null);
   const s = await getSettings();
   let enabled: string[] = [];
   try { enabled = sanitizeEnabled(JSON.parse(s.langs_enabled || "[]")); } catch { enabled = sanitizeEnabled(null); }
@@ -23,8 +25,8 @@ export default async function AdminLangPage({ searchParams }: { searchParams: { 
   return (
     <LangAdminView
       basePath="/admin/ngon-ngu"
-      msg={searchParams.msg}
-      err={searchParams.err}
+      msg={searchParams.msg ? Ld(searchParams.msg) : undefined}
+      err={searchParams.err ? Ld(searchParams.err) : undefined}
       settingsAction={adminSaveLangSettingsAction}
       saveAction={adminSaveLangOverridesAction}
       resetAction={adminResetLangOverrideAction}

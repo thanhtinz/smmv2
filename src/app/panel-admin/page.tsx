@@ -2,12 +2,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requirePanelAccessPage } from "@/lib/panel-access";
 import { PageHead, Flash, Badge, Stat, I } from "@/components/ui";
-import { vnd, num, dt } from "@/lib/format";
+import { num, dt } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function PanelAdminHome({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { user, panel } = await requirePanelAccessPage();
+  const { L, Ld, M } = await getServerI18n((panel as { langConfig?: string | null }).langConfig ?? null);
   const [memberCount, orderAgg, commissionAgg, members, orders, depositAgg, deposits] = await Promise.all([
     prisma.user.count({ where: { panelId: panel.id } }),
     prisma.smmOrder.aggregate({ where: { panelId: panel.id }, _count: true, _sum: { charge: true } }),
@@ -19,41 +21,41 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
   ]);
   return (
     <div>
-      <PageHead title="Tổng quan panel" desc={<>Website của bạn: <span>/cua-hang/{panel.slug}</span>{panel.domain ? <> · tên miền {panel.domain}</> : null}</>}>
-        <Link href={`/cua-hang/${panel.slug}`} className="btn-primary btn-sm !px-4 !py-2">Xem website</Link>
+      <PageHead title={L("Tổng quan panel")} desc={<>{L("Website của bạn:")} <span>/cua-hang/{panel.slug}</span>{panel.domain ? <>{Ld(` · tên miền ${panel.domain}`)}</> : null}</>}>
+        <Link href={`/cua-hang/${panel.slug}`} className="btn-primary btn-sm !px-4 !py-2">{L("Xem website")}</Link>
       </PageHead>
-      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Stat label="Trạng thái panel" value={panel.status === "ACTIVE" ? "Đang mở bán" : "Đã tạm ngưng"} icon={I.home} tone="emerald" />
-        <Stat label="Khách của panel" value={num(memberCount)} icon={I.users} tone="blue" />
-        <Stat label="Đơn qua panel" value={num(orderAgg._count)} icon={I.cart} tone="violet" />
-        <Stat label="Doanh thu qua panel" value={vnd(orderAgg._sum.charge || 0)} icon={I.money} tone="amber" />
-        <Stat label="Hoa hồng đã nhận" value={vnd(commissionAgg._sum.amount || 0)} icon={I.wallet} tone="emerald" />
-        <Stat label="Phụ phí hiện tại" value={`+${panel.markup}%`} icon={I.percent} tone="rose" />
-        <Stat label="Số dư của bạn" value={vnd(user.balance)} icon={I.wallet} tone="blue" />
-        <Stat label="Khách đã nạp (SePay chung)" value={vnd((depositAgg._sum.amount || 0) + (depositAgg._sum.bonus || 0))} icon={I.money} tone="violet" />
+        <Stat label={L("Trạng thái panel")} value={panel.status === "ACTIVE" ? L("Đang mở bán") : L("Đã tạm ngưng")} icon={I.home} tone="emerald" />
+        <Stat label={L("Khách của panel")} value={num(memberCount)} icon={I.users} tone="blue" />
+        <Stat label={L("Đơn qua panel")} value={num(orderAgg._count)} icon={I.cart} tone="violet" />
+        <Stat label={L("Doanh thu qua panel")} value={M(orderAgg._sum.charge || 0)} icon={I.money} tone="amber" />
+        <Stat label={L("Hoa hồng đã nhận")} value={M(commissionAgg._sum.amount || 0)} icon={I.wallet} tone="emerald" />
+        <Stat label={L("Phụ phí hiện tại")} value={`+${panel.markup}%`} icon={I.percent} tone="rose" />
+        <Stat label={L("Số dư của bạn")} value={M(user.balance)} icon={I.wallet} tone="blue" />
+        <Stat label={L("Khách đã nạp (SePay chung)")} value={M((depositAgg._sum.amount || 0) + (depositAgg._sum.bonus || 0))} icon={I.money} tone="violet" />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="font-bold text-slate-900">Đơn mới nhất qua panel</div>
-            <Link href="/panel-admin/don-hang" className="text-sm font-semibold text-brand-600">Xem tất cả</Link>
+            <div className="font-bold text-slate-900">{L("Đơn mới nhất qua panel")}</div>
+            <Link href="/panel-admin/don-hang" className="text-sm font-semibold text-brand-600">{L("Xem tất cả")}</Link>
           </div>
-          {orders.length === 0 ? <p className="text-sm text-slate-400">Chưa có đơn nào qua panel. Chia sẻ link website để bắt đầu có hoa hồng.</p> : (
+          {orders.length === 0 ? <p className="text-sm text-slate-400">{L("Chưa có đơn nào qua panel. Chia sẻ link website để bắt đầu có hoa hồng.")}</p> : (
             <div className="divide-y divide-slate-100">{orders.map((o) => (
               <div key={o.id} className="py-2.5 flex items-center justify-between gap-3 text-sm">
                 <div className="min-w-0"><span className="font-mono font-semibold text-slate-700">{o.code}</span> <span className="text-slate-400">· {o.user.username}</span><div className="text-slate-500 truncate">{o.service.name}</div></div>
-                <div className="text-right shrink-0"><div className="font-semibold">{vnd(o.charge)}</div><div className="text-xs text-emerald-600 font-semibold">+{vnd(o.commission)} hoa hồng</div></div>
+                <div className="text-right shrink-0"><div className="font-semibold">{M(o.charge)}</div><div className="text-xs text-emerald-600 font-semibold">+{M(o.commission)} {L("hoa hồng")}</div></div>
               </div>
             ))}</div>
           )}
         </div>
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="font-bold text-slate-900">Khách mới nhất</div>
-            <Link href="/panel-admin/khach-hang" className="text-sm font-semibold text-brand-600">Quản lý khách</Link>
+            <div className="font-bold text-slate-900">{L("Khách mới nhất")}</div>
+            <Link href="/panel-admin/khach-hang" className="text-sm font-semibold text-brand-600">{L("Quản lý khách")}</Link>
           </div>
-          {members.length === 0 ? <p className="text-sm text-slate-400">Chưa có khách nào đăng ký tại panel.</p> : (
+          {members.length === 0 ? <p className="text-sm text-slate-400">{L("Chưa có khách nào đăng ký tại panel.")}</p> : (
             <div className="divide-y divide-slate-100">{members.map((m) => (
               <div key={m.id} className="py-2.5 flex items-center justify-between gap-3 text-sm">
                 <span className="font-medium text-slate-800">{m.username}</span>
@@ -65,15 +67,15 @@ export default async function PanelAdminHome({ searchParams }: { searchParams: {
       </div>
       <div className="card p-6 mt-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="font-bold text-slate-900">Nạp tiền gần nhất của khách</div>
-          <span className="text-xs text-slate-400">{num(depositAgg._count)} lượt nạp thành công qua SePay</span>
+          <div className="font-bold text-slate-900">{L("Nạp tiền gần nhất của khách")}</div>
+          <span className="text-xs text-slate-400">{Ld(`${num(depositAgg._count)} lượt nạp thành công qua SePay`)}</span>
         </div>
-        {deposits.length === 0 ? <p className="text-sm text-slate-400">Chưa có lượt nạp nào.</p> : (
+        {deposits.length === 0 ? <p className="text-sm text-slate-400">{L("Chưa có lượt nạp nào.")}</p> : (
           <div className="divide-y divide-slate-100">{deposits.map((d) => (
             <div key={d.id} className="py-2.5 flex items-center justify-between gap-3 text-sm">
-              <div className="min-w-0"><span className="font-mono font-semibold text-slate-700">{d.code}</span> <span className="text-slate-400">· {d.user.username}</span>{d.auto && <span className="ml-2 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold px-2 py-0.5">SePay tự động</span>}</div>
+              <div className="min-w-0"><span className="font-mono font-semibold text-slate-700">{d.code}</span> <span className="text-slate-400">· {d.user.username}</span>{d.auto && <span className="ml-2 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold px-2 py-0.5">{L("SePay tự động")}</span>}</div>
               <div className="text-right shrink-0 flex items-center gap-3">
-                <span className="font-semibold">{vnd(d.amount + d.bonus)}</span>
+                <span className="font-semibold">{M(d.amount + d.bonus)}</span>
                 <Badge cls={d.status === "APPROVED" ? "bg-emerald-50 text-emerald-700" : d.status === "REJECTED" ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-700"}>{d.status}</Badge>
                 <span className="text-xs text-slate-400 hidden sm:inline">{dt(d.createdAt)}</span>
               </div>

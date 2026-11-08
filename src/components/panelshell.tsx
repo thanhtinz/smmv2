@@ -6,26 +6,28 @@ import { SideNav } from "@/components/nav";
 import { DisplaySettings } from "@/components/display";
 import { LiveChat } from "@/components/livechat";
 import { I } from "@/components/ui";
-import { vnd, LEVEL_NAME } from "@/lib/format";
+import { LEVEL_NAME } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 
 /** Khung khu tài khoản của PANEL CON — dựng đúng khung dashboard web mẹ
  *  (header trắng dính + thẻ sidebar + chip số dư), chỉ thay thương hiệu/màu của panel */
 export async function PanelShell({ panel, user, children }: { panel: ChildPanel; user: User; children: ReactNode }) {
+  const { L, M } = await getServerI18n();
   const motherSettings = await (await import("@/lib/settings")).getSettings();
   const items = [
-    { href: `/cua-hang/${panel.slug}`, label: "Website", icon: I.home },
-    ...(panel.sellSmm ? [{ href: "/dashboard/dat-hang", label: "Đặt đơn SMM", icon: I.cart },] : []),
-    { href: `/cua-hang/${panel.slug}/don-hang`, label: "Đơn hàng SMM", icon: I.list },
-    ...(panel.sellPremium ? [{ href: `/cua-hang/${panel.slug}/premium`, label: "Mua Premium", icon: I.gem },] : []),
-    { href: `/cua-hang/${panel.slug}/don-premium`, label: "Đơn hàng Premium", icon: I.box },
-    { href: "/dashboard/nap-tien", label: "Nạp tiền", icon: I.wallet },
-    { href: `/cua-hang/${panel.slug}/giao-dich`, label: "Dòng tiền", icon: I.chart },
-    ...(panel.moduleAffiliate ? [{ href: `/cua-hang/${panel.slug}/kiem-tien`, label: "Kiếm tiền", icon: I.money }] : []),
-    ...(panel.moduleApi ? [{ href: "/dashboard/api-docs", label: "Tài liệu API", icon: I.key }] : []),
-    { href: "/dashboard/dich-vu", label: "Bảng giá", icon: I.percent },
-    ...(panel.moduleBlog ? [{ href: "/dashboard/bai-viet", label: "Bài viết", icon: I.file }] : []),
-    { href: "/dashboard/ticket", label: "Hỗ trợ / Ticket", icon: I.ticket },
-    { href: "/dashboard", label: "Bảng điều khiển", icon: I.server },
+    { href: `/cua-hang/${panel.slug}`, label: L("Website"), icon: I.home },
+    ...(panel.sellSmm ? [{ href: "/dashboard/dat-hang", label: L("Đặt đơn SMM"), icon: I.cart },] : []),
+    { href: `/cua-hang/${panel.slug}/don-hang`, label: L("Đơn hàng SMM"), icon: I.list },
+    ...(panel.sellPremium ? [{ href: `/cua-hang/${panel.slug}/premium`, label: L("Mua Premium"), icon: I.gem },] : []),
+    { href: `/cua-hang/${panel.slug}/don-premium`, label: L("Đơn hàng Premium"), icon: I.box },
+    { href: "/dashboard/nap-tien", label: L("Nạp tiền"), icon: I.wallet },
+    { href: `/cua-hang/${panel.slug}/giao-dich`, label: L("Dòng tiền"), icon: I.chart },
+    ...(panel.moduleAffiliate ? [{ href: `/cua-hang/${panel.slug}/kiem-tien`, label: L("Kiếm tiền"), icon: I.money }] : []),
+    ...(panel.moduleApi ? [{ href: "/dashboard/api-docs", label: L("Tài liệu API"), icon: I.key }] : []),
+    { href: "/dashboard/dich-vu", label: L("Bảng giá"), icon: I.percent },
+    ...(panel.moduleBlog ? [{ href: "/dashboard/bai-viet", label: L("Bài viết"), icon: I.file }] : []),
+    { href: "/dashboard/ticket", label: L("Hỗ trợ / Ticket"), icon: I.ticket },
+    { href: "/dashboard", label: L("Bảng điều khiển"), icon: I.server },
   ];
   return (
     <div data-accent={panel.accent} className="min-h-screen bg-slate-50">
@@ -37,10 +39,10 @@ export async function PanelShell({ panel, user, children }: { panel: ChildPanel;
           </Link>
           <div className="ml-auto flex items-center gap-2.5">
             <DisplaySettings />
-            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hidden sm:inline-block">{LEVEL_NAME[user.level]}</span>
-            <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3.5 py-1.5 text-sm font-bold">{vnd(user.balance)}</span>
+            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hidden sm:inline-block">{L(LEVEL_NAME[user.level])}</span>
+            <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3.5 py-1.5 text-sm font-bold">{M(user.balance)}</span>
             <span className="hidden md:inline text-sm font-medium text-slate-700">{user.username}</span>
-            <form action={logoutAction}><button className="btn-ghost btn-sm !py-2">Đăng xuất</button></form>
+            <form action={logoutAction}><button className="btn-ghost btn-sm !py-2">{L("Đăng xuất")}</button></form>
           </div>
         </div>
       </header>

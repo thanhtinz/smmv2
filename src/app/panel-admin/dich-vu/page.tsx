@@ -5,6 +5,7 @@ import { PanelServicesClient, type PanelServiceDTO } from "@/components/panel-ad
 import { PanelPremiumTable, PanelAddedServicesClient, type PanelPremiumRowDTO, type PanelAddedServiceDTO, type PanelSourceServiceDTO, type PanelCategoryDTO } from "@/components/panel-features";
 import { updatePanelAction } from "@/app/actions/user";
 import { num } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
  *  các dịch vụ chủ panel thêm vào website, nguồn lấy từ dịch vụ có sẵn của web mẹ. */
 export default async function PanelServicesPage({ searchParams }: { searchParams: { msg?: string; err?: string; q?: string } }) {
   const { panel } = await requirePanelOwnerPage();
+  const { L, Ld } = await getServerI18n((panel as { langConfig?: string | null }).langConfig ?? null);
   const q = (searchParams.q || "").trim();
   const [services, overrides, totalServices, premiumVariants, premiumOverrides] = await Promise.all([
     prisma.smmService.findMany({
@@ -48,7 +50,7 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
     const src = sv.providerId && sv.providerServiceId ? srcByKey.get(`${sv.providerId}:${sv.providerServiceId}`) : undefined;
     return {
       id: sv.id, name: sv.name, rate: sv.rate, min: sv.min, max: sv.max, description: sv.description, notice: sv.notice, active: sv.active,
-      categoryName: sv.category.name, sourceName: sv.fulfillment === "MANUAL" && !sv.providerId ? null : (src?.name || "Nguồn API web mẹ"),
+      categoryName: sv.category.name, sourceName: sv.fulfillment === "MANUAL" && !sv.providerId ? null : (src?.name || L("Nguồn API web mẹ")),
       sourceRate: src ? src.rate : (sv.costRate > 0 ? sv.costRate : null), fulfillment: sv.fulfillment, orderCount: sv._count.orders,
     };
   });
@@ -70,41 +72,41 @@ export default async function PanelServicesPage({ searchParams }: { searchParams
   });
   return (
     <div>
-      <PageHead title="Dịch vụ & Giá" desc={`Dịch vụ đồng bộ từ web mẹ — chỉnh giá bán tại đây. Đang có ${num(totalServices)} dịch vụ của web mẹ.`} />
-      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <PageHead title={L("Dịch vụ & Giá")} desc={Ld(`Dịch vụ đồng bộ từ web mẹ — chỉnh giá bán tại đây. Đang có ${num(totalServices)} dịch vụ của web mẹ.`)} />
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
       <div className="card mb-6 p-6">
-        <div className="font-bold text-slate-900">Giá chung của panel</div>
+        <div className="font-bold text-slate-900">{L("Giá chung của panel")}</div>
         <form action={updatePanelAction} className="mt-4 grid grid-cols-2 items-end gap-4 lg:grid-cols-5">
           <input type="hidden" name="back" value="/panel-admin/dich-vu" />
-          <div><label className="lbl">Phụ phí (%)</label><input className="inp" name="markup" type="number" min={0} max={200} defaultValue={panel.markup} /></div>
-          <div><label className="lbl">Giảm — Thành viên (%)</label><input className="inp" name="discountMember" type="number" min={0} max={90} defaultValue={panel.discountMember} /></div>
-          <div><label className="lbl">Giảm — Đại lý (%)</label><input className="inp" name="discountReseller" type="number" min={0} max={90} defaultValue={panel.discountReseller} /></div>
-          <div><label className="lbl">Giảm — Tổng đại lý (%)</label><input className="inp" name="discountAgency" type="number" min={0} max={90} defaultValue={panel.discountAgency} /></div>
+          <div><label className="lbl">{L("Phụ phí (%)")}</label><input className="inp" name="markup" type="number" min={0} max={200} defaultValue={panel.markup} /></div>
+          <div><label className="lbl">{L("Giảm — Thành viên (%)")}</label><input className="inp" name="discountMember" type="number" min={0} max={90} defaultValue={panel.discountMember} /></div>
+          <div><label className="lbl">{L("Giảm — Đại lý (%)")}</label><input className="inp" name="discountReseller" type="number" min={0} max={90} defaultValue={panel.discountReseller} /></div>
+          <div><label className="lbl">{L("Giảm — Tổng đại lý (%)")}</label><input className="inp" name="discountAgency" type="number" min={0} max={90} defaultValue={panel.discountAgency} /></div>
           <div className="flex items-end gap-3">
-            <div className="flex-1"><label className="lbl">Giảm — VIP (%)</label><input className="inp" name="discountVip" type="number" min={0} max={90} defaultValue={panel.discountVip} /></div>
-            <button className="btn-primary shrink-0 !py-2.5">Lưu giá</button>
+            <div className="flex-1"><label className="lbl">{L("Giảm — VIP (%)")}</label><input className="inp" name="discountVip" type="number" min={0} max={90} defaultValue={panel.discountVip} /></div>
+            <button className="btn-primary shrink-0 !py-2.5">{L("Lưu giá")}</button>
           </div>
         </form>
       </div>
 
       <form method="get" className="card mb-4 flex flex-wrap items-center gap-3 p-4">
-        <input name="q" defaultValue={q} className="inp min-w-[220px] flex-1" placeholder="Tìm dịch vụ..." />
-        <button className="btn-primary btn-sm !px-4 !py-2.5">Tìm kiếm</button>
-        {totalServices > services.length && <span className="text-xs text-slate-400">Đang hiển thị {services.length}/{num(totalServices)} dịch vụ — dùng ô tìm kiếm để thu hẹp.</span>}
+        <input name="q" defaultValue={q} className="inp min-w-[220px] flex-1" placeholder={L("Tìm dịch vụ...")} />
+        <button className="btn-primary btn-sm !px-4 !py-2.5">{L("Tìm kiếm")}</button>
+        {totalServices > services.length && <span className="text-xs text-slate-400">{Ld(`Đang hiển thị ${services.length}/${num(totalServices)} dịch vụ — dùng ô tìm kiếm để thu hẹp.`)}</span>}
       </form>
 
       <PanelServicesClient services={dtos} />
 
       <div className="mb-4 mt-10 flex flex-wrap items-center gap-3">
-        <h2 className="text-lg font-extrabold text-slate-900">Dịch vụ đã thêm</h2>
-        <span className="text-sm text-slate-400">Thêm dịch vụ vào website của bạn — nguồn lấy từ dịch vụ có sẵn của web mẹ, hoặc dịch vụ thủ công do bạn tự xử lý đơn.</span>
+        <h2 className="text-lg font-extrabold text-slate-900">{L("Dịch vụ đã thêm")}</h2>
+        <span className="text-sm text-slate-400">{L("Thêm dịch vụ vào website của bạn — nguồn lấy từ dịch vụ có sẵn của web mẹ, hoặc dịch vụ thủ công do bạn tự xử lý đơn.")}</span>
       </div>
       <PanelAddedServicesClient services={addedDtos} sources={sourceDtos} categories={categoryDtos} />
 
       <div className="mb-4 mt-10 flex flex-wrap items-center gap-3">
-        <h2 className="text-lg font-extrabold text-slate-900">Giá gói Premium</h2>
-        <span className="text-sm text-slate-400">Giá công thức = giá mẹ + phụ phí, trừ % giảm của khách Thành viên. Đặt giá riêng thì giá riêng là giá cuối cho mọi bậc.</span>
+        <h2 className="text-lg font-extrabold text-slate-900">{L("Giá gói Premium")}</h2>
+        <span className="text-sm text-slate-400">{L("Giá công thức = giá mẹ + phụ phí, trừ % giảm của khách Thành viên. Đặt giá riêng thì giá riêng là giá cuối cho mọi bậc.")}</span>
       </div>
       <PanelPremiumTable rows={premiumRows} />
     </div>

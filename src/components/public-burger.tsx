@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logoutAction } from "@/app/actions/auth";
+import { useLang } from "@/components/lang";
 
 /** Nút burger cho các header công khai trên điện thoại — gom các mục điều hướng
  *  chính vào một menu thả xuống (thay thanh menu footer dưới đáy đã bỏ). */
@@ -14,25 +15,26 @@ export function PublicBurger({ tone = "dark", home, panelSlug, loggedIn, registe
   registerHref: string;
   items?: { href: string; label: string }[];
 }) {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   const path = usePathname();
   useEffect(() => { setOpen(false); }, [path]);
   const items = itemsOverride || [
-    { href: home, label: "Trang chủ" },
-    { href: "/dashboard/dich-vu", label: "Bảng giá" },
-    { href: "/dashboard/dat-hang", label: "Đặt đơn SMM" },
+    { href: home, label: t("Trang chủ") },
+    { href: "/dashboard/dich-vu", label: t("Bảng giá") },
+    { href: "/dashboard/dat-hang", label: t("Đặt đơn SMM") },
     { href: panelSlug ? `/cua-hang/${panelSlug}/premium` : "/premium", label: "Premium" },
     ...(loggedIn
       ? [
-          { href: "/dashboard", label: "Bảng điều khiển" },
-          { href: "/dashboard/nap-tien", label: "Nạp tiền" },
+          { href: "/dashboard", label: t("Bảng điều khiển") },
+          { href: "/dashboard/nap-tien", label: t("Nạp tiền") },
         ]
-      : [{ href: registerHref, label: "Đăng ký" }]),
+      : [{ href: registerHref, label: t("Đăng ký") }]),
   ];
   const dark = tone === "dark";
   return (
     <div className="relative shrink-0 lg:hidden">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-label="Mở menu"
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-label={t("Mở menu")}
         className={`flex h-10 w-10 items-center justify-center rounded-full border transition ${dark ? "border-white/15 bg-white/10 text-white hover:bg-white/20" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
       </button>
@@ -52,7 +54,7 @@ export function PublicBurger({ tone = "dark", home, panelSlug, loggedIn, registe
             {loggedIn && (
               <div className={`mt-1 border-t pt-1 ${dark ? "border-white/10" : "border-slate-100"}`}>
                 <form action={logoutAction}>
-                  <button className={`block w-full rounded-xl px-3.5 py-2.5 text-left text-sm font-semibold transition ${dark ? "text-rose-300 hover:bg-white/5" : "text-rose-600 hover:bg-rose-50"}`}>Đăng xuất</button>
+                  <button className={`block w-full rounded-xl px-3.5 py-2.5 text-left text-sm font-semibold transition ${dark ? "text-rose-300 hover:bg-white/5" : "text-rose-600 hover:bg-rose-50"}`}>{t("Đăng xuất")}</button>
                 </form>
               </div>
             )}

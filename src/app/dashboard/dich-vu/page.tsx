@@ -5,6 +5,7 @@ import { ServicesExplorer, ServiceDTO } from "@/components/client";
 import { avgTimesFromRecentOrders } from "@/lib/avg-time";
 import { getActiveFlashSale, flashAppliesTo, applyFlashAmount } from "@/lib/flash";
 import { FlashBanner } from "@/components/flash-banner";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ export default async function DashPricePage() {
   const user = (await getCurrentUser())!;
   const panel = user.panelId ? await prisma.childPanel.findUnique({ where: { id: user.panelId } }) : null;
   const panelActive = panel && panel.status === "ACTIVE" ? panel : null;
+  const panelLangRaw = user.panelId ? (panel?.langConfig ?? null) : undefined;
+  const { L } = await getServerI18n(panelLangRaw);
   const services = await prisma.smmService.findMany({ where: { active: true, OR: [{ panelId: null }, ...(user.panelId ? [{ panelId: user.panelId }] : [])] }, include: { category: true }, orderBy: [{ categoryId: "asc" }, { sort: "asc" }] });
   const hiddenCatIds = new Set((panelActive?.hiddenCats || "").split(",").map((x) => parseInt(x.trim())).filter((n) => Number.isFinite(n)));
   const avgMap = await avgTimesFromRecentOrders(services.map((s) => s.id));
@@ -25,7 +28,7 @@ export default async function DashPricePage() {
   return (
     <div>
       <FlashBanner panelId={user.panelId ?? null} kind="SMM" />
-      <PageHead title="Bảng giá dịch vụ" desc="Toàn bộ dịch vụ SMM đang mở bán kèm giá và giới hạn mỗi đơn." />
+      <PageHead title={L("Bảng giá dịch vụ")} desc={L("Toàn bộ dịch vụ SMM đang mở bán kèm giá và giới hạn mỗi đơn.")} />
       <ServicesExplorer services={dto} orderMode />
     </div>
   );

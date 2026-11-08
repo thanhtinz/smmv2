@@ -1477,6 +1477,19 @@ export const DICT: Record<string, Tr> = {
   "Chỉ khách đã mua sản phẩm mới được đánh giá.": e("Only customers who bought the product can review it.", "只有买过产品的客户才能评价。", "เฉพาะลูกค้าที่ซื้อสินค้าแล้วเท่านั้นที่รีวิวได้", "商品を購入した顧客のみレビューできます。", "상품을 구매한 고객만 리뷰할 수 있습니다."),
   "Chỉnh giá": e("Adjust price", "调整价格", "ปรับราคา", "価格を調整", "가격 조정"),
   "Chọn gói sản phẩm": e("Choose a product plan", "选择产品套餐", "เลือกแพ็กเกจสินค้า", "商品プランを選択", "상품 플랜 선택"),
+  "Chọn gói": e("Choose a plan", "选择套餐", "เลือกแพ็กเกจ", "プランを選択", "플랜 선택"),
+  "Mua ngay bằng số dư": e("Buy now with balance", "使用余额立即购买", "ซื้อทันทีด้วยยอดคงเหลือ", "残高で今すぐ購入", "잔액으로 지금 구매"),
+  "Số dư:": e("Balance:", "余额：", "ยอดคงเหลือ:", "残高：", "잔액:"),
+  "Đã chi tiêu:": e("Total spent:", "已消费总额：", "ยอดใช้จ่ายทั้งหมด:", "総支出額：", "총 지출:"),
+  "chi tiết ở tab Bảo mật & Phiên đăng nhập.": e("see details in the Security & Login sessions tab.", "详情见安全与登录会话选项卡。", "ดูรายละเอียดที่แท็บความปลอดภัยและเซสชันการเข้าสู่ระบบ", "詳細はセキュリティとログインセッションのタブで確認できます。", "자세한 내용은 보안 및 로그인 세션 탭에서 확인하세요."),
+  "Tối đa:": e("Max:", "最大:", "สูงสุด:", "最大：", "최대:"),
+  "Hình thức giao": e("Delivery method", "交付方式", "วิธีจัดส่ง", "配送方法", "배송 방식"),
+  "Bảo hành tối đa": e("Max warranty", "最长保修", "การรับประกันสูงสุด", "最長保証", "최대 보증"),
+  "Giao ngay tự động từ kho": e("Instant automatic delivery from stock", "库存自动即时交付", "จัดส่งอัตโนมัติทันทีจากคลัง", "在庫から即時自動配送", "재고에서 즉시 자동 배송"),
+  "Thanh toán bằng số dư, xem lại nội dung đã giao bất cứ lúc nào trong mục Đơn Premium": e("Pay with your balance, and review delivered items anytime under Premium Orders", "使用余额支付，随时在 Premium 订单中查看已交付内容", "ชำระด้วยยอดคงเหลือ และดูรายการที่ได้รับได้ทุกเมื่อในเมนูคำสั่งซื้อ Premium", "残高で支払い、納品内容はPremium注文でいつでも確認できます", "잔액으로 결제하고, 배송된 내용은 Premium 주문에서 언제든 확인할 수 있습니다"),
+  "← Tất cả sản phẩm Premium của": e("← All Premium products of", "← 全部 Premium 产品 —", "← สินค้า Premium ทั้งหมดของ", "← Premium商品一覧：", "← Premium 상품 전체:"),
+  "Hệ thống POST JSON { event, code, status, note, at } tới URL này mỗi khi đơn SMM của bạn chuyển trạng thái.": e("The system POSTs JSON { event, code, status, note, at } to this URL whenever your SMM order changes status.", "每当您的 SMM 订单状态变更时，系统会向此 URL POST JSON { event, code, status, note, at }。", "ระบบจะ POST JSON { event, code, status, note, at } ไปยัง URL นี้ทุกครั้งที่คำสั่งซื้อ SMM ของคุณเปลี่ยนสถานะ", "SMM注文のステータスが変わるたびに、システムがこのURLへJSON { event, code, status, note, at } をPOSTします。", "SMM 주문 상태가 바뀔 때마다 시스템이 이 URL로 JSON { event, code, status, note, at }을 POST합니다."),
+  "Bật 2FA để bảo vệ tài khoản: khi đăng nhập, sau mật khẩu phải nhập thêm mã 6 số từ ứng dụng Authenticator (Google Authenticator, Microsoft Authenticator, Authy...).": e("Enable 2FA to protect your account: after your password you must also enter the 6-digit code from an Authenticator app (Google Authenticator, Microsoft Authenticator, Authy...).", "启用双重验证保护账户：输入密码后还需输入验证器应用（Google Authenticator、Microsoft Authenticator、Authy 等）中的6位验证码。", "เปิด 2FA เพื่อปกป้องบัญชี: หลังใส่รหัสผ่านต้องป้อนรหัส 6 หลักจากแอป Authenticator (Google Authenticator, Microsoft Authenticator, Authy...)", "2FAを有効にしてアカウントを保護：パスワードの後に認証アプリ（Google Authenticator、Microsoft Authenticator、Authyなど）の6桁コードも必要です。", "2FA를 활성화해 계정을 보호하세요: 비밀번호 후 인증 앱(Google Authenticator, Microsoft Authenticator, Authy 등)의 6자리 코드를 추가로 입력해야 합니다."),
   "Chờ trả lời": e("Awaiting reply", "等待回复", "รอการตอบกลับ", "返信待ち", "답변 대기"),
   "Chủ panel (bạn)": e("Panel owner (you)", "Panel 主人(您)", "เจ้าของ panel (คุณ)", "パネルオーナー（あなた）", "패널 소유자(본인)"),
   "Cấm IP mới": e("Ban a new IP", "封禁新 IP", "แบน IP ใหม่", "新しいIPを禁止", "새 IP 차단"),
@@ -2232,6 +2245,14 @@ export const DICT: Record<string, Tr> = {
 
 /* Dịch theo MẢNH cho các dòng ghép (vd "Đơn giá 45.000đ/1000", "Số lượng 500 · Bắt đầu —") */
 export const FRAGMENTS: [string, Record<string, string>][] = [
+  // Đợt quét ngôn ngữ (bản vá hoàn tất) — mảnh cho dòng ghép ở form đặt đơn/hồ sơ:
+  ["Tối thiểu/Tối đa: ", { en: "Min/Max: ", zh: "最小/最大：", th: "ต่ำสุด/สูงสุด: ", ja: "最小/最大：", ko: "최소/최대: " }],
+  ["Bạn đang được giảm ", { en: "You get a discount of ", zh: "您享有折扣 ", th: "คุณได้รับส่วนลด ", ja: "割引適用中：", ko: "할인 적용 중: " }],
+  ["% theo cấp bậc", { en: "% by tier", zh: "% 按等级", th: "% ตามระดับ", ja: "% ランク別", ko: "% 등급별" }],
+  ["Tối thiểu: ", { en: "Min: ", zh: "最小：", th: "ต่ำสุด: ", ja: "最小：", ko: "최소: " }],
+  [" - Tối đa: ", { en: " - Max: ", zh: " - 最大：", th: " - สูงสุด: ", ja: " - 最大：", ko: " - 최대: " }],
+  ["Gói ", { en: "Plan ", zh: "套餐 ", th: "แพ็กเกจ ", ja: "プラン ", ko: "플랜 " }],
+  [": bảo hành ", { en: ": warranty ", zh: "：保修 ", th: ": รับประกัน ", ja: "：保証 ", ko: ": 보증 " }],
   // Ưu tiên cao nhất — mảnh dài chứa " khách"/"Hoa hồng" phải chạy trước mảnh ngắn
   // Đợt quét ngôn ngữ 2026-11-07 — mảnh câu ghép ở Trung tâm bảo mật/panel (chạy sớm):
   ["Gia hạn 30 ngày — ", { en: "Renew 30 days — ", zh: "续费 30 天 — ", th: "ต่ออายุ 30 วัน — ", ja: "30日更新 — ", ko: "30일 갱신 — " }],
@@ -2345,6 +2366,7 @@ export const FRAGMENTS: [string, Record<string, string>][] = [
   ["Hết hạn", { en: "Expires", zh: "到期", th: "หมดอายุ", ja: "有効期限", ko: "만료" }],
   ["Đơn giá ", { en: "Rate ", zh: "单价 ", th: "ราคา ", ja: "単価 ", ko: "단가 " }],
   ["đã hoàn ", { en: "refunded ", zh: "已退 ", th: "คืนแล้ว ", ja: "返金済み ", ko: "환불됨 " }],
+  ["Số lượng đơn này: ", { en: "This order's quantity: ", zh: "本单数量：", th: "จำนวนของออเดอร์นี้: ", ja: "この注文の数量：", ko: "이 주문의 수량: " }],
   ["Số lượng: ", { en: "Quantity: ", zh: "数量:", th: "จำนวน: ", ja: "数量：", ko: "수량: " }],
   ["Số lượng ", { en: "Quantity ", zh: "数量 ", th: "จำนวน ", ja: "数量 ", ko: "수량 " }],
   ["Bắt đầu ", { en: "Start ", zh: "开始 ", th: "เริ่ม ", ja: "開始 ", ko: "시작 " }],
@@ -2415,6 +2437,28 @@ export const CURRENCIES: { key: string; name: string; rate: number }[] = [
   { key: "KRW", name: "KRW ₩", rate: 17.5 },
 ];
 export type CurrencyKey = string;
+
+export const LOCALES: Record<string, string> = { vi: "vi-VN", en: "en-US", zh: "zh-CN", th: "th-TH", ja: "ja-JP", ko: "ko-KR" };
+
+/** Định dạng tiền TẠI LÚC RENDER — đã tách hẳn khỏi cơ chế dịch (trước đây lớp vá DOM
+ *  dùng regex thay "…đ" sau khi trang hiện). vndInt = số tiền VND (đơn vị tiền thật);
+ *  cur = tiền tệ hiển thị khách đã chọn (cookie smmv2-cur); rates = tỉ giá VND/1 đơn vị
+ *  ngoại tệ theo cấu hình (settings/panel) — thiếu thì dùng tỉ giá mặc định ở CURRENCIES.
+ *  cur = VND -> đúng định dạng của vnd() hiện tại ("55.000đ"). */
+export function formatMoney(vndInt: number, cur: string, lang: string, rates?: Record<string, number>): string {
+  if (!cur || cur === "VND") return new Intl.NumberFormat("vi-VN").format(Math.round(vndInt)) + "đ";
+  const def = CURRENCIES.find((c) => c.key === cur);
+  const rate = rates && rates[cur] > 0 ? rates[cur] : def?.rate;
+  if (!def || !rate) return new Intl.NumberFormat("vi-VN").format(Math.round(vndInt)) + "đ";
+  const val = vndInt / rate;
+  const zero = cur === "JPY" || cur === "KRW";
+  return new Intl.NumberFormat(LOCALES[lang] || "en-US", {
+    style: "currency",
+    currency: cur,
+    minimumFractionDigits: zero ? 0 : undefined,
+    maximumFractionDigits: zero ? 0 : 2,
+  }).format(val);
+}
 
 export const FONTS = [
   { key: "default", name: "Mặc định" },

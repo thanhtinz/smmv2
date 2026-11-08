@@ -2,13 +2,15 @@ import Link from "next/link";
 import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PageHead, Stat, I, RankBadge, Badge } from "@/components/ui";
-import { vnd, num, LEVEL_NAME } from "@/lib/format";
+import { num, LEVEL_NAME } from "@/lib/format";
 import { getStats } from "@/lib/stats";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminAnalytics() {
   await requireAdminPage();
+  const { L, Ld, M } = await getServerI18n(null);
   const since30 = new Date(Date.now() - 29 * 86400000); since30.setHours(0, 0, 0, 0);
   const notRefunded = { notIn: ["REFUNDED"] } as any;
 
@@ -45,24 +47,24 @@ export default async function AdminAnalytics() {
 
   return (
     <div>
-      <PageHead title="Phân tích" desc="Thu nhập tổng (SMM + Premium), mặt hàng bán chạy, top khách và hành vi khách hàng." />
+      <PageHead title={L("Phân tích")} desc={L("Thu nhập tổng (SMM + Premium), mặt hàng bán chạy, top khách và hành vi khách hàng.")} />
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Thu nhập hôm nay" value={vnd(full.today.revenue)} sub={`Lãi ${vnd(full.today.profit)} · ${num(full.today.orders)} đơn`} icon={I.money} tone="blue" />
-        <Stat label="Thu nhập 7 ngày" value={vnd(full.last7.revenue)} sub={`Lãi ${vnd(full.last7.profit)} · ${num(full.last7.orders)} đơn`} icon={I.chart} tone="cyan" />
-        <Stat label="Thu nhập 30 ngày" value={vnd(full.last30.revenue)} sub={`Lãi ${vnd(full.last30.profit)} · ${num(full.last30.orders)} đơn`} icon={I.chart} tone="violet" />
-        <Stat label="Thu nhập tháng này" value={vnd(full.month.revenue)} sub={`Lãi ${vnd(full.month.profit)} · Nạp ${vnd(full.month.deposits)}`} icon={I.wallet} tone="emerald" />
+        <Stat label={L("Thu nhập hôm nay")} value={M(full.today.revenue)} sub={Ld(`Lãi ${M(full.today.profit)} · ${num(full.today.orders)} đơn`)} icon={I.money} tone="blue" />
+        <Stat label={L("Thu nhập 7 ngày")} value={M(full.last7.revenue)} sub={Ld(`Lãi ${M(full.last7.profit)} · ${num(full.last7.orders)} đơn`)} icon={I.chart} tone="cyan" />
+        <Stat label={L("Thu nhập 30 ngày")} value={M(full.last30.revenue)} sub={Ld(`Lãi ${M(full.last30.profit)} · ${num(full.last30.orders)} đơn`)} icon={I.chart} tone="violet" />
+        <Stat label={L("Thu nhập tháng này")} value={M(full.month.revenue)} sub={Ld(`Lãi ${M(full.month.profit)} · Nạp ${M(full.month.deposits)}`)} icon={I.wallet} tone="emerald" />
       </div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Stat label="Doanh thu SMM 30 ngày" value={vnd(monthRev)} icon={I.chart} tone="blue" />
-        <Stat label="Lợi nhuận SMM 30 ngày" value={vnd(monthProfit)} icon={I.money} tone="emerald" sub={monthRev > 0 ? `Biên lợi nhuận ${Math.round((monthProfit / monthRev) * 100)}%` : undefined} />
-        <Stat label="Tỉ lệ khách nạp tiền / đăng ký" value={totalUsers ? `${Math.round((depositedUsers / totalUsers) * 100)}%` : "0%"} icon={I.users} tone="violet" sub={`${num(depositedUsers)} / ${num(totalUsers)} tài khoản`} />
+        <Stat label={L("Doanh thu SMM 30 ngày")} value={M(monthRev)} icon={I.chart} tone="blue" />
+        <Stat label={L("Lợi nhuận SMM 30 ngày")} value={M(monthProfit)} icon={I.money} tone="emerald" sub={monthRev > 0 ? Ld(`Biên lợi nhuận ${Math.round((monthProfit / monthRev) * 100)}%`) : undefined} />
+        <Stat label={L("Tỉ lệ khách nạp tiền / đăng ký")} value={totalUsers ? `${Math.round((depositedUsers / totalUsers) * 100)}%` : "0%"} icon={I.users} tone="violet" sub={Ld(`${num(depositedUsers)} / ${num(totalUsers)} tài khoản`)} />
       </div>
 
       <div className="card p-6">
-        <div className="mb-4 font-bold text-slate-900">Doanh thu theo ngày — 30 ngày</div>
+        <div className="mb-4 font-bold text-slate-900">{L("Doanh thu theo ngày — 30 ngày")}</div>
         <div className="flex h-40 items-end gap-1">
           {buckets.map((b) => (
-            <div key={b.label} className="group flex min-w-0 flex-1 flex-col items-center gap-1.5" title={`${b.label}: ${vnd(b.rev)}`}>
+            <div key={b.label} className="group flex min-w-0 flex-1 flex-col items-center gap-1.5" title={Ld(`${b.label}: ${M(b.rev)}`)}>
               <div className="w-full rounded-t bg-gradient-to-t from-brand-600 to-brand-400 transition group-hover:from-brand-700 group-hover:to-brand-500" style={{ height: `${Math.max(2, (b.rev / maxBar) * 120)}px` }} />
               <div className="hidden text-[9px] text-slate-400 xl:block">{b.label}</div>
             </div>
@@ -72,44 +74,44 @@ export default async function AdminAnalytics() {
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="card h-full overflow-hidden">
-          <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Dịch vụ doanh thu cao nhất</div>
+          <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">{L("Dịch vụ doanh thu cao nhất")}</div>
           <table className="w-full"><tbody className="divide-y divide-slate-100">
             {topServices.map((t) => (
               <tr key={t.serviceId}>
-                <td className="td"><div className="max-w-[220px] truncate font-medium">{serviceName.get(t.serviceId) || `#${t.serviceId}`}</div><div className="text-xs text-slate-400">{num(t._count)} đơn</div></td>
-                <td className="td text-right"><div className="font-bold">{vnd(t._sum.charge || 0)}</div><div className="text-xs text-emerald-600">lãi {vnd((t._sum.charge || 0) - (t._sum.cost || 0))}</div></td>
+                <td className="td"><div className="max-w-[220px] truncate font-medium">{serviceName.get(t.serviceId) || `#${t.serviceId}`}</div><div className="text-xs text-slate-400">{Ld(`${num(t._count)} đơn`)}</div></td>
+                <td className="td text-right"><div className="font-bold">{M(t._sum.charge || 0)}</div><div className="text-xs text-emerald-600">{Ld(`lãi ${M((t._sum.charge || 0) - (t._sum.cost || 0))}`)}</div></td>
               </tr>
             ))}
-            {topServices.length === 0 && <tr><td className="td text-slate-400">Chưa có dữ liệu</td></tr>}
+            {topServices.length === 0 && <tr><td className="td text-slate-400">{L("Chưa có dữ liệu")}</td></tr>}
           </tbody></table>
         </div>
         <div className="card h-full overflow-hidden">
-          <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Khách chi tiêu nhiều nhất</div>
+          <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">{L("Khách chi tiêu nhiều nhất")}</div>
           <table className="w-full"><tbody className="divide-y divide-slate-100">
             {topCustomers.map((t) => (
               <tr key={t.userId}>
-                <td className="td"><Link href={`/admin/nguoi-dung/${t.userId}`} className="font-medium text-brand-700">{userName.get(t.userId) || `#${t.userId}`}</Link><div className="text-xs text-slate-400">{num(t._count)} đơn</div></td>
-                <td className="td text-right font-bold">{vnd(t._sum.charge || 0)}</td>
+                <td className="td"><Link href={`/admin/nguoi-dung/${t.userId}`} className="font-medium text-brand-700">{userName.get(t.userId) || `#${t.userId}`}</Link><div className="text-xs text-slate-400">{Ld(`${num(t._count)} đơn`)}</div></td>
+                <td className="td text-right font-bold">{M(t._sum.charge || 0)}</td>
               </tr>
             ))}
-            {topCustomers.length === 0 && <tr><td className="td text-slate-400">Chưa có dữ liệu</td></tr>}
+            {topCustomers.length === 0 && <tr><td className="td text-slate-400">{L("Chưa có dữ liệu")}</td></tr>}
           </tbody></table>
         </div>
         <div className="space-y-6">
           <div className="card overflow-hidden">
-            <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Hiệu quả theo nhà cung cấp</div>
+            <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">{L("Hiệu quả theo nhà cung cấp")}</div>
             <table className="w-full"><tbody className="divide-y divide-slate-100">
               {byProvider.map((t) => (
                 <tr key={String(t.providerId)}>
-                  <td className="td"><span className="font-medium">{providerName.get(t.providerId!) || "Thủ công"}</span><div className="text-xs text-slate-400">{num(t._count)} đơn</div></td>
-                  <td className="td text-right"><div className="font-bold">{vnd(t._sum.charge || 0)}</div><div className="text-xs text-emerald-600">lãi {vnd((t._sum.charge || 0) - (t._sum.cost || 0))}</div></td>
+                  <td className="td"><span className="font-medium">{providerName.get(t.providerId!) || L("Thủ công")}</span><div className="text-xs text-slate-400">{Ld(`${num(t._count)} đơn`)}</div></td>
+                  <td className="td text-right"><div className="font-bold">{M(t._sum.charge || 0)}</div><div className="text-xs text-emerald-600">{Ld(`lãi ${M((t._sum.charge || 0) - (t._sum.cost || 0))}`)}</div></td>
                 </tr>
               ))}
-              {byProvider.length === 0 && <tr><td className="td text-slate-400">Chưa có đơn qua API</td></tr>}
+              {byProvider.length === 0 && <tr><td className="td text-slate-400">{L("Chưa có đơn qua API")}</td></tr>}
             </tbody></table>
           </div>
           <div className="card p-5">
-            <div className="mb-4 font-bold text-slate-900">Phễu khách hàng</div>
+            <div className="mb-4 font-bold text-slate-900">{L("Phễu khách hàng")}</div>
             <div className="space-y-3">
               {[
                 { label: "Đăng ký tài khoản", value: totalUsers },
@@ -117,7 +119,7 @@ export default async function AdminAnalytics() {
                 { label: "Đã đặt đơn SMM", value: orderedUsers },
               ].map((f, _i, arr) => (
                 <div key={f.label}>
-                  <div className="mb-1 flex justify-between text-sm"><span className="text-slate-600">{f.label}</span><b>{num(f.value)}</b></div>
+                  <div className="mb-1 flex justify-between text-sm"><span className="text-slate-600">{L(f.label)}</span><b>{num(f.value)}</b></div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-brand-400" style={{ width: `${arr[0].value ? Math.round((f.value / arr[0].value) * 100) : 0}%` }} /></div>
                 </div>
               ))}
@@ -130,23 +132,23 @@ export default async function AdminAnalytics() {
         <div className="card overflow-hidden">
           <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white">{I.gem}</span>
-            <span className="font-bold text-slate-900">Premium bán chạy — 30 ngày</span>
+            <span className="font-bold text-slate-900">{L("Premium bán chạy — 30 ngày")}</span>
           </div>
           <div className="divide-y divide-slate-50 px-5">
             {full.bestPremium.map((b, i) => (
               <div key={b.name} className="flex items-center gap-3 py-3">
                 <RankBadge rank={i + 1} />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{b.name}</span>
-                <span className="shrink-0 text-sm"><b className="text-slate-900">{vnd(b.revenue)}</b> <span className="text-slate-400">· {num(b.quantity)} gói</span></span>
+                <span className="shrink-0 text-sm"><b className="text-slate-900">{M(b.revenue)}</b> <span className="text-slate-400">{Ld(`· ${num(b.quantity)} gói`)}</span></span>
               </div>
             ))}
-            {full.bestPremium.length === 0 && <p className="py-5 text-sm text-slate-400">Chưa có đơn Premium nào trong 30 ngày.</p>}
+            {full.bestPremium.length === 0 && <p className="py-5 text-sm text-slate-400">{L("Chưa có đơn Premium nào trong 30 ngày.")}</p>}
           </div>
         </div>
         <div className="card overflow-hidden">
           <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white">{I.users}</span>
-            <span className="font-bold text-slate-900">Top khách chi tiêu — SMM + Premium</span>
+            <span className="font-bold text-slate-900">{L("Top khách chi tiêu — SMM + Premium")}</span>
           </div>
           <div className="divide-y divide-slate-50 px-5">
             {full.topUsers.map((u, i) => (
@@ -154,12 +156,12 @@ export default async function AdminAnalytics() {
                 <RankBadge rank={i + 1} />
                 <span className="flex min-w-0 flex-1 items-center gap-2">
                   <Link href={`/admin/nguoi-dung/${u.id}`} className="truncate text-sm font-semibold text-slate-800 hover:text-brand-700">{u.username}</Link>
-                  <Badge cls={u.level === "VIP" ? "bg-amber-100 text-amber-800" : u.level === "AGENCY" ? "bg-violet-100 text-violet-800" : u.level === "RESELLER" ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-600"}>{LEVEL_NAME[u.level] || u.level}</Badge>
+                  <Badge cls={u.level === "VIP" ? "bg-amber-100 text-amber-800" : u.level === "AGENCY" ? "bg-violet-100 text-violet-800" : u.level === "RESELLER" ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-600"}>{L(LEVEL_NAME[u.level] || u.level)}</Badge>
                 </span>
-                <span className="shrink-0 text-sm"><b className="text-slate-900">{vnd(u.spend)}</b> <span className="text-slate-400">· {num(u.orders)} đơn</span></span>
+                <span className="shrink-0 text-sm"><b className="text-slate-900">{M(u.spend)}</b> <span className="text-slate-400">{Ld(`· ${num(u.orders)} đơn`)}</span></span>
               </div>
             ))}
-            {full.topUsers.length === 0 && <p className="py-5 text-sm text-slate-400">Chưa có dữ liệu khách.</p>}
+            {full.topUsers.length === 0 && <p className="py-5 text-sm text-slate-400">{L("Chưa có dữ liệu khách.")}</p>}
           </div>
         </div>
       </div>

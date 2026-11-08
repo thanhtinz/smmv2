@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { PageHead, Empty } from "@/components/ui";
 import { RichText } from "@/components/rich-text";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +12,12 @@ export const dynamic = "force-dynamic";
  *  Khách panel thấy FAQ của panel mình nếu panel có đăng, không thì dùng FAQ của web mẹ. */
 export default async function FaqPage() {
   const user = (await getCurrentUser())!;
+  const panelLangRaw = user.panelId
+    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
+    : undefined;
+  const { L } = await getServerI18n(panelLangRaw);
   const cat = await prisma.postCategory.findUnique({ where: { slug: "faq" } });
-  if (!cat) return <div><PageHead title="Hỏi đáp thường gặp" desc="Những câu hỏi khách hàng hay gặp nhất" /><Empty text="Chưa có câu hỏi nào" /></div>;
+  if (!cat) return <div><PageHead title={L("Hỏi đáp thường gặp")} desc={L("Những câu hỏi khách hàng hay gặp nhất")} /><Empty text={L("Chưa có câu hỏi nào")} /></div>;
   let scopePid: number | null = user.panelId ?? null;
   if (scopePid) {
     const cnt = await prisma.post.count({ where: { published: true, categoryId: cat.id, panelId: scopePid } });
@@ -25,8 +30,8 @@ export default async function FaqPage() {
   });
   return (
     <div className="max-w-3xl">
-      <PageHead title="Hỏi đáp thường gặp" desc="Những câu hỏi khách hàng hay gặp nhất — vẫn chưa rõ thì gửi ticket, đội hỗ trợ luôn sẵn sàng." />
-      {posts.length === 0 ? <Empty text="Chưa có câu hỏi nào" /> : (
+      <PageHead title={L("Hỏi đáp thường gặp")} desc={L("Những câu hỏi khách hàng hay gặp nhất — vẫn chưa rõ thì gửi ticket, đội hỗ trợ luôn sẵn sàng.")} />
+      {posts.length === 0 ? <Empty text={L("Chưa có câu hỏi nào")} /> : (
         <div className="space-y-3">
           {posts.map((p) => (
             <details key={p.id} className="card group p-5">
@@ -43,10 +48,10 @@ export default async function FaqPage() {
       )}
       <div className="card mt-6 flex flex-wrap items-center justify-between gap-3 p-5">
         <div>
-          <div className="font-bold text-slate-900">Chưa tìm thấy câu trả lời?</div>
-          <p className="text-sm text-slate-500">Gửi ticket để đội hỗ trợ trả lời trực tiếp cho bạn.</p>
+          <div className="font-bold text-slate-900">{L("Chưa tìm thấy câu trả lời?")}</div>
+          <p className="text-sm text-slate-500">{L("Gửi ticket để đội hỗ trợ trả lời trực tiếp cho bạn.")}</p>
         </div>
-        <Link href="/dashboard/ticket#tao-ticket" className="btn-primary">Tạo ticket hỗ trợ</Link>
+        <Link href="/dashboard/ticket#tao-ticket" className="btn-primary">{L("Tạo ticket hỗ trợ")}</Link>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { getMyNotifications, markAllMyNotificationsRead, type BellItem } from "@/app/actions/notifications";
+import { useLang } from "@/components/lang";
 
 function fmtTime(iso: string) {
   try {
@@ -18,6 +19,7 @@ function fmtTime(iso: string) {
 /** Chuông thông báo: badge số chưa đọc + dropdown danh sách; mở chuông là đánh dấu đã đọc.
  *  Tự làm mới mỗi 45 giây và khi quay lại tab. Đặt được ở mọi header (khu khách + trang chủ). */
 export function NotificationBell({ tone = "light" }: { tone?: "light" | "dark" }) {
+  const { t } = useLang();
   const router = useRouter();
   const btnRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -73,7 +75,7 @@ export function NotificationBell({ tone = "light" }: { tone?: "light" | "dark" }
         ref={btnRef}
         type="button"
         onClick={toggle}
-        aria-label="Thông báo"
+        aria-label={t("Thông báo")}
         className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${tone === "dark" ? "text-white hover:bg-white/10" : "text-slate-600 hover:bg-slate-100"}`}
       >
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
@@ -93,14 +95,14 @@ export function NotificationBell({ tone = "light" }: { tone?: "light" | "dark" }
               : { top: pos.top, right: pos.right, width: "min(360px, calc(100vw - 24px))" }}
           >
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-              <span className="text-sm font-bold text-slate-900">Thông báo</span>
+              <span className="text-sm font-bold text-slate-900">{t("Thông báo")}</span>
               <button type="button" className="text-xs font-semibold text-brand-600 hover:underline" onClick={() => { setOpen(false); router.push("/dashboard/thong-bao"); }}>
-                Xem tất cả
+                {t("Xem tất cả")}
               </button>
             </div>
             <div className="max-h-[60vh] overflow-y-auto">
               {items.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-slate-400">Chưa có thông báo nào</div>
+                <div className="px-4 py-10 text-center text-sm text-slate-400">{t("Chưa có thông báo nào")}</div>
               ) : (
                 items.map((n) => (
                   <button

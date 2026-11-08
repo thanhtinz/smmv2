@@ -3,6 +3,7 @@ import { getSettings } from "@/lib/settings";
 import { LANG_KEYS, parsePanelLangConfig, resolveLangConfig, countOverrides } from "@/lib/lang-config";
 import { LangAdminView, buildLangRows } from "@/components/lang-admin";
 import { panelSaveLangSettingsAction, panelSaveLangOverridesAction, panelResetLangOverrideAction } from "@/app/actions/panel";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
  *  web mẹ hoặc tự chọn; bản dịch tuỳ chỉnh của panel đè lên của web mẹ theo từng chuỗi. */
 export default async function PanelLangPage({ searchParams }: { searchParams: { msg?: string; err?: string; lang?: string; q?: string } }) {
   const { panel } = await requirePanelOwnerPage();
+  const { Ld } = await getServerI18n((panel as { langConfig?: string | null }).langConfig ?? null);
   const s = await getSettings();
   const motherCfg = resolveLangConfig(s, null);
   const mine = parsePanelLangConfig(panel.langConfig);
@@ -25,8 +27,8 @@ export default async function PanelLangPage({ searchParams }: { searchParams: { 
   return (
     <LangAdminView
       basePath="/panel-admin/ngon-ngu"
-      msg={searchParams.msg}
-      err={searchParams.err}
+      msg={searchParams.msg ? Ld(searchParams.msg) : undefined}
+      err={searchParams.err ? Ld(searchParams.err) : undefined}
       settingsAction={panelSaveLangSettingsAction}
       saveAction={panelSaveLangOverridesAction}
       resetAction={panelResetLangOverrideAction}
@@ -41,7 +43,7 @@ export default async function PanelLangPage({ searchParams }: { searchParams: { 
       totalDict={totalDict}
       ownCount={Object.keys(ownOv).length}
       totalOwn={countOverrides(mine.overrides || {})}
-      inheritedNote={inherited ? `Đang kế thừa ${inherited} bản dịch tuỳ chỉnh từ web mẹ (hiện ở cột Bản dịch gốc).` : undefined}
+      inheritedNote={inherited ? Ld(`Đang kế thừa ${inherited} bản dịch tuỳ chỉnh từ web mẹ (hiện ở cột Bản dịch gốc).`) : undefined}
     />
   );
 }

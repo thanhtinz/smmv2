@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { I } from "@/components/ui";
+import { useLang } from "@/components/lang";
 
 /* Passkey / WebAuthn (bảo mật Enterprise GĐ3):
    - PasskeySection: thẻ quản lý passkey trong Hồ sơ → Bảo mật.
@@ -22,13 +23,14 @@ function isCancelError(e: unknown): boolean {
   return err.name === "NotAllowedError" || err.cause?.name === "NotAllowedError";
 }
 
-function errorText(e: unknown, fallback: string): string {
-  if (isCancelError(e)) return "Bạn đã huỷ thao tác passkey.";
+function errorText(e: unknown, fallback: string, t: (s: string) => string): string {
+  if (isCancelError(e)) return t("Bạn đã huỷ thao tác passkey.");
   if (e instanceof Error && e.message) return e.message;
   return fallback;
 }
 
 export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
+  const { t, td } = useLang();
   const [deviceName, setDeviceName] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,7 +43,7 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
       const optRes = await fetch("/api/auth/passkey/register-options", { method: "POST" });
       const optionsJSON = await optRes.json().catch(() => null);
       if (!optRes.ok || !optionsJSON) {
-        setErr((optionsJSON && optionsJSON.error) || "Không tạo được yêu cầu passkey, thử lại sau");
+        setErr((optionsJSON && optionsJSON.error) || t("Không tạo được yêu cầu passkey, thử lại sau"));
         return;
       }
       const registrationResponse = await startRegistration({ optionsJSON });
@@ -52,12 +54,12 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
       });
       const data = await verifyRes.json().catch(() => ({}));
       if (!verifyRes.ok || !data.ok) {
-        setErr(data.error || "Không lưu được passkey, thử lại sau");
+        setErr(data.error || t("Không lưu được passkey, thử lại sau"));
         return;
       }
       location.reload();
     } catch (e) {
-      setErr(errorText(e, "Không thêm được passkey, thử lại sau"));
+      setErr(errorText(e, t("Không thêm được passkey, thử lại sau"), t));
     } finally {
       setBusy(false);
     }
@@ -74,12 +76,12 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        setErr(data.error || "Không xoá được passkey, thử lại sau");
+        setErr(data.error || t("Không xoá được passkey, thử lại sau"));
         return;
       }
       location.reload();
     } catch {
-      setErr("Không kết nối được máy chủ, thử lại");
+      setErr(t("Không kết nối được máy chủ, thử lại"));
     } finally {
       setDeletingId(null);
     }
@@ -90,19 +92,19 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 text-white shadow-lg shadow-violet-500/30">{I.fingerprint}</span>
-          <div className="font-bold text-slate-900">Đăng nhập nhanh (Passkey)</div>
+          <div className="font-bold text-slate-900">{t("Đăng nhập nhanh (Passkey)")}</div>
         </div>
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${passkeys.length ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
         >
-          {passkeys.length ? `${passkeys.length} thiết bị` : "Chưa có"}
+          {passkeys.length ? td(`${passkeys.length} thiết bị`) : t("Chưa có")}
         </span>
       </div>
       <p className="text-sm text-slate-500">
-        Đăng nhập bằng Face ID, vân tay hoặc Windows Hello mà không cần nhập mật khẩu.
+        {t("Đăng nhập bằng Face ID, vân tay hoặc Windows Hello mà không cần nhập mật khẩu.")}
       </p>
       <p className="text-sm text-slate-500">
-        Passkey tự đồng bộ qua tài khoản Apple/Google, đăng ký một lần dùng cho cả điện thoại và máy tính.
+        {t("Passkey tự đồng bộ qua tài khoản Apple/Google, đăng ký một lần dùng cho cả điện thoại và máy tính.")}
       </p>
       {err ? (
         <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{err}</div>
@@ -116,8 +118,8 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold text-slate-800">{p.deviceName}</div>
                 <div className="mt-0.5 text-xs text-slate-400">
-                  Tạo ngày {p.createdAt}
-                  {p.lastUsedAt ? ` · Dùng gần nhất ${p.lastUsedAt}` : " · Chưa dùng lần nào"}
+                  {td(`Tạo ngày ${p.createdAt}`)}
+                  {p.lastUsedAt ? td(` · Dùng gần nhất ${p.lastUsedAt}`) : t(" · Chưa dùng lần nào")}
                 </div>
               </div>
               <button
@@ -126,7 +128,7 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
                 onClick={() => removePasskey(p.id)}
                 disabled={deletingId === p.id}
               >
-                {deletingId === p.id ? "Đang xoá..." : "Xoá"}
+                {deletingId === p.id ? t("Đang xoá...") : t("Xoá")}
               </button>
             </li>
           ))}
@@ -135,18 +137,18 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
 
       <div className="space-y-3 border-t border-slate-100 pt-4">
         <div>
-          <label className="lbl">Tên thiết bị</label>
+          <label className="lbl">{t("Tên thiết bị")}</label>
           <input
             className="inp"
             value={deviceName}
             onChange={(e) => setDeviceName(e.target.value)}
-            placeholder="Ví dụ: iPhone của tôi"
+            placeholder={t("Ví dụ: iPhone của tôi")}
             maxLength={100}
           />
         </div>
         <button type="button" className="btn-primary" onClick={addPasskey} disabled={busy}>
           {I.fingerprint}
-          {busy ? "Đang chờ thiết bị..." : "Thêm passkey"}
+          {busy ? t("Đang chờ thiết bị...") : t("Thêm passkey")}
         </button>
       </div>
     </div>
@@ -154,6 +156,7 @@ export function PasskeySection({ passkeys }: { passkeys: PasskeyItem[] }) {
 }
 
 export function PasskeyLoginButton() {
+  const { t } = useLang();
   const [supported, setSupported] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -171,7 +174,7 @@ export function PasskeyLoginButton() {
       const optRes = await fetch("/api/auth/passkey/login-options", { method: "POST" });
       const optionsJSON = await optRes.json().catch(() => null);
       if (!optRes.ok || !optionsJSON) {
-        setErr((optionsJSON && optionsJSON.error) || "Không dùng được passkey lúc này, hãy đăng nhập bằng mật khẩu");
+        setErr((optionsJSON && optionsJSON.error) || t("Không dùng được passkey lúc này, hãy đăng nhập bằng mật khẩu"));
         return;
       }
       const authenticationResponse = await startAuthentication({ optionsJSON });
@@ -182,12 +185,12 @@ export function PasskeyLoginButton() {
       });
       const data = await verifyRes.json().catch(() => ({}));
       if (!verifyRes.ok || !data.ok) {
-        setErr(data.error || "Đăng nhập bằng passkey thất bại, hãy đăng nhập bằng mật khẩu");
+        setErr(data.error || t("Đăng nhập bằng passkey thất bại, hãy đăng nhập bằng mật khẩu"));
         return;
       }
       location.href = data.redirect || "/dashboard";
     } catch (e) {
-      setErr(errorText(e, "Đăng nhập bằng passkey thất bại, hãy đăng nhập bằng mật khẩu"));
+      setErr(errorText(e, t("Đăng nhập bằng passkey thất bại, hãy đăng nhập bằng mật khẩu"), t));
     } finally {
       setBusy(false);
     }
@@ -197,7 +200,7 @@ export function PasskeyLoginButton() {
     <div>
       <button type="button" className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50" onClick={login} disabled={busy}>
         <span className="[&_svg]:h-[18px] [&_svg]:w-[18px]">{I.fingerprint}</span>
-        {busy ? "Đang chờ thiết bị..." : "Đăng nhập bằng Passkey"}
+        {busy ? t("Đang chờ thiết bị...") : t("Đăng nhập bằng Passkey")}
       </button>
       {err ? <p className="mt-2 text-center text-xs font-medium text-rose-600">{err}</p> : null}
     </div>

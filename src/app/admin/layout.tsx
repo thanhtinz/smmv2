@@ -8,6 +8,7 @@ import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
 import AdminRealtime from "@/components/admin-realtime";
 import { prisma } from "@/lib/db";
 import { getServerI18n } from "@/lib/lang-server";
+import { LangProvider } from "@/components/lang";
 import { vnd } from "@/lib/format";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -30,7 +31,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Bảo mật nâng cao → Bài viết ▾ → Cập nhật hệ thống → Dọn dẹp hệ thống.
   // Các tính năng riêng của SMMv2 (Phân tích, Panel con, Báo cáo, Rủi ro, Nhật ký API, Hệ thống)
   // đặt ngay sau mục gần nhất của mẫu để không phá thứ tự gốc.
-  const { L } = await getServerI18n(null);
+  const i18n = await getServerI18n(null);
+  const { L, M } = i18n;
   const all: (AdminNavEntry & { adminOnly?: boolean })[] = [
     { href: "/admin", label: L("Tổng quan"), icon: "home" },
     { href: "/admin/phan-tich", label: L("Phân tích"), icon: "chart", adminOnly: true },
@@ -113,6 +115,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
   const initial = (user.username || "A").slice(0, 1).toUpperCase();
   return (
+    <LangProvider lang={i18n.lang} ov={i18n.cfg.overrides[i18n.lang]} cur={i18n.cur} rates={i18n.rates}>
     <div className="admin-scope min-h-screen bg-[#f4f6fb]">
       <AdminNav siteName={s.site_name} logoText={s.site_logo_text || "S"} entries={entries} />
       <div className="flex min-h-screen flex-col lg:pl-[260px]">
@@ -127,20 +130,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
                   <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
                 </span>
-                <input name="q" placeholder="Tìm kiếm đơn hàng, link, username..." className="inp !rounded-full !pl-10" />
+                <input name="q" placeholder={L("Tìm kiếm đơn hàng, link, username...")} className="inp !rounded-full !pl-10" />
               </div>
             </form>
             <div className="ml-auto flex items-center gap-2.5">
               <AdminRealtime endpoint="/api/admin/realtime" suffix="mother" />
               <DisplaySettings />
-              <Link href="/" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">Xem website</Link>
+              <Link href="/" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">{L("Xem website")}</Link>
               <span className="hidden items-center gap-2 rounded-full bg-slate-100 py-1 pl-1 pr-3 sm:flex">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-xs font-bold text-white">{initial}</span>
                 <span className="text-sm font-semibold text-slate-800">{user.username}</span>
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{vnd(user.balance)}</span>
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{M(user.balance)}</span>
                 <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-500">{user.role}</span>
               </span>
-              <form action={logoutAction}><button className="btn btn-sm whitespace-nowrap bg-slate-900 text-white hover:bg-slate-700">Đăng xuất</button></form>
+              <form action={logoutAction}><button className="btn btn-sm whitespace-nowrap bg-slate-900 text-white hover:bg-slate-700">{L("Đăng xuất")}</button></form>
             </div>
           </div>
         </header>
@@ -148,5 +151,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <footer className="pb-6 text-center text-xs text-slate-400">© {new Date().getFullYear()} {s.site_name} · Admin Panel</footer>
       </div>
     </div>
+    </LangProvider>
   );
 }

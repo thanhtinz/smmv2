@@ -4,14 +4,15 @@ import { getSession } from "@/lib/auth";
 import { PublicBurger } from "@/components/public-burger";
 import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
-import { vnd } from "@/lib/format";
 import { prisma } from "@/lib/db";
+import { getServerI18n } from "@/lib/lang-server";
 import { DisplaySettings } from "@/components/display";
 import { NotificationBell } from "@/components/notification-bell";
 import { LiveChat } from "@/components/livechat";
 import { getFloatingContacts, type FloatingContact } from "@/lib/contact";
 
 export async function SiteHeader() {
+  const { L, M } = await getServerI18n();
   const session = await getSession();
   const s = await getSettings();
   const user = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { balance: true, role: true } }) : null;
@@ -27,27 +28,27 @@ export async function SiteHeader() {
           <span className="font-extrabold text-lg text-slate-900 hidden min-[420px]:inline">{s.site_name}</span>
         </Link>
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-          <Link href="/premium" className="hover:text-brand-600">Tài khoản Premium</Link>
+          <Link href="/premium" className="hover:text-brand-600">{L("Tài khoản Premium")}</Link>
         </nav>
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5">
           {session && <NotificationBell />}
           <DisplaySettings />
           {session ? (
             <>
-              {user && <span className="hidden sm:inline-flex rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 text-sm font-bold">{vnd(user.balance)}</span>}
-              <Link href="/dashboard" className="btn-primary btn-sm !px-4 !py-2 whitespace-nowrap">Bảng điều khiển</Link>
+              {user && <span className="hidden sm:inline-flex rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 text-sm font-bold">{M(user.balance)}</span>}
+              <Link href="/dashboard" className="btn-primary btn-sm !px-4 !py-2 whitespace-nowrap">{L("Bảng điều khiển")}</Link>
               {/* Link Admin Panel CHỈ hiện khi role đúng ADMIN — STAFF và USER không thấy */}
               {user?.role === "ADMIN" && (
                 <Link href="/admin" className="btn btn-sm !px-4 !py-2 whitespace-nowrap bg-slate-900 text-white hover:bg-slate-700">Admin Panel</Link>
               )}
               <form action={logoutAction} className="hidden sm:block">
-                <button className="btn-ghost btn-sm !px-3 !py-2">Đăng xuất</button>
+                <button className="btn-ghost btn-sm !px-3 !py-2">{L("Đăng xuất")}</button>
               </form>
             </>
           ) : (
             <>
-              <Link href="/login" className="btn-ghost btn-sm !px-4 !py-2 whitespace-nowrap">Đăng nhập</Link>
-              <Link href="/register" className="btn-primary btn-sm !px-4 !py-2 whitespace-nowrap"><span className="hidden sm:inline">Đăng ký miễn phí</span><span className="sm:hidden">Đăng ký</span></Link>
+              <Link href="/login" className="btn-ghost btn-sm !px-4 !py-2 whitespace-nowrap">{L("Đăng nhập")}</Link>
+              <Link href="/register" className="btn-primary btn-sm !px-4 !py-2 whitespace-nowrap"><span className="hidden sm:inline">{L("Đăng ký miễn phí")}</span><span className="sm:hidden">{L("Đăng ký")}</span></Link>
             </>
           )}
         </div>
@@ -60,6 +61,7 @@ export async function SiteHeader() {
 /** Header công khai kiểu pill tối — dùng cho mọi trang công khai (web mẹ + panel con)
  *  để đồng bộ với landing. `panel` truyền vào khi là trang thuộc website con. */
 export async function PublicHeader({ panel, announcement }: { panel?: { name: string; slug: string }; announcement?: string | null } = {}) {
+  const { L, M } = await getServerI18n();
   const session = await getSession();
   const s = await getSettings();
   const user = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { balance: true, role: true } }) : null;
@@ -68,11 +70,11 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
   // Mô-đun Bài viết / API đang tắt thì ẩn luôn liên kết trên header
   const links = panel
     ? [
-        { href: home, label: "Trang chủ" },
+        { href: home, label: L("Trang chủ") },
         { href: `/cua-hang/${panel.slug}/premium`, label: "Premium" },
       ]
     : [
-        { href: home, label: "Trang chủ" },
+        { href: home, label: L("Trang chủ") },
         { href: "/premium", label: "Premium" },
       ];
   const registerHref = panel ? `/cua-hang/${panel.slug}/dang-ky` : "/register";
@@ -98,17 +100,17 @@ export async function PublicHeader({ panel, announcement }: { panel?: { name: st
               <DisplaySettings />
               {session ? (
                 <>
-                  {user && <span className="hidden rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-sm font-bold text-emerald-300 sm:inline-flex">{vnd(user.balance)}</span>}
-                  <Link href="/dashboard" className="rounded-full bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-500">Bảng điều khiển</Link>
+                  {user && <span className="hidden rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-sm font-bold text-emerald-300 sm:inline-flex">{M(user.balance)}</span>}
+                  <Link href="/dashboard" className="rounded-full bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-500">{L("Bảng điều khiển")}</Link>
                   {user?.role === "ADMIN" && <Link href="/admin" className="hidden rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white sm:inline-block">Admin</Link>}
                   <form action={logoutAction} className="hidden sm:block">
-                    <button className="rounded-full px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white">Đăng xuất</button>
+                    <button className="rounded-full px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white">{L("Đăng xuất")}</button>
                   </form>
                 </>
               ) : (
                 <>
-                  <Link href={registerHref} className="hidden px-2 py-2 text-sm font-semibold text-slate-200 transition hover:text-white sm:inline-block">Đăng ký</Link>
-                  <Link href="/login" className="rounded-full bg-rose-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-rose-500">Đăng nhập →</Link>
+                  <Link href={registerHref} className="hidden px-2 py-2 text-sm font-semibold text-slate-200 transition hover:text-white sm:inline-block">{L("Đăng ký")}</Link>
+                  <Link href="/login" className="rounded-full bg-rose-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-rose-500">{L("Đăng nhập →")}</Link>
                 </>
               )}
             </div>
@@ -133,6 +135,7 @@ export type FooterBrand = {
 /** Footer dùng chung. Trang panel con truyền `brand` để footer + nút liên hệ nổi
  *  mang thương hiệu và kênh hỗ trợ RIÊNG của panel (kênh nào panel để trống thì dùng của web mẹ). */
 export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
+  const { L, Ld } = await getServerI18n();
   const s = await getSettings();
   const merged = brand
     ? {
@@ -158,31 +161,31 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
           <p className="leading-relaxed">{brand?.tagline || s.site_tagline}</p>
         </div>
         <div>
-          <div className="text-white font-semibold mb-3">Dịch vụ</div>
+          <div className="text-white font-semibold mb-3">{L("Dịch vụ")}</div>
           <ul className="space-y-2">
-            <li><Link href="/premium" className="hover:text-white">Tài khoản Premium</Link></li>
-            <li><Link href="/dashboard/dich-vu" className="hover:text-white">Bảng giá dịch vụ</Link></li>
+            <li><Link href="/premium" className="hover:text-white">{L("Tài khoản Premium")}</Link></li>
+            <li><Link href="/dashboard/dich-vu" className="hover:text-white">{L("Bảng giá dịch vụ")}</Link></li>
           </ul>
         </div>
         <div>
-          <div className="text-white font-semibold mb-3">Tài khoản</div>
+          <div className="text-white font-semibold mb-3">{L("Tài khoản")}</div>
           <ul className="space-y-2">
-            <li><Link href="/register" className="hover:text-white">Đăng ký</Link></li>
-            <li><Link href="/login" className="hover:text-white">Đăng nhập</Link></li>
-            <li><Link href="/dashboard/nap-tien" className="hover:text-white">Nạp tiền</Link></li>
+            <li><Link href="/register" className="hover:text-white">{L("Đăng ký")}</Link></li>
+            <li><Link href="/login" className="hover:text-white">{L("Đăng nhập")}</Link></li>
+            <li><Link href="/dashboard/nap-tien" className="hover:text-white">{L("Nạp tiền")}</Link></li>
           </ul>
         </div>
         <div>
-          <div className="text-white font-semibold mb-3">Hỗ trợ 24/7</div>
+          <div className="text-white font-semibold mb-3">{L("Hỗ trợ 24/7")}</div>
           <ul className="space-y-2">
-            {merged.support_hotline && <li>Hotline: {merged.support_hotline}</li>}
+            {merged.support_hotline && <li>{L("Hotline:")} {merged.support_hotline}</li>}
             {merged.support_telegram && <li>Telegram: {merged.support_telegram}</li>}
             {merged.support_facebook && <li>Facebook: {merged.support_facebook}</li>}
-            <li><Link href="/dashboard/ticket" className="hover:text-white">Gửi ticket hỗ trợ</Link></li>
+            <li><Link href="/dashboard/ticket" className="hover:text-white">{L("Gửi ticket hỗ trợ")}</Link></li>
           </ul>
         </div>
       </div>
-      <div className="border-t border-slate-800 py-5 text-center text-xs">© {new Date().getFullYear()} {brand?.name || s.site_name}. Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.</div>
+      <div className="border-t border-slate-800 py-5 text-center text-xs">{Ld(`© ${new Date().getFullYear()} ${brand?.name || s.site_name}. Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.`)}</div>
     </footer>
     </>
   );
@@ -222,7 +225,7 @@ function FloatingSupport({ items }: { items: FloatingContact[] }) {
 
 /** Các mục thông tin đầy đủ ở trang chi tiết premium: Thông tin sản phẩm /
  *  Thông tin bảo hành / Hướng dẫn sử dụng — nội dung admin nhập theo từng sản phẩm. */
-export function PremiumInfoSections({ product }: {
+export async function PremiumInfoSections({ product }: {
   product: {
     description?: string | null;
     usageGuide?: string | null;
@@ -232,17 +235,18 @@ export function PremiumInfoSections({ product }: {
     variants: { name: string; warrantyDays: number }[];
   };
 }) {
-  const fulfillmentLabel = product.fulfillment === "AUTO_STOCK" ? "Giao ngay tự động từ kho" : product.fulfillment === "API" ? "Giao tự động qua nhà cung cấp" : "Nâng cấp chính chủ / giao thủ công";
+  const { L, Ld } = await getServerI18n();
+  const fulfillmentLabel = product.fulfillment === "AUTO_STOCK" ? L("Giao ngay tự động từ kho") : product.fulfillment === "API" ? L("Giao tự động qua nhà cung cấp") : L("Nâng cấp chính chủ / giao thủ công");
   const maxWarranty = Math.max(0, ...product.variants.map((v) => v.warrantyDays || 0));
   const warrantySection = (
     <section className="card p-6">
-      <h2 className="text-lg font-extrabold text-slate-900 mb-4">Thông tin bảo hành</h2>
+      <h2 className="text-lg font-extrabold text-slate-900 mb-4">{L("Thông tin bảo hành")}</h2>
       {product.warrantyInfo
         ? <RichText value={product.warrantyInfo} className="text-sm text-slate-600 leading-relaxed" />
         : (
           <ul className="text-sm text-slate-600 space-y-1.5">
             {product.variants.map((v) => (
-              <li key={v.name}>Gói {v.name}: {v.warrantyDays ? `bảo hành ${v.warrantyDays} ngày` : "không bảo hành"}</li>
+              <li key={v.name}>{Ld(`Gói ${v.name}: ${v.warrantyDays ? `bảo hành ${v.warrantyDays} ngày` : "không bảo hành"}`)}</li>
             ))}
           </ul>
         )}
@@ -250,19 +254,19 @@ export function PremiumInfoSections({ product }: {
   );
   const usageSection = product.usageGuide ? (
     <section className="card p-6">
-      <h2 className="text-lg font-extrabold text-slate-900 mb-4">Hướng dẫn sử dụng</h2>
+      <h2 className="text-lg font-extrabold text-slate-900 mb-4">{L("Hướng dẫn sử dụng")}</h2>
       <RichText value={product.usageGuide} className="text-sm text-slate-600 leading-relaxed" />
     </section>
   ) : null;
   return (
     <div className="mt-12 space-y-6">
       <section className="card p-6">
-        <h2 className="text-lg font-extrabold text-slate-900 mb-4">Thông tin sản phẩm</h2>
+        <h2 className="text-lg font-extrabold text-slate-900 mb-4">{L("Thông tin sản phẩm")}</h2>
         {product.description && <RichText value={product.description} className="text-sm text-slate-600 leading-relaxed mb-5" />}
         <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-          <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Danh mục</dt><dd className="font-semibold text-slate-800 mt-1">{product.categoryName}</dd></div>
-          <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Hình thức giao</dt><dd className="font-semibold text-slate-800 mt-1">{fulfillmentLabel}</dd></div>
-          <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Bảo hành tối đa</dt><dd className="font-semibold text-slate-800 mt-1">{maxWarranty ? `${maxWarranty} ngày` : "Không bảo hành"}</dd></div>
+          <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">{L("Danh mục")}</dt><dd className="font-semibold text-slate-800 mt-1">{product.categoryName}</dd></div>
+          <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">{L("Hình thức giao")}</dt><dd className="font-semibold text-slate-800 mt-1">{fulfillmentLabel}</dd></div>
+          <div className="rounded-xl bg-slate-50 px-4 py-3"><dt className="text-xs text-slate-400 font-semibold uppercase tracking-wide">{L("Bảo hành tối đa")}</dt><dd className="font-semibold text-slate-800 mt-1">{maxWarranty ? Ld(`${maxWarranty} ngày`) : L("Không bảo hành")}</dd></div>
         </dl>
       </section>
       {warrantySection}

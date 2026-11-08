@@ -6,6 +6,7 @@ import { PageHead, Flash, Badge, Empty, Stat, I } from "@/components/ui";
 import { createTicketAction } from "@/app/actions/user";
 import { TicketAttachInput } from "@/components/ticket-attach";
 import { dt, num } from "@/lib/format";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 const T_STATUS: Record<string, { label: string; cls: string }> = {
@@ -19,6 +20,10 @@ const T_CAT: Record<string, string> = { smm: "Đơn SMM", premium: "Đơn Premiu
  *  tìm kiếm, bảng ticket và form tạo ở cuối trang. */
 export default async function TicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string; st?: string; q?: string; subject?: string; category?: string; body?: string } }) {
   const user = (await getCurrentUser())!;
+  const panelLangRaw = user.panelId
+    ? ((await prisma.childPanel.findUnique({ where: { id: user.panelId }, select: { langConfig: true } }))?.langConfig ?? null)
+    : undefined;
+  const { L, Ld } = await getServerI18n(panelLangRaw);
   if (!(await moduleOn("tickets", user.panelId))) { const { redirect } = await import("next/navigation"); redirect("/dashboard"); }
   const st = searchParams.st && T_STATUS[searchParams.st] ? searchParams.st : "";
   const q = (searchParams.q || "").trim();
@@ -40,39 +45,39 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHead title="Hỗ trợ" desc="Quản lý ticket hỗ trợ của bạn" />
+        <PageHead title={L("Hỗ trợ")} desc={L("Quản lý ticket hỗ trợ của bạn")} />
         <div className="flex gap-2 pt-1">
-          <Link href="/dashboard/ticket" className="btn-ghost">Làm mới</Link>
-          <a href="#tao-ticket" className="btn-primary">+ Tạo ticket mới</a>
+          <Link href="/dashboard/ticket" className="btn-ghost">{L("Làm mới")}</Link>
+          <a href="#tao-ticket" className="btn-primary">{L("+ Tạo ticket mới")}</a>
         </div>
       </div>
-      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <Stat label="Tổng số ticket" value={num(total)} icon={I.ticket} />
-        <Stat label="Chờ phản hồi" value={num(c("OPEN"))} icon={I.clock} />
-        <Stat label="Đã phản hồi" value={num(c("ANSWERED"))} icon={I.check} />
-        <Stat label="Đã đóng" value={num(c("CLOSED"))} icon={I.db} />
+        <Stat label={L("Tổng số ticket")} value={num(total)} icon={I.ticket} />
+        <Stat label={L("Chờ phản hồi")} value={num(c("OPEN"))} icon={I.clock} />
+        <Stat label={L("Đã phản hồi")} value={num(c("ANSWERED"))} icon={I.check} />
+        <Stat label={L("Đã đóng")} value={num(c("CLOSED"))} icon={I.db} />
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
         {pills.map((p) => (
           <Link key={p.st} href={`/dashboard/ticket${p.st ? `?st=${p.st}` : ""}`} className={`rounded-full px-4 py-2 text-sm font-semibold ${st === p.st ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600"}`}>
-            {p.label} ({p.n})
+            {Ld(`${L(p.label)} (${p.n})`)}
           </Link>
         ))}
         <form className="ml-auto flex gap-2">
           {st && <input type="hidden" name="st" value={st} />}
-          <input name="q" defaultValue={q} placeholder="Tìm kiếm ticket..." className="inp !w-56 !py-2" />
-          <button className="btn-dark !py-2">Tìm</button>
+          <input name="q" defaultValue={q} placeholder={L("Tìm kiếm ticket...")} className="inp !w-56 !py-2" />
+          <button className="btn-dark !py-2">{L("Tìm")}</button>
         </form>
       </div>
 
-      {tickets.length === 0 ? <div className="mt-5"><Empty text="Chưa có ticket nào" /></div> : (
+      {tickets.length === 0 ? <div className="mt-5"><Empty text={L("Chưa có ticket nào")} /></div> : (
         <div className="card mt-5 overflow-x-auto">
           <table className="w-full min-w-[720px]">
             <thead className="border-b border-slate-200 bg-slate-50"><tr>
-              <th className="th">#</th><th className="th">Vấn đề</th><th className="th">Trạng thái</th><th className="th">Cập nhật</th><th className="th"></th>
+              <th className="th">#</th><th className="th">{L("Vấn đề")}</th><th className="th">{L("Trạng thái")}</th><th className="th">{L("Cập nhật")}</th><th className="th"></th>
             </tr></thead>
             <tbody className="divide-y divide-slate-100">
               {tickets.map((t) => (
@@ -80,11 +85,11 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
                   <td className="td font-mono text-xs text-slate-400">#{t.id}</td>
                   <td className="td">
                     <div className="max-w-[420px] truncate font-semibold text-slate-800">{t.subject}</div>
-                    <div className="text-xs text-slate-400">{T_CAT[t.category] || t.category} · {t._count.messages} tin nhắn</div>
+                    <div className="text-xs text-slate-400">{Ld(`${L(T_CAT[t.category] || t.category)} · ${t._count.messages} tin nhắn`)}</div>
                   </td>
-                  <td className="td"><Badge cls={T_STATUS[t.status].cls}>{T_STATUS[t.status].label}</Badge></td>
+                  <td className="td"><Badge cls={T_STATUS[t.status].cls}>{L(T_STATUS[t.status].label)}</Badge></td>
                   <td className="td whitespace-nowrap text-xs text-slate-500">{dt(t.updatedAt)}</td>
-                  <td className="td text-right"><Link href={`/dashboard/ticket/${t.id}`} className="text-sm font-semibold text-brand-600">Xem</Link></td>
+                  <td className="td text-right"><Link href={`/dashboard/ticket/${t.id}`} className="text-sm font-semibold text-brand-600">{L("Xem")}</Link></td>
                 </tr>
               ))}
             </tbody>
@@ -93,28 +98,28 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
       )}
 
       <form id="tao-ticket" action={createTicketAction} className="card mt-6 scroll-mt-24 space-y-4 p-6">
-        <div className="font-bold text-slate-900">Tạo ticket hỗ trợ</div>
+        <div className="font-bold text-slate-900">{L("Tạo ticket hỗ trợ")}</div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="lbl">Chủ đề</label>
+            <label className="lbl">{L("Chủ đề")}</label>
             <select className="inp" name="category" defaultValue={searchParams.category || "other"}>
-              <option value="smm">Đơn SMM</option>
-              <option value="premium">Đơn Premium / bảo hành</option>
-              <option value="deposit">Nạp tiền</option>
-              <option value="other">Khác</option>
+              <option value="smm">{L("Đơn SMM")}</option>
+              <option value="premium">{L("Đơn Premium / bảo hành")}</option>
+              <option value="deposit">{L("Nạp tiền")}</option>
+              <option value="other">{L("Khác")}</option>
             </select>
           </div>
           <div>
-            <label className="lbl">Tiêu đề</label>
-            <input className="inp" name="subject" required placeholder="Tóm tắt ngắn gọn vấn đề cần hỗ trợ" defaultValue={searchParams.subject || ""} />
+            <label className="lbl">{L("Tiêu đề")}</label>
+            <input className="inp" name="subject" required placeholder={L("Tóm tắt ngắn gọn vấn đề cần hỗ trợ")} defaultValue={searchParams.subject || ""} />
           </div>
         </div>
         <div>
-          <label className="lbl">Mô tả chi tiết</label>
-          <textarea className="inp" name="body" rows={5} required placeholder="Mô tả chi tiết vấn đề bạn gặp phải, kèm mã đơn nếu có..." defaultValue={searchParams.body || ""} />
+          <label className="lbl">{L("Mô tả chi tiết")}</label>
+          <textarea className="inp" name="body" rows={5} required placeholder={L("Mô tả chi tiết vấn đề bạn gặp phải, kèm mã đơn nếu có...")} defaultValue={searchParams.body || ""} />
         </div>
         <TicketAttachInput />
-        <button className="btn-primary">Gửi yêu cầu</button>
+        <button className="btn-primary">{L("Gửi yêu cầu")}</button>
       </form>
     </div>
   );

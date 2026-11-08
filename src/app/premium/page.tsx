@@ -4,6 +4,7 @@ import { getSettings } from "@/lib/settings";
 import { getSession } from "@/lib/auth";
 import { SiteFooter, PublicHeader } from "@/components/site";
 import { PremiumShopView } from "@/components/premium-views";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,15 +19,16 @@ export default async function PremiumPage({ searchParams }: { searchParams: { ca
     const s = qs.toString();
     redirect(`/dashboard/premium${s ? `?${s}` : ""}`);
   }
+  const { L } = await getServerI18n();
   if ((await getSettings()).module_premium === "0") {
     return (
       <div className="dark pub-dark bg-[#07090d] text-slate-300 flex min-h-screen flex-col">
         <PublicHeader />
         <main className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-12">
           <div className="card max-w-md p-8 text-center">
-            <div className="text-lg font-bold text-slate-900">Mảng Premium đang tạm ngưng</div>
-            <p className="mt-2 text-sm text-slate-500">Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau hoặc dùng dịch vụ SMM.</p>
-            <Link href="/dashboard/dich-vu" className="btn-primary mt-5 inline-block">Xem dịch vụ SMM</Link>
+            <div className="text-lg font-bold text-slate-900">{L("Mảng Premium đang tạm ngưng")}</div>
+            <p className="mt-2 text-sm text-slate-500">{L("Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau hoặc dùng dịch vụ SMM.")}</p>
+            <Link href="/dashboard/dich-vu" className="btn-primary mt-5 inline-block">{L("Xem dịch vụ SMM")}</Link>
           </div>
         </main>
         <SiteFooter />

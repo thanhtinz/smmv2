@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { PanelShell } from "@/components/panelshell";
 import { KiemTienView } from "@/components/kiemtien";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,12 +13,13 @@ export default async function PanelEarn({ params, searchParams }: { params: { sl
   if (!panel || panel.status !== "ACTIVE") notFound();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const { L } = await getServerI18n(panel?.langConfig ?? null);
   if (!panel.moduleAffiliate) {
     return (
       <PanelShell panel={panel} user={user}>
         <div className="card p-8 text-center">
-          <div className="font-bold text-slate-900">Mục Kiếm tiền đang tắt</div>
-          <p className="mt-1 text-sm text-slate-400">Website này đã tắt mô-đun giới thiệu kiếm tiền.</p>
+          <div className="font-bold text-slate-900">{L("Mục Kiếm tiền đang tắt")}</div>
+          <p className="mt-1 text-sm text-slate-400">{L("Website này đã tắt mô-đun giới thiệu kiếm tiền.")}</p>
         </div>
       </PanelShell>
     );

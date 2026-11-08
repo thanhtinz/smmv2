@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { vnd } from "@/lib/format";
+import { useLang } from "@/components/lang";
 
 export type SiteRow = {
   id: number;
@@ -32,6 +32,7 @@ export function PanelSitesTable({ panels, ns1, ns2, fee, renewAction }: {
   fee: number;
   renewAction: (formData: FormData) => Promise<void>;
 }) {
+  const { t, td, m } = useLang();
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
@@ -46,13 +47,13 @@ export function PanelSitesTable({ panels, ns1, ns2, fee, renewAction }: {
   return (
     <div className="mt-8">
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h2 className="text-base font-extrabold text-slate-900">Website con của tôi</h2>
-        <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700">{panels.length} website</span>
+        <h2 className="text-base font-extrabold text-slate-900">{t("Website con của tôi")}</h2>
+        <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700">{td(`${panels.length} website`)}</span>
       </div>
       <div className="mb-3 flex gap-2">
         <input
           className="inp max-w-md flex-1"
-          placeholder="Tìm kiếm domain, tên..."
+          placeholder={t("Tìm kiếm domain, tên...")}
           value={q}
           onChange={(e) => { setQ(e.target.value); setPage(1); }}
         />
@@ -63,9 +64,9 @@ export function PanelSitesTable({ panels, ns1, ns2, fee, renewAction }: {
             <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
               <th className="px-5 py-3.5 font-bold">Domain</th>
               <th className="px-5 py-3.5 font-bold">Nameservers</th>
-              <th className="px-5 py-3.5 font-bold">Trạng thái</th>
+              <th className="px-5 py-3.5 font-bold">{t("Trạng thái")}</th>
               <th className="px-5 py-3.5 font-bold">SSL</th>
-              <th className="px-5 py-3.5 font-bold">Ngày</th>
+              <th className="px-5 py-3.5 font-bold">{t("Ngày")}</th>
               <th className="px-5 py-3.5" />
             </tr>
           </thead>
@@ -80,25 +81,25 @@ export function PanelSitesTable({ panels, ns1, ns2, fee, renewAction }: {
                     ) : (
                       <span className="font-bold text-slate-800">{p.name}</span>
                     )}
-                    {p.expiresAt && <div className="mt-0.5 text-xs text-slate-400">{"Hết hạn: " + dstr(p.expiresAt)}</div>}
+                    {p.expiresAt && <div className="mt-0.5 text-xs text-slate-400">{td("Hết hạn: " + dstr(p.expiresAt))}</div>}
                   </td>
                   <td className="px-5 py-4 text-[13px] leading-relaxed text-slate-600">
                     {ns1 || ns2 ? (<>{ns1 && <div>{ns1}</div>}{ns2 && <div>{ns2}</div>}</>) : "—"}
                   </td>
                   <td className="px-5 py-4">
-                    <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold ${st.cls}`}>{st.label}</span>
+                    <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold ${st.cls}`}>{t(st.label)}</span>
                   </td>
-                  <td className="px-5 py-4 text-[13px] font-medium text-slate-600">{p.status === "ACTIVE" ? "Đã bật" : "—"}</td>
+                  <td className="px-5 py-4 text-[13px] font-medium text-slate-600">{p.status === "ACTIVE" ? t("Đã bật") : "—"}</td>
                   <td className="px-5 py-4 text-[13px] text-slate-600">{dstr(p.createdAt)}</td>
                   <td className="px-5 py-4">
                     <div className="flex justify-end gap-2">
                       {fee > 0 && p.expiresAt && (
                         <form action={renewAction}>
                           <input type="hidden" name="panelId" value={p.id} />
-                          <button type="submit" className="btn-ghost btn-sm whitespace-nowrap" title={`Gia hạn 30 ngày — ${vnd(fee)}`}>Gia hạn</button>
+                          <button type="submit" className="btn-ghost btn-sm whitespace-nowrap" title={td(`Gia hạn 30 ngày — ${m(fee)}`)}>{t("Gia hạn")}</button>
                         </form>
                       )}
-                      <a href={`/api/panels/select?id=${p.id}`} className="btn-primary btn-sm whitespace-nowrap">Quản trị</a>
+                      <a href={`/api/panels/select?id=${p.id}`} className="btn-primary btn-sm whitespace-nowrap">{t("Quản trị")}</a>
                     </div>
                   </td>
                 </tr>
@@ -107,8 +108,8 @@ export function PanelSitesTable({ panels, ns1, ns2, fee, renewAction }: {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-5 py-12 text-center">
-                  <div className="font-bold text-slate-700">{panels.length === 0 ? "Chưa có website con nào" : "Không tìm thấy website con phù hợp"}</div>
-                  <p className="mt-1 text-sm text-slate-400">{panels.length === 0 ? "Tạo website đầu tiên bằng wizard phía trên." : "Thử từ khoá khác hoặc xoá bộ lọc tìm kiếm."}</p>
+                  <div className="font-bold text-slate-700">{panels.length === 0 ? t("Chưa có website con nào") : t("Không tìm thấy website con phù hợp")}</div>
+                  <p className="mt-1 text-sm text-slate-400">{panels.length === 0 ? t("Tạo website đầu tiên bằng wizard phía trên.") : t("Thử từ khoá khác hoặc xoá bộ lọc tìm kiếm.")}</p>
                 </td>
               </tr>
             )}
@@ -119,10 +120,10 @@ export function PanelSitesTable({ panels, ns1, ns2, fee, renewAction }: {
         <div className="flex items-center gap-2">
           <button type="button" disabled={cur <= 1} onClick={() => setPage(cur - 1)} className="btn-ghost btn-sm !px-3 disabled:opacity-40">‹</button>
           <button type="button" disabled={cur >= pages} onClick={() => setPage(cur + 1)} className="btn-ghost btn-sm !px-3 disabled:opacity-40">›</button>
-          <span className="ml-1 text-sm font-medium text-slate-600">{"Trang " + cur + "/" + pages}</span>
+          <span className="ml-1 text-sm font-medium text-slate-600">{td("Trang " + cur + "/" + pages)}</span>
         </div>
         <label className="flex items-center gap-2 text-sm text-slate-500">
-          Số hàng/trang
+          {t("Số hàng/trang")}
           <select className="inp !w-auto !py-1.5" value={perPage} onChange={(e) => { setPerPage(parseInt(e.target.value)); setPage(1); }}>
             <option value={10}>10</option>
             <option value={20}>20</option>

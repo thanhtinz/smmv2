@@ -1,5 +1,6 @@
+"use client";
 import Link from "next/link";
-import { vnd } from "@/lib/format";
+import { useLang } from "@/components/lang";
 
 /** Dữ liệu thẻ sản phẩm Premium (đã tính sẵn phía server: khoảng giá, đã bán, kho). */
 export type PremiumCardData = {
@@ -38,6 +39,7 @@ export function Stars({ value, className = "h-4 w-4" }: { value: number; classNa
  *  hoặc khoảng giá min ~ max, không có giá thì "Liên hệ"), dòng Đã bán + nhãn
  *  Giao ngay/Order ở đáy thẻ. Dùng cho lưới danh sách và sản phẩm liên quan. */
 export function PremiumCard({ item, base, className = "" }: { item: PremiumCardData; base: string; className?: string }) {
+  const { t, td, m } = useLang();
   const contact = item.minPrice <= 0;
   return (
     <Link href={`${base}/${item.slug}`} className={`card group flex flex-col overflow-hidden transition hover:shadow-lg ${className}`}>
@@ -54,23 +56,23 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
       <div className="flex flex-1 flex-col p-3 sm:p-4">
         <div className="line-clamp-2 min-h-[2.6em] text-[15px] font-bold leading-snug text-slate-900 group-hover:text-brand-700 sm:text-base">{item.name}</div>
         <div className="mt-2 text-[15px] font-extrabold leading-tight text-rose-600 sm:text-[17px]">
-          {contact ? "Liên hệ" : item.maxPrice > item.minPrice ? `${vnd(item.minPrice)} ~ ${vnd(item.maxPrice)}` : vnd(item.minPrice)}
+          {contact ? t("Liên hệ") : item.maxPrice > item.minPrice ? `${m(item.minPrice)} ~ ${m(item.maxPrice)}` : m(item.minPrice)}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
           {item.reviewCount > 0 && <span className="inline-flex items-center gap-1.5"><Stars value={item.rating} className="h-3.5 w-3.5" /><b className="text-slate-700">{item.rating.toFixed(1)}</b>({item.reviewCount})</span>}
-          {item.sold > 0 && <span>Đã bán {item.sold.toLocaleString("vi-VN")}</span>}
+          {item.sold > 0 && <span>{td(`Đã bán ${item.sold.toLocaleString("vi-VN")}`)}</span>}
           {item.instant && item.hasStock && (
             <span className="inline-flex items-center gap-1 font-bold text-teal-600">
               <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
-              Giao ngay
+              {t("Giao ngay")}
             </span>
           )}
         </div>
         <div className="mt-auto pt-3">
           {contact ? (
-            <span className="inline-block rounded-lg bg-teal-600 px-3.5 py-1.5 text-[13px] font-bold text-white">Đặt mua</span>
+            <span className="inline-block rounded-lg bg-teal-600 px-3.5 py-1.5 text-[13px] font-bold text-white">{t("Đặt mua")}</span>
           ) : !item.instant || !item.hasStock ? (
-            <span className="text-[13px] font-bold text-teal-700">Đặt mua</span>
+            <span className="text-[13px] font-bold text-teal-700">{t("Đặt mua")}</span>
           ) : null}
         </div>
       </div>

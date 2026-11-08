@@ -1,6 +1,7 @@
 import { requirePanelOwnerPage } from "@/lib/panel-access";
 import { PageHead, Flash, I } from "@/components/ui";
 import { panelSaveModulesAction } from "@/app/actions/panel";
+import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +23,13 @@ const MODULES: Mod[] = [
  *  Web mẹ tắt tính năng nào ở trang Mô-đun hệ thống thì tính năng đó tắt cho mọi website. */
 export default async function PanelModules({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const { panel } = await requirePanelOwnerPage();
+  const { L, Ld } = await getServerI18n((panel as { langConfig?: string | null }).langConfig ?? null);
   return (
     <div>
-      <PageHead title="Mô-đun" desc="Bật / tắt từng tính năng cho khách của website. Web mẹ tắt thì tắt chung.">
-        <button className="btn-primary !py-2.5" form="panel-modules-form" type="submit">Lưu thay đổi</button>
+      <PageHead title={L("Mô-đun")} desc={L("Bật / tắt từng tính năng cho khách của website. Web mẹ tắt thì tắt chung.")}>
+        <button className="btn-primary !py-2.5" form="panel-modules-form" type="submit">{L("Lưu thay đổi")}</button>
       </PageHead>
-      <Flash msg={searchParams.msg} err={searchParams.err} />
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form id="panel-modules-form" action={panelSaveModulesAction}>
         <div className="card divide-y divide-slate-100 p-0">
           {MODULES.map((m) => {
@@ -36,20 +38,20 @@ export default async function PanelModules({ searchParams }: { searchParams: { m
               <label key={m.key} className="flex cursor-pointer items-center gap-4 px-6 py-4 transition hover:bg-slate-50">
                 <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${on ? "bg-brand-50 text-brand-600" : "bg-slate-100 text-slate-400"}`}>{m.icon}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-bold text-slate-900">{m.name}</span>
-                  <span className="mt-0.5 block text-sm leading-relaxed text-slate-500">{m.desc}</span>
+                  <span className="block font-bold text-slate-900">{L(m.name)}</span>
+                  <span className="mt-0.5 block text-sm leading-relaxed text-slate-500">{L(m.desc)}</span>
                 </span>
-                <span className={`shrink-0 text-sm font-semibold ${on ? "text-emerald-600" : "text-slate-400"}`}>{on ? "Đang bật" : "Đang tắt"}</span>
+                <span className={`shrink-0 text-sm font-semibold ${on ? "text-emerald-600" : "text-slate-400"}`}>{on ? L("Đang bật") : L("Đang tắt")}</span>
                 <input type="checkbox" name={m.key} defaultChecked={on} className="h-5 w-5 shrink-0 accent-brand-600" />
               </label>
             );
           })}
         </div>
         <div className="card mt-5 p-6">
-          <label className="lbl">% hoa hồng giới thiệu riêng của panel (để trống = theo web mẹ)</label>
-          <input name="affiliatePercent" type="number" min={0} max={100} defaultValue={panel.affiliatePercent ?? ""} placeholder="VD: 8" className="inp max-w-xs" />
+          <label className="lbl">{L("% hoa hồng giới thiệu riêng của panel (để trống = theo web mẹ)")}</label>
+          <input name="affiliatePercent" type="number" min={0} max={100} defaultValue={panel.affiliatePercent ?? ""} placeholder={L("VD: 8")} className="inp max-w-xs" />
         </div>
-        <button className="btn-primary mt-5 w-full !py-3 md:w-auto">Lưu thay đổi</button>
+        <button className="btn-primary mt-5 w-full !py-3 md:w-auto">{L("Lưu thay đổi")}</button>
       </form>
     </div>
   );
