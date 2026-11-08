@@ -76,19 +76,22 @@ export default async function GameKeyCatalogPage({ searchParams }: {
       {/* Thẻ tìm kiếm + lọc */}
       <form method="get" className="card mt-5 p-4 sm:p-5">
         <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{L("Tìm trong danh mục")}</div>
+        {/* Bố cục bộ lọc: mobile giữ nguyên (ô tìm đầy bề ngang, 2 select
+            cạnh nhau); PC không kéo dài hết thẻ — ô tìm tối đa 400px, mỗi
+            select 210px, hàng gọn về phía trái (Tín 2026-11-08 13:52). */}
         <div className="mt-2.5 flex gap-2">
-          <input className="inp flex-1" name="q" defaultValue={q} placeholder={L("Tìm game theo tên")} />
+          <input className="inp flex-1 sm:w-[400px] sm:max-w-[400px] sm:flex-none" name="q" defaultValue={q} placeholder={L("Tìm game theo tên")} />
           <GkFavFilterButton active={favActive} basePath={filterBase} />
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <div>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:flex">
+          <div className="sm:w-[210px]">
             <label className="lbl">{L("Nền tảng")}</label>
             <select className="inp" name="platform" defaultValue={platform}>
               <option value="">{L("Tất cả")}</option>
               {platforms.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
-          <div>
+          <div className="sm:w-[210px]">
             <label className="lbl">{L("Vùng")}</label>
             <select className="inp" name="region" defaultValue={region}>
               <option value="">{L("Tất cả")}</option>
