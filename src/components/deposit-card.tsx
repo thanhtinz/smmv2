@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CopyBtn } from "@/components/client";
-import { createDepositAction, startPaypalCheckoutAction, startStripeCheckoutAction, createUsdtDepositAction } from "@/app/actions/user";
+import { createDepositAction, startPaypalCheckoutAction, startStripeCheckoutAction, createBoltDepositAction } from "@/app/actions/user";
 import { useLang } from "@/components/lang";
 
 /** Thẻ Nạp tiền hợp nhất: chọn 1 phương thức — SePay (ngân hàng + MoMo chung 1 cổng đối soát) / PayPal / Stripe.
@@ -9,7 +9,8 @@ import { useLang } from "@/components/lang";
 type BankInfo = { name: string; account: string; holder: string; qr: string; content: string; min: number };
 type MomoInfo = { phone: string; name: string; content: string };
 type IntlInfo = { rate: number; paypal: boolean; stripe: boolean; minUsd?: number };
-type UsdtInfo = { address: string; network: string; rate: number; min?: number };
+type BoltPending = { code: string; checkoutUrl: string | null; paymentAddress: string | null; cryptoAmount: string | null; network: string; expiresAt: string | null; status: string };
+type UsdtInfo = { rate: number; minUsd: number; defaultNetwork: string; networks: string[]; pending: BoltPending | null };
 type MethodKey = "sepay" | "paypal" | "stripe" | "usdt";
 
 export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: BankInfo | null; banks?: BankInfo[]; momo: MomoInfo | null; tiers: { from: number; percent: number }[]; intl: IntlInfo | null; usdt?: UsdtInfo | null }) {
@@ -21,10 +22,11 @@ export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: Ba
     ...(curBank || momo ? [{ key: "sepay" as const, brand: <span className="text-slate-800">{t("QR ngân hàng")}</span>, desc: t("Ngân hàng & MoMo · cộng tự động") }] : []),
     ...(intl?.paypal ? [{ key: "paypal" as const, brand: <><span className="text-[#003087] dark:text-[#7aa7ff]">Pay</span><span className="text-[#0079C1] dark:text-[#4db2ff]">Pal</span></>, desc: t("Trả USD · cộng theo tỉ giá") }] : []),
     ...(intl?.stripe ? [{ key: "stripe" as const, brand: <span className="text-[#635BFF]">Stripe</span>, desc: t("Thẻ Visa / Mastercard") }] : []),
-    ...(usdt ? [{ key: "usdt" as const, brand: <span className="text-[#26A17B]">USDT</span>, desc: t("Crypto · duyệt tay") }] : []),
+    ...(usdt ? [{ key: "usdt" as const, brand: <span className="text-[#26A17B]">USDT</span>, desc: t("Crypto · cộng tự động") }] : []),
   ];
   const [method, setMethod] = useState<MethodKey>(methods[0]?.key || "sepay");
   const [usd, setUsd] = useState("10");
+  const [vndUsdt, setVndUsdt] = useState("250000");
   const rate = intl?.rate || usdt?.rate || 25000;
   const vndVal = Math.round((parseFloat(usd) || 0) * rate);
   const isIntl = method === "paypal" || method === "stripe";
@@ -108,18 +110,29 @@ export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: Ba
       )}
 
       {isUsdt && usdt && (
-        <form action={createUsdtDepositAction}>
-          <p className="text-sm text-slate-500 mb-4">{t("Chuyển USDT tới địa chỉ ví bên dưới (mạng ")}<b className="text-slate-700">{usdt.network}</b>{t("), sau đó khai số USDT và mã giao dịch — admin đối chiếu và cộng tiền. Tỉ giá: ")}<b className="text-slate-700">{`1 USDT = ${usdt.rate.toLocaleString("vi-VN")}đ`}</b>{t(" · Tối thiểu ")}{usdt.min ?? 5} USDT.</p>
-          <div className="mb-4 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-            <div className="min-w-0"><div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{t("Địa chỉ ví ")}{usdt.network}</div><div className="truncate font-mono text-sm font-semibold">{usdt.address}</div></div>
-            <CopyBtn text={usdt.address} label={t("Sao chép địa chỉ ví")} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
-            <div><label className="lbl">{t("Số USDT đã chuyển")}</label><input className="inp" name="usdt" type="number" step="0.01" min={5} required placeholder={t("VD: 20")} /></div>
-            <div><label className="lbl">{t("Mã giao dịch (tx hash)")}</label><input className="inp font-mono" name="txHash" required placeholder={t("Dán tx hash")} /></div>
-          </div>
-          <button className="btn-primary mt-5">{t("Khai báo đã chuyển USDT")}</button>
-        </form>
+        <div>
+          {usdt.pending ? (
+            <BoltPendingPanel p={usdt.pending} />
+          ) : (
+            <form action={createBoltDepositAction}>
+              <p className="text-sm text-slate-500 mb-4">{t("Nhập số tiền muốn nạp — hệ thống tạo phiên thanh toán USDT qua BoltUtil, tiền cộng tự động khi giao dịch được xác nhận. Tỉ giá: ")}<b className="text-slate-700">{`1 USDT = ${usdt.rate.toLocaleString("vi-VN")}đ`}</b>{t(" · Tối thiểu ")}{usdt.minUsd} USDT.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+                <div>
+                  <label className="lbl">{t("Số tiền nạp (VNĐ)")}</label>
+                  <input className="inp" name="vnd" type="number" min={10000} step={1000} required value={vndUsdt} onChange={(e) => setVndUsdt(e.target.value)} />
+                  <div className="text-sm mt-2 text-slate-500">{t("Tương đương ≈")} <b className="text-emerald-700">{((parseInt(vndUsdt) || 0) / usdt.rate).toFixed(2)} USDT</b></div>
+                </div>
+                <div>
+                  <label className="lbl">{t("Mạng")}</label>
+                  <select className="inp" name="network" defaultValue={usdt.defaultNetwork}>
+                    {usdt.networks.map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+              </div>
+              <button className="btn-primary mt-5">{t("Tạo phiên nạp USDT")}</button>
+            </form>
+          )}
+        </div>
       )}
 
       {!isIntl && !isUsdt && tiers.length > 0 && (
@@ -150,12 +163,62 @@ export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: Ba
   );
 }
 
-function Row({ k, v, copy, strong }: { k: string; v: string; copy?: boolean; strong?: boolean }) {
+function Row({ k, v, copy, strong, mono }: { k: string; v: string; copy?: boolean; strong?: boolean; mono?: boolean }) {
   const { t } = useLang();
   return (
     <div className="flex items-center justify-between gap-3">
       <dt className="text-slate-500">{k}</dt>
-      <dd className={`flex items-center gap-2 ${strong ? "font-extrabold text-brand-700" : "font-semibold text-slate-800"}`}>{v}{copy && <CopyBtn text={v} label={t("Chép")} />}</dd>
+      <dd className={`flex items-center gap-2 ${mono ? "font-mono text-[13px] break-all" : ""} ${strong ? "font-extrabold text-brand-700" : "font-semibold text-slate-800"}`}>{v}{copy && <CopyBtn text={v} label={t("Chép")} />}</dd>
+    </div>
+  );
+}
+
+/** Phiên nạp USDT đang chờ: nút mở trang thanh toán BoltUtil, địa chỉ + số lượng
+ *  chính xác cho chuyển tay, đếm ngược hết hạn và tự hỏi trạng thái mỗi 10 giây. */
+function BoltPendingPanel({ p }: { p: BoltPending }) {
+  const { t } = useLang();
+  const [remain, setRemain] = useState("");
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (!p.expiresAt) return;
+    const tick = () => {
+      const ms = new Date(p.expiresAt as string).getTime() - Date.now();
+      if (ms <= 0) { setRemain("00:00"); return; }
+      const sec = Math.floor(ms / 1000);
+      setRemain(`${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`);
+    };
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, [p.expiresAt]);
+  useEffect(() => {
+    if (done) return;
+    const iv = setInterval(async () => {
+      try {
+        const r = await fetch(`/api/deposits/boltutil-status?code=${encodeURIComponent(p.code)}`);
+        const j = await r.json();
+        if (j.status === "APPROVED") { setDone(true); setTimeout(() => window.location.reload(), 1500); }
+      } catch { /* thử lại ở chu kỳ sau */ }
+    }, 10000);
+    return () => clearInterval(iv);
+  }, [p.code, done]);
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[13px] font-bold ${done ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+          {done ? t("Đã cộng tiền vào ví") : `${t("Đang chờ thanh toán")} · ${p.code}`}
+        </span>
+        {remain && !done && <span className="text-sm font-semibold text-slate-500">{t("Hết hạn sau")} {remain}</span>}
+      </div>
+      {p.checkoutUrl && !done && (
+        <a href={p.checkoutUrl} target="_blank" rel="noreferrer" className="btn-primary mb-4 inline-block">{t("Mở trang thanh toán BoltUtil")}</a>
+      )}
+      <dl className="space-y-3 text-sm max-w-xl">
+        <Row k={t("Mạng")} v={p.network} />
+        {p.cryptoAmount && <Row k={t("Số USDT cần chuyển")} v={p.cryptoAmount} strong />}
+        {p.paymentAddress && <Row k={t("Địa chỉ nhận")} v={p.paymentAddress} copy mono />}
+      </dl>
+      <p className="text-xs text-slate-400 mt-4">{t("Chuyển đúng mạng và đúng số lượng — tiền tự cộng vào ví khi giao dịch được xác nhận.")}</p>
     </div>
   );
 }
