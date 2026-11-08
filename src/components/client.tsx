@@ -701,7 +701,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   note?: string | null; // hướng dẫn riêng của sản phẩm (hộp xanh phía trên các ô nhập)
   maxQty?: number; // trần số lượng mỗi đơn — lấy từ cấu hình hệ thống
   backBase?: string; // gốc đường dẫn trang chi tiết (/premium hoặc /dashboard/premium) để trả về đúng khung khi có lỗi
-  layout?: "stacked" | "split"; // split = bố cục shopkey ở trang chi tiết web mẹ: form dùng lg:contents, các phần của form là ô của lưới trang 73/27 (gói + khối gập + đánh giá ở cột trái, hộp đặt hàng dính ở cột phải); stacked = dạng cũ ở website con
+  layout?: "stacked" | "split" | "single"; // single = MỘT cột ~640px kiểu trang Telegram (lệnh Tín 2026-11-07 23:11): thẻ Chọn gói đánh số → thẻ Thông tin → thẻ Tóm tắt có nút bên trong; split = bố cục shopkey 73/27 cũ (không còn nơi dùng); stacked = dạng cũ ở website con
   productImage?: string | null;
   productColor?: string;
   belowVariants?: React.ReactNode; // khối hiển thị dưới danh sách gói ở cột trái (bố cục split): thông tin / bảo hành / hướng dẫn
@@ -739,8 +739,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
     });
   };
 
-  if (layout === "split") {
-    const total = (v?.price || 0) * qty;
+  const total = (v?.price || 0) * qty;
     // Xem trước số tiền giảm — đúng thứ tự server chốt khi đặt đơn: flash sale
     // giảm TRƯỚC trên Tạm tính, mã giảm giá tính trên số tiền ĐÃ trừ flash
     // (công thức checkPromo). Dòng "Giảm giá" trong hộp tóm tắt = flash + mã.
@@ -788,6 +787,104 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
         )}
       </>
     );
+  // Tiêu đề mục đánh số + thẻ chọn gói — đúng ngôn ngữ thiết kế của trang
+  // Telegram (components/telegram-order.tsx) cho bố cục "single".
+  const panelTitle = (n: number, label: string) => (
+    <div className="flex items-center gap-3 border-b border-slate-100 pb-3.5">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-[15px] font-extrabold text-violet-600">{n}</span>
+      <span className="text-[17px] font-extrabold text-slate-900">{label}</span>
+    </div>
+  );
+  const pickCls = (selected: boolean) =>
+    `rounded-2xl border-2 text-left transition ${selected ? "border-violet-500 bg-[#f5f2ff]" : "border-slate-200 bg-white hover:border-violet-300"}`;
+
+  if (layout === "single") {
+    const sumRow = "flex items-center justify-between gap-3 px-4 py-3.5";
+    return (
+      <form ref={formRef} action={action} className="space-y-4 sm:space-y-5">
+        <input type="hidden" name="slug" value={slug} />
+        {backBase ? <input type="hidden" name="returnTo" value={`${backBase}/${slug}`} /> : null}
+        <input type="hidden" name="variantId" value={v?.id || ""} />
+        <section className="card p-3.5 sm:p-5">
+          {panelTitle(1, t("Chọn gói"))}
+          <div className="mt-4 space-y-3">
+            {variants.map((x) => {
+              const selected = x.id === v?.id;
+              return (
+                <button type="button" key={x.id} onClick={() => setVariantId(x.id)} className={`${pickCls(selected)} block w-full p-4 sm:p-5`}>
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block break-words text-base font-extrabold text-slate-900">{x.name}</span>
+                      <span className="mt-1 block text-[13px] text-slate-500">
+                        {x.warrantyDays ? <>{t("Bảo hành")} {x.warrantyDays} {t("ngày")}</> : t("Không bảo hành")}
+                        {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? <>{t(" · Còn ")}{x.stock}{t(" trong kho")}</> : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
+                      </span>
+                      {fulfillment === "AUTO_STOCK" && x.stock > 0 && (
+                        <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-teal-600">
+                          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
+                          {t("Giao ngay")}
+                        </span>
+                      )}
+                    </span>
+                    {flashPct ? (
+                      <span className="shrink-0 text-right">
+                        <span className="block text-xs font-semibold text-slate-400 line-through">{m(x.price)}</span>
+                        <span className="block text-[17px] font-extrabold text-rose-600">{m(applyFlashClient(x.price, flashPct))}</span>
+                      </span>
+                    ) : (
+                      <span className="shrink-0 text-[17px] font-extrabold text-rose-600">{m(x.price)}</span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+        <section className="card p-3.5 sm:p-5">
+          {panelTitle(2, t("Thông tin"))}
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className="lbl">{t("Số lượng")}</label>
+              <div className="flex h-[46px] items-stretch justify-center sm:justify-start">
+                <button type="button" aria-label={t("Giảm số lượng")} onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-11 rounded-l-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">−</button>
+                <input className="w-16 border-y border-slate-300 bg-transparent text-center text-lg font-bold text-slate-900 outline-none" name="quantity" type="number" min={1} max={maxQty} value={qty} onChange={(e) => setQty(parseInt(e.target.value) || 1)} />
+                <button type="button" aria-label={t("Tăng số lượng")} onClick={() => setQty((q) => Math.min(maxQty, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
+              </div>
+            </div>
+            {note && <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-sky-900">{note}</div>}
+            {infoFields}
+          </div>
+        </section>
+        <section className="card p-5 sm:p-6">
+          <div className="text-xl font-extrabold text-slate-900">{t("Tóm tắt")}</div>
+          <details className="group mt-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-brand-700 [&::-webkit-details-marker]:hidden">
+              {t("Bạn có mã giảm giá?")}
+              <span className="text-slate-400 transition-transform duration-200 group-open:rotate-180">{I.chevron}</span>
+            </summary>
+            <input className="inp mt-2 uppercase" name="promoCode" placeholder={t("VD: SALE10")} autoComplete="off" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} />
+          </details>
+          <div className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-200">
+            <div className={sumRow}><span className="shrink-0 text-[15px] text-slate-500">{t("Gói đã chọn")}</span><span className="min-w-0 break-words text-right font-bold text-slate-900">{v?.name}</span></div>
+            <div className={sumRow}><span className="text-[15px] text-slate-500">{t("Số lượng")}</span><span className="font-bold text-slate-900">{qty}</span></div>
+            <div className={sumRow}><span className="text-[15px] text-slate-500">{t("Tạm tính")}</span><span className="font-bold text-slate-900">{m(total)}</span></div>
+            {discount > 0 && (
+              <div className={sumRow}><span className="text-[15px] text-slate-500">{t("Giảm giá")}</span><span className="font-bold text-emerald-600">−{m(discount)}</span></div>
+            )}
+            <div className={sumRow}><span className="text-[15px] font-bold text-slate-900">{t("Tổng cộng")}</span><span className="text-lg font-extrabold text-rose-600">{m(grandTotal)}</span></div>
+          </div>
+          <div className="mt-3 text-xs text-slate-400">
+            {fulfillment === "AUTO_STOCK" ? <>{t("Kho hàng:")} {v?.stock || 0} {t("sản phẩm")}</> : fulfillment === "API" ? t("Giao tự động qua nhà cung cấp") : t("Nâng cấp thủ công trên tài khoản của bạn")}
+          </div>
+          <div className="mt-5 flex gap-2">
+            <button className="btn-primary flex-1 !py-3">{t("Đặt hàng ngay")}</button>
+            {cartable && <CartDetailBtn onAdd={addCurrentToCart} />}
+          </div>
+        </section>
+      </form>
+    );
+  }
+  if (layout === "split") {
     return (
       <form ref={formRef} action={action} className="flex flex-col gap-8 lg:contents">
         <input type="hidden" name="slug" value={slug} />

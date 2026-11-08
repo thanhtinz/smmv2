@@ -3600,6 +3600,7 @@ export const DICT: Record<string, Tr> = {
   "Yêu cầu liên kết mới": e("Request a new link", "申请新链接", "ขอลิงก์ใหม่", "新しいリンクをリクエスト", "새 링크 요청"),
   "Đặt lại mật khẩu qua email": e("Password reset via email", "通过邮箱重置密码", "รีเซ็ตรหัสผ่านผ่านอีเมล", "メールによるパスワードリセット", "이메일로 비밀번호 재설정"),
   "Mật khẩu đã được đặt lại": e("Your password was reset", "您的密码已被重置", "รหัสผ่านของคุณถูกรีเซ็ตแล้ว", "パスワードがリセットされました", "비밀번호가 재설정되었습니다"),
+  "Gói đã chọn": e("Selected plan", "已选套餐", "แพ็กเกจที่เลือก", "選択したプラン", "선택한 플랜"),
 
 };
 
