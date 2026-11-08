@@ -41,13 +41,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       children: [
         { href: "/admin/danh-muc", label: L("Danh mục dịch vụ"), icon: "layers", adminOnly: true } as any,
         { href: "/admin/dich-vu", label: L("Danh sách dịch vụ"), icon: "list", adminOnly: true } as any,
-        { href: "/admin/nha-cung-cap", label: L("Nhà cung cấp (API)"), icon: "server", adminOnly: true } as any,
         { href: "/admin/cap-bac", label: L("Cấp bậc người dùng"), icon: "percent", adminOnly: true } as any,
         { href: "/admin/don-smm", label: L("Quản lý đơn hàng"), icon: "cart", badge: manualPending },
         { href: "/admin/kiem-tra-ai", label: L("Kiểm tra AI"), icon: "cpu", adminOnly: true } as any,
         { href: "/admin/gia-thong-minh", label: L("Giá thông minh"), icon: "money", adminOnly: true } as any,
       ],
     } as any,
+    // FIX7 E1 (lệnh Tín 2026-11-08 02:12): Nhà cung cấp RA KHỎI dropdown —
+    // thành mục top-level ngay sau nhóm Quản lý SMM (trước đây chôn trong
+    // nhóm nên khó thấy; nhà cung cấp là nguồn sống của cả SMM lẫn Premium).
+    { href: "/admin/nha-cung-cap", label: L("Nhà cung cấp (API)"), icon: "server", adminOnly: true },
     {
       group: "Tài khoản Premium", icon: "gem",
       children: [
