@@ -112,7 +112,10 @@ function NavBody({ siteName, logoText, entries, pathname, onNavigate }: { siteNa
           {siteName} <span className="font-medium text-slate-400">/ Admin</span>
         </span>
       </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3" onClick={onNavigate}>
+      {/* Chỉ bấm vào LINK mới đóng ngăn kéo mobile: trước đây onClick gắn cả
+          nav nên bấm nút mở NHÓM cũng nổi bọt lên đây -> ngăn kéo đóng ngay,
+          không mở được trang trong nhóm (lỗi Tín báo 2026-11-08). */}
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3" onClick={onNavigate ? (e) => { if ((e.target as HTMLElement).closest("a")) onNavigate(); } : undefined}>
         {entries.map((e) =>
           "group" in e ? <Group key={e.group} entry={e} winner={winner} /> : <Leaf key={e.href} it={e} active={e === winner} />
         )}
