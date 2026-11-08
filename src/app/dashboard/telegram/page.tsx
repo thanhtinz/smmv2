@@ -46,7 +46,7 @@ export default async function TelegramOrderPage({ searchParams }: { searchParams
       {/* Thẻ tiêu đề DUY NHẤT ở đầu trang — đúng thẻ header của ảnh mẫu FZR
           (gradient oải hương nhạt, không icon, không nút Lịch sử, không
           PageHead/hero nào khác phía trên). */}
-      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
+      <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-brand-50/60 to-white px-6 py-6 sm:px-7">
         <h1 className="text-[26px] font-black leading-tight text-slate-900">Telegram stars & premium</h1>
         <p className="mt-1.5 text-[15px] text-slate-500">{L("Danh mục sao và Premium Telegram.")}</p>
       </div>

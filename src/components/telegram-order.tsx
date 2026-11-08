@@ -35,17 +35,17 @@ export function TelegramOrderForm({ starPrice, starMin, starMax, plans, balance 
   const account = username.trim() ? (username.trim().startsWith("@") ? username.trim() : `@${username.trim()}`) : "—";
 
   const segBtn = (active: boolean) =>
-    `flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-[15px] font-bold transition ${active ? "bg-gradient-to-br from-[#8061ff] to-[#673de6] text-white shadow-md shadow-violet-600/25" : "text-slate-500 hover:text-slate-800"}`;
+    `flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-[15px] font-bold transition ${active ? "bg-gradient-to-br from-brand-600 to-brand-500 text-white shadow-md shadow-brand-600/25" : "text-slate-500 hover:text-slate-800"}`;
   const panelTitle = (n: number, label: string) => (
     <div className="flex items-center gap-3 border-b border-slate-100 pb-3.5">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-[15px] font-extrabold text-violet-600">{n}</span>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-[15px] font-extrabold text-brand-700">{n}</span>
       <span className="text-[17px] font-extrabold text-slate-900">{label}</span>
     </div>
   );
   const lbl = "mb-2 block text-[15px] font-semibold text-slate-600";
-  const inp = "h-[52px] w-full rounded-xl border border-slate-200/70 bg-[#f3f5f9] px-4 text-[15px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100";
+  const inp = "h-[52px] w-full rounded-xl border border-slate-200/70 bg-[#f3f5f9] px-4 text-[15px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-100";
   const pickCls = (selected: boolean) =>
-    `rounded-2xl border-2 text-left transition ${selected ? "border-violet-500 bg-[#f5f2ff]" : "border-slate-200 bg-white hover:border-violet-300"}`;
+    `rounded-2xl border-2 text-left transition ${selected ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-300"}`;
 
   return (
     <form action={placeTelegramOrderAction} className="space-y-4 sm:space-y-5">
@@ -131,7 +131,7 @@ export function TelegramOrderForm({ starPrice, starMin, starMax, plans, balance 
             <span className="text-lg font-extrabold text-slate-900">{m(total)}</span>
           </div>
         </div>
-        <button disabled={!canSubmit} className="mt-5 w-full rounded-xl bg-gradient-to-br from-[#8061ff] to-[#673de6] py-4 text-base font-extrabold text-white shadow-lg shadow-violet-600/25 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40">
+        <button disabled={!canSubmit} className="mt-5 w-full rounded-xl bg-gradient-to-br from-brand-600 to-brand-500 py-4 text-base font-extrabold text-white shadow-lg shadow-brand-600/25 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40">
           {t("Tiếp tục")}
         </button>
       </section>

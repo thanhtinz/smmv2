@@ -58,7 +58,7 @@ export async function SmmOrdersView({ userId, sp }: { userId: number; sp: SP }) 
     <div className="mx-auto w-full max-w-[860px]">
       {/* Thẻ header kiểu Telegram như các trang đơn khác (fix6 task 3: trang này
           còn h1 + bảng cũ trong khi đặt đơn/chi tiết đã đổi ở fix5) */}
-      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
+      <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-brand-50/60 to-white px-6 py-6 sm:px-7">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-[22px] font-black leading-tight text-slate-900">{L("Đơn hàng đã tạo")}</h1>
@@ -206,7 +206,7 @@ export async function PremiumOrdersView({ userId, sp, base }: { userId: number; 
   return (
     <div className="mx-auto w-full max-w-[860px]">
       {/* Thẻ header kiểu Telegram như các trang đơn khác (fix6 task 3) */}
-      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
+      <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-brand-50/60 to-white px-6 py-6 sm:px-7">
         <h1 className="text-[22px] font-black leading-tight text-slate-900">{L("Sản phẩm đã mua")}</h1>
         <p className="mt-1 text-sm text-slate-500">{L("Danh sách sản phẩm đã mua của bạn")}</p>
       </div>

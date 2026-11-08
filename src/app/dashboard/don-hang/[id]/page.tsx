@@ -40,7 +40,7 @@ export default async function SmmOrderDetail({ params }: { params: { id: string 
   ];
   const panelTitle = (n: number, label: string) => (
     <div className="flex items-center gap-3 border-b border-slate-100 pb-3.5">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-[15px] font-extrabold text-violet-600">{n}</span>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-[15px] font-extrabold text-brand-700">{n}</span>
       <span className="text-[17px] font-extrabold text-slate-900">{label}</span>
     </div>
   );
@@ -49,7 +49,7 @@ export default async function SmmOrderDetail({ params }: { params: { id: string 
     <div className="mx-auto w-full max-w-[640px]">
       <BackLink href="/dashboard/don-hang">{L("Danh sách đơn SMM")}</BackLink>
       {/* Thẻ header DUY NHẤT: mã đơn (mono, sao chép được) + trạng thái + ngày tạo */}
-      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
+      <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-brand-50/60 to-white px-6 py-6 sm:px-7">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">

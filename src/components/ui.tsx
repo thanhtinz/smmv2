@@ -8,7 +8,7 @@ export function PageHead({ title, desc, children }: { title: string; desc?: Reac
   return (
     <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
       <div className="flex items-start gap-3">
-        <span className="mt-1 hidden h-10 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-brand-500 via-violet-500 to-fuchsia-500 sm:block" />
+        <span className="mt-1 hidden h-10 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-brand-500 to-brand-700 sm:block" />
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
           {desc && <p className="text-sm text-slate-500 mt-1">{desc}</p>}

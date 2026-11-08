@@ -57,7 +57,7 @@ export default async function TelegramHistoryPage({ searchParams }: {
   return (
     <div>
       {/* Thẻ header kiểu Telegram như các trang đơn khác (fix6 task 3) */}
-      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
+      <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-brand-50/60 to-white px-6 py-6 sm:px-7">
         <h1 className="text-[22px] font-black leading-tight text-slate-900">{L("Lịch sử đơn Telegram")}</h1>
         <p className="mt-1 text-sm text-slate-500">{L("Mọi đơn Stars và Premium bạn đã đặt.")}</p>
       </div>
@@ -103,7 +103,7 @@ export default async function TelegramHistoryPage({ searchParams }: {
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span className="font-mono text-sm font-black text-slate-900">{o.code}</span>
-                      <Badge cls={isStars ? "bg-amber-100 text-amber-700" : "bg-violet-100 text-violet-700"}>{isStars ? "Stars" : "Premium"}</Badge>
+                      <Badge cls={isStars ? "bg-amber-100 text-amber-700" : "bg-brand-100 text-brand-700"}>{isStars ? "Stars" : "Premium"}</Badge>
                       <Badge cls={PRE_STATUS[o.status]?.cls || "bg-slate-100 text-slate-600"}>{L(PRE_STATUS[o.status]?.label || o.status)}</Badge>
                     </div>
                     <div className="font-black text-slate-900">{M(o.total)}</div>

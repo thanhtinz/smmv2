@@ -250,7 +250,7 @@ function PasteIconBtn({ onClick }: { onClick: () => void }) {
 function OrderPanelTitle({ n, label }: { n: number; label: string }) {
   return (
     <div className="flex items-center gap-3 border-b border-slate-100 pb-3.5">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-[15px] font-extrabold text-violet-600">{n}</span>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-[15px] font-extrabold text-brand-700">{n}</span>
       <span className="text-[17px] font-extrabold text-slate-900">{label}</span>
     </div>
   );
@@ -397,8 +397,8 @@ export function OrderForm({ services, categories, discount, preselect, action, b
                 </span>
                 <span className="mt-2.5 flex flex-wrap gap-1.5">
                   <span className="rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-bold text-white">{perUnitVnd(service.rate)}</span>
-                  {service.refill && <span className="rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-bold text-teal-700">{t("Có bảo hành")}</span>}
-                  {service.dripfeed && <span className="rounded-lg bg-violet-100 px-2.5 py-1 text-xs font-bold text-violet-700">{t("Thả nhỏ giọt")}</span>}
+                  {service.refill && <span className="rounded-lg bg-brand-100 px-2.5 py-1 text-xs font-bold text-brand-700">{t("Có bảo hành")}</span>}
+                  {service.dripfeed && <span className="rounded-lg bg-brand-100 px-2.5 py-1 text-xs font-bold text-brand-700">{t("Thả nhỏ giọt")}</span>}
                   {service.avgTime && <span className="rounded-lg bg-slate-200 px-2.5 py-1 text-xs font-bold text-slate-600">{service.avgTime}</span>}
                 </span>
               </span>
@@ -710,7 +710,7 @@ const applyFlashClient = (amount: number, percent: number) =>
  *  trang chi tiết; trang khách chưa đăng nhập dùng bản tương tự phía server. */
 export function DeliveryBadge({ type, t }: { type: "FAST" | "SLOW"; t: (s: string) => string }) {
   return type === "FAST" ? (
-    <span className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-teal-700">
+    <span className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-brand-700">
       <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
       {t("Giao nhanh")}
     </span>
@@ -855,7 +855,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
                     )}
                   </span>
                   {fulfillment === "AUTO_STOCK" && x.stock > 0 && (
-                    <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-xs font-bold text-teal-600">
+                    <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-xs font-bold text-brand-600">
                       <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
                       {t("Giao ngay")}
                     </span>
@@ -885,7 +885,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
               <button type="button" aria-label={t("Tăng số lượng")} onClick={() => setQty((q) => Math.min(maxQty, q + 1))} className="w-11 rounded-r-xl border border-slate-300 text-xl font-bold text-slate-600 hover:bg-slate-50">+</button>
             </div>
           </div>
-          {note && <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-sky-900">{note}</div>}
+          {note && <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm leading-relaxed text-brand-900">{note}</div>}
           <div className="rounded-xl bg-slate-50 p-4">
             <div className="mb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">{t("Thông tin đặt hàng")}</div>
             {infoFields}
@@ -953,7 +953,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
         </div>
       </div>
       {note && (
-        <div className="rounded-xl bg-sky-50 border border-sky-100 px-4 py-3 text-sm text-sky-900 leading-relaxed">{note}</div>
+        <div className="rounded-xl bg-brand-50 border border-brand-100 px-4 py-3 text-sm text-brand-900 leading-relaxed">{note}</div>
       )}
       {fields && fields.length > 0 ? (
         <div className="space-y-3.5">
@@ -1126,10 +1126,10 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
         <div className="fixed inset-0 z-50 bg-slate-950/60 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSel(null)}>
           <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* Thẻ header kiểu Telegram: mã đơn mono + sao chép + trạng thái + ngày tạo */}
-            <div className="sticky top-0 z-10 border-b border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-5 py-4">
+            <div className="sticky top-0 z-10 border-b border-brand-100 bg-gradient-to-br from-brand-50 via-brand-50/60 to-white px-5 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-violet-500">{t("Chi tiết đơn hàng")}</div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-brand-600">{t("Chi tiết đơn hàng")}</div>
                   <div className="mt-0.5 flex items-center gap-2">
                     <span className="font-mono text-lg font-black leading-tight text-slate-900">{sel.code}</span>
                     <CopyBtn text={sel.code} />

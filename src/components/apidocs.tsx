@@ -93,7 +93,7 @@ export async function ApiDocsView({ apiKey }: { apiKey?: string | null }) {
       <InfoCards endpoint={endpoint} method="GET / POST" methodDesc="Hỗ trợ cả hai giao thức nhận tin" apiKey={apiKey} />
       <ApiTabs actions={localize(PRODUCT_ACTIONS)} />
 
-      <h2 className="text-lg font-black text-slate-900 mt-12 mb-4">{L("Tài liệu API sản phẩm số")} <span className="ml-1 rounded-md bg-violet-600 text-white text-[11px] font-black px-2 py-1 align-middle">GAME KEY · TELEGRAM · STEAM</span></h2>
+      <h2 className="text-lg font-black text-slate-900 mt-12 mb-4">{L("Tài liệu API sản phẩm số")} <span className="ml-1 rounded-md bg-brand-600 text-white text-[11px] font-black px-2 py-1 align-middle">GAME KEY · TELEGRAM · STEAM</span></h2>
       <InfoCards endpoint={endpoint} method="GET / POST" methodDesc="Hỗ trợ cả hai giao thức nhận tin" apiKey={apiKey} />
       <ApiTabs actions={localize(GROUP_ACTIONS)} />
     </div>

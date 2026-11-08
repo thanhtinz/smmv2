@@ -53,7 +53,7 @@ export default async function OrderPage({ searchParams }: { searchParams: { serv
     <div className="mx-auto w-full max-w-[640px]">
       {/* Thẻ header DUY NHẤT của trang — kiểu thẻ oải hương của trang Telegram
           (lệnh Tín 2026-11-07 23:13: trang đặt đơn SMM chung một style). */}
-      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-6 py-6 sm:px-7">
+      <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-brand-50/60 to-white px-6 py-6 sm:px-7">
         <h1 className="text-[26px] font-black leading-tight text-slate-900">{L("Đặt đơn SMM")}</h1>
         <p className="mt-1.5 text-[15px] text-slate-500">{L("Tăng tương tác mạng xã hội bằng số dư ví — hệ thống xử lý tự động.")}</p>
       </div>

@@ -144,7 +144,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <DisplaySettings />
               <Link href="/" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">{L("Xem website")}</Link>
               <span className="hidden items-center gap-2 rounded-full bg-slate-100 py-1 pl-1 pr-3 sm:flex">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-xs font-bold text-white">{initial}</span>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white">{initial}</span>
                 <span className="text-sm font-semibold text-slate-800">{user.username}</span>
                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{M(user.balance)}</span>
                 <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-500">{user.role}</span>

@@ -60,7 +60,7 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.image} alt={item.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" loading="lazy" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center" style={{ background: `linear-gradient(135deg, ${item.color}, #0ea5e9)` }}>
+          <div className="flex h-full w-full items-center justify-center" style={{ background: `linear-gradient(135deg, ${item.color}, rgb(var(--b500)))` }}>
             <span className="text-4xl font-black text-white/90 sm:text-5xl">{item.name.charAt(0)}</span>
           </div>
         )}
@@ -80,7 +80,7 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
           {item.reviewCount > 0 && <span className="inline-flex items-center gap-1.5"><Stars value={item.rating} className="h-3.5 w-3.5" /><b className="text-slate-700">{item.rating.toFixed(1)}</b>({item.reviewCount})</span>}
           {item.sold > 0 && <span>{t("Đã bán ")}{item.sold.toLocaleString("vi-VN")}</span>}
           {item.instant && item.hasStock && (
-            <span className="inline-flex items-center gap-1 font-bold text-teal-600">
+            <span className="inline-flex items-center gap-1 font-bold text-brand-600">
               <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
               {t("Giao ngay")}
             </span>
@@ -90,9 +90,9 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
           {/* CTA thẻ = "Xem sản phẩm" + mũi tên (lệnh Tín 2026-11-08 00:55):
               thẻ chỉ điều hướng sang trang chi tiết, mua ở đó (luật WS2). */}
           {contact ? (
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-1.5 text-[13px] font-bold text-white">{t("Xem sản phẩm")}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span></span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-1.5 text-[13px] font-bold text-white">{t("Xem sản phẩm")}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span></span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-teal-700">{t("Xem sản phẩm")}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span></span>
+            <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-brand-700">{t("Xem sản phẩm")}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span></span>
           )}
         </div>
       </div>
