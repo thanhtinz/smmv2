@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ACCENTS } from "@/components/theme";
 import { LANGS, CURRENCIES, FONTS, FSIZES, LOCALES } from "@/lib/i18n";
 import { useLang } from "@/components/lang";
+import { I } from "@/components/ui";
 
 /* ================= Tuỳ chọn hiển thị (lưu trên máy khách) ================= */
 export type Prefs = { accent: string; mode: string; dir: string; font: string; fsize: string; lang: string; cur: string };
@@ -61,10 +62,6 @@ export function applyPrefs(p: Prefs) {
   window.dispatchEvent(new Event("smmv2-display"));
 }
 
-const GearIcon = (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3.2" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.51 1.7 1.7 0 0 0 1.87-.34l.06.06A1.7 1.7 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.23.6.85 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z" /></svg>
-);
-
 function Seg({ options, value, onPick }: { options: { key: string; name: string }[]; value: string; onPick: (k: string) => void }) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -92,14 +89,16 @@ export function DisplaySettings({ tone = "light" }: { tone?: "light" | "dark" })
     }).catch(() => {});
   }, []);
   const set = (patch: Partial<Prefs>) => { const p = { ...prefs, ...patch }; setPrefs(p); applyPrefs(p); if (patch.lang || patch.cur) router.refresh(); };
-  const cur = ACCENTS.find((a) => a.key === prefs.accent) || ACCENTS[0];
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} title={t("Cài đặt hiển thị")}
-        className={`flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition ${tone === "dark" ? "bg-white/10 border-white/15 text-white hover:bg-white/20" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-        <span className="w-4 h-4 rounded-full border border-white/60 shadow-inner" style={{ background: cur.hex }} />
-        <span className="hidden xl:inline">{t("Cài đặt")}</span>
-        {GearIcon}
+      {/* Trigger (thiết kế lại 2026-11-08): BỎ chấm màu chủ đạo (chọn màu đã
+          có trong panel) + bỏ icon bánh răng chi tiết nhỏ nhìn như vệt mờ —
+          một icon sliders 20px dễ nhận diện; nhãn "Cài đặt" hiện từ sm trở
+          lên, dưới sm chỉ icon kèm title/aria-label. */}
+      <button type="button" onClick={() => setOpen((o) => !o)} title={t("Cài đặt hiển thị")} aria-label={t("Cài đặt hiển thị")}
+        className={`flex items-center gap-2 rounded-full border px-3 py-2 text-[13px] font-semibold transition ${tone === "dark" ? "bg-white/10 border-white/15 text-white hover:bg-white/20" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+        <span className="[&_svg]:h-5 [&_svg]:w-5">{I.sliders}</span>
+        <span className="hidden sm:inline">{t("Cài đặt")}</span>
       </button>
       {open && (
         <>
