@@ -92,18 +92,51 @@ input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator,
 input[type="month"]::-webkit-calendar-picker-indicator,
 input[type="week"]::-webkit-calendar-picker-indicator {
-  width: 18px;
-  height: 18px;
-  margin: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0 0 0 4px;
   padding: 0;
-  opacity: 0.55;
+  opacity: 0.45;
   cursor: pointer;
+}
+/* Thiết kế gọn gàng cho ô ngày/giờ (bổ sung WS5 theo lệnh Tín 23:46 — "làm
+   cho nó đẹp lên, nhỏ xíu"): giá trị 13px gọn, màu chữ mềm như ô lọc bên
+   cạnh, vùng sửa ngày không đệm thừa — ô đọc như một field được thiết kế
+   của site (viền/bán kính/nền/focus lấy nguyên từ .inp mà nó mang theo).
+   CHIỀU CAO không ghim riêng: ô đi theo .inp của hàng nó đứng (hàng lọc
+   !py-2 = 38px, hàng chuẩn = 42px) nên luôn bằng đúng ô text/select kề. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"] {
+  font-size: 13px;
+  color: #334155;
+}
+input[type="date"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit,
+input[type="datetime-local"]::-webkit-datetime-edit,
+input[type="month"]::-webkit-datetime-edit,
+input[type="week"]::-webkit-datetime-edit {
+  padding: 0;
+}
+.dark input[type="date"],
+.dark input[type="time"],
+.dark input[type="datetime-local"],
+.dark input[type="month"],
+.dark input[type="week"] {
+  color: #e6edf7;
+  color-scheme: dark;
 }
 /* iOS tự phóng to trang khi focus vào ô có cỡ chữ < 16px ("tự làm to" còn
    lại): trên thiết bị chạm (coarse pointer) đặt mọi control 16px; desktop
    không đổi. */
 @media (hover: none) and (pointer: coarse) {
   input, select, textarea { font-size: 16px; }
+  /* Ô ngày/giờ cũng 16px ở thiết bị chạm (giữ chống phóng to khi focus);
+     khai lại cùng độ ưu tiên để thắng rule 13px ở trên — chiều cao vẫn gọn
+     theo .inp, chỉ cỡ chữ giá trị là 16px. */
+  input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"], input[type="week"] { font-size: 16px; }
 }
 
 /* ============ CHẾ ĐỘ TỐI: ánh xạ lại các màu bề mặt/chữ dùng chung toàn site ============ */
