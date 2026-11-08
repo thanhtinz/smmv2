@@ -18,7 +18,7 @@ export async function SiteHeader() {
   const s = await getSettings();
   const user = session ? await prisma.user.findUnique({ where: { id: session.id }, select: { balance: true, role: true } }) : null;
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+    <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
       {s.announcement_bar && (
         <div className="bg-brand-600 text-white text-center text-xs sm:text-sm py-2 px-4 font-medium">{s.announcement_bar}</div>
       )}
@@ -78,7 +78,7 @@ export async function PublicHeader({ announcement }: { announcement?: string | n
       <div className="fixed inset-x-0 top-0 z-50">
         {note && <div className="bg-rose-600 px-4 py-1.5 text-center text-xs font-medium text-white sm:text-sm">{note}</div>}
         <div className="px-3 pt-3 sm:pt-4">
-          <header className="mx-auto flex max-w-5xl items-center gap-2 rounded-full border border-white/10 bg-black/60 py-2 pl-2 pr-2 shadow-2xl shadow-black/40 backdrop-blur-xl sm:gap-3 sm:pl-3">
+          <header className="mx-auto flex max-w-5xl items-center gap-2 rounded-full border border-white/10 bg-neutral-950 py-2 pl-2 pr-2 shadow-2xl shadow-black/40 sm:gap-3 sm:pl-3">
             <PublicBurger tone="dark" home={home} loggedIn={!!session} registerHref={registerHref} />
             <Link href={user ? "/dashboard" : home} className="flex shrink-0 items-center gap-2.5">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600 text-sm font-black text-white">{name.charAt(0).toUpperCase()}</span>
@@ -195,15 +195,15 @@ function FloatingSupport({ items }: { items: FloatingContact[] }) {
   };
   if (items.length === 0) return null;
   return (
-    <div className="fixed bottom-5 right-4 sm:right-5 z-50 flex flex-col gap-2.5">
+    <div className="fixed bottom-4 right-3 sm:bottom-5 sm:right-5 z-50 flex flex-col gap-2 sm:gap-2.5">
       {items.map((it, i) => (
         <a key={i} href={it.href} target={it.href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" title={it.name}
           className="group flex items-center gap-0 hover:gap-2.5 flex-row-reverse transition-all">
           {it.image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={it.image} alt={it.name} className="w-12 h-12 rounded-full object-cover shadow-lg shrink-0 transition-transform group-hover:scale-105 bg-white" />
+            <img src={it.image} alt={it.name} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover shadow-lg shrink-0 transition-transform group-hover:scale-105 bg-white" />
           ) : (
-            <span className="w-12 h-12 rounded-full text-white flex items-center justify-center shadow-lg shrink-0 transition-transform group-hover:scale-105" style={{ background: it.bg }}>{glyph(it.name)}</span>
+            <span className="w-10 h-10 sm:w-12 sm:h-12 rounded-full text-white flex items-center justify-center shadow-lg shrink-0 transition-transform group-hover:scale-105" style={{ background: it.bg }}>{glyph(it.name)}</span>
           )}
           <span className="max-w-0 overflow-hidden group-hover:max-w-[180px] transition-all duration-300">
             <span className="whitespace-nowrap text-xs font-semibold bg-slate-900 text-white rounded-full px-3 py-1.5 inline-block">{it.name}</span>

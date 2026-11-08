@@ -13,6 +13,7 @@ import { RichText } from "@/components/rich-text";
 import { PremiumCard, Stars, type PremiumCardData } from "@/components/premium-card";
 import { PremiumReviewForm, HelpfulButton } from "@/components/premium-review-form";
 import { PremiumGrid } from "@/components/premium-grid";
+import { RecordRecentView } from "@/components/recent";
 import { moduleOn } from "@/lib/modules";
 import { getActiveFlashSale, flashAppliesToProduct } from "@/lib/flash";
 import { FlashBanner } from "@/components/flash-banner";
@@ -46,6 +47,7 @@ async function buildCardData(
     ? await prisma.premiumReview.groupBy({ by: ["productId"], where: { productId: { in: products.map((p) => p.id) } }, _avg: { rating: true }, _count: true })
     : [];
   const reviewMap = new Map(reviewRows.map((r) => [r.productId, { avg: r._avg.rating || 0, count: typeof r._count === "number" ? r._count : 0 }]));
+  const flashSale = await getActiveFlashSale("PREMIUM");
   return products.map((p) => {
     const prices = p.variants.map((v) => v.price).filter((x) => x > 0);
     const rv = reviewMap.get(p.id);
@@ -68,6 +70,7 @@ async function buildCardData(
       hasStock: (stockByProduct.get(p.id) || 0) > 0,
       rating: rv?.avg || 0,
       reviewCount: rv?.count || 0,
+      flashPct: flashAppliesToProduct(flashSale, p.id) ? flashSale!.percent : 0,
     };
   });
 }
@@ -128,20 +131,30 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
   return (
     <>
       <div className="rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-cyan-500 px-6 py-6 text-white sm:px-8">
-        <div className="text-[13px] font-medium text-white/75">
-          <Link href={homeHref} className="hover:text-white">{L("Trang chủ")}</Link>
-          <span className="mx-1.5">›</span>
-          <span className="text-white">{L("Sản phẩm")}</span>
+        <div className="grid grid-cols-1 items-center gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
+          <div>
+            <div className="text-[13px] font-medium text-white/75">
+              <Link href={homeHref} className="hover:text-white">{L("Trang chủ")}</Link>
+              <span className="mx-1.5">›</span>
+              <span className="text-white">{L("Sản phẩm")}</span>
+            </div>
+            <h1 className="mt-3 text-3xl font-extrabold">{L("Tất cả sản phẩm")}</h1>
+            <p className="mt-1.5 max-w-xl text-sm text-white/85">{L("Tài khoản premium chính hãng — giao ngay tự động từ kho, bảo hành rõ ràng theo từng gói.")}</p>
+          </div>
+          <div className="w-full lg:justify-self-end">
+            <form method="get" action={base} className="flex gap-2">
+              <input name="q" defaultValue={q || ""} placeholder={L("Tìm sản phẩm...")} className="h-11 min-w-0 flex-1 rounded-full border-0 bg-white px-4 text-sm text-slate-900 outline-none ring-cyan-300 focus:ring-4" />
+              <button className="h-11 shrink-0 rounded-full bg-slate-900 px-4 text-sm font-extrabold text-white transition hover:bg-slate-800">{L("Tìm kiếm")}</button>
+            </form>
+            <div className="mt-3 flex lg:justify-end">
+              <span className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white"><b className="mr-1 text-[13px]">{items.length}</b>{Ld("sản phẩm")}</span>
+            </div>
+          </div>
         </div>
-        <h1 className="mt-3 text-3xl font-extrabold">{L("Tất cả sản phẩm")}</h1>
-        <p className="mt-1.5 max-w-xl text-sm text-white/85">{L("Tài khoản premium chính hãng — giao ngay tự động từ kho, bảo hành rõ ràng theo từng gói.")}</p>
       </div>
 
-      <form method="get" action={base} className="card mt-6 grid grid-cols-2 items-end gap-4 p-5 lg:grid-cols-[1.15fr_1fr_1.25fr_1fr_auto]">
-        <div>
-          <label className="lbl">{L("Tìm kiếm")}</label>
-          <input className="inp" name="q" placeholder={L("Tìm sản phẩm...")} defaultValue={q || ""} />
-        </div>
+      <form method="get" action={base} className="card mt-6 grid grid-cols-2 items-end gap-4 p-5 lg:grid-cols-[1fr_1.25fr_1fr_auto]">
+        <input type="hidden" name="q" value={q || ""} />
         <div>
           <label className="lbl">{L("Danh mục")}</label>
           <select className="inp" name="cat" defaultValue={catId ? String(catId) : ""}>
@@ -165,12 +178,13 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
         </div>
         <div className="col-span-2 flex gap-2 lg:col-span-1">
           <button className="btn flex-1 !bg-slate-900 !px-5 font-bold text-white hover:!bg-slate-700 lg:flex-none">{L("Lọc")}</button>
-          <Link href={base} title={L("Đặt lại bộ lọc")} className="btn-ghost !px-3" aria-label={L("Đặt lại bộ lọc")}>{I.refresh}</Link>
+          <Link href={base} className="btn-ghost inline-flex items-center gap-1.5 !px-3.5 font-semibold"><span className="[&>svg]:h-4 [&>svg]:w-4">{I.refresh}</span>{L("Đặt lại bộ lọc")}</Link>
         </div>
       </form>
 
-      <p className="mb-4 mt-8 text-sm text-slate-500"><b className="text-slate-800">{items.length}</b> {Ld("sản phẩm")}</p>
-      <PremiumGrid items={items} base={base} />
+      <div className="mt-8">
+        <PremiumGrid items={items} base={base} />
+      </div>
     </>
   );
 }
@@ -309,9 +323,19 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
       </div>
       <div className="mt-5 grid grid-cols-1 items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,3fr)]">
         <div className="text-center">
-          <div className="text-[40px] font-black leading-none text-slate-900">{reviewCount > 0 ? reviewAvg.toFixed(1) : "—"}</div>
-          <div className="mt-2.5 flex justify-center"><Stars value={reviewAvg} className="h-5 w-5" /></div>
-          <div className="mt-2 text-[13px] text-slate-500">{reviewCount}{L(" đánh giá")}</div>
+          {reviewCount > 0 ? (
+            <>
+              <div className="text-[40px] font-black leading-none text-slate-900">{reviewAvg.toFixed(1)}</div>
+              <div className="mt-2.5 flex justify-center"><Stars value={reviewAvg} className="h-5 w-5" /></div>
+              <div className="mt-2 text-[13px] text-slate-500">{reviewCount}{L(" đánh giá")}</div>
+            </>
+          ) : (
+            <>
+              <div className="text-lg font-extrabold text-slate-400">{L("Chưa có đánh giá")}</div>
+              <div className="mt-2.5 flex justify-center opacity-50"><Stars value={0} className="h-5 w-5" /></div>
+              <div className="mt-2 text-[13px] text-slate-500">{L("Chưa có đánh giá nào cho sản phẩm này.")}</div>
+            </>
+          )}
         </div>
         <div className="space-y-2">
         {[5, 4, 3, 2, 1].map((n) => (
@@ -382,9 +406,11 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   const images = productImages(product.images, product.imageUrl);
   const homeHref = base.startsWith("/dashboard") ? "/dashboard" : "/";
   const fulfillmentTag = product.fulfillment === "AUTO_STOCK" ? L("Giao ngay") : product.fulfillment === "API" ? L("Giao qua đối tác") : L("Nâng cấp chính chủ");
+  const prices = product.variants.map((v) => v.price).filter((x) => x > 0);
 
   return (
     <>
+      <RecordRecentView item={{ productId: product.id, slug: product.slug, name: product.name, price: prices.length ? Math.min(...prices) : 0, image: images[0] || null }} />
       <div className="rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-cyan-500 px-6 py-6 text-white sm:px-8">
         <div className="text-[13px] font-medium text-white/75">
           <Link href={homeHref} className="hover:text-white">{L("Trang chủ")}</Link>

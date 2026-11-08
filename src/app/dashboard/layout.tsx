@@ -47,6 +47,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ...(smmOn ? [{ href: "/dashboard/dat-hang", label: L("Đặt đơn SMM") }] : []),
     ...(smmOn && bulkOn ? [{ href: "/dashboard/dat-hang-loat", label: L("Đặt hàng loạt") }] : []),
     { href: "/dashboard/don-hang", label: L("Đơn hàng SMM") },
+    ...(smmOn ? [{ href: "/dashboard/dich-vu", label: L("Bảng giá") }] : []),
   ];
   const premiumChildren = [
     ...(premiumOn ? [{ href: "/dashboard/premium", label: L("Mua Premium") }] : []),
@@ -69,7 +70,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // (Đã bỏ phân đoạn nền tảng SMM riêng trong menu theo lệnh Tín 2026-11-07 20:33 —
   // khách đặt đơn qua mục Đặt đơn SMM và tự chọn nền tảng/phân loại trong form.)
   const items: NavEntry[] = [
-    { href: "/dashboard", label: L("Tổng quan"), icon: I.home },
+    { href: "/", label: L("Trang chủ"), icon: I.home },
     ...(smmChildren.length ? [{ label: L("Đơn SMM"), icon: I.cart, children: smmChildren }] : []),
     ...(premiumChildren.length ? [{ label: L("Premium"), icon: I.gem, children: premiumChildren }] : []),
     ...(telegramOn ? [{ label: "Telegram Premium", icon: I.star, children: telegramChildren }] : []),
@@ -90,7 +91,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <LangProvider lang={i18n.lang} ov={i18n.cfg.overrides[i18n.lang]} cur={i18n.cur} rates={i18n.rates}>
     <div className="min-h-screen">
-      <header className="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-40">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-[1400px] mx-auto px-3 sm:px-4 h-16 flex items-center gap-2 sm:gap-4">
           <MobileSideNav items={items} siteName={s.site_name} footer={menuFooter} logoUrl={drawerLogoUrl} logoText={s.site_logo_text || "S"} />
           <Link href="/" className="flex items-center gap-2.5">
@@ -98,10 +99,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <span className="font-extrabold text-slate-900 hidden sm:inline">{s.site_name}</span>
           </Link>
           <div className="ml-auto flex items-center gap-1 sm:gap-2.5">
-            <Link href="/dashboard/dich-vu" className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-brand-100 bg-brand-50 px-2 py-1.5 text-xs font-bold text-brand-700 transition hover:bg-brand-100 sm:px-3.5 sm:text-sm">
-              <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">{I.chart}</span>
-              {L("Bảng giá")}
-            </Link>
             <NotificationBell />
               <CartHeaderLink />
             <DisplaySettings />

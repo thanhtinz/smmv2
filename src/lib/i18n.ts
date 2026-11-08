@@ -3557,6 +3557,15 @@ export const DICT: Record<string, Tr> = {
   "Chưa nhập API key / webhook secret của BoltUtil": e("BoltUtil API key / webhook secret not entered yet", "尚未填写 BoltUtil 的 API 密钥 / Webhook 密钥", "ยังไม่ได้กรอก API key / webhook secret ของ BoltUtil", "BoltUtilのAPIキー / Webhookシークレットが未入力です", "BoltUtil API 키 / 웹훅 비밀키가 입력되지 않았습니다"),
   "Kết nối BoltUtil OK — API key và chữ ký hợp lệ": e("BoltUtil connection OK — the API key and signature are valid", "BoltUtil 连接成功——API 密钥和签名有效", "เชื่อมต่อ BoltUtil สำเร็จ — API key และลายเซ็นถูกต้อง", "BoltUtil接続OK — APIキーと署名が有効です", "BoltUtil 연결 OK — API 키와 서명이 유효합니다"),
   "Địa chỉ IP của bạn đã bị chặn khỏi hệ thống": e("Your IP address has been blocked from the system", "您的 IP 地址已被系统屏蔽", "ที่อยู่ IP ของคุณถูกบล็อกจากระบบ", "あなたのIPアドレスはシステムからブロックされています", "회원님의 IP 주소가 시스템에서 차단되었습니다"),
+  // Bổ sung đợt fix1 — trang chủ theo shopkey + giỏ hàng gợi ý + đánh giá trống
+  "Sản phẩm nổi bật": e("Featured products", "精选产品", "สินค้าแนะนำ", "おすすめ商品", "추천 상품"),
+  "Sản phẩm Premium mới nhất trên cửa hàng.": e("The newest Premium products in the store.", "商店里最新的 Premium 产品。", "สินค้า Premium ใหม่ล่าสุดในร้าน", "ストアの最新Premium商品です。", "스토어의 최신 Premium 상품입니다."),
+  "Sản phẩm bán chạy": e("Best sellers", "热销产品", "สินค้าขายดี", "売れ筋商品", "베스트셀러"),
+  "Được khách hàng mua nhiều nhất trên cửa hàng.": e("The most purchased products by customers in the store.", "商店里顾客购买最多的产品。", "สินค้าที่ลูกค้าซื้อมากที่สุดในร้าน", "ストアでお客様に最も購入されている商品です。", "스토어에서 고객이 가장 많이 구매한 상품입니다."),
+  "Đã xem gần đây": e("Recently viewed", "最近浏览", "ดูล่าสุด", "最近見た商品", "최근 본 상품"),
+  "Những sản phẩm bạn vừa xem.": e("Products you just looked at.", "您刚刚浏览过的产品。", "สินค้าที่คุณเพิ่งดู", "あなたが最近見た商品です。", "방금 보신 상품입니다."),
+  "Sản phẩm gợi ý": e("Suggested products", "推荐产品", "สินค้าแนะนำสำหรับคุณ", "おすすめ商品", "추천 상품"),
+  "Chưa có đánh giá": e("No reviews yet", "暂无评价", "ยังไม่มีรีวิว", "レビューはまだありません", "아직 리뷰가 없습니다"),
 
 };
 

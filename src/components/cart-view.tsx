@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useLang } from "@/components/lang";
 import { I } from "@/components/ui";
 import { useCartItems, setCartQty, removeCartLine, updateCartLine, type CartItem } from "@/components/cart";
+import { PremiumCard, type PremiumCardData } from "@/components/premium-card";
 import { checkoutCartAction } from "@/app/actions/cart";
 
 /** Công thức flash phía client — khớp applyFlashAmount phía server (lib/flash). */
@@ -14,9 +15,10 @@ const lineKeyOf = (x: CartItem) => `${x.variantId}|${JSON.stringify(x.custom)}|$
 
 /** Trang giỏ hàng: dòng hàng (ảnh, gói, giá flash, stepper, trường tuỳ chỉnh,
  *  xoá), hộp tóm tắt và thanh toán bằng ví qua checkoutCartAction. */
-export function CartView({ loggedIn, flash }: {
+export function CartView({ loggedIn, flash, suggested = [] }: {
   loggedIn: boolean;
   flash: { percent: number; productIds: number[] } | null;
+  suggested?: PremiumCardData[];
 }) {
   const { t, m } = useLang();
   const items = useCartItems();
@@ -52,12 +54,34 @@ export function CartView({ loggedIn, flash }: {
     });
   };
 
-  if (items.length === 0 && doneCodes.length === 0) {
+  if (items.length === 0) {
     return (
-      <div className="card p-10 text-center">
-        <div className="text-lg font-bold text-slate-900">{t("Giỏ hàng đang trống")}</div>
-        <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{t("Thêm sản phẩm Premium vào giỏ rồi quay lại đây để thanh toán một lần.")}</p>
-        <Link href="/premium" className="btn-primary mt-5 inline-block">{t("Tiếp tục mua sắm")}</Link>
+      <div>
+        {doneCodes.length > 0 && (
+          <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
+            <div className="font-bold">{t("Đặt hàng thành công:")} {doneCodes.join(", ")}</div>
+            <Link href="/dashboard/don-premium" className="mt-1 inline-block font-bold text-emerald-700 underline">{t("Xem đơn hàng Premium")}</Link>
+          </div>
+        )}
+        <div className="card p-10 text-center">
+          <div className="text-lg font-bold text-slate-900">{t("Giỏ hàng đang trống")}</div>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{t("Thêm sản phẩm Premium vào giỏ rồi quay lại đây để thanh toán một lần.")}</p>
+          <Link href="/premium" className="btn-primary mt-5 inline-block">{t("Tiếp tục mua sắm")}</Link>
+        </div>
+        {suggested.length > 0 && (
+          <section className="mt-10">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white [&>svg]:h-5 [&>svg]:w-5">{I.gem}</span>
+              <div>
+                <h2 className="text-xl font-extrabold text-white sm:text-2xl">{t("Sản phẩm gợi ý")}</h2>
+                <p className="mt-0.5 text-[13px] text-slate-400">{t("Được khách hàng mua nhiều nhất trên cửa hàng.")}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+              {suggested.map((item) => <PremiumCard key={item.slug} item={item} base="/premium" />)}
+            </div>
+          </section>
+        )}
       </div>
     );
   }

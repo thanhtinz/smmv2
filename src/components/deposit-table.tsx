@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui";
 import { DEP_STATUS, DEP_METHOD } from "@/lib/format";
 import { useLang } from "@/components/lang";
@@ -35,11 +35,15 @@ export function DepositTable({ rows, depositAction, deleteAction, sort, dir, bas
 }) {
   const { t, td, m } = useLang();
   const [sel, setSel] = useState<number[]>([]);
+  // Query hiện tại chỉ đọc phía client SAU khi mount (như NavLinks) — đọc
+  // window.location ngay trong render làm SSR trang /admin/nap-tien sập 500.
+  const [search, setSearch] = useState("");
+  useEffect(() => { setSearch(window.location.search); }, []);
   const allOn = rows.length > 0 && sel.length === rows.length;
   const toggle = (id: number) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   const sortLink = (key: string) => {
     const nextDir = sort === key && dir === "desc" ? "asc" : "desc";
-    const qs = new URLSearchParams(window.location.search);
+    const qs = new URLSearchParams(search);
     qs.set("sort", key); qs.set("dir", nextDir); qs.delete("page");
     return `${basePath}?${qs.toString()}`;
   };

@@ -290,3 +290,7 @@ html[data-font="rounded"] body { font-family: Verdana, Geneva, "Segoe UI", sans-
 /* Chống "chớp dịch": ngôn ngữ khác tiếng Việt thì ẩn trang tới khi lớp hiển thị dịch xong
    lượt đầu (script tiền vẽ gắn cờ data-i18n-pending, DisplayEngine gỡ cờ; hẹn giờ dự phòng 1.6s). */
 html[data-i18n-pending="1"] body { opacity: 0; }
+
+/* Tiêu đề có neo (id) không bị header dính che khi cuộn tới — header nay nền
+   đặc hoàn toàn nên phải chừa đúng chiều cao header cho mọi khung. */
+section[id], h1[id], h2[id], h3[id], div[id] { scroll-margin-top: 6.5rem; }

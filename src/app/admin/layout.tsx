@@ -125,7 +125,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="admin-scope min-h-screen bg-[#f4f6fb]">
       <AdminNav siteName={s.site_name} logoText={s.site_logo_text || "S"} entries={entries} />
       <div className="flex min-h-screen flex-col lg:pl-[260px]">
-        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
           <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
             <Link href="/admin" className="ml-11 flex items-center gap-2.5 lg:hidden">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 font-black text-white">{s.site_logo_text || "S"}</span>

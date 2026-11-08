@@ -117,11 +117,12 @@ export function LiveChat() {
       )}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-[5.5rem] right-4 z-[60] flex h-12 items-center gap-2 rounded-full bg-slate-950 pl-3.5 pr-4 text-white shadow-xl transition hover:bg-slate-800 lg:bottom-[4.75rem] lg:right-5"
+        className="fixed bottom-[4.75rem] right-3 z-[60] flex h-11 w-11 items-center justify-center gap-2 rounded-full bg-slate-950 text-white shadow-xl transition hover:bg-slate-800 sm:bottom-[5.5rem] sm:right-4 sm:h-12 sm:w-auto sm:pl-3.5 sm:pr-4 lg:bottom-[4.75rem] lg:right-5"
         title={t("Chat tư vấn dịch vụ")}
+        aria-label={t("Chat tư vấn dịch vụ")}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" /></svg>
-        <span className="text-sm font-semibold">{t("Tư vấn")}</span>
+        <span className="hidden text-sm font-semibold sm:inline">{t("Tư vấn")}</span>
       </button>
     </>
   );

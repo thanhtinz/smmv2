@@ -1,24 +1,15 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getSettings } from "@/lib/settings";
-import { getSession } from "@/lib/auth";
 import { SiteFooter, PublicHeader } from "@/components/site";
 import { PremiumShopView } from "@/components/premium-views";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-/** Shop Premium công khai (cho khách chưa đăng nhập). Đã đăng nhập -> vào bản trong
- *  khu khách /dashboard/premium để giao diện đồng bộ với SMM (một khung duy nhất). */
+/** Shop Premium công khai trong KHUNG CỬA HÀNG cho MỌI khách (kể cả đã đăng
+ *  nhập) — không còn chuyển hướng sang /dashboard/premium làm đổi khung giao
+ *  diện. Xem/danh sách/chi tiết không cần đăng nhập; mua hàng mới cần. */
 export default async function PremiumPage({ searchParams }: { searchParams: { cat?: string; q?: string; sort?: string; from?: string; to?: string } }) {
-  const session = await getSession();
-  if (session) {
-    const qs = new URLSearchParams();
-    if (searchParams.cat) qs.set("cat", searchParams.cat);
-    if (searchParams.q) qs.set("q", searchParams.q);
-    const s = qs.toString();
-    redirect(`/dashboard/premium${s ? `?${s}` : ""}`);
-  }
   const { L } = await getServerI18n();
   if ((await getSettings()).module_premium === "0") {
     return (

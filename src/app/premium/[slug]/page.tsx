@@ -1,14 +1,12 @@
-import { redirect } from "next/navigation";
 import { SiteFooter, PublicHeader } from "@/components/site";
 import { PremiumDetailView } from "@/components/premium-views";
-import { getSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-/** Chi tiết Premium công khai. Đã đăng nhập -> bản trong khu khách để đồng bộ khung SMM. */
+/** Chi tiết Premium công khai trong khung cửa hàng cho mọi khách — không còn
+ *  chuyển hướng khách đã đăng nhập sang khu khách (đổi khung). Form mua bên
+ *  trong tự hiện theo phiên đăng nhập; xem chi tiết không cần đăng nhập. */
 export default async function PremiumDetail({ params, searchParams }: { params: { slug: string }; searchParams: { msg?: string; err?: string } }) {
-  const session = await getSession();
-  if (session) redirect(`/dashboard/premium/${params.slug}`);
   return (
     <div className="dark pub-dark bg-[#07090d] text-slate-300 min-h-screen flex flex-col">
       <PublicHeader />

@@ -20,7 +20,6 @@ export function PublicBurger({ tone = "dark", home, loggedIn, registerHref, item
   useEffect(() => { setOpen(false); }, [path]);
   const items = itemsOverride || [
     { href: home, label: t("Trang chủ") },
-    { href: "/dashboard/dich-vu", label: t("Bảng giá") },
     { href: "/dashboard/dat-hang", label: t("Đặt đơn SMM") },
     { href: "/premium", label: "Premium" },
     ...(loggedIn
