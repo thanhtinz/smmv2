@@ -47,14 +47,35 @@ export type ProviderDTO = {
   minBalanceAlert: number; dailyLimit: number; serviceCount: number; lastSyncAt: string | null;
 };
 
-export function ProviderModal({ provider, onClose, webhookSecretSet }: { provider?: ProviderDTO; onClose: () => void; webhookSecretSet?: boolean }) {
+export type ProviderMode = "SMM" | "PREMIUM" | "FZR" | "LEGACY";
+
+/** Chế độ form nhà cung cấp (lệnh Tín 2026-11-08): ba nút thêm riêng — SMM /
+ *  Premium / FZR — mỗi biến thể chỉ hiện field của loại đó, không còn dropdown
+ *  kind/driver trong form. NCC cũ loại BOTH mở biến thể LEGACY (đủ 2 dropdown
+ *  như form cũ) để vẫn sửa được mọi field. */
+export function providerModeOf(p?: ProviderDTO): ProviderMode {
+  if (!p) return "SMM";
+  if (p.driver === "FZR") return "FZR";
+  if (p.kind === "SMM") return "SMM";
+  if (p.kind === "PREMIUM") return "PREMIUM";
+  return "LEGACY";
+}
+
+export function ProviderModal({ provider, onClose, webhookSecretSet, mode }: { provider?: ProviderDTO; onClose: () => void; webhookSecretSet?: boolean; mode?: ProviderMode }) {
   const { t } = useLang();
   const [tab, setTab] = useState(0);
   const [driver, setDriver] = useState(provider?.driver || "STANDARD");
   const p = provider;
+  const m: ProviderMode = p ? providerModeOf(p) : mode || "SMM";
+  // apiUrl là CONTROLLED: trình duyệt có thói quen khôi phục giá trị đã gõ cho
+  // field cùng tên giữa các lần mở modal (đã gặp: URL của form FZR bị áp sang
+  // form SMM khi sửa) — controlled value theo đúng NCC đang sửa mới chống được.
+  const [apiUrl, setApiUrl] = useState(p?.apiUrl || (m === "FZR" ? "https://api.fzr.cards" : ""));
+  const effectiveDriver = m === "FZR" ? "FZR" : m === "LEGACY" ? driver : "STANDARD";
   const tabs = ["Thông tin cơ bản", "Cài đặt đồng bộ", "Tiền tệ & Giới hạn"];
+  const title = p ? t("Chỉnh sửa nhà cung cấp") : m === "SMM" ? t("Thêm nhà cung cấp SMM") : m === "PREMIUM" ? t("Thêm nhà cung cấp Premium") : t("Thêm nhà cung cấp FZR");
   return (
-    <Modal title={p ? t("Chỉnh sửa nhà cung cấp") : t("Thêm nhà cung cấp mới")} onClose={onClose} wide>
+    <Modal title={title} onClose={onClose} wide>
       <form action={adminSaveProvider}>
         {p && <input type="hidden" name="id" value={p.id} />}
         <div className="flex gap-1 border-b border-slate-100 px-6 pt-3">
@@ -65,36 +86,58 @@ export function ProviderModal({ provider, onClose, webhookSecretSet }: { provide
         <div className="max-h-[62vh] overflow-y-auto px-6 py-5">
           <div className={tab === 0 ? "space-y-4" : "hidden"}>
             <div><label className={lbl}>{t("Tên nhà cung cấp *")}</label><input name="name" required defaultValue={p?.name || ""} className={inp} placeholder={t("Nhập tên nhà cung cấp")} /></div>
-            <div><label className={lbl}>URL API *</label><input name="apiUrl" required defaultValue={p?.apiUrl || ""} className={inp} placeholder="https://api.example.com" /></div>
+            {m === "FZR" ? (
+              <div>
+                <label className={lbl}>URL API *</label>
+                <input name="apiUrl" readOnly value={apiUrl} autoComplete="off" className={`${inp} bg-slate-50 text-slate-500`} />
+                <p className="mt-1 text-xs text-slate-400">{t("URL API của FazerCards cố định — mọi khu Telegram / Steam dùng chung địa chỉ này.")}</p>
+              </div>
+            ) : (
+              <div><label className={lbl}>URL API *</label><input name="apiUrl" required value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} autoComplete="off" className={inp} placeholder="https://api.example.com" /></div>
+            )}
             <div>
               <label className={lbl}>API Key {p ? "" : "*"}</label>
               <input name="apiKey" type="password" defaultValue={p ? "••••••••••••••••" : ""} className={inp} placeholder={t("Nhập API key")} autoComplete="new-password" />
               <p className="mt-1 text-xs text-slate-400">{p ? t("Để nguyên dấu • nếu không đổi key.") : t("API Key được mã hoá an toàn.")}</p>
             </div>
-            <div><label className={lbl}>{t("Mã giảm giá (Coupon) phía API — nếu nhà cung cấp có")}</label><input name="coupon" defaultValue={p?.coupon || ""} className={inp} placeholder={t("Để trống nếu không có")} /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={lbl}>{t("Loại API *")}</label>
-                <select name="kind" defaultValue={p?.kind || "BOTH"} className={inp}>
-                  <option value="BOTH">Standard API (SMM + Premium)</option>
-                  <option value="SMM">{t("Chỉ SMM v2")}</option>
-                  <option value="PREMIUM">{t("Chỉ API sản phẩm (Premium)")}</option>
-                </select>
-              </div>
-              <div>
-                <label className={lbl}>{t("Kiểu kiểm tra API")}</label>
-                <select className={inp} defaultValue="balance"><option value="balance">{t("Balance (số dư)")}</option><option value="services">{t("Services (danh sách)")}</option></select>
-              </div>
-            </div>
-            <div>
-              <label className={lbl}>{t("Giao thức API")}</label>
-              <select name="driver" value={driver} onChange={(e) => setDriver(e.target.value)} className={inp}>
-                <option value="STANDARD">{t("Chuẩn SMM v2 / sản phẩm đối tác")}</option>
-                <option value="FZR">FazerCards (fzr.cards)</option>
-              </select>
-              <p className="mt-1 text-xs text-slate-400">{t("FazerCards: đồng bộ sản phẩm số (game key, gift card, nạp dịch vụ, Telegram, Steam) vào Premium.")}</p>
-            </div>
-            {driver === "FZR" && (
+            {m !== "FZR" && <div><label className={lbl}>{t("Mã giảm giá (Coupon) phía API — nếu nhà cung cấp có")}</label><input name="coupon" defaultValue={p?.coupon || ""} className={inp} placeholder={t("Để trống nếu không có")} /></div>}
+            {m === "LEGACY" ? (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={lbl}>{t("Loại API *")}</label>
+                    <select name="kind" defaultValue={p?.kind || "BOTH"} className={inp}>
+                      <option value="BOTH">Standard API (SMM + Premium)</option>
+                      <option value="SMM">{t("Chỉ SMM v2")}</option>
+                      <option value="PREMIUM">{t("Chỉ API sản phẩm (Premium)")}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>{t("Kiểu kiểm tra API")}</label>
+                    <select className={inp} defaultValue="balance"><option value="balance">{t("Balance (số dư)")}</option><option value="services">{t("Services (danh sách)")}</option></select>
+                  </div>
+                </div>
+                <div>
+                  <label className={lbl}>{t("Giao thức API")}</label>
+                  <select name="driver" value={driver} onChange={(e) => setDriver(e.target.value)} className={inp}>
+                    <option value="STANDARD">{t("Chuẩn SMM v2 / sản phẩm đối tác")}</option>
+                    <option value="FZR">FazerCards (fzr.cards)</option>
+                  </select>
+                  <p className="mt-1 text-xs text-slate-400">{t("FazerCards: đồng bộ sản phẩm số (game key, gift card, nạp dịch vụ, Telegram, Steam) vào Premium.")}</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <input type="hidden" name="kind" value={m === "SMM" ? "SMM" : "PREMIUM"} />
+                <input type="hidden" name="driver" value={m === "FZR" ? "FZR" : "STANDARD"} />
+                <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
+                  {m === "SMM" && t("Nhà cung cấp SMM chuẩn API v2: đồng bộ dịch vụ SMM, đẩy đơn và cập nhật trạng thái tự động.")}
+                  {m === "PREMIUM" && t("Nhà cung cấp Premium chuẩn đối tác: đồng bộ catalog sản phẩm số (tài khoản, key, gói) vào cửa hàng Premium.")}
+                  {m === "FZR" && t("FazerCards: đồng bộ sản phẩm số (game key, gift card, nạp dịch vụ, Telegram, Steam) vào Premium.")}
+                </p>
+              </>
+            )}
+            {effectiveDriver === "FZR" && (
               <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
                 <div className="text-sm font-bold text-slate-800">{t("Webhook FazerCards (dùng chung)")}</div>
                 <div>
@@ -248,16 +291,24 @@ export function ImportServicesModal({ provider, onClose }: { provider: ProviderD
 export function ProvidersClient({ providers, webhookSecretSet }: { providers: ProviderDTO[]; webhookSecretSet?: boolean }) {
   const { t, td, m } = useLang();
   const [editing, setEditing] = useState<ProviderDTO | undefined>(undefined);
+  const [addMode, setAddMode] = useState<ProviderMode>("SMM");
   const [open, setOpen] = useState(false);
   const [importing, setImporting] = useState<ProviderDTO | undefined>(undefined);
   const iconBtn = "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-800";
+  const openAdd = (mode: ProviderMode) => { setEditing(undefined); setAddMode(mode); setOpen(true); };
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <form action={adminSyncAllProviders}><button className="btn-ghost btn-sm !px-4 !py-2.5">{t("Đồng bộ tất cả")}</button></form>
-        <button onClick={() => { setEditing(undefined); setOpen(true); }} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm nhà cung cấp")}</button>
+        <span className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
+        <button onClick={() => openAdd("SMM")} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm nhà cung cấp SMM")}</button>
+        <button onClick={() => openAdd("PREMIUM")} className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600">{t("+ Thêm nhà cung cấp Premium")}</button>
+        <button onClick={() => openAdd("FZR")} className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700">{t("+ Thêm nhà cung cấp FZR")}</button>
       </div>
-      {open && <ProviderModal provider={editing} onClose={() => setOpen(false)} webhookSecretSet={webhookSecretSet} />}
+      {/* key theo đích mở: điều hướng mềm sau server action GIỮ instance modal
+          (state không tự reset) — không có key, form thêm FZR mở sau form SMM
+          sẽ còn nguyên URL đã gõ ở form trước (đã gặp thật khi kiểm chứng). */}
+      {open && <ProviderModal key={editing ? `edit-${editing.id}` : `add-${addMode}`} provider={editing} mode={addMode} onClose={() => setOpen(false)} webhookSecretSet={webhookSecretSet} />}
       {importing && <ImportServicesModal provider={importing} onClose={() => setImporting(undefined)} />}
       <div className="card mt-5 overflow-x-auto">
         <table className="w-full min-w-[880px]">
@@ -269,7 +320,12 @@ export function ProvidersClient({ providers, webhookSecretSet }: { providers: Pr
               <tr key={p.id} className="hover:bg-slate-50/60">
                 <td className="td"><div className="font-bold text-slate-800">{p.name}</div><div className="max-w-[220px] truncate text-xs text-slate-400">{p.apiUrl}</div></td>
                 <td className="td text-slate-600">{`${num(p.serviceCount)} ${t("dịch vụ")}`}</td>
-                <td className="td"><span className="text-xs font-semibold text-slate-500">{p.kind === "BOTH" ? "Standard API" : p.kind === "SMM" ? "SMM v2" : t("API sản phẩm")}</span><div className="text-xs text-slate-400">{p.lastSyncAt ? `${t("Đồng bộ")}: ${p.lastSyncAt}` : t("Chưa đồng bộ")}</div></td>
+                <td className="td">
+                  {p.driver === "FZR" ? <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-bold text-violet-700">FZR · FazerCards</span>
+                    : p.kind === "SMM" ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">SMM</span>
+                    : p.kind === "PREMIUM" ? <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">Premium</span>
+                    : <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">SMM + Premium</span>}
+                  <div className="mt-1 text-xs text-slate-400">{p.lastSyncAt ? `${t("Đồng bộ")}: ${p.lastSyncAt}` : t("Chưa đồng bộ")}</div></td>
                 <td className="td">
                   <form action={adminProviderMarkup} className="flex items-center gap-1.5">
                     <input type="hidden" name="id" value={p.id} />
@@ -293,7 +349,7 @@ export function ProvidersClient({ providers, webhookSecretSet }: { providers: Pr
                 </td>
               </tr>
             ))}
-            {providers.length === 0 && <tr><td colSpan={8} className="td py-10 text-center text-slate-400">{t("Chưa có nhà cung cấp nào — bấm “+ Thêm nhà cung cấp” để đấu nguồn đầu tiên.")}</td></tr>}
+            {providers.length === 0 && <tr><td colSpan={8} className="td py-10 text-center text-slate-400">{t("Chưa có nhà cung cấp nào — chọn một trong ba nút thêm ở trên theo loại nguồn (SMM / Premium / FZR).")}</td></tr>}
           </tbody>
         </table>
       </div>
