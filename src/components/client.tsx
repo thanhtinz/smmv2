@@ -1072,7 +1072,7 @@ export function ApiKeyReveal({ value }: { value: string }) {
   const masked = value.length > 12 ? `${value.slice(0, 6)}••••••••••${value.slice(-4)}` : "••••••••••";
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
-      <input className="inp min-w-[200px] flex-1 font-mono" readOnly value={show ? value : masked} onFocus={(e) => e.target.select()} />
+      <input className="inp min-w-0 flex-1 font-mono" readOnly value={show ? value : masked} onFocus={(e) => e.target.select()} />
       <button type="button" title={show ? t("Ẩn bớt") : t("Hiện toàn bộ key")} aria-label={show ? t("Ẩn bớt") : t("Hiện toàn bộ key")}
         onClick={() => setShow((v) => !v)}
         className="inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-brand-300 hover:text-brand-600">

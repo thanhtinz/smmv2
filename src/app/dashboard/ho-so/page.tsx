@@ -172,7 +172,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
           </div>
           <div>
             <label className="lbl">{L("API Key của tôi")}</label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <ApiKeyReveal value={user.apiKey} />
               <form action={regenApiKeyAction}><button className="btn-danger btn-sm whitespace-nowrap !py-2.5">{L("Tạo mới khóa API")}</button></form>
             </div>
