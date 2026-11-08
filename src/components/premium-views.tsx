@@ -511,9 +511,9 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
                     <div key={v.id} className={`flex items-center justify-between gap-3 rounded-2xl border-2 border-slate-200 px-4 py-3.5 ${soldOut ? "bg-slate-50 opacity-70" : "bg-white"}`}>
                       <span className="min-w-0">
                         <span className="block break-words font-bold text-slate-900">{v.name}</span>
-                        <span className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${delivery === "FAST" ? "border-brand-200 bg-brand-50 text-brand-700" : "border-slate-200 bg-slate-100 text-slate-600"}`}>
+                        <span className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold [&>svg]:h-3 [&>svg]:w-3 ${delivery === "FAST" ? "border-brand-200 bg-brand-50 text-brand-700" : "border-slate-200 bg-slate-100 text-slate-600"}`}>
                           {delivery === "FAST"
-                            ? <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
+                            ? I.truck
                             : <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>}
                           {delivery === "FAST" ? L("Giao nhanh") : L("Giao chậm")}
                         </span>

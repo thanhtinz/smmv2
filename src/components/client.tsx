@@ -710,8 +710,8 @@ const applyFlashClient = (amount: number, percent: number) =>
  *  trang chi tiết; trang khách chưa đăng nhập dùng bản tương tự phía server. */
 export function DeliveryBadge({ type, t }: { type: "FAST" | "SLOW"; t: (s: string) => string }) {
   return type === "FAST" ? (
-    <span className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[11px] font-bold text-brand-700">
-      <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
+    <span className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[11px] font-bold text-brand-700 [&>svg]:h-3 [&>svg]:w-3">
+      {I.truck}
       {t("Giao nhanh")}
     </span>
   ) : (
@@ -855,8 +855,8 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
                     )}
                   </span>
                   {fulfillment === "AUTO_STOCK" && x.stock > 0 && (
-                    <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-xs font-bold text-brand-600">
-                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
+                    <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-xs font-bold text-brand-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                      {I.truck}
                       {t("Giao ngay")}
                     </span>
                   )}

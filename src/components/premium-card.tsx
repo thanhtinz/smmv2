@@ -77,8 +77,8 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
             góc dưới-trái của ảnh — không đụng huy hiệu flash ở góc trên-trái. */}
         <div className="absolute bottom-2 left-2 z-10 flex flex-wrap gap-1.5">
           {item.delivery === "FAST" ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white shadow">
-              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white shadow [&>svg]:h-3 [&>svg]:w-3">
+              {I.truck}
               {t("Giao nhanh")}
             </span>
           ) : (
