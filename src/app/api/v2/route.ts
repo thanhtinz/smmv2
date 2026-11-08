@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { userByApiKey } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder, refundSmmOrder } from "@/lib/orders";
-import { smmCharge, vnd } from "@/lib/format";
+import { smmCharge, vnd, parsePremiumFields } from "@/lib/format";
 import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
-import { getActiveFlashSale, flashAppliesTo, applyFlashAmount } from "@/lib/flash";
+import { getActiveFlashSale, flashAppliesTo, applyFlashAmount, flashPercentForProduct } from "@/lib/flash";
+import { variantSoldOut, isQtyTracked, resolveDeliveryType } from "@/lib/variant-stock";
+import { FZR_LABELS } from "@/lib/fzr";
 import { moduleOn } from "@/lib/modules";
 import { providerCancel, providerRefill } from "@/lib/provider";
 import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
@@ -204,6 +206,75 @@ async function handle(req: NextRequest) {
       return NextResponse.json({ refill: o.id });
     }
 
+    /* ===== API SẢN PHẨM SỐ THEO NHÓM (fix6 task 6) — game key, gift card,
+       top-up, dịch vụ thủ công, Telegram (Stars/Premium), Steam =====
+       Nhóm của một gói = providerGroup phía FZR; gói không thuộc FZR xếp
+       theo hình thức giao: AUTO_STOCK (giao mã/key ngay từ kho) vào nhóm
+       gamekeys, còn lại vào nhóm manual (dịch vụ thủ công). */
+    if (action === "products") {
+      const GROUP_NAMES: Record<string, string> = {
+        gamekeys: "Game Keys",
+        giftcards: "Gift Cards",
+        topups: "Top-ups",
+        manual: "Dịch vụ thủ công",
+        telegram_stars: "Telegram Stars",
+        telegram_premium: "Telegram Premium",
+        steam_topup: "Steam Top-up",
+        steam_gift: "Steam Gifts",
+      };
+      const groupFilter = get("group");
+      if (groupFilter && !GROUP_NAMES[groupFilter]) return NextResponse.json({ error: "Unknown group" });
+      const products = await prisma.premiumProduct.findMany({
+        where: { active: true, panelId: null },
+        orderBy: [{ categoryId: "asc" }, { id: "asc" }],
+        include: { category: true, variants: { where: { active: true }, orderBy: { price: "asc" } } },
+      });
+      // Kho AUTO_STOCK = số dòng kho còn AVAILABLE của từng gói
+      const autoIds = products.flatMap((p) => (p.fulfillment === "AUTO_STOCK" ? p.variants.map((v) => v.id) : []));
+      const stockCounts = new Map<number, number>();
+      if (autoIds.length) {
+        const grouped = await prisma.premiumStock.groupBy({ by: ["variantId"], where: { variantId: { in: autoIds }, status: "AVAILABLE" }, _count: { _all: true } });
+        for (const g of grouped) stockCounts.set(g.variantId, g._count._all);
+      }
+      const byGroup = new Map<string, Map<number, any>>();
+      for (const p of products) {
+        if (!p.variants.length) continue;
+        const flashPct = await flashPercentForProduct(p.id);
+        const requiredFields = parsePremiumFields(p.customFields).map((f) => ({
+          label: f.label, type: f.type, required: f.required,
+          ...(f.placeholder ? { placeholder: f.placeholder } : {}),
+          ...(f.options ? { options: f.options } : {}),
+        }));
+        for (const v of p.variants) {
+          const g = v.providerGroup || (p.fulfillment === "AUTO_STOCK" ? "gamekeys" : "manual");
+          if (groupFilter && g !== groupFilter) continue;
+          if (!byGroup.has(g)) byGroup.set(g, new Map());
+          const gp = byGroup.get(g)!;
+          if (!gp.has(p.id)) {
+            gp.set(p.id, {
+              id: p.id, name: p.name, category: p.category.name, fulfillment: p.fulfillment,
+              required_fields: requiredFields, variants: [],
+            });
+          }
+          let qty: number | null = null;
+          if (p.fulfillment === "AUTO_STOCK") qty = stockCounts.get(v.id) ?? 0;
+          else if (isQtyTracked(p.fulfillment, v.stockQty)) qty = v.stockQty;
+          const soldOut = variantSoldOut(v, p.fulfillment) || qty === 0;
+          gp.get(p.id).variants.push({
+            variant: v.id,
+            name: v.name,
+            price: applyFlashAmount(v.price, flashPct),
+            delivery: resolveDeliveryType(v.deliveryType, p.fulfillment),
+            stock: soldOut ? "out_of_stock" : "in_stock",
+            ...(qty !== null ? { stock_qty: qty } : {}),
+          });
+        }
+      }
+      return NextResponse.json(
+        Array.from(byGroup.entries()).map(([g, gp]) => ({ group: g, name: GROUP_NAMES[g] || g, products: Array.from(gp.values()) }))
+      );
+    }
+
     /* ===== API MUA SẢN PHẨM (Premium) — cùng chuẩn kiểu ThaTim ===== */
     if (action === "category") {
       const cats = await prisma.premiumCategory.findMany({
@@ -244,12 +315,73 @@ async function handle(req: NextRequest) {
         });
       }
       if (!variant) return NextResponse.json({ error: "Product/cycle not found" });
+      const quantity = Math.max(1, parseInt(get("quantity") || "1") || 1);
+      // Thông tin bàn giao theo nhóm (fix6 task 6): tham số tiện ích theo nhóm
+      // + `fields` JSON theo đúng nhãn trường của sản phẩm — tất cả chạy qua
+      // createPremiumOrder như đơn web (trừ kho WS9, thực thi FZR, hoàn tiền).
+      const record: Record<string, string> = {};
+      if (get("username")) record["Tên người dùng Telegram"] = get("username");
+      if (get("telegram_id")) record[FZR_LABELS.telegramId] = get("telegram_id");
+      if (get("player_id")) record[FZR_LABELS.playerId] = get("player_id");
+      if (get("steam_login")) record[FZR_LABELS.steamLogin] = get("steam_login");
+      if (get("receiver")) record[FZR_LABELS.giftReceiver] = get("receiver");
+      if (get("fields")) {
+        try {
+          const fj = JSON.parse(get("fields"));
+          for (const [k, v] of Object.entries(fj)) if (String(v).trim()) record[k] = String(v);
+        } catch {
+          return NextResponse.json({ error: "Invalid fields JSON" });
+        }
+      }
+      if (note && !record[FZR_LABELS.extraInfo]) record[FZR_LABELS.extraInfo] = note;
       const fresh = await prisma.user.findUnique({ where: { id: user.id } });
-      const order = await createPremiumOrder({ user: fresh!, variantId: variant.id, quantity: 1, buyerInfo: note || fresh!.email, promoCode: get("promo_code") || get("promo") || undefined });
+      const declared = parsePremiumFields(variant.product.customFields);
+      try {
+        const order = await createPremiumOrder({
+          user: fresh!,
+          variantId: variant.id,
+          quantity,
+          ...(declared.length
+            ? { customData: record }
+            : Object.keys(record).length
+              ? { buyerInfo: Object.entries(record).map(([k, v]) => `${k}: ${v}`).join("\n") }
+              : { buyerInfo: note || fresh!.email }),
+          promoCode: get("promo_code") || get("promo") || undefined,
+        });
+        await prisma.apiLog.create({ data: { kind: "reseller_in", ref: order.code, ok: true, detail: `Mua Premium qua API: ${variant.product.name} (${variant.name}) x${quantity}` } }).catch(() => {});
+        return NextResponse.json({
+          order_code: order.code,
+          status: order.status,
+          ...(order.deliveryData ? { delivery: order.deliveryData } : {}),
+        });
+      } catch (e: any) {
+        // Lỗi nghiệp vụ (hết hàng, thiếu trường bắt buộc, số dư...) trả về
+        // dạng {error} như các lỗi tham số của API này thay vì 500.
+        return NextResponse.json({ error: String(e?.message || "Order failed") });
+      }
+    }
+
+    if (action === "premium_status") {
+      // Trạng thái 1 đơn sản phẩm số theo mã đơn — kèm nội dung đã giao khi
+      // đơn đã giao (use case đại lý: lấy key/tài khoản giao cho khách).
+      const code = get("order_code") || get("order");
+      if (!code) return NextResponse.json({ error: "Missing order_code" });
+      const o = await prisma.premiumOrder.findFirst({
+        where: { code, userId: user.id },
+        include: { variant: { include: { product: true } } },
+      });
+      if (!o) return NextResponse.json({ error: "Order not found" });
+      const delivered = ["DELIVERED", "COMPLETED", "WARRANTY"].includes(o.status);
       return NextResponse.json({
-        order_code: order.code,
-        status: order.status,
-        ...(order.deliveryData ? { delivery: order.deliveryData } : {}),
+        order_code: o.code,
+        status: o.status,
+        product: o.variant.product.name,
+        variant: o.variant.name,
+        quantity: o.quantity,
+        price: o.total,
+        ...(delivered && o.deliveryData ? { delivery: o.deliveryData } : {}),
+        ...(o.warrantyUntil ? { warranty_until: o.warrantyUntil.toISOString() } : {}),
+        created_at: o.createdAt.toISOString(),
       });
     }
 

@@ -67,7 +67,14 @@ export async function ApiDocsView({ apiKey }: { apiKey?: string | null }) {
   const endpoint = `${proto}://${host}/api/v2`;
   // Nhãn + mô tả tham số ở module scope được dịch tại đây (điểm hiển thị phía server)
   // trước khi truyền cho ApiTabs; chuỗi ví dụ response là mẫu dữ liệu nên giữ nguyên.
-  const localize = (actions: ApiActionDoc[]): ApiActionDoc[] => actions.map((a) => ({ ...a, label: L(a.label), params: a.params.map(([n, ty, d]) => [n, ty, L(d)] as [string, string, string]) }));
+  const localize = (actions: ApiActionDoc[]): ApiActionDoc[] => actions.map((a) => ({ ...a, label: L(a.label), params: a.params.map(([n, ty, d]) => [n, ty, L(d)] as [string, string, string]), ...(a.note ? { note: L(a.note) } : {}) }));
+  // Section sản phẩm số theo NHÓM (fix6 task 6): dựng tại đây để ví dụ curl
+  // mang đúng endpoint của site + key mẫu.
+  const GROUP_ACTIONS: ApiActionDoc[] = [
+    { id: "products", label: "Danh sách sản phẩm theo nhóm", params: [KEY, ["action", "string", "products"], ["group", "string", "Nhóm sản phẩm: gamekeys, giftcards, topups, manual, telegram_stars, telegram_premium, steam_topup, steam_gift (tuỳ chọn — bỏ trống lấy mọi nhóm)"]], note: "Giá là VND theo giá bán trên web (đã gồm flash sale nếu đang chạy). stock = out_of_stock nghĩa là gói đang hết hàng — đặt đơn sẽ bị từ chối; stock_qty chỉ có ở gói theo dõi số lượng kho.", curl: `curl -X POST ${endpoint} \\\n  -d "key=YOUR_API_KEY" \\\n  -d "action=products" \\\n  -d "group=gamekeys"`, response: `[\n  {\n    "group": "gamekeys",\n    "name": "Game Keys",\n    "products": [\n      {\n        "id": 31,\n        "name": "Steam Wallet Code 10 USD",\n        "category": "Game",\n        "fulfillment": "API",\n        "required_fields": [],\n        "variants": [\n          { "variant": 87, "name": "Global", "price": 265000, "delivery": "FAST", "stock": "in_stock", "stock_qty": 12 }\n        ]\n      }\n    ]\n  }\n]` },
+    { id: "buy_group", label: "Đặt đơn sản phẩm số", params: [KEY, ["action", "string", "buy"], ["product", "int", "ID gói (variant) lấy từ danh sách sản phẩm theo nhóm"], ["quantity", "int", "Số lượng (mặc định 1; riêng Telegram Stars là số sao)"], ["username", "string", "Username Telegram của người nhận (nhóm telegram_stars / telegram_premium)"], ["telegram_id", "string", "ID số Telegram của người nhận — có ID thì giao tự động ngay (tuỳ chọn)"], ["player_id", "string", "ID người chơi / tài khoản nhận (nhóm topups)"], ["steam_login", "string", "Tên đăng nhập Steam (nhóm steam_topup)"], ["receiver", "string", "Tài khoản Steam nhận gift (nhóm steam_gift)"], ["fields", "string", "JSON các trường theo đúng nhãn required_fields của sản phẩm (tuỳ chọn)"], ["note", "string", "Ghi chú / thông tin bổ sung cho đơn (tuỳ chọn)"]], note: "Lỗi nghiệp vụ trả về dạng {\"error\": \"...\"}: hết hàng (\"Gói đã hết hàng\"), thiếu trường bắt buộc, số lượng không hợp lệ hoặc số dư không đủ. Đơn Telegram chỉ có username (không telegram_id) có thể ở trạng thái PENDING để xử lý tay.", curl: `curl -X POST ${endpoint} \\\n  -d "key=YOUR_API_KEY" \\\n  -d "action=buy" \\\n  -d "product=87" \\\n  -d "quantity=1"`, response: `{\n  "order_code": "PRE100043",\n  "status": "DELIVERED",\n  "delivery": "XXXXX-XXXXX-XXXXX"\n}` },
+    { id: "premium_status", label: "Trạng thái đơn sản phẩm", params: [KEY, ["action", "string", "premium_status"], ["order_code", "string", "Mã đơn sản phẩm (PRE...) trả về khi đặt đơn"]], note: "Trường delivery chỉ xuất hiện khi đơn đã giao (DELIVERED / COMPLETED / WARRANTY) — đó là key/tài khoản bàn giao cho khách của bạn.", curl: `curl -X POST ${endpoint} \\\n  -d "key=YOUR_API_KEY" \\\n  -d "action=premium_status" \\\n  -d "order_code=PRE100043"`, response: `{\n  "order_code": "PRE100043",\n  "status": "DELIVERED",\n  "product": "Steam Wallet Code 10 USD",\n  "variant": "Global",\n  "quantity": 1,\n  "price": 265000,\n  "delivery": "XXXXX-XXXXX-XXXXX",\n  "created_at": "2026-01-01T10:00:00.000Z"\n}` },
+  ];
   return (
     <div>
       <div className="mb-8">
@@ -85,6 +92,10 @@ export async function ApiDocsView({ apiKey }: { apiKey?: string | null }) {
       <h2 className="text-lg font-black text-slate-900 mt-12 mb-4">{L("Tài liệu API mua sản phẩm")} <span className="ml-1 rounded-md bg-brand-600 text-white text-[11px] font-black px-2 py-1 align-middle">PRODUCT</span></h2>
       <InfoCards endpoint={endpoint} method="GET / POST" methodDesc="Hỗ trợ cả hai giao thức nhận tin" apiKey={apiKey} />
       <ApiTabs actions={localize(PRODUCT_ACTIONS)} />
+
+      <h2 className="text-lg font-black text-slate-900 mt-12 mb-4">{L("Tài liệu API sản phẩm số")} <span className="ml-1 rounded-md bg-violet-600 text-white text-[11px] font-black px-2 py-1 align-middle">GAME KEY · TELEGRAM · STEAM</span></h2>
+      <InfoCards endpoint={endpoint} method="GET / POST" methodDesc="Hỗ trợ cả hai giao thức nhận tin" apiKey={apiKey} />
+      <ApiTabs actions={localize(GROUP_ACTIONS)} />
     </div>
   );
 }

@@ -1201,7 +1201,7 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
 }
 
 /* ---------- Tabs tài liệu API (kiểu thatim: danh sách action bên trái, Parameters + Example Response bên phải) ---------- */
-export type ApiActionDoc = { id: string; label: string; params: [string, string, string][]; response: string };
+export type ApiActionDoc = { id: string; label: string; params: [string, string, string][]; response: string; curl?: string; note?: string };
 export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
   const { t } = useLang();
   const [active, setActive] = useState(actions[0]?.id);
@@ -1226,6 +1226,20 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
             </tbody>
           </table>
         </div>
+        {cur.note && (
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-800">
+            <span className="font-bold">{t("Lưu ý")}: </span>{cur.note}
+          </div>
+        )}
+        {cur.curl && (
+          <>
+            <div className="flex items-center justify-between mt-6 mb-2">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("Ví dụ curl")}</div>
+              <CopyBtn text={cur.curl} label="Sao chép" />
+            </div>
+            <pre className="bg-slate-950 text-slate-100 rounded-2xl p-4 text-xs sm:text-[13px] overflow-x-auto">{cur.curl}</pre>
+          </>
+        )}
         <div className="flex items-center justify-between mt-6 mb-2">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("Phản hồi mẫu")}</div>
           <CopyBtn text={cur.response} label="Sao chép" />
