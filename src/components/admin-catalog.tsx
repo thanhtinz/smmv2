@@ -47,9 +47,10 @@ export type ProviderDTO = {
   minBalanceAlert: number; dailyLimit: number; serviceCount: number; lastSyncAt: string | null;
 };
 
-export function ProviderModal({ provider, onClose }: { provider?: ProviderDTO; onClose: () => void }) {
+export function ProviderModal({ provider, onClose, webhookSecretSet }: { provider?: ProviderDTO; onClose: () => void; webhookSecretSet?: boolean }) {
   const { t } = useLang();
   const [tab, setTab] = useState(0);
+  const [driver, setDriver] = useState(provider?.driver || "STANDARD");
   const p = provider;
   const tabs = ["Thông tin cơ bản", "Cài đặt đồng bộ", "Tiền tệ & Giới hạn"];
   return (
@@ -87,12 +88,26 @@ export function ProviderModal({ provider, onClose }: { provider?: ProviderDTO; o
             </div>
             <div>
               <label className={lbl}>{t("Giao thức API")}</label>
-              <select name="driver" defaultValue={p?.driver || "STANDARD"} className={inp}>
+              <select name="driver" value={driver} onChange={(e) => setDriver(e.target.value)} className={inp}>
                 <option value="STANDARD">{t("Chuẩn SMM v2 / sản phẩm đối tác")}</option>
                 <option value="FZR">FazerCards (fzr.cards)</option>
               </select>
               <p className="mt-1 text-xs text-slate-400">{t("FazerCards: đồng bộ sản phẩm số (game key, gift card, nạp dịch vụ, Telegram, Steam) vào Premium.")}</p>
             </div>
+            {driver === "FZR" && (
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                <div className="text-sm font-bold text-slate-800">{t("Webhook FazerCards (dùng chung)")}</div>
+                <div>
+                  <label className={lbl}>{t("URL webhook (dán vào panel FazerCards)")}</label>
+                  <input className={inp} readOnly value="https://smmv2-zeta.vercel.app/api/webhooks/fzr" />
+                </div>
+                <div>
+                  <label className={lbl}>{t("Webhook secret của FazerCards")}</label>
+                  <input className={inp} type="password" name="fzr_webhook_secret" placeholder={webhookSecretSet ? "•••••••• (đã đặt — nhập để thay)" : "whsec_..."} autoComplete="off" />
+                  <p className="mt-1 text-xs text-slate-400">{t("Secret lấy tại panel FazerCards → Settings → Webhooks, dùng để xác thực thông báo trạng thái đơn. Để trống = giữ nguyên.")}</p>
+                </div>
+              </div>
+            )}
             <Switch name="active" defaultChecked={p ? p.active : true} label={t("Trạng thái (đang hoạt động)")} />
             <div><label className={lbl}>{t("Mô tả")}</label><textarea name="note" rows={2} defaultValue={p?.note || ""} className={inp} placeholder={t("Nhập mô tả về nhà cung cấp...")} /></div>
           </div>
@@ -230,7 +245,7 @@ export function ImportServicesModal({ provider, onClose }: { provider: ProviderD
   );
 }
 
-export function ProvidersClient({ providers }: { providers: ProviderDTO[] }) {
+export function ProvidersClient({ providers, webhookSecretSet }: { providers: ProviderDTO[]; webhookSecretSet?: boolean }) {
   const { t, td, m } = useLang();
   const [editing, setEditing] = useState<ProviderDTO | undefined>(undefined);
   const [open, setOpen] = useState(false);
@@ -242,7 +257,7 @@ export function ProvidersClient({ providers }: { providers: ProviderDTO[] }) {
         <form action={adminSyncAllProviders}><button className="btn-ghost btn-sm !px-4 !py-2.5">{t("Đồng bộ tất cả")}</button></form>
         <button onClick={() => { setEditing(undefined); setOpen(true); }} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm nhà cung cấp")}</button>
       </div>
-      {open && <ProviderModal provider={editing} onClose={() => setOpen(false)} />}
+      {open && <ProviderModal provider={editing} onClose={() => setOpen(false)} webhookSecretSet={webhookSecretSet} />}
       {importing && <ImportServicesModal provider={importing} onClose={() => setImporting(undefined)} />}
       <div className="card mt-5 overflow-x-auto">
         <table className="w-full min-w-[880px]">

@@ -4,6 +4,10 @@ import { PageHead, Flash, Stat, I } from "@/components/ui";
 import { ProvidersClient, type ProviderDTO } from "@/components/admin-catalog";
 import { dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
+import { getSettings } from "@/lib/settings";
+import { getTelegramProvider } from "@/lib/tg";
+import { fzrBalance, fzrMe } from "@/lib/fzr";
+import { adminFzrAssignmentAction, adminTelegramTestAction } from "@/app/actions/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +28,20 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
     lastSyncAt: p.lastSyncAt ? dt(p.lastSyncAt) : null,
   }));
   const activeCount = providers.filter((p) => p.active).length;
+  // Cấu hình DÙNG CHUNG của FazerCards (chuyển từ trang "Cài đặt Telegram"
+  // đã bỏ, 2026-11-08): nhà cung cấp FZR nào phục vụ khu Telegram. Khu Steam
+  // không có phân công riêng — đơn Steam chạy theo nhà cung cấp của từng gói.
+  const s = await getSettings();
+  const fzrProviders = providers.filter((p) => p.driver === "FZR").map((p) => ({ id: p.id, name: p.name, active: p.active }));
+  const tgProvider = await getTelegramProvider().catch(() => null);
+  let tgBalance = "";
+  let tgPlan = "";
+  if (tgProvider) {
+    const bal = await fzrBalance(tgProvider).catch(() => null);
+    if (bal) tgBalance = `${bal.balance} ${bal.currency}`;
+    const me: any = await fzrMe(tgProvider).catch(() => null);
+    if (me) tgPlan = String(me.plan || me.subscription?.plan || me.email || me.username || me.id || "");
+  }
   return (
     <div>
       <PageHead title={L("Quản lý nhà cung cấp")} desc={L("Nhà cung cấp đấu API theo chuẩn SMM v2 — hệ thống tự đồng bộ dịch vụ + giá (cộng markup), tự đẩy đơn và tự cập nhật trạng thái.")} />
@@ -34,8 +52,46 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
         <Stat label={L("Tổng số dịch vụ")} value={String(totalServices)} icon={I.list} tone="violet" />
         <Stat label={L("Tổng số dịch vụ đang bật")} value={String(enabledServices)} icon={I.check} tone="cyan" />
       </div>
+      <div className="card mt-5 p-5 sm:p-6">
+        <div className="flex items-center gap-2">
+          <span className="text-brand-600">{I.send}</span>
+          <h2 className="text-[15px] font-bold text-slate-900">{L("FazerCards — khu tách riêng")}</h2>
+        </div>
+        <p className="mt-1 text-sm text-slate-500">{L("Telegram và Steam là các khu tách riêng của cùng một nhà cung cấp FazerCards — dùng chung API và webhook, cấu hình tại đây thay vì mỗi khu một trang cài đặt.")}</p>
+        {fzrProviders.length === 0 ? (
+          <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">{L("Chưa có nhà cung cấp FazerCards nào — thêm bằng nút “Thêm nhà cung cấp FZR” ở danh sách bên dưới.")}</p>
+        ) : (
+          <>
+            <form action={adminFzrAssignmentAction} className="mt-4 flex flex-wrap items-end gap-3">
+              <div className="min-w-[240px] flex-1">
+                <label className="lbl">{L("Nhà cung cấp phục vụ Telegram")}</label>
+                <select className="inp" name="telegram_provider_id" defaultValue={s.telegram_provider_id || ""}>
+                  <option value="">{L("Tự chọn nhà cung cấp FZR đang bật đầu tiên")}</option>
+                  {fzrProviders.map((p) => <option key={p.id} value={p.id}>{p.name}{p.active ? "" : L(" (đang tắt)")}</option>)}
+                </select>
+              </div>
+              <button className="btn-primary">{L("Lưu phân công")}</button>
+              <span className="pb-2 text-xs text-slate-400">{L("Khu Steam không cần phân công riêng — đơn Steam chạy theo nhà cung cấp của từng gói. Webhook FZR đặt trong form nhà cung cấp FZR; công tắc mục Telegram ở trang Mô-đun.")}</span>
+            </form>
+            {tgProvider && (
+              <dl className="mt-4 grid gap-x-8 gap-y-2 border-t border-slate-100 pt-4 text-sm sm:grid-cols-2">
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Đang phục vụ Telegram")}</dt><dd className="font-semibold text-slate-800">{tgProvider.name}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Số dư FZR")}</dt><dd className="font-semibold text-slate-800">{tgBalance || L("Không đọc được")}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Tài khoản / gói FZR")}</dt><dd className="font-semibold text-slate-800">{tgPlan || "—"}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Đường giao Telegram")}</dt><dd className="font-semibold text-slate-800">{s.telegram_topup_offer_id && String(s.telegram_topup_provider_id) === String(tgProvider.id) ? L("Theo username (offer top-up Telegram)") : L("Theo Telegram ID số (API riêng)")}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Webhook FZR")}</dt><dd className="font-semibold text-slate-800">{s.fzr_webhook_secret ? L("Đã cấu hình secret") : L("Chưa cấu hình")}</dd></div>
+                <div>
+                  <form action={adminTelegramTestAction}>
+                    <button className="btn-ghost btn-sm">{L("Kiểm tra kết nối")}</button>
+                  </form>
+                </div>
+              </dl>
+            )}
+          </>
+        )}
+      </div>
       <div className="mt-2">
-        <ProvidersClient providers={dtos} />
+        <ProvidersClient providers={dtos} webhookSecretSet={Boolean(s.fzr_webhook_secret)} />
       </div>
     </div>
   );

@@ -52,35 +52,35 @@ export async function placeTelegramOrderAction(formData: FormData) {
   back("/dashboard/telegram/lich-su", "msg", "Đặt đơn thành công — sao/Premium đang được gửi tới tài khoản của bạn");
 }
 
-/** Cài đặt Telegram (Admin → Telegram → Cài đặt): công tắc + chọn nhà cung cấp FZR. */
-export async function adminTelegramSettingsAction(formData: FormData) {
+/** Phân công nhà cung cấp FZR phục vụ khu Telegram (Admin → Nhà cung cấp).
+ *  Trang "Cài đặt Telegram" riêng đã bỏ (2026-11-08): FZR là một nhà cung
+ *  cấp dùng chung — phân công nằm ở trang Nhà cung cấp, webhook nằm trong
+ *  form nhà cung cấp FZR, công tắc mục Telegram nằm ở trang Mô-đun. Khóa
+ *  setting giữ nguyên (telegram_provider_id), tầng thực thi đọc như cũ. */
+export async function adminFzrAssignmentAction(formData: FormData) {
   await requireAdmin();
-  const enabled = String(formData.get("telegram_enabled") || "0") === "1" ? "1" : "0";
   const providerId = parseInt(String(formData.get("telegram_provider_id") || "0")) || 0;
   if (providerId) {
     const p = await prisma.provider.findUnique({ where: { id: providerId }, select: { driver: true } });
-    if (!p || p.driver !== "FZR") back("/admin/telegram/cai-dat", "err", "Nhà cung cấp đã chọn không phải FazerCards");
+    if (!p || p.driver !== "FZR") back("/admin/nha-cung-cap", "err", "Nhà cung cấp đã chọn không phải FazerCards");
   }
-  await setSetting("telegram_enabled", enabled);
   await setSetting("telegram_provider_id", providerId ? String(providerId) : "");
-  const whSecret = String(formData.get("fzr_webhook_secret") || "").trim();
-  if (whSecret) await setSetting("fzr_webhook_secret", whSecret); // setSetting tự mã hoá (secret-box)
-  back("/admin/telegram/cai-dat", "msg", "Đã lưu cài đặt Telegram");
+  back("/admin/nha-cung-cap", "msg", "Đã lưu nhà cung cấp phục vụ Telegram");
 }
 
-/** Kiểm tra kết nối FZR của nhà cung cấp đang chọn (số dư + thông tin tài khoản). */
+/** Kiểm tra kết nối FZR của nhà cung cấp đang phục vụ Telegram (số dư + gói). */
 export async function adminTelegramTestAction() {
   await requireAdmin();
   const provider = await getTelegramProvider();
-  if (!provider) back("/admin/telegram/cai-dat", "err", "Chưa có nhà cung cấp FazerCards nào đang bật");
+  if (!provider) back("/admin/nha-cung-cap", "err", "Chưa có nhà cung cấp FazerCards nào đang bật");
   try {
     const { fzrBalance, fzrMe } = await import("@/lib/fzr");
     const bal = await fzrBalance(provider!);
     const me: any = await fzrMe(provider!).catch(() => null);
     const plan = me?.plan || me?.subscription?.plan || me?.account?.plan || "";
-    back("/admin/telegram/cai-dat", "msg", `Kết nối OK — số dư FZR: ${bal.balance} ${bal.currency}${plan ? ` · gói: ${plan}` : ""}`);
+    back("/admin/nha-cung-cap", "msg", `Kết nối OK — số dư FZR: ${bal.balance} ${bal.currency}${plan ? ` · gói: ${plan}` : ""}`);
   } catch (e: any) {
-    back("/admin/telegram/cai-dat", "err", `Kết nối thất bại: ${String(e?.message || e).slice(0, 160)}`);
+    back("/admin/nha-cung-cap", "err", `Kết nối thất bại: ${String(e?.message || e).slice(0, 160)}`);
   }
 }
 

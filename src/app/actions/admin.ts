@@ -179,6 +179,14 @@ export async function adminSaveProvider(formData: FormData) {
   if (!data.apiKey) back("/admin/nha-cung-cap", "err", "Thiếu API key");
   if (id) await prisma.provider.update({ where: { id }, data });
   else await prisma.provider.create({ data });
+  // Webhook FazerCards là cấu hình DÙNG CHUNG của giao thức FZR (không thuộc
+  // riêng nhà cung cấp nào) — form nhà cung cấp FZR mang theo field secret;
+  // nhập mới thì ghi đè Setting fzr_webhook_secret (setSetting tự mã hoá),
+  // để trống = giữ nguyên. Endpoint /api/webhooks/fzr đọc đúng khóa này.
+  if (data.driver === "FZR") {
+    const whSecret = String(formData.get("fzr_webhook_secret") || "").trim();
+    if (whSecret) await setSetting("fzr_webhook_secret", whSecret);
+  }
   await auditAdmin(actor, "provider.save", "provider", id || data.name, `${data.name} — ${data.apiUrl}${rawKey && !rawKey.includes("•") ? " (đặt API key mới)" : ""}`);
   done("/admin/nha-cung-cap", "Đã lưu nhà cung cấp");
 }

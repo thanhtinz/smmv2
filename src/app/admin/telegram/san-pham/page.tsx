@@ -28,7 +28,7 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
 
       {!provider && (
         <div className="card mb-4 border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-          Chưa cấu hình nhà cung cấp FZR cho Telegram — vào Admin → Telegram → Cài đặt để chọn nhà cung cấp, rồi đồng bộ catalog ở trang Nhà cung cấp.
+          Chưa cấu hình nhà cung cấp FZR cho Telegram — vào Admin → Nhà cung cấp để chọn nhà cung cấp phục vụ Telegram, rồi đồng bộ catalog tại đó.
         </div>
       )}
       {provider && <ProviderPricingCard provider={provider} returnTo={RT} />}

@@ -360,6 +360,9 @@ export async function saveModulesAction(formData: FormData) {
     "module_smm", "module_premium", "module_affiliate", "module_register",
     "module_bulk", "module_promo", "module_tickets",
     "module_api", "module_blog", "livechat_enabled", "support_widget_enabled",
+    // Công tắc mục Telegram (khu tách riêng của FZR) nằm cùng trang Mô-đun
+    // từ 2026-11-08 — trang Cài đặt Telegram riêng đã bỏ.
+    "telegram_enabled",
   ]) {
     await setSetting(k, formData.get(k) === "on" ? "1" : "0");
   }
