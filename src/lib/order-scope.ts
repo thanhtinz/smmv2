@@ -30,3 +30,13 @@ export function regularPremiumWhere(userId?: number) {
     ],
   };
 }
+
+/** Điều kiện "sản phẩm Premium THƯỜNG" cho các BỀ MẶT cửa hàng (trang chủ +
+ *  /premium + sản phẩm liên quan): sản phẩm Steam (gift games + sản phẩm
+ *  giữ chỗ top-up) thuộc khu Steam riêng — có mục "Steam Gift Games" riêng
+ *  trên trang chủ và các trang Steam — nên không lẫn vào catalog Premium.
+ *  `none` ở đây an toàn (không có bẫy NULL như ở tầng đơn): sản phẩm không
+ *  còn variant Steam nào đang tồn tại thì là sản phẩm thường. */
+export function regularCatalogWhere() {
+  return { variants: { none: { providerGroup: { in: STEAM_GROUPS } } } };
+}

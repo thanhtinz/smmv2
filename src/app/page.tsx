@@ -6,6 +6,9 @@ import { HomeModal } from "@/components/gates";
 import { getServerI18n } from "@/lib/lang-server";
 import { premiumCardsFor } from "@/components/premium-views";
 import { HomeShop, type HomeCard, type HomeCat, type HomeSlide } from "@/components/home-shop";
+import { type HomeGift } from "@/components/home-gifts";
+import { regularCatalogWhere } from "@/lib/order-scope";
+import { productImages } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -25,16 +28,44 @@ export default async function HomePage() {
   let all: HomeCard[] = [];
   let best: HomeCard[] = [];
   let slides: HomeSlide[] = [];
+  let gifts: HomeGift[] = [];
 
   if (!premiumOff) {
     const [catRows, products] = await Promise.all([
       prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } }),
       prisma.premiumProduct.findMany({
-        where: { active: true, panelId: null },
+        // Sản phẩm Steam thuộc khu riêng — không lẫn vào các mục Premium
+        // của trang chủ (nổi bật / bán chạy / đã xem / danh mục).
+        where: { active: true, panelId: null, ...regularCatalogWhere() },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true } } },
       }),
     ]);
+    // Mục Steam Gift Games riêng: tối đa 15 game mới nhất còn bán, giá =
+    // giá gói gift thấp nhất, sao = điểm đánh giá thật của sản phẩm.
+    const giftRows = await prisma.premiumProduct.findMany({
+      where: { active: true, panelId: null, variants: { some: { providerGroup: "steam_gift", active: true } } },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 15,
+      select: {
+        id: true, name: true, images: true, imageUrl: true,
+        variants: { where: { providerGroup: "steam_gift", active: true }, select: { price: true } },
+      },
+    });
+    const giftReviewRows = giftRows.length
+      ? await prisma.premiumReview.groupBy({ by: ["productId"], where: { productId: { in: giftRows.map((p) => p.id) } }, _avg: { rating: true }, _count: true })
+      : [];
+    const giftReviewMap = new Map(giftReviewRows.map((r) => [r.productId, { avg: r._avg.rating || 0, count: typeof r._count === "number" ? r._count : 0 }]));
+    gifts = giftRows
+      .filter((p) => p.variants.length > 0)
+      .map((p) => ({
+        productId: p.id,
+        name: p.name,
+        image: productImages(p.images, p.imageUrl)[0] || null,
+        price: Math.min(...p.variants.map((v) => v.price)),
+        rating: giftReviewMap.get(p.id)?.avg || 0,
+        reviewCount: giftReviewMap.get(p.id)?.count || 0,
+      }));
     const cards = await premiumCardsFor(products as any);
     all = (products as any[]).map((p, i) => ({ ...cards[i], categoryId: p.categoryId }));
     // Bán chạy: xếp theo tổng đã bán thật (PremiumOrder); chưa có đơn nào thì
@@ -76,12 +107,12 @@ export default async function HomePage() {
             <div className="text-lg font-bold text-slate-900">{L("Mảng Premium đang tạm ngưng")}</div>
             <p className="mt-2 text-sm text-slate-500">{L("Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau hoặc dùng dịch vụ SMM.")}</p>
           </div>
-        ) : all.length === 0 ? (
+        ) : all.length === 0 && gifts.length === 0 ? (
           <div className="card mt-10 p-8 text-center">
             <p className="text-sm text-slate-500">{L("Chưa có sản phẩm nào phù hợp.")}</p>
           </div>
         ) : (
-          <HomeShop slides={slides} cats={cats} all={all} best={best} />
+          <HomeShop slides={slides} cats={cats} all={all} best={best} gifts={gifts} />
         )}
       </main>
     </PublicFrame>

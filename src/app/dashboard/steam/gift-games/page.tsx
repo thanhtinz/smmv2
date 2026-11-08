@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  *  Chưa đồng bộ game nào → giữ khung trang + thẻ "chưa có dữ liệu".
  *  Desktop lg+ chia 2 cột 73/27 (Summary dính) như trang chi tiết Premium;
  *  mobile 1 cột. */
-export default async function SteamGiftPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function SteamGiftPage({ searchParams }: { searchParams: { msg?: string; err?: string; game?: string } }) {
   const user = (await getCurrentUser())!;
   const { L, Ld } = await getServerI18n();
 
@@ -63,7 +63,7 @@ export default async function SteamGiftPage({ searchParams }: { searchParams: { 
           </div>
         </div>
       ) : (
-        <SteamGiftForm header={headerNode} games={games} balance={user.balance} />
+        <SteamGiftForm header={headerNode} games={games} balance={user.balance} initialGameId={parseInt(searchParams.game || "") || undefined} />
       )}
     </div>
   );

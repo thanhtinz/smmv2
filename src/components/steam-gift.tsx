@@ -23,11 +23,14 @@ export type SteamGame = {
  *  vùng/package — vùng chốt theo offer rẻ nhất phía provider khi đặt (giá
  *  cũng chốt tươi lúc mua trong createPremiumOrder), nên Package ID để "—"
  *  và mục Vùng ghi rõ điều này thay vì bịa danh sách vùng. */
-export function SteamGiftForm({ games, balance, header }: { games: SteamGame[]; balance: number; header?: ReactNode }) {
+export function SteamGiftForm({ games, balance, header, initialGameId }: { games: SteamGame[]; balance: number; header?: ReactNode; initialGameId?: number }) {
   const { t, m } = useLang();
   const [q, setQ] = useState("");
-  const [gameId, setGameId] = useState<number>(0);
-  const [variantId, setVariantId] = useState<number>(0);
+  // Chọn sẵn game khi đến từ mục Steam Gift Games ở trang chủ (?game=<id>) —
+  // game không còn trong danh mục thì bỏ qua, giữ trạng thái chưa chọn.
+  const initialGame = initialGameId ? games.find((g) => g.productId === initialGameId) || null : null;
+  const [gameId, setGameId] = useState<number>(initialGame?.productId || 0);
+  const [variantId, setVariantId] = useState<number>(initialGame?.editions[0]?.variantId || 0);
   const [invite, setInvite] = useState("");
 
   const filtered = useMemo(() => {

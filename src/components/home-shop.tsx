@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { PremiumCard, type PremiumCardData } from "@/components/premium-card";
+import { HomeGiftSection, type HomeGift } from "@/components/home-gifts";
 import { useRecentItems } from "@/components/recent";
 import { useLang } from "@/components/lang";
 import { I } from "@/components/ui";
@@ -122,7 +123,7 @@ function RailSection({ icon, title, subtitle, href, items }: { icon: React.React
 
 /** Thân trang chủ cửa hàng: slider → khối danh mục → nổi bật → bán chạy →
  *  đã xem gần đây, đúng thứ tự khối của shopkey; khung header/footer giữ nguyên. */
-export function HomeShop({ slides, cats, all, best }: { slides: HomeSlide[]; cats: HomeCat[]; all: HomeCard[]; best: HomeCard[] }) {
+export function HomeShop({ slides, cats, all, best, gifts }: { slides: HomeSlide[]; cats: HomeCat[]; all: HomeCard[]; best: HomeCard[]; gifts: HomeGift[] }) {
   const { t } = useLang();
   const [cat, setCat] = useState<number | null>(null);
   const [shown, setShown] = useState(PAGE);
@@ -181,6 +182,11 @@ export function HomeShop({ slides, cats, all, best }: { slides: HomeSlide[]; cat
           </div>
         )}
       </section>
+
+      {/* Mục Steam Gift Games riêng — NGAY DƯỚI Sản phẩm nổi bật (lệnh Tín
+          2026-11-08): game Steam không thuộc catalog Premium, có mục riêng
+          trỏ về khu Steam. Không có game thì component tự ẩn. */}
+      <HomeGiftSection gifts={gifts} />
 
       <RailSection icon={I.chart} title={t("Sản phẩm bán chạy")} subtitle={t("Được khách hàng mua nhiều nhất trên cửa hàng.")} href="/premium?sort=ban-chay" items={best} />
       <RailSection icon={I.history} title={t("Đã xem gần đây")} subtitle={t("Những sản phẩm bạn vừa xem.")} href="/premium" items={recent} />

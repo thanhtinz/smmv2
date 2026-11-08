@@ -15,6 +15,7 @@ import { PremiumReviewForm, HelpfulButton } from "@/components/premium-review-fo
 import { PremiumGrid } from "@/components/premium-grid";
 import { RecordRecentView } from "@/components/recent";
 import { moduleOn } from "@/lib/modules";
+import { regularCatalogWhere } from "@/lib/order-scope";
 import { getActiveFlashSale, flashAppliesToProduct } from "@/lib/flash";
 import { resolveDeliveryType, variantSoldOut, isQtyTracked } from "@/lib/variant-stock";
 import { FlashBanner } from "@/components/flash-banner";
@@ -111,7 +112,9 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
   const catId = cat ? parseInt(cat) : undefined;
   const needle = (q || "").trim().toLowerCase();
   const allProducts = await prisma.premiumProduct.findMany({
-    where: { active: true, ...(catId ? { categoryId: catId } : {}), panelId: null },
+    // Sản phẩm Steam (gift + top-up) thuộc khu Steam riêng — không hiện ở
+    // catalog Premium này (cả lưới lẫn lọc theo danh mục).
+    where: { active: true, ...(catId ? { categoryId: catId } : {}), panelId: null, ...regularCatalogWhere() },
     orderBy: { sort: "asc" },
     include: { category: true, variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true } } },
   });
@@ -292,7 +295,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
     ? new Set((await prisma.premiumReviewHelpful.findMany({ where: { userId: session.id, reviewId: { in: reviewList.map((r) => r.id) } }, select: { reviewId: true } })).map((x) => x.reviewId))
     : new Set<number>();
   const relatedRaw = await prisma.premiumProduct.findMany({
-    where: { active: true, categoryId: product.categoryId, id: { not: product.id }, panelId: null },
+    where: { active: true, categoryId: product.categoryId, id: { not: product.id }, panelId: null, ...regularCatalogWhere() },
     orderBy: { sort: "asc" }, take: 4,
     include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true } } },
   });
