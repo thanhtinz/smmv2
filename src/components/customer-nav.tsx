@@ -32,10 +32,9 @@ export async function buildCustomerNav(
     { href: "/dashboard/don-hang", label: L("Đơn hàng SMM") },
     ...(smmOn ? [{ href: "/dashboard/dich-vu", label: L("Bảng giá") }] : []),
   ];
-  const premiumChildren = [
-    ...(premiumOn ? [{ href: "/dashboard/premium", label: L("Mua Premium") }] : []),
-    { href: "/dashboard/don-premium", label: L("Đơn hàng Premium") },
-  ];
+  // Premium KHÔNG còn là nhóm dropdown (lệnh Tín 2026-11-07 23:36): nó là mặt
+  // hàng chính nên thành 2 mục phẳng ngay sau Trang chủ — "Tất cả sản phẩm"
+  // trỏ về mặt tiền cửa hàng /premium, "Đơn Premium của tôi" giữ lịch sử mua.
   const telegramChildren = [
     { href: "/dashboard/telegram", label: L("Đặt đơn") },
     { href: "/dashboard/telegram/lich-su", label: L("Lịch sử") },
@@ -54,8 +53,9 @@ export async function buildCustomerNav(
   // khách đặt đơn qua mục Đặt đơn SMM và tự chọn nền tảng/phân loại trong form.)
   const items: NavEntry[] = [
     { href: "/", label: L("Trang chủ"), icon: I.home },
+    ...(premiumOn ? [{ href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem }] : []),
+    { href: "/dashboard/don-premium", label: L("Đơn Premium của tôi"), icon: I.list },
     ...(smmChildren.length ? [{ label: L("Đơn SMM"), icon: I.cart, children: smmChildren }] : []),
-    ...(premiumChildren.length ? [{ label: L("Premium"), icon: I.gem, children: premiumChildren }] : []),
     ...(telegramOn ? [{ label: "Telegram Premium", icon: I.star, children: telegramChildren }] : []),
     ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),
     ...(apiOn ? [{ href: "/dashboard/api-docs", label: L("Tài liệu API"), icon: I.key }] : []),

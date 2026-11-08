@@ -45,6 +45,7 @@ export const DICT: Record<string, Tr> = {
   "Đơn hàng": e("Orders", "订单", "คำสั่งซื้อ", "注文", "주문"),
   "Đơn hàng SMM": e("SMM orders", "SMM 订单", "คำสั่งซื้อ SMM", "SMM注文", "SMM 주문"),
   "Đơn hàng Premium": e("Premium orders", "Premium 订单", "คำสั่งซื้อ Premium", "Premium注文", "Premium 주문"),
+  "Đơn Premium của tôi": e("My Premium orders", "我的 Premium 订单", "คำสั่งซื้อ Premium ของฉัน", "私のPremium注文", "내 Premium 주문"),
   "Mua Premium": e("Buy Premium", "购买 Premium", "ซื้อ Premium", "Premium購入", "Premium 구매"),
   "Tài khoản Premium": e("Premium accounts", "Premium 账户", "บัญชี Premium", "Premiumアカウント", "Premium 계정"),
   "Nạp tiền": e("Add funds", "充值", "เติมเงิน", "入金", "충전"),

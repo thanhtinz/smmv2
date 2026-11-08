@@ -30,7 +30,7 @@ export async function PublicFrame({ children }: { children: ReactNode }) {
   } else {
     items = [
       { href: "/", label: L("Trang chủ"), icon: I.home },
-      { href: "/premium", label: "Premium", icon: I.gem },
+      { href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem },
       { href: "/login", label: L("Đăng nhập"), icon: I.lock },
       { href: "/register", label: L("Đăng ký"), icon: I.plus },
     ];
