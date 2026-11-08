@@ -1,0 +1,412 @@
+import { decryptSecret } from "./secret-box";
+import type { Provider } from "@prisma/client";
+
+/**
+ * Client FazerCards (api.fzr.cards) — API v2 theo tài liệu công khai
+ * https://api.fzr.cards/public/docs (OpenAPI 3.0.3, đọc 2026-11-07):
+ *   - Mọi call xác thực bằng header X-API-Key: fc_… (hoặc Authorization: Bearer).
+ *   - Số tiền là CHUỖI JSON (số dư 4 số lẻ, giá sao Telegram 7 số lẻ) — parse bằng
+ *     số nguyên scaled (BigInt), không dùng float để tránh trôi giá.
+ *   - Envelope: thành công {ok:true, …}; lỗi {ok:false, error, code} kèm HTTP
+ *     400/401/402 (hết số dư)/403 (thiếu gói/addon)/404/409/422/429/503.
+ *   - Tạo đơn KHÔNG có endpoint chung — mỗi nhóm sản phẩm một endpoint riêng.
+ *     Idempotency-Key được hỗ trợ ở mọi POST tạo đơn TRỪ Telegram.
+ *   - Đơn trả về KHÔNG có schema trường cố định: giữ nguyên JSON thô, trích nội
+ *     dung giao hàng phòng thủ (extractFzrDelivery ở dưới).
+ */
+
+export class FzrError extends Error {
+  httpStatus: number;
+  code?: string;
+  /** definitive = lỗi dứt khoát phía provider (đầu vào sai / hết số dư / thiếu addon):
+   *  đơn CHẮC CHẮN không được tạo -> an toàn để huỷ + hoàn tiền cho khách.
+   *  Ngược lại (timeout, 5xx, JSON hỏng) là mơ hồ: provider có thể đã nhận đơn. */
+  definitive: boolean;
+  constructor(message: string, httpStatus: number, code?: string) {
+    super(message);
+    this.httpStatus = httpStatus;
+    this.code = code;
+    // 403 gồm SUBSCRIPTION_REQUIRED / PLAN_RESTRICTED (docs reseller) — dứt khoát.
+    // 409: chỉ INSUFFICIENT_STOCK / INSUFFICIENT_BALANCE là dứt khoát; DUPLICATED_ORDER
+    // nghĩa là provider ĐÃ có đơn (idempotency) — mơ hồ, giữ PENDING chờ đối soát.
+    this.definitive =
+      [400, 401, 402, 403, 404, 422].includes(httpStatus) ||
+      (httpStatus === 409 && ["INSUFFICIENT_STOCK", "INSUFFICIENT_BALANCE"].includes(String(code || "")));
+  }
+}
+
+/** Nhãn trường tuỳ chỉnh (customFields) mà đồng bộ catalog FZR gắn cho sản phẩm —
+ *  luồng thực thi đơn đọc lại đúng các nhãn này từ thông tin khách đã điền. */
+export const FZR_LABELS = {
+  telegramId: "Telegram user ID",
+  steamLogin: "Steam login",
+  playerId: "Tài khoản / ID người chơi",
+  giftReceiver: "Tài khoản Steam nhận gift",
+  extraInfo: "Thông tin bổ sung",
+} as const;
+
+const SCALE = BigInt(10_000_000); // 7 số lẻ — đủ cho giá sao Telegram (7dp)
+
+/** Parse chuỗi số thập phân ("12.3400") thành số nguyên scaled ×10^7 (BigInt, không float). */
+export function parseDecimalScaled(v: unknown): bigint {
+  if (typeof v === "number") v = String(v);
+  if (typeof v !== "string") return BigInt(0);
+  const s = v.trim().replace(",", ".");
+  const m = s.match(/^(-?)(\d+)(?:\.(\d+))?$/);
+  if (!m) return BigInt(0);
+  const neg = m[1] === "-";
+  const intPart = BigInt(m[2]);
+  const frac = (m[3] || "").slice(0, 7).padEnd(7, "0");
+  const out = intPart * SCALE + BigInt(frac || "0");
+  return neg ? -out : out;
+}
+
+/** Chuỗi thập phân -> số thực (chỉ dùng hiển thị/ghi log, không dùng tính giá bán). */
+export function decimalToNumber(v: unknown): number {
+  return Number(parseDecimalScaled(v)) / 1e7;
+}
+
+/**
+ * Giá bán VND từ giá gốc USD của FZR: ceil(usd × exchangeRate × (1 + markup%)).
+ * Tính hoàn toàn bằng BigInt: usd scaled ×10^7, mẫu số 10^7 × 100.
+ */
+export function fzrUsdToVnd(usd: unknown, exchangeRate: number, markupPercent: number): number {
+  const scaled = parseDecimalScaled(usd);
+  if (scaled <= BigInt(0)) return 0;
+  const num = scaled * BigInt(Math.max(1, exchangeRate)) * BigInt(100 + Math.max(0, markupPercent));
+  const den = SCALE * BigInt(100);
+  return Number((num + den - BigInt(1)) / den); // ceil
+}
+
+/** Giá VỐN VND (chưa markup) — lưu vào variant.cost để tính lãi. */
+export function fzrUsdCostVnd(usd: unknown, exchangeRate: number): number {
+  return fzrUsdToVnd(usd, exchangeRate, 0);
+}
+
+function baseUrl(provider: Provider): string {
+  return provider.apiUrl.replace(/\/+$/, "");
+}
+
+async function call<T = any>(
+  provider: Provider,
+  method: "GET" | "POST",
+  path: string,
+  opts: { body?: Record<string, unknown>; query?: Record<string, string | number | undefined>; idempotencyKey?: string; timeoutMs?: number } = {}
+): Promise<T> {
+  const url = new URL(baseUrl(provider) + path);
+  for (const [k, v] of Object.entries(opts.query || {})) {
+    if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
+  }
+  // 429 RATE_LIMITED: backoff theo Retry-After (tối đa 3 lần, 1s/2s/4s) — CHỈ
+  // retry khi an toàn: GET, hoặc POST có Idempotency-Key (Telegram buy không có
+  // khoá này nên không bao giờ bị gọi lại tự động).
+  const retryable = method === "GET" || !!opts.idempotencyKey;
+  let res: Response | null = null;
+  for (let attempt = 0; attempt <= 3; attempt++) {
+    try {
+      res = await fetch(url.toString(), {
+        method,
+        headers: {
+          "X-API-Key": decryptSecret(provider.apiKey),
+          "Content-Type": "application/json",
+          ...(opts.idempotencyKey ? { "Idempotency-Key": opts.idempotencyKey } : {}),
+        },
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+        cache: "no-store",
+        signal: AbortSignal.timeout(opts.timeoutMs ?? 30000),
+      });
+    } catch (e: any) {
+      // Timeout / lỗi mạng: MƠ HỒ — provider có thể đã nhận đơn, tuyệt đối không coi là dứt khoát
+      throw new FzrError(`FZR lỗi mạng/timeout: ${String(e?.message || e)}`, 0);
+    }
+    if (res.status === 429 && retryable && attempt < 3) {
+      const ra = Number(res.headers.get("retry-after"));
+      const waitMs = Number.isFinite(ra) && ra > 0 ? Math.min(ra * 1000, 15000) : [1000, 2000, 4000][attempt];
+      await new Promise((r) => setTimeout(r, waitMs));
+      continue;
+    }
+    break;
+  }
+  if (!res) throw new FzrError("FZR không phản hồi", 0);
+  const text = await res.text();
+  let json: any;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new FzrError(`FZR trả dữ liệu không hợp lệ (HTTP ${res.status})`, res.status >= 500 ? 503 : res.status);
+  }
+  if (!res.ok || json?.ok === false) {
+    throw new FzrError(String(json?.error || json?.message || `FZR HTTP ${res.status}`), res.status, json?.code ? String(json.code) : undefined);
+  }
+  return json as T;
+}
+
+/* ---------------- Tài khoản ---------------- */
+
+export async function fzrBalance(provider: Provider): Promise<{ balance: string; currency: string }> {
+  const r = await call<any>(provider, "GET", "/api/v2/balance");
+  return { balance: String(r?.balance ?? "0"), currency: String(r?.currency || "USD") };
+}
+
+export async function fzrMe(provider: Provider): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/me");
+}
+
+export async function fzrGetOrder(provider: Provider, orderId: string): Promise<any> {
+  const r = await call<any>(provider, "GET", `/api/v2/orders/${encodeURIComponent(orderId)}`);
+  return r?.order ?? r;
+}
+
+/* ---------------- Catalog ---------------- */
+
+export async function fzrGameKeys(provider: Provider, page: number, q?: string): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/gamekeys", { query: { page, limit: 100, q } });
+}
+
+export async function fzrGiftCards(provider: Provider, page: number, q?: string): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/giftcards", { query: { page, limit: 100, q } });
+}
+
+export async function fzrTopups(provider: Provider, page: number, q?: string): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/topups", { query: { page, limit: 100, q } });
+}
+
+export async function fzrManualServices(provider: Provider): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/manual-services");
+}
+
+export async function fzrManualOffers(provider: Provider, manualServiceId: string): Promise<any> {
+  return call<any>(provider, "GET", `/api/v2/manual-services/${encodeURIComponent(manualServiceId)}/offers`);
+}
+
+export async function fzrTelegramStarsQuote(provider: Provider): Promise<{ pricePerStar: string; price?: string; minAmount?: number; maxAmount?: number; currency: string }> {
+  const r = await call<any>(provider, "GET", "/api/v2/telegram/stars");
+  return { pricePerStar: String(r?.pricePerStar ?? r?.price ?? "0"), price: r?.price, minAmount: r?.minAmount, maxAmount: r?.maxAmount, currency: String(r?.currency || "USD") };
+}
+
+export async function fzrTelegramPremiumPlans(provider: Provider): Promise<{ durationMonths: number; price: string; finalPrice?: string }[]> {
+  const r = await call<any>(provider, "GET", "/api/v2/telegram/premium");
+  const plans = Array.isArray(r?.plans) ? r.plans : [];
+  return plans.map((p: any) => ({ durationMonths: Number(p?.durationMonths), price: String(p?.finalPrice ?? p?.price ?? "0"), finalPrice: p?.finalPrice }));
+}
+
+export async function fzrSteamRates(provider: Provider): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/steam-topup/rates");
+}
+
+/** Danh sách game Steam gift — RATE LIMIT 1 request / 3 phút / IP+key: CHỈ gọi khi admin bấm đồng bộ tay. */
+export async function fzrSteamGiftGames(provider: Provider, page: number, search?: string): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/steam-gifts/games", { query: { page, limit: 100, search } });
+}
+
+export async function fzrSteamGiftOffers(provider: Provider, appid: string | number): Promise<{ price: string }[]> {
+  const r = await call<any>(provider, "GET", `/api/v2/steam-gifts/games/${encodeURIComponent(String(appid))}`);
+  const offers = Array.isArray(r?.offers) ? r.offers : [];
+  return offers.filter((o: any) => o?.price !== undefined).map((o: any) => ({ price: String(o.price) }));
+}
+
+/* ---------------- Tạo đơn (idemKey = mã/id đơn của mình; Telegram KHÔNG hỗ trợ) ---------------- */
+
+export async function fzrCreateGameKeyOrder(provider: Provider, gameKeyId: string, quantity: number, idemKey: string): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/gamekeys/order", { body: { gameKeyId, quantity }, idempotencyKey: idemKey });
+  return r?.order ?? r;
+}
+
+export async function fzrCreateGiftCardOrder(provider: Provider, giftCardId: string, quantity: number, idemKey: string): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/giftcards/order", { body: { giftCardId, quantity }, idempotencyKey: idemKey });
+  return r?.order ?? r;
+}
+
+export async function fzrValidateTopupId(provider: Provider, offerId: string, value: string): Promise<{ valid: boolean; playerName?: string }> {
+  const r = await call<any>(provider, "POST", "/api/v2/topups/validate-id", { body: { offerId, value } });
+  return { valid: !!r?.valid, playerName: r?.player_name };
+}
+
+export async function fzrCreateTopupOrder(
+  provider: Provider,
+  input: { offerId: string; amount: string; quantity?: number; orderParams?: Record<string, unknown> },
+  idemKey: string
+): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/topups/order", {
+    body: { offerId: input.offerId, amount: input.amount, quantity: input.quantity, orderParams: input.orderParams || {} },
+    idempotencyKey: idemKey,
+  });
+  return r?.order ?? r;
+}
+
+export async function fzrCreateManualOrder(
+  provider: Provider,
+  input: { manualServiceId: string; offerId: string; quantity: number; additionalData?: Record<string, unknown> },
+  idemKey: string
+): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/manual-services/order", {
+    body: { manualServiceId: input.manualServiceId, offerId: input.offerId, quantity: input.quantity, additionalData: input.additionalData || {} },
+    idempotencyKey: idemKey,
+  });
+  return r?.order ?? r;
+}
+
+/** Telegram Stars: API KHÔNG hỗ trợ Idempotency-Key — caller chỉ được gọi ĐÚNG 1 LẦN, không retry. */
+export async function fzrBuyTelegramStars(provider: Provider, quantity: number, userId: number): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/telegram/stars/buy", { body: { quantity, userId } });
+  return r?.order ?? r;
+}
+
+/** Telegram Premium: cũng không gửi Idempotency-Key (nhóm Telegram không hỗ trợ). */
+export async function fzrBuyTelegramPremium(provider: Provider, userId: number, months: number): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/telegram/premium/buy", { body: { userId, months } });
+  return r?.order ?? r;
+}
+
+export async function fzrCheckSteamLogin(provider: Provider, login: string): Promise<{ valid: boolean; region?: string }> {
+  const r = await call<any>(provider, "POST", "/api/v2/steam-topup/check-login", { body: { login } });
+  return { valid: !!r?.valid, region: r?.region };
+}
+
+export async function fzrCreateSteamTopupOrder(
+  provider: Provider,
+  input: { login: string; currency: string; amount: string },
+  idemKey: string
+): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/steam-topup/order", { body: input, idempotencyKey: idemKey });
+  return r?.order ?? r;
+}
+
+export async function fzrCreateSteamGiftOrder(
+  provider: Provider,
+  input: { appid: number; region?: string; receiver: string },
+  idemKey: string
+): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/steam-gifts/order", { body: input, idempotencyKey: idemKey });
+  return r?.order ?? r;
+}
+
+/* ---------------- Trạng thái + trích nội dung giao ---------------- */
+
+/** Chuẩn hoá trạng thái đơn FZR (không có enum chính thức): created/processing/completed/refunded/refund/cancelled. */
+export function fzrOrderStatus(raw: any): "completed" | "refunded" | "cancelled" | "partial" | "processing" | "unknown" {
+  const s = String(raw?.status || raw?.state || "").toLowerCase();
+  if (s === "partial" || s === "partially_completed" || s === "partial_completed") return "partial";
+  if (s === "completed" || s === "complete" || s === "delivered" || s === "success" || s === "done") return "completed";
+  if (s === "refunded" || s === "refund" || s === "failed" || s === "error") return "refunded";
+  if (s === "cancelled" || s === "canceled") return "cancelled";
+  if (s === "created" || s === "processing" || s === "pending" || s === "in_progress" || s === "in progress") return "processing";
+  return s ? "processing" : "unknown";
+}
+
+/** Mã đơn phía FZR trong response tạo đơn / chi tiết đơn (thử các khoá phổ biến). */
+export function fzrOrderIdOf(raw: any, fallbackBody?: any): string | null {
+  const v = raw?.id ?? raw?.orderId ?? raw?.order_id ?? fallbackBody?.orderId ?? fallbackBody?.order_id ?? fallbackBody?.id;
+  return v !== undefined && v !== null && v !== "" ? String(v) : null;
+}
+
+const DELIVERY_KEYS = ["keys", "key", "codes", "code", "pin", "pins", "serial", "serials", "delivery", "delivered", "items", "accounts", "account", "card", "cards", "content", "result", "data"];
+
+function stringifyDelivery(v: any): string | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "string") return v.trim() ? v : null;
+  if (typeof v === "number") return String(v);
+  if (Array.isArray(v)) {
+    const parts = v.map((x) => stringifyDelivery(x)).filter(Boolean) as string[];
+    return parts.length ? parts.join("\n") : null;
+  }
+  if (typeof v === "object") {
+    // Object con: thử các khoá giao hàng quen thuộc trước khi dump JSON
+    for (const k of DELIVERY_KEYS) {
+      if (v[k] !== undefined) {
+        const s = stringifyDelivery(v[k]);
+        if (s) return s;
+      }
+    }
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Trích nội dung giao hàng từ object đơn FZR (schema không cố định): quét đệ quy
+ * các khoá ứng viên keys/key/code/codes/pin/serial/delivery/items…
+ * Trả null khi không khoá nào khớp — caller quyết định fallback (xem fzrDeliveryOrRaw).
+ */
+/** Serialize 1 object "thẻ" (order.cards[]) thành dòng đọc được: "k: v · k: v". */
+function cardToLine(card: any): string | null {
+  if (card === null || card === undefined) return null;
+  if (typeof card === "string") return card.trim() ? card : null;
+  if (typeof card === "number") return String(card);
+  if (typeof card === "object") {
+    const parts = Object.entries(card)
+      .filter(([, v]) => v !== null && v !== undefined && v !== "")
+      .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`);
+    return parts.length ? parts.join(" · ") : null;
+  }
+  return null;
+}
+
+/** Nội dung giao trong order.payload (docs reseller): manual service dùng
+ *  payload.details theo type account/gift/text/url; steam top-up mang
+ *  {steam_login, amount_rub, …} — định dạng mọi trường details thành dòng. */
+function payloadDelivery(payload: any): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const d = payload.details;
+  if (d && typeof d === "object") {
+    if (payload.type === "text" && typeof d.text === "string" && d.text.trim()) return d.text;
+    if (payload.type === "url" && typeof d.url === "string" && d.url.trim()) return d.url;
+    const lines = Object.entries(d)
+      .filter(([, v]) => v !== null && v !== undefined && v !== "")
+      .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`);
+    if (lines.length) return lines.join("\n");
+  }
+  if (typeof payload === "object") {
+    const known = ["steam_login", "amount_rub", "login", "password", "link", "url", "text"];
+    const lines = known.filter((k) => payload[k] !== undefined && payload[k] !== "").map((k) => `${k}: ${String(payload[k])}`);
+    if (lines.length) return lines.join("\n");
+  }
+  return null;
+}
+
+export function extractFzrDelivery(raw: any): string | null {
+  if (!raw || typeof raw !== "object") return null;
+  // (1) order.cards — sản phẩm giao ngay trả mã trong mảng cards (cookbook reseller)
+  if (Array.isArray(raw.cards) && raw.cards.length) {
+    const lines = raw.cards.map(cardToLine).filter(Boolean) as string[];
+    if (lines.length) return lines.join("\n");
+  }
+  // (2) order.payload.details theo type (manual service / steam top-up)
+  const pd = payloadDelivery(raw.payload);
+  if (pd) return pd;
+  const seen = new Set<any>();
+  const walk = (node: any, depth: number): string | null => {
+    if (!node || typeof node !== "object" || depth > 4 || seen.has(node)) return null;
+    seen.add(node);
+    if (!Array.isArray(node)) {
+      for (const k of DELIVERY_KEYS) {
+        if (node[k] !== undefined) {
+          const s = stringifyDelivery(node[k]);
+          if (s) return s;
+        }
+      }
+    }
+    for (const v of Object.values(node)) {
+      const s = walk(v, depth + 1);
+      if (s) return s;
+    }
+    return null;
+  };
+  return walk(raw, 0);
+}
+
+/**
+ * Nội dung giao khi đơn đã COMPLETED nhưng không trích được khoá nào quen thuộc:
+ * giữ nguyên JSON thô để không mất dữ liệu — admin đọc và đối soát tay.
+ * CHỈ dùng khi trạng thái đã hoàn thành; đơn đang xử lý không được coi là đã giao.
+ */
+export function fzrDeliveryOrRaw(raw: any): string | null {
+  const found = extractFzrDelivery(raw);
+  if (found) return found;
+  try {
+    const j = JSON.stringify(raw);
+    return j && j !== "{}" ? j : null;
+  } catch {
+    return null;
+  }
+}

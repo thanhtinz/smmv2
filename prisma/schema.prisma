@@ -107,6 +107,7 @@ enum ProviderKind {
 model Provider {
   id            Int          @id @default(autoincrement())
   kind          ProviderKind @default(BOTH)
+  driver        String       @default("STANDARD") @db.VarChar(20) // STANDARD = chuẩn SMM v2/ThaTim | FZR = FazerCards (api.fzr.cards)
   name          String       @db.VarChar(100)
   apiUrl        String   @db.VarChar(255) // vd https://slike.vn/api/v2
   apiKey        String   @db.VarChar(191)
@@ -135,6 +136,7 @@ model Provider {
   orders        SmmOrder[]
   premiumProducts PremiumProduct[]
   premiumOrders   PremiumOrder[]
+  premiumVariants PremiumVariant[] @relation("VariantProvider")
 }
 
 model SmmCategory {
@@ -301,6 +303,10 @@ model PremiumVariant {
   cost        Int            @default(0)
   warrantyDays Int           @default(0)
   providerCycle Int? // chu kỳ tháng phía nhà cung cấp (1, 3, 6, 12) — bắt buộc khi sản phẩm đấu API kiểu ThaTim
+  providerId    Int? // nhà cung cấp của RIÊNG gói này (driver FZR: mỗi gói là 1 item phía FazerCards)
+  provider      Provider?      @relation("VariantProvider", fields: [providerId], references: [id])
+  providerGroup String?        @db.VarChar(30) // nhóm FZR: gamekeys | giftcards | topups | manual | steam_topup | steam_gift | telegram_stars | telegram_premium
+  providerItemId String?       @db.VarChar(120) // id item phía FZR (manual: "<serviceId>:<offerId>", topups: "<offerId>|<amountUsd>", telegram_premium: số tháng, steam_topup: mệnh giá USD, steam_gift: appid)
   active      Boolean        @default(true)
   sort        Int            @default(0)
 
@@ -395,6 +401,7 @@ model PremiumOrder {
   providerId    Int?
   provider      Provider?          @relation(fields: [providerId], references: [id])
   providerOrderId String?          @db.VarChar(60) // order_code phía nhà cung cấp (kiểu ThaTim: _8488103)
+  providerRaw   String?            @db.Text // JSON thô đơn phía nhà cung cấp (driver FZR: đơn không có schema cố định — giữ nguyên để đối soát + trích nội dung giao)
   panelId       Int? // đơn mua qua panel con — chủ panel hưởng commission
   panel         ChildPanel?        @relation(fields: [panelId], references: [id])
   commission    Int                @default(0) // hoa hồng đã trả cho chủ panel (VND)
@@ -437,6 +444,8 @@ model Deposit {
   status    DepositStatus @default(PENDING)
   content   String?       @db.VarChar(100) // nội dung chuyển khoản
   externalId String?      @unique @db.VarChar(90) // mã phiên phía PayPal/Stripe — chống cộng trùng
+  providerRef String?     @db.VarChar(80) // mã đơn phía cổng ngoài (BoltUtil orderId btl_...)
+  providerData String?    @db.Text // JSON dữ liệu cổng: BoltUtil {externalOrderId, checkoutUrl, paymentAddress, cryptoAmount, network, expiresAt, rateVndPerUsd, paidTxHash, settlementType, boltStatus}
   usdCents  Int? // số USD đã thu (cent) với cổng quốc tế
   auto      Boolean       @default(false) // cộng qua webhook
   adminNote String?       @db.VarChar(255)
