@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Modal, Switch } from "@/components/admin-catalog";
 import { PremiumFieldsEditor } from "@/components/client";
 import { RichTextEditor, ImagesField } from "@/components/rich-editor";
-import { adminSavePremiumCategory, adminDeletePremiumCategory, adminTogglePremiumCategory, adminSaveProduct, adminDeleteProduct, adminToggleProduct, adminSaveVariant } from "@/app/actions/admin";
+import { adminSavePremiumCategory, adminDeletePremiumCategory, adminTogglePremiumCategory, adminSaveProduct, adminDeleteProduct, adminToggleProduct, adminSaveVariant, adminDeleteVariant } from "@/app/actions/admin";
 import { num, parsePremiumFields } from "@/lib/format";
 import { useLang } from "@/components/lang";
 
@@ -109,7 +109,7 @@ export function PremiumCategoriesClient({ categories }: { categories: PremiumCat
 }
 
 /* ================= SẢN PHẨM & GÓI ================= */
-export type PremiumVariantDTO = { id: number; name: string; price: number; cost: number; warrantyDays: number; providerCycle: number | null; deliveryType: string | null; outOfStock: boolean; stockQty: number | null; active: boolean; sort: number; stockAvailable: number; stockTotal: number };
+export type PremiumVariantDTO = { id: number; name: string; price: number; cost: number; warrantyDays: number; providerCycle: number | null; providerId: number | null; providerGroup: string | null; providerItemId: string | null; deliveryType: string | null; outOfStock: boolean; stockQty: number | null; active: boolean; sort: number; stockAvailable: number; stockTotal: number };
 export type PremiumProductDTO = {
   id: number; categoryId: number; categoryName: string; name: string; slug: string; tagline: string | null; description: string | null;
   color: string; fulfillment: string; providerId: number | null; providerProductId: string | null; customFields: string | null;
@@ -118,7 +118,7 @@ export type PremiumProductDTO = {
 };
 export type PremiumProviderOpt = { id: number; name: string };
 
-export function ProductModal({ product, categories, providers, onClose }: { product?: PremiumProductDTO; categories: PremiumCategoryDTO[]; providers: PremiumProviderOpt[]; onClose: () => void }) {
+export function ProductModal({ product, categories, providers, onClose, returnTo = "/admin/premium" }: { product?: PremiumProductDTO; categories: PremiumCategoryDTO[]; providers: PremiumProviderOpt[]; onClose: () => void; returnTo?: string }) {
   const { t } = useLang();
   const p = product;
   const [name, setName] = useState(p?.name || "");
@@ -129,6 +129,7 @@ export function ProductModal({ product, categories, providers, onClose }: { prod
     <Modal title={p ? t("Chỉnh sửa Sản phẩm Premium") : t("Thêm Sản phẩm Premium Mới")} onClose={onClose} wide>
       <form action={adminSaveProduct}>
         {p && <input type="hidden" name="id" value={p.id} />}
+        <input type="hidden" name="returnTo" value={returnTo} />
         <div className="max-h-[66vh] space-y-4 overflow-y-auto px-6 py-5">
           <div>
             <label className={lbl}>{t("Tên sản phẩm *")}</label>
@@ -199,9 +200,27 @@ export function ProductModal({ product, categories, providers, onClose }: { prod
   );
 }
 
-export function VariantsModal({ product, onClose }: { product: PremiumProductDTO; onClose: () => void }) {
+const PROVIDER_GROUPS = ["gamekeys", "giftcards", "topups", "manual", "telegram_stars", "telegram_premium", "steam_topup", "steam_gift"];
+
+export function VariantsModal({ product, onClose, providers = [], returnTo = "/admin/premium" }: { product: PremiumProductDTO; onClose: () => void; providers?: PremiumProviderOpt[]; returnTo?: string }) {
   const { t, td } = useLang();
   const small = "rounded-lg border border-slate-300 px-2 py-1.5 text-sm w-full";
+  // Hàng 3: ánh xạ NCC theo gói (FIX7 E2) — đồng bộ FZR ghi sẵn 3 trường này;
+  // nay admin sửa tay được để tự dựng sản phẩm API (Telegram/Steam/...) hoặc
+  // gỡ ánh xạ. Nhóm có datalist gợi ý các nhóm chuẩn, vẫn gõ tự do được.
+  const mapRow = (v?: PremiumVariantDTO) => (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <label className="flex items-center gap-1.5 text-xs text-slate-500">{t("NCC của gói")}
+        <select name="providerId" defaultValue={v?.providerId ?? ""} className={`${small} !w-auto`}>
+          <option value="">{t("Không thuộc NCC")}</option>
+          {providers.map((pr) => <option key={pr.id} value={pr.id}>{pr.name}</option>)}
+        </select>
+      </label>
+      <input name="providerGroup" defaultValue={v?.providerGroup ?? ""} list={`pgroups-${product.id}`} className={`${small} !w-44`} placeholder={t("Nhóm NCC của gói")} title="providerGroup" />
+      <input name="providerItemId" defaultValue={v?.providerItemId ?? ""} className={`${small} !w-40`} placeholder={t("ID gói tại NCC")} title="providerItemId" />
+      <datalist id={`pgroups-${product.id}`}>{PROVIDER_GROUPS.map((g) => <option key={g} value={g} />)}</datalist>
+    </div>
+  );
   return (
     <Modal title={`${t("Gói bán")} — ${product.name}`} onClose={onClose} wide>
       <div className="max-h-[66vh] overflow-y-auto px-6 py-5">
@@ -210,6 +229,7 @@ export function VariantsModal({ product, onClose }: { product: PremiumProductDTO
             <form key={v.id} action={adminSaveVariant} className="rounded-xl border border-slate-200 p-3">
               <input type="hidden" name="id" value={v.id} />
               <input type="hidden" name="productId" value={product.id} />
+              <input type="hidden" name="returnTo" value={returnTo} />
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <input name="name" defaultValue={v.name} className={small} placeholder={t("Tên gói")} />
                 <input name="price" type="number" min={0} defaultValue={v.price} className={small} placeholder={t("Giá bán")} />
@@ -220,6 +240,7 @@ export function VariantsModal({ product, onClose }: { product: PremiumProductDTO
                 <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="active" defaultChecked={v.active} className="h-4 w-4" /> {t("Đang bán")}</label>
                 <div className="flex items-center gap-2">
                   <button className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">{t("Lưu")}</button>
+                  <button formAction={adminDeleteVariant} onClick={(e) => { if (!confirm(`${t("Xoá gói")} "${v.name}"?`)) e.preventDefault(); }} className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">{t("Xoá gói")}</button>
                   {product.fulfillment === "AUTO_STOCK"
                     ? <span className="text-xs text-slate-400">{`${t("Kho:")} ${v.stockAvailable}/${v.stockTotal}`}</span>
                     : <span className="text-xs text-slate-400">{v.stockQty == null ? t("Kho: không giới hạn") : `${t("Kho:")} ${v.stockQty}`}</span>}
@@ -242,6 +263,7 @@ export function VariantsModal({ product, onClose }: { product: PremiumProductDTO
                   </>
                 )}
               </div>
+              {mapRow(v)}
             </form>
           ))}
           {product.variants.length === 0 && <div className="py-4 text-center text-sm text-slate-400">{t("Chưa có gói nào — thêm gói đầu tiên ở dưới.")}</div>}
@@ -250,6 +272,7 @@ export function VariantsModal({ product, onClose }: { product: PremiumProductDTO
           <div className="mb-2 text-sm font-bold text-slate-700">{t("Thêm gói mới")}</div>
           <form action={adminSaveVariant} className="rounded-xl border border-dashed border-slate-300 p-3">
             <input type="hidden" name="productId" value={product.id} />
+            <input type="hidden" name="returnTo" value={returnTo} />
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <input name="name" required className={small} placeholder={t("Tên gói (VD: 1 Tháng)")} />
               <input name="price" type="number" min={0} required className={small} placeholder={t("Giá bán")} />
@@ -275,6 +298,7 @@ export function VariantsModal({ product, onClose }: { product: PremiumProductDTO
                 </>
               )}
             </div>
+            {mapRow()}
           </form>
           <div className="mt-4 flex items-center justify-between">
             <Link href="/admin/kho-premium" className="text-sm font-semibold text-blue-600 hover:text-blue-800">{t("Mở Kho tài khoản để nhập kho →")}</Link>
@@ -286,7 +310,7 @@ export function VariantsModal({ product, onClose }: { product: PremiumProductDTO
   );
 }
 
-export function ProductsClient({ products, categories, providers }: { products: PremiumProductDTO[]; categories: PremiumCategoryDTO[]; providers: PremiumProviderOpt[] }) {
+export function ProductsClient({ products, categories, providers, returnTo = "/admin/premium" }: { products: PremiumProductDTO[]; categories: PremiumCategoryDTO[]; providers: PremiumProviderOpt[]; returnTo?: string }) {
   const { t, td } = useLang();
   const [editing, setEditing] = useState<PremiumProductDTO | undefined>(undefined);
   const [open, setOpen] = useState(false);
@@ -297,8 +321,8 @@ export function ProductsClient({ products, categories, providers }: { products: 
         <Link href="/admin/kho-premium" className="btn-ghost btn-sm !px-4 !py-2.5">{t("Kho tài khoản")}</Link>
         <button onClick={() => { setEditing(undefined); setOpen(true); }} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm sản phẩm mới")}</button>
       </div>
-      {open && <ProductModal product={editing} categories={categories} providers={providers} onClose={() => setOpen(false)} />}
-      {variantFor && <VariantsModal product={variantFor} onClose={() => setVariantFor(null)} />}
+      {open && <ProductModal product={editing} categories={categories} providers={providers} returnTo={returnTo} onClose={() => setOpen(false)} />}
+      {variantFor && <VariantsModal product={variantFor} providers={providers} returnTo={returnTo} onClose={() => setVariantFor(null)} />}
       <div className="card overflow-x-auto">
         <table className="w-full min-w-[860px]">
           <thead><tr className="border-b border-slate-100"><th className="th">{t("Sản phẩm")}</th><th className="th">{t("Danh mục")}</th><th className="th">{t("Số gói")}</th><th className="th">{t("Đơn hàng")}</th><th className="th">{t("Thứ tự")}</th><th className="th">{t("Trạng thái")}</th><th className="th text-right">{t("Thao tác")}</th></tr></thead>
@@ -323,6 +347,7 @@ export function ProductsClient({ products, categories, providers }: { products: 
                 <td className="td">
                   <form action={adminToggleProduct}>
                     <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="returnTo" value={returnTo} />
                     <button className={`rounded-full px-2.5 py-1 text-xs font-bold ${p.active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{p.active ? t("Đang bán") : t("Tạm dừng")}</button>
                   </form>
                 </td>
@@ -332,6 +357,7 @@ export function ProductsClient({ products, categories, providers }: { products: 
                     <button className={iconBtn} title={t("Sửa")} onClick={() => { setEditing(p); setOpen(true); }}><Pencil /></button>
                     <form action={adminDeleteProduct} onSubmit={(e) => { if (!confirm(`${t("Xoá sản phẩm")} "${p.name}"?`)) e.preventDefault(); }}>
                       <input type="hidden" name="id" value={p.id} />
+                      <input type="hidden" name="returnTo" value={returnTo} />
                       <button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><Trash /></button>
                     </form>
                   </div>

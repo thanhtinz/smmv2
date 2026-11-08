@@ -1,8 +1,7 @@
-import { prisma } from "@/lib/db";
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash } from "@/components/ui";
-import { productImages } from "@/lib/format";
-import { ProductsClient, type PremiumProductDTO } from "@/components/admin-premium";
+import { ProductsClient } from "@/components/admin-premium";
+import { loadAdminPremiumData } from "@/lib/admin-premium-data";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -15,30 +14,8 @@ export default async function AdminPremiumProducts({ searchParams }: { searchPar
   if (searchParams.cat) where.categoryId = parseInt(searchParams.cat);
   if (searchParams.status === "on") where.active = true;
   if (searchParams.status === "off") where.active = false;
-  const [products, categories, providers] = await Promise.all([
-    prisma.premiumProduct.findMany({ where: { ...where, panelId: null }, orderBy: [{ sort: "asc" }, { id: "asc" }], include: { category: true, variants: { orderBy: [{ sort: "asc" }, { id: "asc" }] } } }),
-    prisma.premiumCategory.findMany({ orderBy: [{ sort: "asc" }, { id: "asc" }], include: { _count: { select: { products: true } } } }),
-    prisma.provider.findMany({ where: { kind: { in: ["PREMIUM", "BOTH"] } }, select: { id: true, name: true }, orderBy: { id: "asc" } }),
-  ]);
-  const variantIds = products.flatMap((p) => p.variants.map((v) => v.id));
-  const orderGroups = variantIds.length ? await prisma.premiumOrder.groupBy({ by: ["variantId"], where: { variantId: { in: variantIds } }, _count: { _all: true } }) : [];
-  const orderCountByVariant = new Map(orderGroups.map((g) => [g.variantId, g._count._all]));
-  const stockGroups = variantIds.length ? await prisma.premiumStock.groupBy({ by: ["variantId", "status"], where: { variantId: { in: variantIds } }, _count: { _all: true } }) : [];
-  const stockMap = new Map<number, { avail: number; total: number }>();
-  for (const g of stockGroups) {
-    const cur = stockMap.get(g.variantId) || { avail: 0, total: 0 };
-    cur.total += g._count._all;
-    if (g.status === "AVAILABLE") cur.avail += g._count._all;
-    stockMap.set(g.variantId, cur);
-  }
-  const dtos: PremiumProductDTO[] = products.map((p) => ({
-    id: p.id, categoryId: p.categoryId, categoryName: p.category.name, name: p.name, slug: p.slug, tagline: p.tagline, description: p.description,
-    color: p.color, fulfillment: p.fulfillment, providerId: p.providerId, providerProductId: p.providerProductId, customFields: p.customFields,
-    buyNote: p.buyNote, imageUrl: p.imageUrl, images: productImages(p.images, p.imageUrl), usageGuide: p.usageGuide, warrantyInfo: p.warrantyInfo,
-    active: p.active, sort: p.sort, orderCount: p.variants.reduce((sum, v) => sum + (orderCountByVariant.get(v.id) || 0), 0),
-    variants: p.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, cost: v.cost, warrantyDays: v.warrantyDays, providerCycle: v.providerCycle, deliveryType: v.deliveryType, outOfStock: v.outOfStock, stockQty: v.stockQty, active: v.active, sort: v.sort, stockAvailable: stockMap.get(v.id)?.avail || 0, stockTotal: stockMap.get(v.id)?.total || 0 })),
-  }));
-  const catDtos = categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, description: c.description, icon: c.icon, sort: c.sort, active: c.active, productCount: c._count.products }));
+  const { products: dtos, categories: catDtos, providers } = await loadAdminPremiumData(where);
+  const categories = catDtos;
   return (
     <div>
       <PageHead title={L("Quản lý Sản phẩm Premium")} desc={L("Thêm, sửa, xóa sản phẩm và các gói thời hạn (1 tháng, 3 tháng, 1 năm...)")} />

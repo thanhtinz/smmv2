@@ -20,6 +20,13 @@ function back(path: string, key: "msg" | "err", text: string): never {
   redirect(`${path}?${key}=${encodeURIComponent(text)}`);
 }
 const done = (path: string, text = "Đã lưu") => back(path, "msg", text);
+/** Trang quản lý sản phẩm theo khu (Premium / Telegram / Steam — FIX7 E2/E3/E4)
+ *  dùng CHUNG một editor: form gửi kèm returnTo để lưu xong quay về đúng trang
+ *  đã mở, không bị văng về /admin/premium. Chỉ chấp nhận path /admin/*. */
+const retTo = (formData: FormData) => {
+  const r = String(formData.get("returnTo") || "");
+  return r.startsWith("/admin/") ? r : "/admin/premium";
+};
 
 /* GĐ2: ghi audit bất biến cho thao tác nhạy cảm của admin web mẹ */
 async function auditAdmin(actor: { id: number; username: string; role: string }, action: string, targetType: string, targetId: string | number, detail?: string) {
@@ -369,11 +376,12 @@ export async function adminToggleProduct(formData: FormData) {
   const id = parseInt(String(formData.get("id")));
   const p = await prisma.premiumProduct.findUnique({ where: { id }, select: { active: true } });
   if (p) await prisma.premiumProduct.update({ where: { id }, data: { active: !p.active } });
-  done("/admin/premium", p?.active ? "Đã tạm dừng sản phẩm" : "Đã mở bán sản phẩm");
+  done(retTo(formData), p?.active ? "Đã tạm dừng sản phẩm" : "Đã mở bán sản phẩm");
 }
 
 export async function adminSaveProduct(formData: FormData) {
   await requireAdmin();
+  const rt = retTo(formData);
   const id = parseInt(String(formData.get("id") || "0"));
   const data: any = {
     categoryId: parseInt(String(formData.get("categoryId"))),
@@ -394,23 +402,27 @@ export async function adminSaveProduct(formData: FormData) {
     active: formData.get("active") === "on",
     sort: parseInt(String(formData.get("sort") || "0")),
   };
-  if (!data.name || !data.slug || !data.categoryId) back("/admin/premium", "err", "Thiếu tên, slug hoặc danh mục");
-  if (id) await prisma.premiumProduct.update({ where: { id }, data });
-  else await prisma.premiumProduct.create({ data });
-  done("/admin/premium", "Đã lưu sản phẩm");
+  if (!data.name || !data.slug || !data.categoryId) back(rt, "err", "Thiếu tên, slug hoặc danh mục");
+  if (id) { await prisma.premiumProduct.update({ where: { id }, data }); done(rt, "Đã lưu sản phẩm"); }
+  await prisma.premiumProduct.create({ data });
+  // Vừa tạo từ trang theo khu: quay về kèm ?q=slug để sản phẩm mới hiện ngay
+  // trong tầm nhìn (trang khu tìm theo tên/slug trên toàn catalog) — admin mở
+  // Gói và gán nhóm NCC là sản phẩm vào đúng khu.
+  done(formData.get("returnTo") ? `${rt}${rt.includes("?") ? "&" : "?"}q=${encodeURIComponent(data.slug)}` : rt, "Đã lưu sản phẩm");
 }
 
 export async function adminDeleteProduct(formData: FormData) {
   await requireAdmin();
+  const rt = retTo(formData);
   const id = parseInt(String(formData.get("id")));
   const count = await prisma.premiumOrder.count({ where: { variant: { productId: id } } });
   if (count) {
     await prisma.premiumProduct.update({ where: { id }, data: { active: false } });
-    done("/admin/premium", "Sản phẩm đã có đơn nên chỉ tắt bán");
+    done(rt, "Sản phẩm đã có đơn nên chỉ tắt bán");
   }
   await prisma.premiumVariant.deleteMany({ where: { productId: id } });
   await prisma.premiumProduct.delete({ where: { id } });
-  done("/admin/premium", "Đã xoá sản phẩm");
+  done(rt, "Đã xoá sản phẩm");
 }
 
 export async function adminSaveVariant(formData: FormData) {
@@ -432,29 +444,36 @@ export async function adminSaveVariant(formData: FormData) {
     cost: parseInt(String(formData.get("cost") || "0")),
     warrantyDays: parseInt(String(formData.get("warrantyDays") || "0")),
     providerCycle: formData.get("providerCycle") ? parseInt(String(formData.get("providerCycle"))) : null,
+    // Ánh xạ NCC theo GÓI (FIX7 E2): trước đây chỉ đồng bộ FZR mới ghi được 3
+    // trường này, admin không sửa tay được nên không tự dựng/gỡ ánh xạ nổi.
+    providerId: formData.get("providerId") ? parseInt(String(formData.get("providerId"))) || null : null,
+    providerGroup: String(formData.get("providerGroup") || "").trim() || null,
+    providerItemId: String(formData.get("providerItemId") || "").trim() || null,
     deliveryType: deliveryRaw === "FAST" || deliveryRaw === "SLOW" ? deliveryRaw : null,
     outOfStock: !isAutoStock && formData.get("outOfStock") === "on",
     stockQty: isAutoStock ? null : (stockQtyParsed != null && Number.isFinite(stockQtyParsed) && stockQtyParsed >= 0 ? stockQtyParsed : null),
     active: formData.get("active") === "on",
     sort: parseInt(String(formData.get("sort") || "0")),
   };
-  if (!data.name || !data.price) back("/admin/premium", "err", "Thiếu tên gói hoặc giá");
+  const rt = retTo(formData);
+  if (!data.name || !data.price) back(rt, "err", "Thiếu tên gói hoặc giá");
   if (id) await prisma.premiumVariant.update({ where: { id }, data });
   else await prisma.premiumVariant.create({ data });
-  done("/admin/premium", "Đã lưu gói bán");
+  done(rt, "Đã lưu gói bán");
 }
 
 export async function adminDeleteVariant(formData: FormData) {
   await requireAdmin();
+  const rt = retTo(formData);
   const id = parseInt(String(formData.get("id")));
   const count = await prisma.premiumOrder.count({ where: { variantId: id } });
   if (count) {
     await prisma.premiumVariant.update({ where: { id }, data: { active: false } });
-    done("/admin/premium", "Gói đã có đơn nên chỉ tắt bán");
+    done(rt, "Gói đã có đơn nên chỉ tắt bán");
   }
   await prisma.premiumStock.deleteMany({ where: { variantId: id } });
   await prisma.premiumVariant.delete({ where: { id } });
-  done("/admin/premium", "Đã xoá gói");
+  done(rt, "Đã xoá gói");
 }
 
 /* ---------- Kho premium ---------- */
