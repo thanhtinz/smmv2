@@ -5,6 +5,7 @@ import { getServerI18n } from "@/lib/lang-server";
 import { getTelegramProvider, getTelegramVariants, telegramEnabled, DEFAULT_STAR_PACKAGES } from "@/lib/tg";
 import { fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrUsdToVnd } from "@/lib/fzr";
 import { TelegramOrderForm, type TelegramPlan } from "@/components/telegram-order";
+import { ProductReviews } from "@/components/product-reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,17 @@ export default async function TelegramOrderPage({ searchParams }: { searchParams
     }
   }
   const configured = !!provider && (!!variants.stars || plans.length > 0);
+  // Khối đánh giá dùng chung của hệ Premium, gắn theo TAB đang mở: tab
+  // Stars → sản phẩm Stars, tab Premium → sản phẩm Telegram Premium (đúng
+  // sản phẩm tổng hợp mà đơn của khách tham chiếu tới).
+  const starsProduct = variants.stars?.product || null;
+  const premiumProduct = variants.premium[0]?.product || null;
+  const reviewsStars = configured && starsProduct
+    ? <ProductReviews productId={starsProduct.id} slug={starsProduct.slug} userId={user.id} returnTo="/dashboard/telegram" />
+    : null;
+  const reviewsPremium = configured && premiumProduct
+    ? <ProductReviews productId={premiumProduct.id} slug={premiumProduct.slug} userId={user.id} returnTo="/dashboard/telegram" />
+    : null;
 
   return (
     <div className="mx-auto max-w-[600px] space-y-4 sm:space-y-5">
@@ -70,7 +82,7 @@ export default async function TelegramOrderPage({ searchParams }: { searchParams
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{L("Telegram Stars & Premium chưa mở bán — vui lòng quay lại sau.")}</p>
         </div>
       ) : (
-        <TelegramOrderForm starPrice={starPrice} starMin={starMin} starMax={starMax} starPackages={starPackages} plans={plans} balance={user.balance} />
+        <TelegramOrderForm starPrice={starPrice} starMin={starMin} starMax={starMax} starPackages={starPackages} plans={plans} balance={user.balance} reviewsStars={reviewsStars} reviewsPremium={reviewsPremium} />
       )}
     </div>
   );

@@ -535,7 +535,12 @@ export async function submitPremiumReviewAction(formData: FormData) {
   if (rateLimitExceeded(`review|${user.id}`, 30, 3600000)) back("/dashboard/premium", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   const slug = String(formData.get("slug") || "");
   const returnToRaw = String(formData.get("returnTo") || "");
-  const returnTo = returnToRaw.startsWith("/dashboard/premium/") || returnToRaw.startsWith("/premium/") ? returnToRaw : `/dashboard/premium/${slug}`;
+  // Các trang bán hàng dùng chung hệ đánh giá này: chi tiết Premium + các
+  // trang đặt của khu Telegram/Steam (khối đánh giá gắn ở đó quay về đúng
+  // trang). Ngoài danh sách này thì rơi về trang chi tiết Premium như cũ.
+  const returnTo = returnToRaw.startsWith("/dashboard/premium/") || returnToRaw.startsWith("/premium/")
+    || returnToRaw === "/dashboard/telegram" || returnToRaw === "/dashboard/steam/top-up" || returnToRaw === "/dashboard/steam/gift-games"
+    ? returnToRaw : `/dashboard/premium/${slug}`;
   const product = await prisma.premiumProduct.findUnique({ where: { slug }, select: { id: true, variants: { select: { id: true } } } });
   if (!product) back(returnTo, "err", "Không tìm thấy sản phẩm");
   const bought = await prisma.premiumOrder.findFirst({

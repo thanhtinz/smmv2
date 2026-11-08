@@ -23,7 +23,7 @@ export type SteamGame = {
  *  vùng/package — vùng chốt theo offer rẻ nhất phía provider khi đặt (giá
  *  cũng chốt tươi lúc mua trong createPremiumOrder), nên Package ID để "—"
  *  và mục Vùng ghi rõ điều này thay vì bịa danh sách vùng. */
-export function SteamGiftForm({ games, balance, header, initialGameId }: { games: SteamGame[]; balance: number; header?: ReactNode; initialGameId?: number }) {
+export function SteamGiftForm({ games, balance, header, initialGameId, reviewsByGame }: { games: SteamGame[]; balance: number; header?: ReactNode; initialGameId?: number; reviewsByGame?: Record<number, ReactNode> }) {
   const { t, m } = useLang();
   const [q, setQ] = useState("");
   // Chọn sẵn game khi đến từ mục Steam Gift Games ở trang chủ (?game=<id>) —
@@ -56,9 +56,11 @@ export function SteamGiftForm({ games, balance, header, initialGameId }: { games
     : <span className={`${cls} flex shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white [&>svg]:h-6 [&>svg]:w-6`}>{I.gamepad}</span>;
 
   return (
-    <form action={placeSteamGiftAction} className="flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,73fr)_minmax(0,27fr)] lg:items-start lg:gap-x-5">
+    // Gốc là DIV lưới, không phải form: form đặt đơn chỉ bọc thẻ Summary
+    // (mọi field nộp — variantId ẩn, link mời, nút Tiến hành — đều nằm ở
+    // đó), nhờ vậy cột trái chứa được khối đánh giá có form riêng.
+    <div className="flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,73fr)_minmax(0,27fr)] lg:items-start lg:gap-x-5">
       <div className="min-w-0 space-y-4 sm:space-y-5">
-      <input type="hidden" name="variantId" value={edition?.variantId || 0} />
       {header}
 
       <section className="card p-5 sm:p-6">
@@ -116,9 +118,15 @@ export function SteamGiftForm({ games, balance, header, initialGameId }: { games
           {!edition ? t("Chọn phiên bản để xem các vùng") : t("Chưa có dữ liệu vùng cho gói này — vùng được chốt theo offer của nhà cung cấp khi đặt đơn.")}
         </p>
       </section>
+
+      {/* Đánh giá của game ĐANG CHỌN (hệ đánh giá Premium dùng chung) —
+          đổi game là đổi khối; chưa chọn game thì không hiện. */}
+      {game ? reviewsByGame?.[game.productId] : null}
       </div>
 
       <section className="card p-5 sm:p-6 lg:sticky lg:top-24">
+        <form action={placeSteamGiftAction}>
+        <input type="hidden" name="variantId" value={edition?.variantId || 0} />
         <div className="text-xl font-extrabold text-slate-900">{t("Tóm tắt")}</div>
         <div className="mt-5">
           <label className={lbl} htmlFor="sg-invite">{t("Link mời Steam")}</label>
@@ -153,7 +161,8 @@ export function SteamGiftForm({ games, balance, header, initialGameId }: { games
         <button disabled={!canSubmit} className="mt-5 w-full rounded-xl bg-gradient-to-br from-brand-600 to-brand-500 py-4 text-base font-extrabold text-white shadow-lg shadow-brand-600/25 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40">
           {t("Tiến hành")}
         </button>
+        </form>
       </section>
-    </form>
+    </div>
   );
 }

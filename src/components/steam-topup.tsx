@@ -16,12 +16,13 @@ export type SteamRate = { code: string; rate: string };
  *  đồng bộ (5/10/20/50/100) nên ô Amount là lưới chọn mệnh giá; loại tiền chỉ
  *  USD thực thi được — RUB/KZT/UAH hiện dạng pill bị khoá kèm ghi chú, không
  *  giả lập quy đổi. Discount chỉ hiện khi dữ liệu tỉ giá của provider có. */
-export function SteamTopupForm({ denominations, rates, discount, balance, header }: {
+export function SteamTopupForm({ denominations, rates, discount, balance, header, reviews }: {
   denominations: SteamDenom[];
   rates: SteamRate[] | null;
   discount: string | null; // vd "3.55%" — null = dữ liệu không có
   balance: number;
   header?: ReactNode; // thẻ header + Flash của trang — nằm ở đầu cột trái trong bố cục 2 cột
+  reviews?: ReactNode; // khối đánh giá của sản phẩm top-up — cột trái, dưới thẻ chi tiết
 }) {
   const { t, m } = useLang();
   const [login, setLogin] = useState("");
@@ -55,10 +56,17 @@ export function SteamTopupForm({ denominations, rates, discount, balance, header
     </div>
   );
 
+  // Form đặt đơn là một form ẨN riêng; ô login + nút Tiếp tục (nằm ở hai
+  // cột khác nhau) gắn vào nó bằng thuộc tính form= — nhờ vậy cột trái chứa
+  // được khối đánh giá (vốn có form riêng) mà không lồng form vào form.
+  const FORM_ID = "steam-topup-order-form";
   return (
-    <form action={placeSteamTopupAction} className="flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,73fr)_minmax(0,27fr)] lg:items-start lg:gap-x-5">
+    <>
+      <form id={FORM_ID} action={placeSteamTopupAction} className="hidden">
+        <input type="hidden" name="variantId" value={denom?.variantId || 0} />
+      </form>
+      <div className="flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,73fr)_minmax(0,27fr)] lg:items-start lg:gap-x-5">
       <div className="min-w-0 space-y-4 sm:space-y-5">
-      <input type="hidden" name="variantId" value={denom?.variantId || 0} />
       {header}
 
       <section className="card p-5 sm:p-6">
@@ -92,7 +100,7 @@ export function SteamTopupForm({ denominations, rates, discount, balance, header
         <div className="mt-6">
           <label className={lbl} htmlFor="steam-login">{t("Steam login")}</label>
           <div className="relative" ref={warnRef}>
-            <input id="steam-login" className={`${inp} pr-16`} name="login" value={login} onChange={(e) => setLogin(e.target.value)} placeholder={t("Steam login")} autoComplete="off" />
+            <input id="steam-login" form={FORM_ID} className={`${inp} pr-16`} name="login" value={login} onChange={(e) => setLogin(e.target.value)} placeholder={t("Steam login")} autoComplete="off" />
             <button type="button" aria-label={t("Tên đăng nhập Steam của bạn. Nhập sai login sẽ nạp nhầm vào tài khoản của người khác.")}
               onClick={() => setWarnOpen((v) => !v)} onMouseEnter={() => setWarnOpen(true)} onFocus={() => setWarnOpen(true)}
               className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg border border-slate-200 bg-white text-brand-600 shadow-sm transition hover:border-brand-300 [&>svg]:h-5 [&>svg]:w-5">
@@ -137,6 +145,7 @@ export function SteamTopupForm({ denominations, rates, discount, balance, header
           <p className="mt-2 text-sm text-slate-400">{t("Hiện chỉ hỗ trợ USD — các loại tiền khác sẽ mở khi nhà cung cấp hỗ trợ.")}</p>
         </div>
       </section>
+      {reviews}
       </div>
 
       <section className="card p-5 sm:p-6 lg:sticky lg:top-24">
@@ -153,10 +162,11 @@ export function SteamTopupForm({ denominations, rates, discount, balance, header
           {row(t("Quy đổi USD"), denom ? `$${denom.amount.toFixed(2)}` : "—")}
           {row(t("Cần thanh toán"), m(total), true)}
         </div>
-        <button disabled={!canSubmit} className="mt-5 w-full rounded-xl bg-gradient-to-br from-brand-600 to-brand-500 py-4 text-base font-extrabold text-white shadow-lg shadow-brand-600/25 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40">
+        <button form={FORM_ID} disabled={!canSubmit} className="mt-5 w-full rounded-xl bg-gradient-to-br from-brand-600 to-brand-500 py-4 text-base font-extrabold text-white shadow-lg shadow-brand-600/25 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40">
           {t("Tiếp tục")}
         </button>
       </section>
-    </form>
+      </div>
+    </>
   );
 }

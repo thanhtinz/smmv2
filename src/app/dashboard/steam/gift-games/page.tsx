@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { Flash } from "@/components/ui";
 import { getServerI18n } from "@/lib/lang-server";
 import { SteamGiftForm, type SteamGame } from "@/components/steam-gift";
+import { ProductReviews } from "@/components/product-reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function SteamGiftPage({ searchParams }: { searchParams: { 
   const products = await prisma.premiumProduct.findMany({
     where: { active: true, panelId: null, variants: { some: { providerGroup: "steam_gift", active: true } } },
     select: {
-      id: true, name: true, imageUrl: true, images: true,
+      id: true, name: true, slug: true, imageUrl: true, images: true,
       variants: {
         where: { providerGroup: "steam_gift", active: true },
         select: { id: true, name: true, price: true, providerItemId: true },
@@ -42,6 +43,15 @@ export default async function SteamGiftPage({ searchParams }: { searchParams: { 
       appid: p.variants[0].providerItemId || "",
       editions: p.variants.map((v) => ({ variantId: v.id, name: v.name, price: v.price })),
     }));
+  // Khối đánh giá dùng chung của hệ Premium cho TỪNG game — form đổi khối
+  // theo game đang chọn (kèm ?game= chọn sẵn thì đúng khối của game đó).
+  const slugById = new Map(products.map((p) => [p.id, p.slug]));
+  const reviewsByGame: Record<number, React.ReactNode> = {};
+  for (const g of games) {
+    reviewsByGame[g.productId] = (
+      <ProductReviews key={g.productId} productId={g.productId} slug={slugById.get(g.productId) || ""} userId={user.id} returnTo="/dashboard/steam/gift-games" />
+    );
+  }
 
   const headerNode = (
     <>
@@ -63,7 +73,7 @@ export default async function SteamGiftPage({ searchParams }: { searchParams: { 
           </div>
         </div>
       ) : (
-        <SteamGiftForm header={headerNode} games={games} balance={user.balance} initialGameId={parseInt(searchParams.game || "") || undefined} />
+        <SteamGiftForm header={headerNode} games={games} balance={user.balance} initialGameId={parseInt(searchParams.game || "") || undefined} reviewsByGame={reviewsByGame} />
       )}
     </div>
   );

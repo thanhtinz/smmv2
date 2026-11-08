@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useLang } from "@/components/lang";
 import { I } from "@/components/ui";
 import { placeTelegramOrderAction } from "@/app/actions/telegram";
@@ -11,13 +11,15 @@ export type TelegramPlan = { months: number; price: number };
  *  2 Chọn gói) → thẻ Summary có nút Continue bên trong. Người nhận CHỈ có
  *  username (không còn ô Telegram ID — đơn username đi đường top-up username
  *  hoặc chờ xử lý tay như máy chủ đã làm). Giá hiện bằng tiền của site. */
-export function TelegramOrderForm({ starPrice, starMin, starMax, starPackages, plans, balance }: {
+export function TelegramOrderForm({ starPrice, starMin, starMax, starPackages, plans, balance, reviewsStars, reviewsPremium }: {
   starPrice: number; // VNĐ / 1 sao đã quy đổi (0 = chưa có giá)
   starMin: number;
   starMax: number;
   starPackages: number[]; // số sao của từng gói trong catalog (Admin → Telegram → Sản phẩm quản lý)
   plans: TelegramPlan[];
   balance: number;
+  reviewsStars?: ReactNode; // khối đánh giá của sản phẩm Stars (server render) — hiện khi tab Stars mở
+  reviewsPremium?: ReactNode; // khối đánh giá của sản phẩm Telegram Premium — hiện khi tab Premium mở
 }) {
   const { t, m } = useLang();
   const [mode, setMode] = useState<"stars" | "premium">("stars");
@@ -47,6 +49,7 @@ export function TelegramOrderForm({ starPrice, starMin, starMax, starPackages, p
     `rounded-2xl border-2 text-left transition ${selected ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-300"}`;
 
   return (
+    <>
     <form action={placeTelegramOrderAction} className="space-y-4 sm:space-y-5">
       <input type="hidden" name="mode" value={mode} />
 
@@ -135,5 +138,11 @@ export function TelegramOrderForm({ starPrice, starMin, starMax, starPackages, p
         </button>
       </section>
     </form>
+    {/* Khối đánh giá nằm NGOÀI form đặt đơn (form đánh giá là form riêng),
+        ngay dưới các thẻ đặt hàng, đổi theo tab đang mở. */}
+    {(mode === "stars" ? reviewsStars : reviewsPremium) ? (
+      <div className="mt-4 sm:mt-5">{mode === "stars" ? reviewsStars : reviewsPremium}</div>
+    ) : null}
+    </>
   );
 }

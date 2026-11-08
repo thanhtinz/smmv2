@@ -4,6 +4,7 @@ import { Flash } from "@/components/ui";
 import { getServerI18n } from "@/lib/lang-server";
 import { fzrSteamRates } from "@/lib/fzr";
 import { SteamTopupForm, type SteamDenom, type SteamRate } from "@/components/steam-topup";
+import { ProductReviews } from "@/components/product-reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +20,8 @@ export default async function SteamTopupPage({ searchParams }: { searchParams: {
 
   const variants = await prisma.premiumVariant.findMany({
     where: { providerGroup: "steam_topup", active: true, product: { active: true, panelId: null } },
-    select: { id: true, price: true, providerItemId: true, providerId: true },
-    orderBy: { price: "asc" },
+    select: { id: true, price: true, providerItemId: true, providerId: true, productId: true },
+    orderBy: [{ price: "asc" }, { id: "asc" }],
   });
   const denominations: SteamDenom[] = variants
     .map((v) => ({ variantId: v.id, amount: Number(v.providerItemId || 0), price: v.price }))
@@ -53,6 +54,15 @@ export default async function SteamTopupPage({ searchParams }: { searchParams: {
     }
   }
 
+  // Khối đánh giá dùng chung của hệ Premium cho sản phẩm giữ chỗ top-up
+  // (đơn top-up tham chiếu đúng các variant của sản phẩm này).
+  const topupProduct = denominations.length
+    ? await prisma.premiumProduct.findUnique({ where: { id: variants[0].productId }, select: { id: true, slug: true } })
+    : null;
+  const reviewsNode = topupProduct
+    ? <ProductReviews productId={topupProduct.id} slug={topupProduct.slug} userId={user.id} returnTo="/dashboard/steam/top-up" />
+    : null;
+
   const headerNode = (
     <>
       <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-brand-50/60 to-white px-6 py-6 sm:px-7">
@@ -73,7 +83,7 @@ export default async function SteamTopupPage({ searchParams }: { searchParams: {
           </div>
         </div>
       ) : (
-        <SteamTopupForm header={headerNode} denominations={denominations} rates={rates} discount={discount} balance={user.balance} />
+        <SteamTopupForm header={headerNode} denominations={denominations} rates={rates} discount={discount} balance={user.balance} reviews={reviewsNode} />
       )}
     </div>
   );
