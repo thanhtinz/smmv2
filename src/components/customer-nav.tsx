@@ -49,12 +49,21 @@ export async function buildCustomerNav(
     { href: "/dashboard/thong-bao", label: L("Thông báo"), badge: unreadNoti },
     ...(s.module_blog !== "0" ? [{ href: "/dashboard/bai-viet", label: L("Bài viết") }] : []),
   ];
+  // Steam (lệnh Tín 2026-11-08 02:02): dropdown LUÔN hiện (kể cả khi chưa
+  // đồng bộ sản phẩm Steam nào — trang đích tự hiện trạng thái chưa có dữ
+  // liệu), nằm ngay sau "Đơn Premium của tôi", trước nhóm Đơn SMM.
+  const steamChildren = [
+    { href: "/dashboard/steam/top-up", label: L("Steam Top-Up (CIS)") },
+    { href: "/dashboard/steam/gift-games", label: L("Steam Gift Games") },
+    { href: "/dashboard/steam/lich-su", label: L("Đơn hàng Steam") },
+  ];
   // (Đã bỏ phân đoạn nền tảng SMM riêng trong menu theo lệnh Tín 2026-11-07 20:33 —
   // khách đặt đơn qua mục Đặt đơn SMM và tự chọn nền tảng/phân loại trong form.)
   const items: NavEntry[] = [
     { href: "/", label: L("Trang chủ"), icon: I.home },
     ...(premiumOn ? [{ href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem }] : []),
     { href: "/dashboard/don-premium", label: L("Đơn Premium của tôi"), icon: I.box },
+    { label: "Steam", icon: I.gamepad, children: steamChildren },
     ...(smmChildren.length ? [{ label: L("Đơn SMM"), icon: I.cart, children: smmChildren }] : []),
     ...(telegramOn ? [{ label: "Telegram Premium", icon: I.send, children: telegramChildren }] : []),
     ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),
