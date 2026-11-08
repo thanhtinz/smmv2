@@ -91,6 +91,18 @@ export function updateCartLine(variantId: number, key: { custom: Record<string, 
   emit();
 }
 export function clearCart() { load(); items = []; emit(); }
+/** Vá giá/trần kho/tên cho một dòng (nút "Cập nhật giá" ở giỏ): không đổi
+ *  định danh dòng (variantId + custom + buyerInfo giữ nguyên). */
+export function patchCartLine(variantId: number, key: { custom: Record<string, string>; buyerInfo?: string | null }, patch: { price?: number; stockCap?: number | null; productName?: string; variantName?: string }) {
+  load();
+  items = items.map((x) => {
+    if (x.variantId !== variantId || !sameCustom(x, key)) return x;
+    const next = { ...x, ...(patch.price != null ? { price: patch.price } : {}), ...(patch.stockCap !== undefined ? { stockCap: patch.stockCap } : {}), ...(patch.productName ? { productName: patch.productName } : {}), ...(patch.variantName ? { variantName: patch.variantName } : {}) };
+    if (next.stockCap != null && next.stockCap > 0 && next.qty > next.stockCap) next.qty = next.stockCap;
+    return next;
+  });
+  emit();
+}
 
 /** Nút thêm vào giỏ dùng ở thẻ sản phẩm và trang chi tiết. */
 export function AddToCartBtn({ data, square, className = "" }: {

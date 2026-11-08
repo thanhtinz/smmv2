@@ -16,6 +16,28 @@ export type CartLineInput = {
 };
 export type CartLineResult = { variantId: number; ok: boolean; code?: string; error?: string };
 
+/** "Cập nhật giá" ở giỏ hàng: đọc lại giá + tồn kho hiện tại của từng gói từ
+ *  máy chủ để giỏ khớp thực tế (giá đổi, kho đổi, gói ngưng bán -> gone). */
+export type CartPriceInfo = { variantId: number; price: number; stockCap: number | null; productName: string; variantName: string; gone: boolean };
+export async function refreshCartPricesAction(variantIds: number[]): Promise<CartPriceInfo[]> {
+  const ids = Array.from(new Set(variantIds.map((x) => Math.floor(x)).filter((x) => x > 0))).slice(0, 50);
+  if (!ids.length) return [];
+  const variants = await prisma.premiumVariant.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name: true, price: true, active: true, stockQty: true, outOfStock: true, product: { select: { name: true, active: true, fulfillment: true } } },
+  });
+  const autoIds = variants.filter((v) => v.product.fulfillment === "AUTO_STOCK").map((v) => v.id);
+  const counts = autoIds.length ? await prisma.premiumStock.groupBy({ by: ["variantId"], where: { variantId: { in: autoIds }, status: "AVAILABLE" }, _count: { _all: true } }) : [];
+  const countMap = new Map(counts.map((c) => [c.variantId, c._count._all]));
+  const byId = new Map(variants.map((v) => [v.id, v]));
+  return ids.map((id) => {
+    const v = byId.get(id);
+    if (!v || !v.active || !v.product.active) return { variantId: id, price: 0, stockCap: null, productName: "", variantName: "", gone: true };
+    const stockCap = v.product.fulfillment === "AUTO_STOCK" ? (countMap.get(id) || 0) : (v.stockQty ?? null);
+    return { variantId: id, price: v.price, stockCap, productName: v.product.name, variantName: v.name, gone: false };
+  });
+}
+
 export async function checkoutCartAction(lines: CartLineInput[], promoCode: string): Promise<{ needLogin?: boolean; results: CartLineResult[] }> {
   const user = await getCurrentUser();
   if (!user) return { needLogin: true, results: [] };
