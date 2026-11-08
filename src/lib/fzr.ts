@@ -159,8 +159,20 @@ export async function fzrGetOrder(provider: Provider, orderId: string): Promise<
 
 /* ---------------- Catalog ---------------- */
 
-export async function fzrGameKeys(provider: Provider, page: number, q?: string): Promise<any> {
-  return call<any>(provider, "GET", "/api/v2/gamekeys", { query: { page, limit: 100, q } });
+/** Game Keys — theo OpenAPI FZR (api.fzr.cards/public/docs/openapi.json):
+ *  GET /gamekeys phân trang CURSOR (limit + cursor), trả { items[], meta{
+ *  total, limit, next_cursor, has_more } }; mỗi item: { name, game_id, region,
+ *  platform, region_restriction, appid, imageurl } — KHÔNG có giá ở tầng game:
+ *  giá + tồn kho nằm ở từng edition qua GET /gamekeys/keys?game_id=. */
+export async function fzrGameKeys(provider: Provider, cursor?: string): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/gamekeys", { query: { limit: 100, ...(cursor ? { cursor } : {}) } });
+}
+
+/** Editions (keys) của 1 game: { game_id, GameName, region, platform,
+ *  region_restriction, appid, imageurl, keys: [{ key_id, name, price_usd,
+ *  stock, min_order_quantity, max_order_quantity }] }. */
+export async function fzrGameKeyKeys(provider: Provider, gameId: string): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/gamekeys/keys", { query: { game_id: gameId } });
 }
 
 export async function fzrGiftCards(provider: Provider, page: number, q?: string): Promise<any> {
@@ -207,8 +219,10 @@ export async function fzrSteamGiftOffers(provider: Provider, appid: string | num
 
 /* ---------------- Tạo đơn (idemKey = mã/id đơn của mình; Telegram KHÔNG hỗ trợ) ---------------- */
 
-export async function fzrCreateGameKeyOrder(provider: Provider, gameKeyId: string, quantity: number, idemKey: string): Promise<any> {
-  const r = await call<any>(provider, "POST", "/api/v2/gamekeys/order", { body: { gameKeyId, quantity }, idempotencyKey: idemKey });
+/** Đặt đơn Game Key — body theo OpenAPI: { game_id, key_id, quantity } (cả 3
+ *  bắt buộc). key_id là id của EDITION đã chọn (variant.providerItemId). */
+export async function fzrCreateGameKeyOrder(provider: Provider, gameId: string, keyId: string, quantity: number, idemKey: string): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/gamekeys/order", { body: { game_id: gameId, key_id: keyId, quantity }, idempotencyKey: idemKey });
   return r?.order ?? r;
 }
 

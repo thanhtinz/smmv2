@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { getTelegramProvider } from "@/lib/tg";
-import { ADMIN_VARIANT_MARK, steamAddProvider } from "@/lib/families";
+import { ADMIN_VARIANT_MARK, steamAddProvider, gameKeyAddProvider } from "@/lib/families";
 import { FZR_LABELS } from "@/lib/fzr";
 import type { Provider } from "@prisma/client";
 
@@ -297,6 +297,80 @@ export async function famAddGiftGame(fd: FormData) {
       productId: product.id, name: "Bản gift", price, cost: 0, warrantyDays: 0,
       providerId: provider!.id, providerGroup: "steam_gift",
       providerItemId: String(appid),
+      deliveryType: ADMIN_VARIANT_MARK,
+    },
+  });
+  back(rt(fd), true, `Đã thêm game ${name}`);
+}
+
+/** FIX10 — Thêm một EDITION (key) vào game Game Key đã có: variant gamekeys
+ *  với providerItemId = key_id phía FZR, mang dấu CUSTOM để đồng bộ không
+ *  ghi đè giá/tắt (đúng quy ước các họ khác). */
+export async function famAddGameKeyEdition(fd: FormData) {
+  await requireAdmin();
+  const productId = parseInt(String(fd.get("productId") || "0"));
+  const keyId = String(fd.get("keyId") || "").trim();
+  const name = String(fd.get("name") || "").trim();
+  const price = money(fd.get("price"));
+  const product = productId ? await prisma.premiumProduct.findUnique({ where: { id: productId }, select: { id: true, providerId: true } }) : null;
+  if (!product) back(rt(fd), false, "Game không hợp lệ");
+  if (!keyId || !name) back(rt(fd), false, "Key ID và tên phiên bản là bắt buộc");
+  const dup = await prisma.premiumVariant.findFirst({
+    where: { productId: product!.id, providerGroup: "gamekeys", providerItemId: keyId },
+    select: { id: true },
+  });
+  if (dup) back(rt(fd), false, `Key ID ${keyId} đã có trong game này`);
+  await prisma.premiumVariant.create({
+    data: {
+      productId: product!.id, name, price, cost: 0, warrantyDays: 0,
+      providerId: product!.providerId, providerGroup: "gamekeys",
+      providerItemId: keyId,
+      deliveryType: ADMIN_VARIANT_MARK,
+    },
+  });
+  back(rt(fd), true, `Đã thêm phiên bản ${name}`);
+}
+
+/** FIX10 — Thêm GAME Game Key thủ công theo game_id phía FZR: tạo sản phẩm
+ *  (providerProductId = game_id, platform/region admin điền từ dữ liệu FZR)
+ *  + edition đầu tiên (dấu CUSTOM). */
+export async function famAddGameKey(fd: FormData) {
+  await requireAdmin();
+  const gameId = String(fd.get("gameId") || "").trim();
+  const name = String(fd.get("name") || "").trim();
+  const platform = String(fd.get("platform") || "").trim();
+  const region = String(fd.get("region") || "").trim();
+  const imageUrl = String(fd.get("imageUrl") || "").trim();
+  const keyId = String(fd.get("keyId") || "").trim();
+  const editionName = String(fd.get("editionName") || "").trim() || name;
+  const price = money(fd.get("price"));
+  const provider = await gameKeyAddProvider();
+  if (!provider) back(rt(fd), false, "Chưa có nhà cung cấp FZR đang bật");
+  if (!gameId || !name || !keyId) back(rt(fd), false, "Game ID, tên game và Key ID phiên bản đầu là bắt buộc");
+  const dup = await prisma.premiumProduct.findFirst({
+    where: { providerId: provider!.id, providerProductId: gameId },
+    select: { id: true },
+  });
+  if (dup) back(rt(fd), false, `Game ID ${gameId} đã có trong danh sách`);
+  const slugify = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "game";
+  const product = await prisma.premiumProduct.create({
+    data: {
+      categoryId: await categoryId("Game Keys", provider!.id),
+      name,
+      slug: `fzr-${provider!.id}-gamekeys-${slugify(gameId)}`.slice(0, 150),
+      imageUrl: imageUrl || null,
+      providerPlatform: platform || null,
+      providerRegion: region || null,
+      fulfillment: "API",
+      providerId: provider!.id,
+      providerProductId: gameId,
+    },
+  });
+  await prisma.premiumVariant.create({
+    data: {
+      productId: product.id, name: editionName, price, cost: 0, warrantyDays: 0,
+      providerId: provider!.id, providerGroup: "gamekeys",
+      providerItemId: keyId,
       deliveryType: ADMIN_VARIANT_MARK,
     },
   });

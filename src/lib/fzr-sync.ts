@@ -3,7 +3,7 @@ import { FZR_LABELS, fzrUsdToVnd, fzrUsdCostVnd } from "./fzr";
 import { ADMIN_VARIANT_MARK } from "./families";
 import { DEFAULT_STAR_PACKAGES } from "./tg";
 import {
-  fzrGameKeys, fzrGiftCards, fzrTopups, fzrManualServices, fzrManualOffers,
+  fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrTopups, fzrManualServices, fzrManualOffers,
   fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrSteamGiftGames,
 } from "./fzr";
 import type { Provider } from "@prisma/client";
@@ -21,7 +21,7 @@ import type { Provider } from "@prisma/client";
  *    KHÔNG gọi offers theo từng game — giá chốt tại thời điểm mua (refreshFzrQuotePrice).
  */
 
-type SyncVariant = { itemId: string; name: string; usd: string | null; cycle?: number };
+type SyncVariant = { itemId: string; name: string; usd: string | null; cycle?: number; stock?: number };
 type SyncItem = {
   group: string;
   productKey: string;
@@ -29,6 +29,8 @@ type SyncItem = {
   categoryName: string;
   description?: string;
   image?: string;
+  platform?: string;
+  region?: string;
   customFields?: { label: string; type: string; required: boolean; placeholder?: string }[];
   variants: SyncVariant[];
 };
@@ -88,26 +90,62 @@ async function collectPaged(
   return { cats, totalItems };
 }
 
+/** Game Keys theo OpenAPI FZR (đọc lại 2026-11-08 khi làm khu Game Key):
+ *  - GET /gamekeys: phân trang CURSOR, items[] phẳng { name, game_id, region,
+ *    platform, region_restriction, appid, imageurl } — tầng game KHÔNG có giá.
+ *  - GET /gamekeys/keys?game_id=: editions của game { key_id, name, price_usd,
+ *    stock, min_order_quantity, max_order_quantity } — giá + tồn kho ở đây.
+ *  Ánh xạ: 1 game = 1 PremiumProduct (providerProductId = game_id, platform/
+ *  region lưu ở cột providerPlatform/providerRegion), 1 edition = 1 variant
+ *  (providerItemId = key_id, providerStock = stock). Mỗi game tốn thêm 1 call
+ *  /keys (catalog read tối đa 120/phút phía FZR) — game nào lỗi /keys hoặc
+ *  không còn edition có giá thì bỏ qua (đếm skipped), không chặn cả đợt. */
 async function collectGameKeys(provider: Provider): Promise<{ items: SyncItem[]; skipped: number }> {
-  const { cats } = await collectPaged((p) => fzrGameKeys(provider, p), ["products", "items"]);
+  const rawGames: any[] = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < 50; page++) {
+    const raw = await fzrGameKeys(provider, cursor);
+    const pageItems = asArray(raw?.items);
+    rawGames.push(...pageItems);
+    const next = raw?.meta?.next_cursor;
+    if (!raw?.meta?.has_more || !next || pageItems.length === 0) break;
+    cursor = String(next);
+  }
   const items: SyncItem[] = [];
   let skipped = 0;
-  for (const cat of cats) {
-    for (const p of cat.items) {
-      if (p?.isAvailable === false) { skipped++; continue; }
-      const id = firstDefined(p?.id);
-      const price = firstDefined(p?.price);
-      if (id === undefined || price === undefined) { skipped++; continue; }
-      items.push({
-        group: "gamekeys",
-        productKey: String(id),
-        productName: String(p?.name || `Game Key ${id}`),
-        categoryName: cat.name || "Game Keys",
-        description: p?.description ? String(p.description) : undefined,
-        image: firstDefined(p?.image, p?.imageUrl),
-        variants: [{ itemId: String(id), name: "Key game", usd: String(price) }],
+  for (const g of rawGames) {
+    const gameId = firstDefined(g?.game_id, g?.gameId, g?.id);
+    if (gameId === undefined) { skipped++; continue; }
+    let keysRaw: any;
+    try {
+      keysRaw = await fzrGameKeyKeys(provider, String(gameId));
+    } catch { skipped++; continue; }
+    const variants: SyncVariant[] = [];
+    for (const k of asArray(keysRaw?.keys)) {
+      const price = firstDefined(k?.price_usd, k?.price);
+      if (price === undefined) { skipped++; continue; }
+      const stockNum = Number(k?.stock);
+      variants.push({
+        // key_id có thể null phía FZR (OpenAPI cho phép null): edition đó
+        // không gọi order được bằng key_id — vẫn lưu theo tên để admin thấy,
+        // lúc đặt FZR trả lỗi dứt khoát 404 -> hoàn tiền như các lỗi cứng khác.
+        itemId: k?.key_id != null && k?.key_id !== "" ? String(k.key_id) : `name:${String(k?.name || "Key")}`,
+        name: String(k?.name || g?.name || "Key game"),
+        usd: String(price),
+        ...(Number.isFinite(stockNum) ? { stock: stockNum } : {}),
       });
     }
+    if (!variants.length) { skipped++; continue; }
+    items.push({
+      group: "gamekeys",
+      productKey: String(gameId),
+      productName: String(g?.name || keysRaw?.GameName || `Game Key ${gameId}`),
+      categoryName: "Game Keys",
+      image: firstDefined(g?.imageurl, g?.image, g?.imageUrl, keysRaw?.imageurl),
+      platform: firstDefined(g?.platform, keysRaw?.platform) ? String(firstDefined(g?.platform, keysRaw?.platform)) : undefined,
+      region: firstDefined(g?.region, keysRaw?.region) ? String(firstDefined(g?.region, keysRaw?.region)) : undefined,
+      variants,
+    });
   }
   return { items, skipped };
 }
@@ -352,6 +390,8 @@ export async function syncFzrCatalog(provider: Provider, opts: { includeSteamGif
           ...(provider.syncContent ? { name: item.productName } : {}),
           ...(item.description && provider.syncContent ? { description: item.description } : {}),
           ...(item.image ? { imageUrl: item.image } : {}),
+          ...(item.platform ? { providerPlatform: item.platform } : {}),
+          ...(item.region ? { providerRegion: item.region } : {}),
           ...(fieldsJson ? { customFields: fieldsJson } : {}),
         },
       });
@@ -365,6 +405,8 @@ export async function syncFzrCatalog(provider: Provider, opts: { includeSteamGif
           slug: `fzr-${provider.id}-${item.group}-${slugify(item.productKey)}`.slice(0, 150),
           description: item.description || null,
           imageUrl: item.image || null,
+          providerPlatform: item.platform || null,
+          providerRegion: item.region || null,
           fulfillment: "API",
           providerId: provider.id,
           providerProductId: item.productKey,
@@ -391,6 +433,7 @@ export async function syncFzrCatalog(provider: Provider, opts: { includeSteamGif
             // không ghi đè giá — admin toàn quyền giá gói đó.
             ...(provider.autoUpdatePrice && ev.deliveryType !== ADMIN_VARIANT_MARK ? { price, cost } : {}),
             ...(v.cycle ? { providerCycle: v.cycle } : {}),
+            ...(v.stock !== undefined ? { providerStock: v.stock } : {}),
           },
         });
         seenVariantIds.add(ev.id);
@@ -400,6 +443,7 @@ export async function syncFzrCatalog(provider: Provider, opts: { includeSteamGif
             productId, name: v.name, price, cost, warrantyDays: 0,
             providerId: provider.id, providerGroup: item.group, providerItemId: v.itemId,
             providerCycle: v.cycle ?? null,
+            providerStock: v.stock ?? null,
           },
         });
         seenVariantIds.add(nv.id);

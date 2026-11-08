@@ -52,6 +52,7 @@ const GROUP_TILES: Record<string, string> = {
   file: "bg-gradient-to-br from-orange-500 to-amber-600",
   users: "bg-gradient-to-br from-violet-500 to-purple-600",
   gamepad: "bg-gradient-to-br from-slate-600 to-slate-800",
+  key: "bg-gradient-to-br from-amber-500 to-yellow-600",
 };
 
 function Leaf({ it, active, sub = false }: { it: AdminNavItem; active: boolean; sub?: boolean }) {

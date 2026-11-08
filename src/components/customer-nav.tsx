@@ -57,6 +57,13 @@ export async function buildCustomerNav(
     { href: "/dashboard/steam/gift-games", label: L("Steam Gift Games") },
     { href: "/dashboard/steam/lich-su", label: L("Đơn hàng Steam") },
   ];
+  // Game Key (lệnh Tín 2026-11-08 12:45): dropdown riêng ngay sau Steam —
+  // khu bán key game của nhóm FZR gamekeys, tách khỏi catalog Premium như
+  // các khu riêng khác (trang đích tự hiện trạng thái chưa có dữ liệu).
+  const gameKeyChildren = [
+    { href: "/dashboard/game-key", label: L("Mua game") },
+    { href: "/dashboard/game-key/don-hang", label: L("Đơn hàng") },
+  ];
   // (Đã bỏ phân đoạn nền tảng SMM riêng trong menu theo lệnh Tín 2026-11-07 20:33 —
   // khách đặt đơn qua mục Đặt đơn và tự chọn nền tảng/phân loại trong form.)
   const items: NavEntry[] = [
@@ -64,6 +71,7 @@ export async function buildCustomerNav(
     ...(premiumOn ? [{ href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem }] : []),
     { href: "/dashboard/don-premium", label: L("Đơn Premium của tôi"), icon: I.box },
     { label: "Steam", icon: I.gamepad, children: steamChildren },
+    { label: "Game key", icon: I.key, children: gameKeyChildren },
     ...(smmChildren.length ? [{ label: L("Dịch vụ mạng xã hội"), icon: I.cart, children: smmChildren }] : []),
     ...(telegramOn ? [{ label: "Telegram Premium", icon: I.send, children: telegramChildren }] : []),
     ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),

@@ -69,16 +69,61 @@ const server = http.createServer(async (req, res) => {
   if (p === "/me") return send(res, 200, { ok: true, id: 42, email: "mock@fzr.cards" });
 
   /* ----- catalog ----- */
+  // Game Keys theo OpenAPI thật (sửa 2026-11-08): danh sách phẳng + phân
+  // trang cursor; giá/tồn kho ở /gamekeys/keys theo từng game_id.
+  const GK_GAMES = [
+    { game_id: "gk-1", name: "Elden Ring", platform: "Steam", region: "GLOBAL", region_restriction: false, appid: 1245620, imageurl: "https://cdn.example.com/gk-elden.jpg" },
+    { game_id: "gk-2", name: "Baldur's Gate 3", platform: "Steam", region: "GLOBAL", region_restriction: false, appid: 1086940, imageurl: "https://cdn.example.com/gk-bg3.jpg" },
+    { game_id: "gk-3", name: "Cyberpunk 2077", platform: "Steam", region: "CIS", region_restriction: true, appid: 1091500, imageurl: "https://cdn.example.com/gk-cp2077.jpg" },
+    { game_id: "gk-4", name: "EA SPORTS FC 25", platform: "EA App", region: "GLOBAL", region_restriction: false, appid: null, imageurl: "https://cdn.example.com/gk-fc25.jpg" },
+    { game_id: "gk-5", name: "Xbox Game Pass Key", platform: "Xbox", region: "EU", region_restriction: true, appid: null, imageurl: "https://cdn.example.com/gk-xgp.jpg" },
+  ];
+  const GK_KEYS = {
+    "gk-1": [
+      { key_id: "gk-1-std", name: "Elden Ring", price_usd: "59.99", stock: 101, min_order_quantity: 1, max_order_quantity: 10 },
+      { key_id: "gk-1-dlx", name: "Elden Ring Deluxe Edition", price_usd: "79.99", stock: 12, min_order_quantity: 1, max_order_quantity: 5 },
+      { key_id: "gk-402", name: "Elden Ring (lỗi số dư)", price_usd: "999.00", stock: 3, min_order_quantity: 1, max_order_quantity: 1 },
+    ],
+    "gk-2": [
+      { key_id: "gk-2-std", name: "Baldur's Gate 3", price_usd: "49.50", stock: 0, min_order_quantity: 1, max_order_quantity: 10 },
+      { key_id: "gk-weird", name: "Baldur's Gate 3 (payload lạ)", price_usd: "45.00", stock: 7, min_order_quantity: 1, max_order_quantity: 10 },
+    ],
+    "gk-3": [
+      { key_id: "gk-3-std", name: "Cyberpunk 2077", price_usd: "29.99", stock: 44, min_order_quantity: 1, max_order_quantity: 10 },
+    ],
+    "gk-4": [
+      { key_id: "gk-4-std", name: "EA SPORTS FC 25", price_usd: "69.99", stock: 20, min_order_quantity: 1, max_order_quantity: 3 },
+    ],
+    "gk-5": [
+      { key_id: null, name: "Xbox Game Pass Ultimate 1 tháng", price_usd: "16.99", stock: 55, min_order_quantity: 1, max_order_quantity: 10 },
+    ],
+  };
   if (p === "/gamekeys") {
+    const limit = Math.min(100, parseInt(u.searchParams.get("limit") || "100") || 100);
+    const start = Math.max(0, parseInt(u.searchParams.get("cursor") || "0") || 0);
+    const slice = GK_GAMES.slice(start, start + limit);
+    const nextIdx = start + slice.length;
     return send(res, 200, {
-      ok: true, total: 3,
-      categories: [{
-        id: 1, name: "Steam Keys", products: [
-          { id: "gk-1", name: "Elden Ring Key", description: "Key kích hoạt Steam", price: "59.99", priceWithCard: "61.99", isAvailable: true },
-          { id: "gk-2", name: "Baldur's Gate 3 Key", price: "49.50", isAvailable: true },
-          { id: "gk-3", name: "Hidden Unavailable Game", price: "9.99", isAvailable: false },
-        ],
-      }],
+      ok: true, kind: "game_key", items: slice,
+      meta: { total: GK_GAMES.length, limit, next_cursor: nextIdx < GK_GAMES.length ? String(nextIdx) : null, has_more: nextIdx < GK_GAMES.length },
+    });
+  }
+  if (p === "/gamekeys/keys") {
+    const gid = u.searchParams.get("game_id") || "";
+    const game = GK_GAMES.find((g) => g.game_id === gid);
+    if (!game) return send(res, 404, { ok: false, error: "Game not found", code: "NOT_FOUND" });
+    return send(res, 200, {
+      ok: true, kind: "game_key", game_id: gid, GameName: game.name, region: game.region, platform: game.platform,
+      region_restriction: game.region_restriction, appid: game.appid, imageurl: game.imageurl, keys: GK_KEYS[gid] || [],
+    });
+  }
+  if (p === "/gamekeys/region-restriction") {
+    const gid = u.searchParams.get("game_id") || "";
+    const game = GK_GAMES.find((g) => g.game_id === gid);
+    if (!game) return send(res, 404, { ok: false, error: "Game not found", code: "NOT_FOUND" });
+    return send(res, 200, {
+      ok: true, kind: "game_key", game_id: gid, region_type: game.region, has_availability: true,
+      available: [{ code: game.region, name: game.region }], unavailable: [],
     });
   }
   if (p === "/giftcards") {
@@ -129,12 +174,14 @@ const server = http.createServer(async (req, res) => {
 
   /* ----- tạo đơn ----- */
   if (p === "/gamekeys/order") {
-    if (body.gameKeyId === "gk-402") return send(res, 402, { ok: false, error: "Insufficient balance", code: "INSUFFICIENT_BALANCE" });
-    if (body.gameKeyId === "gk-weird") {
-      const o = newOrder("gamekey", { gameKeyId: body.gameKeyId }, { status: "completed", extra: { voucher_payload: "WEIRD-CODE-123" } });
+    // Body theo OpenAPI: { game_id, key_id, quantity } — thiếu là 400.
+    if (!body.game_id || !body.key_id) return send(res, 400, { ok: false, error: "game_id and key_id are required", code: "VALIDATION" });
+    if (body.key_id === "gk-402") return send(res, 402, { ok: false, error: "Insufficient balance", code: "INSUFFICIENT_BALANCE" });
+    if (body.key_id === "gk-weird") {
+      const o = newOrder("gamekey", { game_id: body.game_id, key_id: body.key_id }, { status: "completed", extra: { voucher_payload: "WEIRD-CODE-123" } });
       return send(res, 200, { ok: true, order: o });
     }
-    const o = newOrder("gamekey", { gameKeyId: body.gameKeyId, quantity: body.quantity }, { status: "completed", extra: { keys: ["XXXX-YYYY-ZZZZ"] } });
+    const o = newOrder("gamekey", { game_id: body.game_id, key_id: body.key_id, quantity: body.quantity }, { status: "completed", extra: { keys: ["XXXX-YYYY-ZZZZ"] } });
     return send(res, 200, { ok: true, order: o });
   }
   if (p === "/giftcards/order") {

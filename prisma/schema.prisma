@@ -279,6 +279,8 @@ model PremiumProduct {
   providerId       Int?
   provider         Provider? @relation(fields: [providerId], references: [id])
   providerProductId String?  @db.VarChar(50) // ID sản phẩm phía nhà cung cấp (khi fulfillment = API)
+  providerPlatform String?  @db.VarChar(60) // nền tảng phía NCC (FZR gamekeys: item.platform, vd "Steam") — dữ liệu thật từ API, chỉ để hiện/lọc
+  providerRegion   String?  @db.VarChar(60) // vùng phía NCC (FZR gamekeys: item.region, vd "GLOBAL"/"CIS") — dữ liệu thật từ API, chỉ để hiện/lọc
   customFields String?  @db.Text // JSON: trường tuỳ chỉnh khách điền khi mua [{label,type,required,placeholder,options}]
   buyNote     String?  @db.VarChar(500) // hướng dẫn riêng của sản phẩm, hiện trong hộp phía trên form mua (kiểu thatim)
   imageUrl    String?  @db.VarChar(500) // ảnh sản phẩm hiện ở trang chi tiết
@@ -313,6 +315,7 @@ model PremiumVariant {
   deliveryType String?       @db.VarChar(8) // FAST | SLOW — loại giao hàng của gói (lệnh Tín 2026-11-07 23:34); null = mặc định theo hình thức giao của sản phẩm (AUTO_STOCK/API: nhanh, MANUAL: chậm), admin ghi đè từng gói
   outOfStock   Boolean        @default(false) // chặn bán thủ công cho gói MANUAL/API (gói AUTO_STOCK theo dõi bằng dòng kho, không dùng cờ này)
   stockQty     Int? // tồn kho theo SỐ LƯỢNG cho gói MANUAL/API (nắp kho của shop trên cả provider); null = không theo dõi (không giới hạn); gói AUTO_STOCK để null — kho của chúng là dòng PremiumStock
+  providerStock Int? // tồn kho PHÍA NCC báo (FZR gamekeys: keys[].stock theo từng edition) — chỉ hiện + suy "hết hàng" ở khu Game Key; KHÔNG phải nắp kho của shop (stockQty) và không bị trừ khi đặt (NCC tự thực thi lúc gọi order)
   active      Boolean        @default(true)
   sort        Int            @default(0)
 

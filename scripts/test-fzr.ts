@@ -72,11 +72,11 @@ async function main() {
     const s1 = await syncFzrCatalog(await fresh() as any);
     const gk = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "gk-1" }, include: { variants: true } });
     ok(!!gk && gk.fulfillment === "API", "game key gk-1 thành sản phẩm API");
-    const gkV = gk!.variants[0];
+    const gkV = gk!.variants.find((v) => v.providerItemId === "gk-1-std")!;
+    ok(!!gkV, "gk-1 có edition theo key_id (gk-1-std)");
     ok(gkV.price === sell(59.99) && gkV.cost === cost(59.99), `giá gk-1 bán ${gkV.price} / vốn ${gkV.cost} (kỳ vọng ${sell(59.99)}/${cost(59.99)})`);
-    ok(gkV.providerGroup === "gamekeys" && gkV.providerItemId === "gk-1" && gkV.providerId === provider.id, "linkage variant gamekeys đúng");
-    const hidden = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "gk-3" } });
-    ok(!hidden, "sản phẩm isAvailable=false bị bỏ qua khi sync");
+    ok(gkV.providerGroup === "gamekeys" && gkV.providerId === provider.id && gkV.providerStock === 101, "linkage variant gamekeys đúng (group + tồn kho NCC 101)");
+    ok(gk!.providerPlatform === "Steam" && gk!.providerRegion === "GLOBAL", `gamekeys sync lưu platform/region thật: ${gk!.providerPlatform}/${gk!.providerRegion}`);
     const tp = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "tp-1" }, include: { variants: true } });
     ok(tp?.variants[0]?.providerItemId === "tp-1|1.85", `topup providerItemId composite = ${tp?.variants[0]?.providerItemId}`);
     const ms = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "ms-1" }, include: { variants: true } });
@@ -121,14 +121,14 @@ async function main() {
     ok((await demoNow()).balance === balBefore3 - o3.total, "tiền khách bị trừ đúng 1 lần khi mua");
     const log3 = await mockLog();
     const call3 = log3.filter((l) => l.path === "/api/v2/gamekeys/order").pop();
-    ok(call3?.body?.gameKeyId === "gk-1" && call3?.body?.quantity === 2, "mock nhận đúng body gamekeys/order");
+    ok(call3?.body?.game_id === "gk-1" && call3?.body?.key_id === "gk-1-std" && call3?.body?.quantity === 2, "mock nhận đúng body gamekeys/order {game_id, key_id, quantity} theo OpenAPI");
     ok(call3?.idem === String(o3.id), `Idempotency-Key = id đơn (${call3?.idem})`);
     const o3p: any = await pollFzrPremiumOrder(o3);
     ok(o3p.status === "DELIVERED" && (o3p.deliveryData || "").includes("XXXX-YYYY-ZZZZ"), `poll -> DELIVERED + trích được key: ${o3p.deliveryData}`);
 
     /* 3b) Trường giao hàng lạ -> fallback JSON thô */
     const weirdProduct = await prisma.premiumProduct.create({
-      data: { categoryId: gk!.categoryId, name: "Weird Delivery", slug: `fzr-test-weird-${provider.id}`, fulfillment: "API", providerId: provider.id, providerProductId: "gk-weird" },
+      data: { categoryId: gk!.categoryId, name: "Weird Delivery", slug: `fzr-test-weird-${provider.id}`, fulfillment: "API", providerId: provider.id, providerProductId: "gk-2" },
     });
     const weirdV = await prisma.premiumVariant.create({
       data: { productId: weirdProduct.id, name: "Key", price: 30000, cost: 25000, providerId: provider.id, providerGroup: "gamekeys", providerItemId: "gk-weird" },
@@ -173,7 +173,7 @@ async function main() {
 
     /* 7) Lỗi dứt khoát 402 -> huỷ + hoàn đủ ngay */
     const errProduct = await prisma.premiumProduct.create({
-      data: { categoryId: gk!.categoryId, name: "Err 402", slug: `fzr-test-err-${provider.id}`, fulfillment: "API", providerId: provider.id, providerProductId: "gk-402" },
+      data: { categoryId: gk!.categoryId, name: "Err 402", slug: `fzr-test-err-${provider.id}`, fulfillment: "API", providerId: provider.id, providerProductId: "gk-1" },
     });
     const errV = await prisma.premiumVariant.create({
       data: { productId: errProduct.id, name: "Key", price: 30000, cost: 25000, providerId: provider.id, providerGroup: "gamekeys", providerItemId: "gk-402" },

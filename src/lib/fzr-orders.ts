@@ -158,7 +158,12 @@ async function createOne(
   const idem = String(order.id); // Idempotency-Key = id đơn của mình (Telegram không hỗ trợ -> không gửi)
   switch (group) {
     case "gamekeys": {
-      const raw = await fzrCreateGameKeyOrder(provider, item, order.quantity, idem);
+      // Theo OpenAPI FZR: order cần CẢ game_id (id game = providerProductId
+      // của sản phẩm) và key_id (edition = providerItemId của gói).
+      const prod = await prisma.premiumProduct.findUnique({ where: { id: variant.productId }, select: { providerProductId: true } });
+      const gameId = prod?.providerProductId || "";
+      if (!gameId || !item) throw new LocalDefinitiveError("Gói Game Key thiếu game_id/key_id phía FZR");
+      const raw = await fzrCreateGameKeyOrder(provider, gameId, item, order.quantity, idem);
       return { orderId: fzrOrderIdOf(raw), raw };
     }
     case "giftcards": {
