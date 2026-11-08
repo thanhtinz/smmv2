@@ -56,6 +56,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       children: [
         { href: "/admin/premium/danh-muc", label: L("Danh mục sản phẩm"), icon: "layers", adminOnly: true } as any,
         { href: "/admin/premium", label: L("Sản phẩm & Gói"), icon: "gem", adminOnly: true } as any,
+        { href: "/admin/kho-premium", label: L("Kho Premium"), icon: "box", adminOnly: true } as any,
         { href: "/admin/don-premium", label: L("Quản lý đơn hàng"), icon: "box", badge: prePending },
       ],
     } as any,

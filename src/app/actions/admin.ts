@@ -407,8 +407,10 @@ export async function adminSaveProduct(formData: FormData) {
   await prisma.premiumProduct.create({ data });
   // Vừa tạo từ trang theo khu: quay về kèm ?q=slug để sản phẩm mới hiện ngay
   // trong tầm nhìn (trang khu tìm theo tên/slug trên toàn catalog) — admin mở
-  // Gói và gán nhóm NCC là sản phẩm vào đúng khu.
-  done(formData.get("returnTo") ? `${rt}${rt.includes("?") ? "&" : "?"}q=${encodeURIComponent(data.slug)}` : rt, "Đã lưu sản phẩm");
+  // Gói và gán nhóm NCC là sản phẩm vào đúng khu. Tự gắn msg vì back() sẽ
+  // thêm "?msg=" thứ hai nếu path đã có "?".
+  if (formData.get("returnTo")) redirect(`${rt}${rt.includes("?") ? "&" : "?"}q=${encodeURIComponent(data.slug)}&msg=${encodeURIComponent("Đã lưu sản phẩm")}`);
+  done(rt, "Đã lưu sản phẩm");
 }
 
 export async function adminDeleteProduct(formData: FormData) {
