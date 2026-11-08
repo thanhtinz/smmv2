@@ -49,7 +49,7 @@ export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
           full-bleed chỉ đổi bề ngang (tràn viewport), không đổi chiều cao
           (Tín đính chính 2026-11-08 13:51). Ảnh nền object-cover cắt giữa,
           không méo. */}
-      <div className="relative h-[300px] sm:h-[380px] lg:h-[470px]">
+      <div className="relative h-[240px] sm:h-[300px] lg:h-[380px]">
         {slides.map((s, i) => (
           <div key={i} className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? "opacity-100" : "pointer-events-none opacity-0"}`}>
             {s.image ? (
