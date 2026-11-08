@@ -3601,6 +3601,9 @@ export const DICT: Record<string, Tr> = {
   "Đặt lại mật khẩu qua email": e("Password reset via email", "通过邮箱重置密码", "รีเซ็ตรหัสผ่านผ่านอีเมล", "メールによるパスワードリセット", "이메일로 비밀번호 재설정"),
   "Mật khẩu đã được đặt lại": e("Your password was reset", "您的密码已被重置", "รหัสผ่านของคุณถูกรีเซ็ตแล้ว", "パスワードがリセットされました", "비밀번호가 재설정되었습니다"),
   "Gói đã chọn": e("Selected plan", "已选套餐", "แพ็กเกจที่เลือก", "選択したプラン", "선택한 플랜"),
+  "Thông tin đơn": e("Order details", "订单信息", "ข้อมูลคำสั่งซื้อ", "注文情報", "주문 정보"),
+  "Đơn giá": e("Unit price", "单价", "ราคาต่อหน่วย", "単価", "단가"),
+  "Tăng tương tác mạng xã hội bằng số dư ví — hệ thống xử lý tự động.": e("Boost social media engagement with your wallet balance — processed automatically.", "使用钱包余额提升社交媒体互动——系统自动处理。", "เพิ่มการมีส่วนร่วมบนโซเชียลมีเดียด้วยยอดเงินในกระเป๋า — ระบบดำเนินการอัตโนมัติ", "ウォレット残高でSNSのエンゲージメントを高めましょう — 自動処理されます。", "지갑 잔액으로 소셜 미디어 참여도를 높이세요 — 자동 처리됩니다."),
 
 };
 

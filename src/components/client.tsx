@@ -245,6 +245,17 @@ function PasteIconBtn({ onClick }: { onClick: () => void }) {
   );
 }
 
+/** Tiêu đề mục đánh số dùng chung cho các trang đặt hàng kiểu Telegram
+ *  (trang đặt đơn SMM; PremiumBuyForm + telegram-order dùng bản tương tự). */
+function OrderPanelTitle({ n, label }: { n: number; label: string }) {
+  return (
+    <div className="flex items-center gap-3 border-b border-slate-100 pb-3.5">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-[15px] font-extrabold text-violet-600">{n}</span>
+      <span className="text-[17px] font-extrabold text-slate-900">{label}</span>
+    </div>
+  );
+}
+
 export function OrderForm({ services, categories, discount, preselect, action, balance, initialLink, initialQty, campaignId }: {
   services: ServiceDTO[];
   categories: { id: number; name: string; platform: string }[];
@@ -303,15 +314,18 @@ export function OrderForm({ services, categories, discount, preselect, action, b
     } catch { setPasteMsg("Trình duyệt chưa cho đọc bộ nhớ tạm — hãy dán thủ công (Ctrl+V)."); }
   }
   const qtyChips = service ? Array.from(new Set([service.min, 500, 1000, 5000, 10000, 50000, service.max].filter((n) => n >= service.min && n <= service.max))) : [];
+  const sumRow = "flex items-center justify-between gap-3 px-4 py-3.5";
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
-      <form action={action} className="card p-6 lg:col-span-3 space-y-4" id="order-form">
-        {campaignId ? <input type="hidden" name="campaignId" value={campaignId} /> : null}
-        <input type="hidden" name="serviceId" value={service?.id || ""} />
+    <form action={action} className="space-y-4 sm:space-y-5" id="order-form">
+      {campaignId ? <input type="hidden" name="campaignId" value={campaignId} /> : null}
+      <input type="hidden" name="serviceId" value={service?.id || ""} />
+      <section className="card p-3.5 sm:p-5">
+        <OrderPanelTitle n={1} label={t("Chọn dịch vụ")} />
+        <div className="mt-4 space-y-4">
         <div className="relative">
           <label className="lbl !text-[15px] !font-bold text-slate-800">{t("Tìm nhanh dịch vụ")}</label>
           {openMenu === "quick" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
-          <button type="button" onClick={() => setOpenMenu(openMenu === "quick" ? null : "quick")} className="relative z-10 flex h-[56px] w-full items-center gap-3 rounded-2xl bg-slate-100 px-4 text-left transition hover:bg-slate-200/70">
+          <button type="button" onClick={() => setOpenMenu(openMenu === "quick" ? null : "quick")} className="relative z-10 flex h-[52px] w-full items-center gap-3 rounded-xl border border-slate-200/70 bg-[#f3f5f9] px-4 text-left transition hover:bg-slate-200/70">
             {service ? <><IdBadge id={service.id} /><span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-slate-800">{service.name}</span></> : <span className="flex-1 text-[15px] text-slate-400">{t("Chọn dịch vụ...")}</span>}
             <ChevUD />
           </button>
@@ -333,7 +347,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
         <div className="relative">
           <label className="lbl !text-[15px] !font-bold text-slate-800">{t("Chọn nền tảng")}</label>
           {openMenu === "platform" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
-          <button type="button" onClick={() => setOpenMenu(openMenu === "platform" ? null : "platform")} className="relative z-10 flex h-[56px] w-full items-center gap-3 rounded-2xl bg-slate-100 px-4 text-left transition hover:bg-slate-200/70">
+          <button type="button" onClick={() => setOpenMenu(openMenu === "platform" ? null : "platform")} className="relative z-10 flex h-[52px] w-full items-center gap-3 rounded-xl border border-slate-200/70 bg-[#f3f5f9] px-4 text-left transition hover:bg-slate-200/70">
             <PlatformIcon platform={platform} />
             <span className="flex-1 text-[15px] font-semibold text-slate-800">{PLATFORMS[platform] || platform}</span>
             <ChevUD />
@@ -353,7 +367,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
         <div className="relative">
           <label className="lbl !text-[15px] !font-bold text-slate-800">{t("Chọn dịch vụ")}</label>
           {openMenu === "cat" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
-          <button type="button" onClick={() => setOpenMenu(openMenu === "cat" ? null : "cat")} className="relative z-10 flex h-[56px] w-full items-center gap-3 rounded-2xl bg-slate-100 px-4 text-left transition hover:bg-slate-200/70">
+          <button type="button" onClick={() => setOpenMenu(openMenu === "cat" ? null : "cat")} className="relative z-10 flex h-[52px] w-full items-center gap-3 rounded-xl border border-slate-200/70 bg-[#f3f5f9] px-4 text-left transition hover:bg-slate-200/70">
             <PlatformIcon platform={platform} />
             <span className="flex-1 truncate text-[15px] font-semibold text-slate-800">{categories.find((c) => c.id === catId)?.name || t("Chọn dịch vụ")}</span>
             <ChevUD />
@@ -374,7 +388,7 @@ export function OrderForm({ services, categories, discount, preselect, action, b
         <div className="relative">
           <label className="lbl !text-[15px] !font-bold text-slate-800">{t("Chọn máy chủ")}</label>
           {openMenu === "svc" && <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-20 cursor-default" onClick={() => setOpenMenu(null)} />}
-          <button type="button" onClick={() => setOpenMenu(openMenu === "svc" ? null : "svc")} className="relative z-10 flex w-full items-start gap-3 rounded-2xl bg-slate-100 px-4 py-3.5 text-left transition hover:bg-slate-200/70">
+          <button type="button" onClick={() => setOpenMenu(openMenu === "svc" ? null : "svc")} className="relative z-10 flex w-full items-start gap-3 rounded-xl border border-slate-200/70 bg-[#f3f5f9] px-4 py-3.5 text-left transition hover:bg-slate-200/70">
             {service ? (
               <span className="min-w-0 flex-1">
                 <span className="flex items-start gap-2.5">
@@ -418,6 +432,45 @@ export function OrderForm({ services, categories, discount, preselect, action, b
             <p className="whitespace-pre-line text-[15px] leading-relaxed text-slate-700">{service.description}</p>
           </div>
         )}
+        {service && (
+          <div className="space-y-3.5 rounded-2xl border-2 border-dashed border-slate-200 p-5">
+            <DetailLine icon={<span className="flex h-[22px] w-[22px] items-center justify-center rounded-md bg-emerald-500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg></span>}>
+              {t("Link mẫu:")} {t(EXAMPLE_LINK[service.platform] || "Link công khai")}
+            </DetailLine>
+            <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-slate-400"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>}>
+              {t("Thời gian bắt đầu: Ngay lập tức")}
+            </DetailLine>
+            <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M12 3v3" /><path d="M5.6 5.6l2.2 2.2" /><path d="M18.4 5.6l-2.2 2.2" /><path d="M8 21h8" /><path d="M12 6a6.5 6.5 0 0 0-4 11.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A6.5 6.5 0 0 0 12 6z" /></svg>}>
+              {t("Tối thiểu/Tối đa:")} {num(service.min)}/{num(service.max)}
+            </DetailLine>
+            <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6" /><path d="M21 3v5h-5" /></svg>}>
+              {t("Bảo hành:")} {service.refill ? t("Có bảo hành") : t("Không bảo hành")}
+            </DetailLine>
+            <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-slate-400"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>}>
+              {t("Thời gian trung bình")}: {service.avgTime || "—"}
+            </DetailLine>
+            {service.notice && (
+              <div className="pt-1">
+                <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5 22 20H2z" stroke="#f59e0b" strokeWidth="1.6" strokeLinejoin="round" /><path d="M12 10v4.2" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" /><circle cx="12" cy="17" r="1.25" fill="#fff" /></svg>}>
+                  <span className="font-semibold">{t("Lưu ý:")}</span>
+                </DetailLine>
+                <p className="mt-1.5 whitespace-pre-line pl-8 text-[15px] leading-relaxed text-slate-700">{service.notice}</p>
+              </div>
+            )}
+          </div>
+        )}
+        {service && discount > 0 && (
+          <p className="flex items-center gap-2 text-[15px] text-slate-700">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="#f59e0b"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z" /></svg>
+            {t("Bạn đang được giảm")} {discount}{t("% theo cấp bậc")}
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="#f59e0b"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z" /></svg>
+          </p>
+        )}
+        </div>
+      </section>
+      <section className="card p-3.5 sm:p-5">
+        <OrderPanelTitle n={2} label={t("Thông tin đơn")} />
+        <div className="mt-4 space-y-4">
         <div className="relative rounded-[20px] border-2 border-dashed border-slate-300/70 px-5 pb-6 pt-9 sm:px-7">
           <div className="absolute -top-[13px] left-5 flex items-center gap-7 bg-white px-2 dark:bg-[#101a2e] sm:left-6">
             {[{ v: false, t: "1 link" }, { v: true, t: "Nhiều link" }].map((o) => (
@@ -526,7 +579,25 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           <label className="lbl !text-[17px] !font-bold text-slate-800">{t("Ghi chú:")}</label>
           <textarea className="w-full rounded-2xl border-0 bg-slate-100 px-5 py-4 text-[15px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 dark:bg-white/5" name="note" rows={3} placeholder={t("Nhập ghi chú nếu cần")} />
         </div>
-        <div className="flex items-center gap-2.5 rounded-[26px] border border-[#d9e6fd] bg-[#eaf1fe] px-3.5 py-3.5 dark:border-white/10 dark:bg-white/5 sm:gap-4 sm:px-5 sm:py-5">
+        </div>
+      </section>
+      <section className="card p-5 sm:p-6">
+        <div className="text-xl font-extrabold text-slate-900">{t("Tóm tắt")}</div>
+        {!service && <p className="mt-3 text-sm text-slate-400">{t("Chưa có dịch vụ nào đang bán.")}</p>}
+        <div className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-200">
+          <div className={sumRow}><span className="shrink-0 text-[15px] text-slate-500">{t("Dịch vụ")}</span><span className="min-w-0 break-words text-right font-bold text-slate-900">{service ? service.name : "—"}</span></div>
+          <div className={sumRow}><span className="text-[15px] text-slate-500">{t("Số lượng")}</span><span className="font-bold text-slate-900">{num(qty || 0)}{multiOn && orderCount > 0 ? ` × ${num(orderCount)} link` : ""}</span></div>
+          <div className={sumRow}><span className="text-[15px] text-slate-500">{t("Đơn giá")}</span><span className="font-bold text-slate-900">{service ? `${m(service.rate)}/1000` : "—"}</span></div>
+        </div>
+        {balance !== undefined && (
+          <div className={`mt-4 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${notEnough ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+            {t("Số dư ví:")} <b>{m(balance)}</b>
+            {notEnough ? <> {t("— còn thiếu")} <b>{m(shownCharge - balance)}</b>. <Link href="/dashboard/nap-tien" className="font-bold underline">{t("Nạp thêm ngay")}</Link></> : <> {t("— sau đơn này còn")} <b>{m(balance - shownCharge)}</b>.</>}
+          </div>
+        )}
+        {/* Hàng cuối thẻ Tóm tắt: TỔNG CỘNG bên trái + nút ĐẶT HÀNG bên phải
+            CÙNG HÀNG — luật chốt của Tín cho trang này (khác trang Telegram). */}
+        <div className="mt-5 flex items-center gap-2.5 rounded-[26px] border border-[#d9e6fd] bg-[#eaf1fe] px-3.5 py-3.5 dark:border-white/10 dark:bg-white/5 sm:gap-4 sm:px-5 sm:py-5">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#d3e4ff] text-brand-600 dark:bg-white/10 sm:h-14 sm:w-14">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 sm:h-7 sm:w-7"><path d="M20 7H5a2 2 0 0 1 0-4h13v4" /><path d="M3 5.5V18a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2Z" /><circle cx="17" cy="15" r="1.15" fill="currentColor" stroke="none" /></svg>
           </span>
@@ -536,66 +607,9 @@ export function OrderForm({ services, categories, discount, preselect, action, b
           </span>
           <button type="submit" disabled={notEnough} className="shrink-0 whitespace-nowrap rounded-2xl bg-brand-500 px-4 py-2.5 text-[15px] font-semibold text-white shadow-md shadow-brand-500/30 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-[18px] sm:px-7 sm:py-3.5 sm:text-lg">{t("Đặt hàng")}</button>
         </div>
-        {notEnough && <p className="-mt-2 text-right text-xs font-medium text-rose-600">{t("Chưa đủ số dư cho đơn này — nạp thêm để đặt hàng.")}</p>}
-      </form>
-      <div className="card p-6 lg:col-span-2 lg:sticky lg:top-24">
-        {service ? (
-          <div>
-            <div className="flex items-center justify-center gap-2.5">
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" className="text-slate-500"><path d="M12 3.5 14.9 9.4l6.5.9-4.7 4.6 1.1 6.5L12 18.3l-5.8 3.1 1.1-6.5L2.6 10.3l6.5-.9L12 3.5Z" /></svg>
-              <span className="text-[32px] font-extrabold leading-none text-slate-800">{service.id}</span>
-            </div>
-            <div className="mt-5 flex items-center gap-3">
-              <PlatformBrandIcon platform={service.platform} />
-              <p className="min-w-0 flex-1 text-center text-[15px] font-medium leading-snug text-slate-800">{service.name}</p>
-              <span className="w-10 shrink-0" />
-            </div>
-            {discount > 0 && (
-              <p className="mt-4 flex items-center justify-center gap-2 text-[15px] text-slate-700">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="#f59e0b"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z" /></svg>
-                {t("Bạn đang được giảm")} {discount}{t("% theo cấp bậc")}
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="#f59e0b"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z" /></svg>
-              </p>
-            )}
-            <div className="mt-6">
-              <div className="mb-2 text-[15px] font-bold text-slate-700">{t("Thời gian trung bình")}</div>
-              <div className="rounded-xl border border-slate-200 px-4 py-3.5 text-[15px] text-slate-500">{service.avgTime || "—"}</div>
-            </div>
-            <div className="mt-5 space-y-3.5 rounded-2xl border-2 border-dashed border-slate-200 p-5">
-              <DetailLine icon={<span className="flex h-[22px] w-[22px] items-center justify-center rounded-md bg-emerald-500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg></span>}>
-                {t("Link mẫu:")} {t(EXAMPLE_LINK[service.platform] || "Link công khai")}
-              </DetailLine>
-              <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-slate-400"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>}>
-                {t("Thời gian bắt đầu: Ngay lập tức")}
-              </DetailLine>
-              <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M12 3v3" /><path d="M5.6 5.6l2.2 2.2" /><path d="M18.4 5.6l-2.2 2.2" /><path d="M8 21h8" /><path d="M12 6a6.5 6.5 0 0 0-4 11.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A6.5 6.5 0 0 0 12 6z" /></svg>}>
-                {t("Tối thiểu/Tối đa:")} {num(service.min)}/{num(service.max)}
-              </DetailLine>
-              <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6" /><path d="M21 3v5h-5" /></svg>}>
-                {t("Bảo hành:")} {service.refill ? t("Có bảo hành") : t("Không bảo hành")}
-              </DetailLine>
-              <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="text-slate-400"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z" /><path d="M3 7l9 4.5L21 7" /><path d="M12 11.5v10" /></svg>}>
-                {t("Số lượng đơn này:")} {num(qty || 0)}{multiOn ? ` / link${orderCount > 0 ? ` × ${num(orderCount)} link` : ""}` : ""}
-              </DetailLine>
-              {service.notice && (
-                <div className="pt-1">
-                  <DetailLine icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 3.5 22 20H2z" stroke="#f59e0b" strokeWidth="1.6" strokeLinejoin="round" /><path d="M12 10v4.2" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" /><circle cx="12" cy="17" r="1.25" fill="#fff" /></svg>}>
-                    <span className="font-semibold">{t("Lưu ý:")}</span>
-                  </DetailLine>
-                  <p className="mt-1.5 whitespace-pre-line pl-8 text-[15px] leading-relaxed text-slate-700">{service.notice}</p>
-                </div>
-              )}
-            </div>
-            {balance !== undefined && (
-              <div className={`mt-5 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${notEnough ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
-                {t("Số dư ví:")} <b>{m(balance)}</b>
-                {notEnough ? <> {t("— còn thiếu")} <b>{m(shownCharge - balance)}</b>. <Link href="/dashboard/nap-tien" className="font-bold underline">{t("Nạp thêm ngay")}</Link></> : <> {t("— sau đơn này còn")} <b>{m(balance - shownCharge)}</b>.</>}
-              </div>
-            )}
-          </div>
-        ) : <p className="text-sm text-slate-400">{t("Chưa có dịch vụ nào đang bán.")}</p>}
-      </div>
-    </div>
+        {notEnough && <p className="mt-3 text-right text-xs font-medium text-rose-600">{t("Chưa đủ số dư cho đơn này — nạp thêm để đặt hàng.")}</p>}
+      </section>
+    </form>
   );
 }
 /* ---------- Đặt hàng loạt (bulk orders): dán nhiều dòng, xem trước tổng tiền rồi đặt tất cả ---------- */
