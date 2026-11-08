@@ -23,12 +23,14 @@ function ChevronBtn({ dir, onClick, label, className = "" }: { dir: "prev" | "ne
   );
 }
 
-/** Slider hero trang chủ: FULL-BLEED (lệnh Tín 2026-11-08 12:51 "banner bự
- *  ra hết cỡ") — component được page.tsx render NGOÀI <main> (con trực tiếp
- *  của PublicFrame) nên tràn hết bề ngang viewport, không lề, góc vuông;
- *  cao 76svh mobile / 500px sm / 620px lg. Tự chuyển, có mũi tên + chấm chỉ
- *  vị trí. Slide dựng từ dữ liệu thật (site + danh mục); khối chữ canh theo
- *  container max-w-7xl của trang để không trôi ra mép ở màn rất rộng. */
+/** Slider hero trang chủ: FULL-BLEED bề ngang (lệnh Tín 2026-11-08 12:51
+ *  "banner bự ra hết cỡ" — rộng tràn hai bên, KHÔNG cao thêm: Tín đính chính
+ *  13:51 "tôi kêu dài qua 1 bên chứ đâu kêu cho cao lên") — component được
+ *  page.tsx render NGOÀI <main> (con trực tiếp của PublicFrame) nên tràn hết
+ *  bề ngang viewport, không lề, góc vuông; chiều cao giữ 300/380/470 như bản
+ *  fix9 (6bb0644). Tự chuyển, có mũi tên + chấm chỉ vị trí. Slide dựng từ dữ
+ *  liệu thật (site + danh mục); khối chữ canh theo container max-w-7xl của
+ *  trang để không trôi ra mép ở màn rất rộng. */
 export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
   const { t } = useLang();
   const [idx, setIdx] = useState(0);
@@ -43,10 +45,11 @@ export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
   const go = (d: number) => setIdx((i) => (i + d + n) % n);
   return (
     <section className="relative w-full overflow-hidden" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      {/* Chiều cao hero full-bleed: mobile 76svh (tối thiểu 400px), sm 500px,
-          lg 620px — trước đây 300/380/470 trong khung 1248px. Ảnh nền
-          object-cover cắt giữa, không méo. */}
-      <div className="relative h-[76svh] min-h-[400px] sm:h-[500px] lg:h-[620px]">
+      {/* Chiều cao hero: giữ nguyên 300/380/470 của fix9 (6bb0644) — đợt
+          full-bleed chỉ đổi bề ngang (tràn viewport), không đổi chiều cao
+          (Tín đính chính 2026-11-08 13:51). Ảnh nền object-cover cắt giữa,
+          không méo. */}
+      <div className="relative h-[300px] sm:h-[380px] lg:h-[470px]">
         {slides.map((s, i) => (
           <div key={i} className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? "opacity-100" : "pointer-events-none opacity-0"}`}>
             {s.image ? (
