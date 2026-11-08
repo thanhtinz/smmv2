@@ -23,10 +23,13 @@ function ChevronBtn({ dir, onClick, label, className = "" }: { dir: "prev" | "ne
   );
 }
 
-/** Slider hero trang chủ kiểu shopkey: banner lớn (cao 300/380/470 theo
- *  viewport — lệnh Tín 2026-11-08 cho bự ra), tự chuyển, có mũi tên + chấm
- *  chỉ vị trí. Slide dựng từ dữ liệu thật (site + danh mục). */
-function HeroSlider({ slides }: { slides: HomeSlide[] }) {
+/** Slider hero trang chủ: FULL-BLEED (lệnh Tín 2026-11-08 12:51 "banner bự
+ *  ra hết cỡ") — component được page.tsx render NGOÀI <main> (con trực tiếp
+ *  của PublicFrame) nên tràn hết bề ngang viewport, không lề, góc vuông;
+ *  cao 76svh mobile / 500px sm / 620px lg. Tự chuyển, có mũi tên + chấm chỉ
+ *  vị trí. Slide dựng từ dữ liệu thật (site + danh mục); khối chữ canh theo
+ *  container max-w-7xl của trang để không trôi ra mép ở màn rất rộng. */
+export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
   const { t } = useLang();
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -39,12 +42,11 @@ function HeroSlider({ slides }: { slides: HomeSlide[] }) {
   if (n === 0) return null;
   const go = (d: number) => setIdx((i) => (i + d + n) % n);
   return (
-    <section className="relative overflow-hidden rounded-3xl" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      {/* Chiều cao hero (lệnh Tín 2026-11-08 "banner cho bự ra"): 240/300/380
-          -> 300/380/470 — mobile 358x300 (~1.2:1, nặng thị giác hẳn), desktop
-          1248x470 (~2.65:1 thay vì 3.28:1). Ảnh nền object-cover cắt giữa,
-          không méo; nội dung/chấm/mũi tên giữ nguyên. */}
-      <div className="relative h-[300px] sm:h-[380px] lg:h-[470px]">
+    <section className="relative w-full overflow-hidden" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      {/* Chiều cao hero full-bleed: mobile 76svh (tối thiểu 400px), sm 500px,
+          lg 620px — trước đây 300/380/470 trong khung 1248px. Ảnh nền
+          object-cover cắt giữa, không méo. */}
+      <div className="relative h-[76svh] min-h-[400px] sm:h-[500px] lg:h-[620px]">
         {slides.map((s, i) => (
           <div key={i} className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? "opacity-100" : "pointer-events-none opacity-0"}`}>
             {s.image ? (
@@ -59,11 +61,13 @@ function HeroSlider({ slides }: { slides: HomeSlide[] }) {
                 <span className="absolute -right-2 top-1/2 -translate-y-1/2 select-none text-[150px] font-black leading-none text-white/15 sm:text-[220px]">{s.title.charAt(0).toUpperCase()}</span>
               </>
             )}
-            <div className="relative flex h-full max-w-xl flex-col justify-center px-14 sm:px-[4.5rem]">
-              <h1 className="text-2xl font-black leading-tight text-white sm:text-4xl">{s.title}</h1>
-              {s.subtitle && <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-white/85 sm:text-base">{s.subtitle}</p>}
-              <div className="mt-5">
-                <Link href={s.href} className="inline-block rounded-full bg-white px-6 py-2.5 text-sm font-extrabold text-slate-900 shadow-lg transition hover:bg-slate-100">{s.cta}</Link>
+            <div className="relative mx-auto flex h-full w-full max-w-7xl flex-col justify-center px-4">
+              <div className="max-w-xl px-12 sm:px-14">
+                <h1 className="text-[28px] font-black leading-tight text-white sm:text-4xl lg:text-5xl">{s.title}</h1>
+                {s.subtitle && <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-white/85 sm:text-base lg:text-lg">{s.subtitle}</p>}
+                <div className="mt-5 lg:mt-7">
+                  <Link href={s.href} className="inline-block rounded-full bg-white px-6 py-2.5 text-sm font-extrabold text-slate-900 shadow-lg transition hover:bg-slate-100 lg:px-7 lg:py-3 lg:text-[15px]">{s.cta}</Link>
+                </div>
               </div>
             </div>
           </div>
@@ -129,7 +133,7 @@ function RailSection({ icon, title, subtitle, href, items }: { icon: React.React
 
 /** Thân trang chủ cửa hàng: slider → khối danh mục → nổi bật → bán chạy →
  *  đã xem gần đây, đúng thứ tự khối của shopkey; khung header/footer giữ nguyên. */
-export function HomeShop({ slides, cats, all, best, gifts }: { slides: HomeSlide[]; cats: HomeCat[]; all: HomeCard[]; best: HomeCard[]; gifts: HomeGift[] }) {
+export function HomeShop({ slides, cats, all, best, gifts, hero = true }: { slides: HomeSlide[]; cats: HomeCat[]; all: HomeCard[]; best: HomeCard[]; gifts: HomeGift[]; hero?: boolean }) {
   const { t } = useLang();
   const [cat, setCat] = useState<number | null>(null);
   const [shown, setShown] = useState(PAGE);
@@ -145,7 +149,7 @@ export function HomeShop({ slides, cats, all, best, gifts }: { slides: HomeSlide
 
   return (
     <>
-      <HeroSlider slides={slides} />
+      {hero ? <HeroSlider slides={slides} /> : null}
 
       {cats.length > 0 && (
         <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-6">

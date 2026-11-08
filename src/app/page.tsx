@@ -5,7 +5,7 @@ import { PublicFrame } from "@/components/public-frame";
 import { HomeModal } from "@/components/gates";
 import { getServerI18n } from "@/lib/lang-server";
 import { premiumCardsFor } from "@/components/premium-views";
-import { HomeShop, type HomeCard, type HomeCat, type HomeSlide } from "@/components/home-shop";
+import { HeroSlider, HomeShop, type HomeCard, type HomeCat, type HomeSlide } from "@/components/home-shop";
 import { type HomeGift } from "@/components/home-gifts";
 import { regularCatalogWhere } from "@/lib/order-scope";
 import { productImages } from "@/lib/format";
@@ -101,20 +101,29 @@ export default async function HomePage() {
   return (
     <PublicFrame>
       {homeModal && user ? <HomeModal content={homeModal} /> : null}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
-        {premiumOff ? (
+      {premiumOff ? (
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
           <div className="card mt-10 p-8 text-center">
             <div className="text-lg font-bold text-slate-900">{L("Mảng Premium đang tạm ngưng")}</div>
             <p className="mt-2 text-sm text-slate-500">{L("Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau hoặc dùng dịch vụ SMM.")}</p>
           </div>
-        ) : all.length === 0 && gifts.length === 0 ? (
+        </main>
+      ) : all.length === 0 && gifts.length === 0 ? (
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
           <div className="card mt-10 p-8 text-center">
             <p className="text-sm text-slate-500">{L("Chưa có sản phẩm nào phù hợp.")}</p>
           </div>
-        ) : (
-          <HomeShop slides={slides} cats={cats} all={all} best={best} gifts={gifts} />
-        )}
-      </main>
+        </main>
+      ) : (
+        <>
+          {/* Hero FULL-BLEED: render ngoài <main> để tràn hết bề ngang
+              viewport (lệnh Tín 2026-11-08 "banner bự ra hết cỡ"). */}
+          <HeroSlider slides={slides} />
+          <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
+            <HomeShop slides={slides} cats={cats} all={all} best={best} gifts={gifts} hero={false} />
+          </main>
+        </>
+      )}
     </PublicFrame>
   );
 }
