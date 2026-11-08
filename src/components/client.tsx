@@ -1195,50 +1195,71 @@ export function PremiumOrderCards({ orders }: { orders: PremiumOrderCard[] }) {
       {sel && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSel(null)}>
           <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between sticky top-0">
-              <div className="font-bold">{t("Chi tiết đơn hàng")} #{sel.id}</div>
-              <button type="button" onClick={() => setSel(null)} className="text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5">{t("Đóng")}</button>
-            </div>
-            <div className="p-5 space-y-6">
-              <section>
-                <div className="font-bold text-slate-900 mb-2.5">{t("Thông tin đơn hàng")}</div>
-                <dl className="text-sm space-y-1.5">
-                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">{t("Tên sản phẩm:")}</dt><dd className="font-medium text-slate-800">{sel.name} ({sel.variant})</dd></div>
-                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">{t("Số tiền thanh toán:")}</dt><dd className="font-medium text-slate-800">{m(sel.total)}</dd></div>
-                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">{t("Trạng thái:")}</dt><dd className="font-medium text-slate-800">{t(sel.statusLabel)}</dd></div>
-                  <div className="flex gap-2"><dt className="text-slate-400 w-36 shrink-0">{t("Ghi chú:")}</dt><dd className="font-medium text-slate-800 whitespace-pre-wrap">{sel.buyerInfo || "."}</dd></div>
-                </dl>
-              </section>
-              <section>
-                <div className="font-bold text-slate-900 mb-2.5">{t("Thông tin tài khoản:")}</div>
-                {sel.delivery ? (
-                  <div>
-                    <textarea readOnly value={sel.delivery} rows={Math.min(8, sel.delivery.split("\n").length + 1)} className="inp font-mono !text-[13px] w-full" />
-                    <div className="mt-2"><CopyBtn text={sel.delivery} label="Sao chép" /></div>
+            {/* Thẻ header kiểu Telegram: mã đơn mono + sao chép + trạng thái + ngày tạo */}
+            <div className="sticky top-0 z-10 border-b border-violet-100 bg-gradient-to-br from-[#ece8ff] via-[#f5f3ff] to-white px-5 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-violet-500">{t("Chi tiết đơn hàng")}</div>
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <span className="font-mono text-lg font-black leading-tight text-slate-900">{sel.code}</span>
+                    <CopyBtn text={sel.code} />
                   </div>
-                ) : (
-                  <p className="text-sm text-slate-500">{sel.status === "PENDING" ? t("Đơn đang chờ giao.") : t("Chưa có nội dung giao.")}</p>
-                )}
-                {(sel.status === "DELIVERED" || sel.status === "COMPLETED") && sel.warrantyUntil && new Date(sel.warrantyUntil) > new Date() && (
-                  <form action={warrantyAction} className="mt-4 flex flex-wrap gap-2">
-                    <input type="hidden" name="orderId" value={sel.id} />
-                    <input className="inp flex-1 min-w-[200px]" name="note" placeholder={t("Mô tả lỗi để yêu cầu bảo hành")} />
-                    <button className="btn-ghost btn-sm !py-2.5">{t("Yêu cầu bảo hành")}</button>
-                  </form>
-                )}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${sel.statusCls}`}>{t(sel.statusLabel)}</span>
+                    <span className="text-xs text-slate-400">{dtf(sel.created)}</span>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setSel(null)} aria-label={t("Đóng")} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-rose-600 text-white transition hover:bg-rose-500">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-4 space-y-4 sm:p-5 sm:space-y-5">
+              <section className="rounded-2xl border border-slate-200 p-4 sm:p-5">
+                <OrderPanelTitle n={1} label={t("Thông tin đơn hàng")} />
+                <div className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200">
+                  <div className="flex items-start justify-between gap-3 px-4 py-3.5"><span className="shrink-0 text-[15px] text-slate-500">{t("Tên sản phẩm:")}</span><span className="min-w-0 break-words text-right font-bold text-slate-900">{sel.name} ({sel.variant})</span></div>
+                  <div className="flex items-start justify-between gap-3 px-4 py-3.5"><span className="shrink-0 text-[15px] text-slate-500">{t("Số lượng")}</span><span className="font-bold text-slate-900">{sel.quantity}</span></div>
+                  <div className="flex items-start justify-between gap-3 px-4 py-3.5"><span className="shrink-0 text-[15px] text-slate-500">{t("Số tiền thanh toán:")}</span><span className="font-bold text-slate-900">{m(sel.total)}</span></div>
+                  <div className="flex items-start justify-between gap-3 px-4 py-3.5"><span className="shrink-0 text-[15px] text-slate-500">{t("Trạng thái:")}</span><span className="font-bold text-slate-900">{t(sel.statusLabel)}</span></div>
+                  {sel.warrantyUntil && (
+                    <div className="flex items-start justify-between gap-3 px-4 py-3.5"><span className="shrink-0 text-[15px] text-slate-500">{t("Bảo hành đến")}</span><span className="font-bold text-slate-900">{dtf(sel.warrantyUntil)}</span></div>
+                  )}
+                  <div className="flex items-start justify-between gap-3 px-4 py-3.5"><span className="shrink-0 text-[15px] text-slate-500">{t("Ghi chú:")}</span><span className="min-w-0 whitespace-pre-wrap break-words text-right font-bold text-slate-900">{sel.buyerInfo || "."}</span></div>
+                </div>
               </section>
-              <section>
-                <div className="font-bold text-slate-900 mb-2.5">{t("Hỗ trợ đơn này")}</div>
-                <OrderSupportActions code={sel.code} category="premium" />
+              <section className="rounded-2xl border border-slate-200 p-4 sm:p-5">
+                <OrderPanelTitle n={2} label={t("Thông tin tài khoản:")} />
+                <div className="mt-4">
+                  {sel.delivery ? (
+                    <div>
+                      <textarea readOnly value={sel.delivery} rows={Math.min(8, sel.delivery.split("\n").length + 1)} className="inp font-mono !text-[13px] w-full" />
+                      <div className="mt-2"><CopyBtn text={sel.delivery} label="Sao chép" /></div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">{sel.status === "PENDING" ? t("Đơn đang chờ giao.") : t("Chưa có nội dung giao.")}</p>
+                  )}
+                  {(sel.status === "DELIVERED" || sel.status === "COMPLETED") && sel.warrantyUntil && new Date(sel.warrantyUntil) > new Date() && (
+                    <form action={warrantyAction} className="mt-4 flex flex-wrap gap-2">
+                      <input type="hidden" name="orderId" value={sel.id} />
+                      <input className="inp flex-1 min-w-[200px]" name="note" placeholder={t("Mô tả lỗi để yêu cầu bảo hành")} />
+                      <button className="btn-ghost btn-sm !py-2.5">{t("Yêu cầu bảo hành")}</button>
+                    </form>
+                  )}
+                </div>
               </section>
-              <section>
-                <div className="font-bold text-slate-900 mb-2.5">{t("Lịch sử xử lý")}</div>
-                <ol className="relative border-l-2 border-slate-100 ml-1.5 space-y-4">
+              <section className="rounded-2xl border border-slate-200 p-4 sm:p-5">
+                <OrderPanelTitle n={3} label={t("Lịch sử xử lý")} />
+                <ol className="relative ml-1.5 mt-4 space-y-4 border-l-2 border-slate-100">
                   {(sel.status === "DELIVERED" || sel.status === "COMPLETED") && (
                     <li className="pl-4 relative"><span className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-emerald-500" /><div className="text-sm font-semibold text-slate-800">{t("Đã giao hàng")}</div><div className="text-xs text-slate-400">{dtf(sel.updated)}</div></li>
                   )}
                   <li className="pl-4 relative"><span className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-slate-300" /><div className="text-sm font-semibold text-slate-800">{t("Đã tạo đơn hàng")}</div><div className="text-xs text-slate-400">{dtf(sel.created)}</div></li>
                 </ol>
+              </section>
+              <section className="rounded-2xl border border-slate-200 p-4 sm:p-5">
+                <div className="text-[17px] font-extrabold text-slate-900">{t("Hỗ trợ đơn này")}</div>
+                <OrderSupportActions code={sel.code} category="premium" />
               </section>
             </div>
           </div>
