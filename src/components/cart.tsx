@@ -136,7 +136,7 @@ export function CartHeaderLink({ dark }: { dark?: boolean }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   return (
-    <Link href="/gio-hang" aria-label={t("Giỏ hàng")} className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full transition ${dark ? "text-slate-200 hover:bg-white/10" : "text-slate-600 hover:bg-slate-100"}`}>
+    <Link href="/gio-hang" aria-label={t("Giỏ hàng")} className={`relative inline-flex h-10 w-10 items-center justify-center rounded-full transition ${dark ? "text-slate-200 hover:bg-white/10" : "text-slate-600 hover:bg-slate-100"}`}>
       {I.cart}
       {mounted && count > 0 && (
         <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-extrabold text-white">{count}</span>

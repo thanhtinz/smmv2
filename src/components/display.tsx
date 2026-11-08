@@ -96,7 +96,7 @@ export function DisplaySettings({ tone = "light" }: { tone?: "light" | "dark" })
           một icon sliders 20px dễ nhận diện; nhãn "Cài đặt" hiện từ sm trở
           lên, dưới sm chỉ icon kèm title/aria-label. */}
       <button type="button" onClick={() => setOpen((o) => !o)} title={t("Cài đặt hiển thị")} aria-label={t("Cài đặt hiển thị")}
-        className={`flex items-center gap-2 rounded-full border px-3 py-2 text-[13px] font-semibold transition ${tone === "dark" ? "bg-white/10 border-white/15 text-white hover:bg-white/20" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+        className={`flex h-10 items-center justify-center gap-2 rounded-full border px-3.5 text-[13px] font-semibold transition max-sm:w-10 max-sm:px-0 ${tone === "dark" ? "bg-white/10 border-white/15 text-white hover:bg-white/20" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
         <span className="[&_svg]:h-5 [&_svg]:w-5">{I.sliders}</span>
         <span className="hidden sm:inline">{t("Cài đặt")}</span>
       </button>

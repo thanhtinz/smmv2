@@ -32,7 +32,7 @@ export function AppTopBar({ user, siteName, logoText, drawerLogoUrl, items, menu
       <div className="max-w-[1400px] mx-auto px-3 sm:px-4 h-16 flex items-center gap-2 sm:gap-4">
         <MobileSideNav items={items} siteName={siteName} footer={menuFooter} logoUrl={drawerLogoUrl} logoText={logoText} />
         <Link href="/" className="flex items-center gap-2.5">
-          <span className="w-9 h-9 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center">{logoText}</span>
+          <span className="w-10 h-10 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center">{logoText}</span>
           <span className="font-extrabold text-slate-900 hidden sm:inline">{siteName}</span>
         </Link>
         <div className="ml-auto flex items-center gap-1 sm:gap-2.5">
@@ -42,18 +42,18 @@ export function AppTopBar({ user, siteName, logoText, drawerLogoUrl, items, menu
               <NotificationBell />
               <CartHeaderLink />
               <DisplaySettings />
-              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hidden sm:inline-block">{L(user.levelLabel)}</span>
-              <span className="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-1.5 text-xs font-bold sm:px-3.5 sm:text-sm">{M(user.balance)}</span>
+              <span className="hidden h-10 items-center rounded-full bg-slate-100 px-3.5 text-xs font-semibold text-slate-600 sm:inline-flex">{L(user.levelLabel)}</span>
+              <span className="inline-flex h-10 items-center rounded-full border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-bold text-emerald-700 sm:text-sm">{M(user.balance)}</span>
               <span className="hidden md:inline text-sm font-medium text-slate-700">{user.username}</span>
-              {user.role === "ADMIN" && <Link href="/admin" className="hidden md:inline-flex items-center rounded-full bg-slate-900 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-slate-700">Admin Panel</Link>}
-              <form action={logoutAction} className="hidden sm:block"><button className="btn-ghost btn-sm !py-2 whitespace-nowrap">{L("Đăng xuất")}</button></form>
+              {user.role === "ADMIN" && <Link href="/admin" className="hidden h-10 items-center rounded-full bg-slate-900 px-3.5 text-xs font-bold text-white transition hover:bg-slate-700 md:inline-flex">Admin Panel</Link>}
+              <form action={logoutAction} className="hidden sm:block"><button className="btn-ghost btn-sm h-10 whitespace-nowrap">{L("Đăng xuất")}</button></form>
             </>
           ) : (
             <>
               <CartHeaderLink />
               <DisplaySettings />
-              <Link href="/login" className="btn-ghost btn-sm !px-4 !py-2 whitespace-nowrap">{L("Đăng nhập")}</Link>
-              <Link href="/register" className="btn-primary btn-sm !px-4 !py-2 whitespace-nowrap">{L("Đăng ký")}</Link>
+              <Link href="/login" className="btn-ghost btn-sm h-10 !px-4 whitespace-nowrap">{L("Đăng nhập")}</Link>
+              <Link href="/register" className="btn-primary btn-sm h-10 !px-4 whitespace-nowrap">{L("Đăng ký")}</Link>
             </>
           )}
         </div>
