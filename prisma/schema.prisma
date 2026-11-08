@@ -79,6 +79,7 @@ model User {
   campaigns     Campaign[]
   subscriptions Subscription[]
   deposits      Deposit[]
+  purchasePayments PurchasePayment[]
   transactions  Transaction[]
   tickets       Ticket[]
   notifications Notification[]
@@ -456,6 +457,32 @@ model Deposit {
   adminNote String?       @db.VarChar(255)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+// Thanh toán TRỰC TIẾP cho một lần mua giỏ hàng (không qua ví) — model riêng,
+// KHÔNG dùng Deposit: Deposit mang ngữ nghĩa nạp ví ở mọi bề mặt (hàng đợi
+// admin, thống kê, thưởng nạp, settlement cộng ví), còn bản ghi này khi trả
+// xong phải THỰC THI đơn Premium chứ không cộng ví. Đơn chỉ được tạo sau khi
+// cổng xác nhận đã trả (settle trong lib/purchase.ts).
+model PurchasePayment {
+  id           Int       @id @default(autoincrement())
+  code         String    @unique @db.VarChar(16) // MUA100001
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id])
+  method       String    @db.VarChar(12) // SEPAY | BOLTUTIL | STRIPE | PAYPAL
+  amount       Int // VNĐ phải trả (tổng giỏ tại thời điểm tạo)
+  status       String    @default("PENDING") @db.VarChar(12) // PENDING | EXECUTED | EXPIRED | CANCELED | FAILED
+  providerRef  String?   @unique @db.VarChar(120) // bolt:<code> | Stripe session id | PayPal order id
+  providerData String?   @db.Text // JSON: dữ liệu hiển thị bước thanh toán + kết quả thực thi
+  snapshot     String    @db.Text // JSON: { lines: [{variantId, qty, custom, buyerInfo, share}], promo }
+  orderCodes   String?   @db.Text // JSON mảng mã đơn Premium đã tạo
+  expiresAt    DateTime?
+  paidAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([userId, createdAt])
   @@index([status])

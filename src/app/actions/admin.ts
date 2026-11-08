@@ -813,6 +813,14 @@ export async function adminSaveMethodsAction(formData: FormData) {
     const nets = formData.getAll("boltutil_networks").map(String).filter((n) => (BOLT_NETWORKS as readonly string[]).includes(n));
     await setSetting("boltutil_networks", nets.filter((n, i) => nets.indexOf(n) === i).join(","));
   }
+  // Tick "thanh toán trực tiếp khi mua hàng" từng cổng: form của cổng nào có
+  // field ẩn *_present thì mới ghi (cả khi bỏ tick -> "0"), tránh form cổng
+  // này ghi đè tick của cổng khác.
+  for (const k of ["direct_sepay_enabled", "direct_boltutil_enabled", "direct_stripe_enabled", "direct_paypal_enabled"]) {
+    if (formData.get(`${k}_present`) === "1") {
+      await setSetting(k, formData.get(k) === "1" ? "1" : "0");
+    }
+  }
   await auditAdmin(actor, "settings.update", "setting", "adminSaveMethods", "Lưu cấu hình phương thức nạp/khuyến mãi");
   const backTo = String(formData.get("back") || "/admin/cau-hinh-nap-tien");
   redirect((backTo.startsWith("/admin/") ? backTo : "/admin/cau-hinh-nap-tien") + "?msg=" + encodeURIComponent("Đã lưu cấu hình"));

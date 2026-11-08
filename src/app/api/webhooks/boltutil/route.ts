@@ -48,6 +48,15 @@ export async function POST(req: NextRequest) {
         const r = await settleBoltutilDeposit(dep.id, payload);
         processed = r.ok;
         note = `${dep.code}: ${r.reason}`;
+      } else {
+        // Không phải phiên nạp -> có thể là thanh toán trực tiếp mua giỏ hàng
+        const pp = await prisma.purchasePayment.findUnique({ where: { providerRef: `bolt:${externalOrderId}` } });
+        if (pp) {
+          const { settleBoltPurchase } = await import("@/lib/purchase");
+          const r = await settleBoltPurchase(pp.id, payload);
+          processed = r.ok;
+          note = `purchase ${pp.code}: ${r.reason}`;
+        }
       }
     }
   } catch (e: any) {

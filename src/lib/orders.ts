@@ -435,6 +435,10 @@ export async function createPremiumOrder(input: {
   buyerInfo?: string;
   customData?: Record<string, string>; // giá trị các trường tuỳ chỉnh theo label (form web gửi)
   promoCode?: string;
+  // Đã trả tiền NGOÀI ví (thanh toán trực tiếp ở giỏ — lib/purchase.ts):
+  // transaction KHÔNG trừ số dư; mọi cơ chế còn lại (kho, flash, promo,
+  // referral, giao API) giữ nguyên như mua bằng ví.
+  externalPaid?: { method: string; ref: string };
 }) {
   if ((await getSettings()).module_premium === "0") throw new Error("Mảng Premium đang tạm tắt");
   // GĐ3: tài khoản rủi ro cao (chưa được duyệt lại) bị chặn mua Premium mới
@@ -514,7 +518,9 @@ export async function createPremiumOrder(input: {
     // Trừ kho số lượng NGUYÊN TỬ cùng transaction với tiền: thiếu kho -> ném
     // lỗi, cả tiền lẫn đơn rollback (không bán vượt, không trừ tiền oan).
     await claimVariantStock(tx, variant, variant.product.fulfillment, input.quantity);
-    await applyBalance(tx, input.user.id, -total, "PREMIUM_ORDER", undefined, `Mua ${variant.product.name} — ${variant.name}`);
+    if (!input.externalPaid) {
+      await applyBalance(tx, input.user.id, -total, "PREMIUM_ORDER", undefined, `Mua ${variant.product.name} — ${variant.name}`);
+    }
     if (promo) await consumePromo(tx, promo.row.id);
     const o = await tx.premiumOrder.create({
       data: {
@@ -576,7 +582,7 @@ export async function createPremiumOrder(input: {
     return { ...o, code };
   });
   void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
-  await notifyUser(input.user.id, "Đặt hàng Premium thành công", `Đơn ${created.code}: ${variant.product.name} — ${variant.name} × ${input.quantity} — đã trừ ${vnd(created.total)}${created.status === "DELIVERED" ? " — đã giao tự động, xem nội dung trong đơn" : ""}`, "/dashboard/don-premium");
+  await notifyUser(input.user.id, "Đặt hàng Premium thành công", `Đơn ${created.code}: ${variant.product.name} — ${variant.name} × ${input.quantity} — ${input.externalPaid ? `đã thanh toán trực tiếp qua ${input.externalPaid.method}` : `đã trừ ${vnd(created.total)}`}${created.status === "DELIVERED" ? " — đã giao tự động, xem nội dung trong đơn" : ""}`, "/dashboard/don-premium");
   // GĐ3: tính lại điểm rủi ro nền sau khi mua Premium — lỗi tính điểm không ảnh hưởng đơn
   void evaluateUserRisk(input.user.id);
   if (created.status === "DELIVERED" || created.status === "COMPLETED") await awardPointsForPremiumOrder(created);

@@ -43,6 +43,30 @@ export async function POST(req: NextRequest) {
   // Bắt buộc có id giao dịch: chống cộng trùng dựa vào nó (claim nguyên tử bên dưới)
   if (!txId) return NextResponse.json({ success: true, skipped: "missing tx id" });
 
+  // Thanh toán TRỰC TIẾP mua giỏ hàng: nội dung chứa mã phiên MUAxxxxxx ->
+  // xử lý như một PurchasePayment (thực thi đơn), KHÔNG cộng ví như nạp thường.
+  {
+    const normP = content.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const windows9 = new Set<string>();
+    for (let i = 0; i + 9 <= normP.length; i++) windows9.add(normP.slice(i, i + 9));
+    const purchases = windows9.size ? await prisma.purchasePayment.findMany({
+      where: { code: { in: Array.from(windows9) }, status: { in: ["PENDING", "EXPIRED"] } },
+      select: { id: true, code: true },
+    }) : [];
+    const hit = purchases.find((p) => normP.includes(p.code.toUpperCase()));
+    if (hit) {
+      try {
+        await prisma.webhookReceipt.create({ data: { ref: `PUR:${txId}` } });
+      } catch {
+        return NextResponse.json({ success: true, skipped: "duplicate purchase tx" });
+      }
+      const { settlePurchasePayment } = await import("@/lib/purchase");
+      const r = await settlePurchasePayment(hit.id, { paidVnd: amount, finalIfUnderpaid: "wait" });
+      await prisma.apiLog.create({ data: { kind: "webhook", ref: txId, ok: r.ok, detail: `purchase=${hit.code} amount=${amount} -> ${r.reason}` } });
+      return NextResponse.json({ success: true, purchase: hit.code, result: r.reason });
+    }
+  }
+
   // Tìm mã nạp trong nội dung bằng truy vấn theo index: sinh mọi cửa sổ 6 ký tự
   // của nội dung đã chuẩn hoá rồi tra depositCode trong số đó (không nạp toàn bộ user vào RAM)
   const norm = content.toUpperCase().replace(/[^A-Z0-9]/g, "");

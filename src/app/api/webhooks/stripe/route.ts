@@ -19,7 +19,18 @@ export async function POST(req: NextRequest) {
   const ev: any = JSON.parse(raw || "{}");
   if (ev?.type === "checkout.session.completed" || ev?.type === "checkout.session.async_payment_succeeded") {
     const sess = ev.data?.object;
-    if (sess?.id && sess.payment_status === "paid") await creditExternalDeposit(sess.id, sess.amount_total);
+    if (sess?.id && sess.payment_status === "paid") {
+      const r = await creditExternalDeposit(sess.id, sess.amount_total);
+      if (!r.ok && r.reason === "not_found") {
+        // Không phải phiên nạp -> có thể là thanh toán trực tiếp mua giỏ hàng
+        const { prisma } = await import("@/lib/db");
+        const pp = await prisma.purchasePayment.findUnique({ where: { providerRef: sess.id } });
+        if (pp) {
+          const { settlePurchasePayment } = await import("@/lib/purchase");
+          await settlePurchasePayment(pp.id, {});
+        }
+      }
+    }
   }
   return NextResponse.json({ received: true });
 }

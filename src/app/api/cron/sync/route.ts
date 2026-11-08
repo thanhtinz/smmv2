@@ -150,6 +150,26 @@ export async function GET(req: NextRequest) {
     (result as any).boltPolled = boltPolled;
   } catch { /* lỗi poll BoltUtil không chặn các job khác */ }
 
+  // Thanh toán trực tiếp mua giỏ: quét phiên quá hạn + hỏi lại BoltUtil cho
+  // phiên đang chờ (webhook BoltUtil không tự gửi lại — poll là đường chính).
+  try {
+    const { expireStalePurchases, settleBoltPurchase } = await import("@/lib/purchase");
+    const stale = await prisma.purchasePayment.findMany({ where: { status: "PENDING", method: "BOLTUTIL" }, take: 10, orderBy: { id: "asc" }, select: { id: true, code: true } });
+    let polled = 0;
+    if (stale.length) {
+      const { getBoltConfig, boltGetStatus } = await import("@/lib/boltutil");
+      const cfg = await getBoltConfig().catch(() => null);
+      if (cfg?.enabled) {
+        for (const p of stale) {
+          const st = await boltGetStatus(cfg, p.code).catch(() => null);
+          if (st) { await settleBoltPurchase(p.id, st).catch(() => {}); polled++; }
+        }
+      }
+    }
+    const expired = await expireStalePurchases();
+    (result as any).purchases = { polled, expired };
+  } catch { /* lỗi phiên mua không chặn các job khác */ }
+
   if (req.nextUrl.searchParams.get("services") === "1") {
     const providers = await prisma.provider.findMany({ where: { active: true } });
     for (const p of providers) {

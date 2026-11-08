@@ -47,6 +47,14 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
             <label className="lbl">{L("Secret webhook (API Key của SePay)")} {s.sepay_secret && <span className="font-semibold text-emerald-600">{L("— đã lưu")}</span>}</label>
             <input className="inp" name="sepay_secret" type="password" autoComplete="off" placeholder={s.sepay_secret ? L("Để trống = giữ nguyên") : L("Dán API Key từ SePay vào đây")} />
           </div>
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl bg-slate-50 px-3.5 py-3">
+            <input type="hidden" name="direct_sepay_enabled_present" value="1" />
+            <input type="checkbox" name="direct_sepay_enabled" value="1" defaultChecked={s.direct_sepay_enabled === "1"} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600" />
+            <span>
+              <span className="block text-sm font-bold text-slate-800">{L("Cho phép thanh toán trực tiếp khi mua hàng")}</span>
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-slate-500">{L("Khách mua giỏ hàng trả thẳng bằng QR này (nội dung chứa mã phiên mua), không qua ví.")}</span>
+            </span>
+          </label>
           <p className="text-sm text-slate-500">
             {L("Đang có") + " " + banks.length + " " + L("tài khoản nhận tiền") + (banks.length ? `: ${banks.map((b) => b.bankName).join(", ")}` : "") + " " + L("— quản lý ở trang Ngân hàng.")}
           </p>
@@ -119,6 +127,14 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
             <input className="inp" readOnly value="https://smmv2-zeta.vercel.app/api/webhooks/boltutil" />
           </div>
           <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">{L("BoltUtil không giữ tiền — USDT về thẳng ví nhận đã cấu hình trong dashboard BoltUtil; tiền cộng cho khách theo số thực nhận khi giao dịch đủ xác nhận.")}</p>
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl bg-slate-50 px-3.5 py-3">
+            <input type="hidden" name="direct_boltutil_enabled_present" value="1" />
+            <input type="checkbox" name="direct_boltutil_enabled" value="1" defaultChecked={s.direct_boltutil_enabled === "1"} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600" />
+            <span>
+              <span className="block text-sm font-bold text-slate-800">{L("Cho phép thanh toán trực tiếp khi mua hàng")}</span>
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-slate-500">{L("Khách mua giỏ hàng trả thẳng bằng USDT qua BoltUtil (mạng mặc định ở trên), không qua ví.")}</span>
+            </span>
+          </label>
           <div className="flex flex-wrap gap-3">
             <button className="btn-primary !py-2.5">{L("Lưu BoltUtil")}</button>
           </div>
@@ -150,6 +166,14 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
             </select>
           </div>
           <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">{L("Lấy Client ID / Secret tại PayPal Developer → Apps & Credentials, chọn đúng môi trường khớp ô Môi trường ở trên. PayPal không cần cấu hình webhook.")}</p>
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl bg-slate-50 px-3.5 py-3">
+            <input type="hidden" name="direct_paypal_enabled_present" value="1" />
+            <input type="checkbox" name="direct_paypal_enabled" value="1" defaultChecked={s.direct_paypal_enabled === "1"} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600" />
+            <span>
+              <span className="block text-sm font-bold text-slate-800">{L("Cho phép thanh toán trực tiếp khi mua hàng")}</span>
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-slate-500">{L("Khách mua giỏ hàng trả thẳng qua PayPal, không qua ví.")}</span>
+            </span>
+          </label>
           <div className="flex gap-2">
             <button className="btn-primary !py-2.5">{L("Lưu PayPal")}</button>
             <button formAction={adminPaypalTestAction} className="btn-ghost !py-2.5" title={L("Xin thử access token OAuth bằng Client ID/Secret ở trên (hoặc đã lưu)")}>{L("Kiểm tra kết nối")}</button>
@@ -176,6 +200,14 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
               <CopyBtn text={`${base}/api/webhooks/stripe`} />
             </div>
           </div>
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl bg-slate-50 px-3.5 py-3">
+            <input type="hidden" name="direct_stripe_enabled_present" value="1" />
+            <input type="checkbox" name="direct_stripe_enabled" value="1" defaultChecked={s.direct_stripe_enabled === "1"} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600" />
+            <span>
+              <span className="block text-sm font-bold text-slate-800">{L("Cho phép thanh toán trực tiếp khi mua hàng")}</span>
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-slate-500">{L("Khách mua giỏ hàng trả thẳng qua Stripe Checkout, không qua ví.")}</span>
+            </span>
+          </label>
           <div className="flex gap-2">
             <button className="btn-primary !py-2.5">{L("Lưu Stripe")}</button>
             <button formAction={adminStripeTestAction} className="btn-ghost !py-2.5" title={L("Gọi thử API số dư Stripe bằng Secret Key ở trên (hoặc key đã lưu)")}>{L("Kiểm tra kết nối")}</button>

@@ -205,6 +205,12 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // BoltUtil thay nạp USDT thủ công (2026-11-07): cổng stablecoin không giữ tiền,
   // tiền về thẳng ví nhận của shop cấu hình trong dashboard BoltUtil.
   boltutil_enabled: "0",
+  // Thanh toán trực tiếp khi mua giỏ hàng (2026-11-08): tick riêng từng cổng —
+  // chỉ cổng đang BẬT + có tick mới hiện ở bước xác nhận của giỏ.
+  direct_sepay_enabled: "0",
+  direct_boltutil_enabled: "0",
+  direct_stripe_enabled: "0",
+  direct_paypal_enabled: "0",
   boltutil_api_key: "", // X-Bolt-Key (mã hoá secret-box qua setSetting)
   boltutil_webhook_secret: "", // khoá ký HMAC webhook + gọi API (mã hoá secret-box)
   boltutil_api_url: "", // để trống = https://api.boltutil.com (chỉ đổi khi test mock)
