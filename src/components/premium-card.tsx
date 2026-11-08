@@ -14,6 +14,8 @@ export type PremiumCardData = {
   maxPrice: number;
   sold: number;
   instant: boolean; // AUTO_STOCK — giao ngay từ kho
+  delivery: "FAST" | "SLOW"; // có gói Giao nhanh (resolver WS9) hay chỉ Giao chậm
+  manual: boolean; // fulfillment = MANUAL -> thẻ "Thủ công" trên ảnh
   hasStock: boolean;
   rating: number; // điểm trung bình 0..5 (0 khi chưa có đánh giá)
   reviewCount: number;
@@ -52,7 +54,6 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
   // Công thức flash phía client — khớp applyFlashAmount phía server (lib/flash).
   const flashPrice = (amount: number) =>
     item.flashPct > 0 && amount > 0 ? Math.max(1, Math.round(amount * (1 - Math.min(90, item.flashPct) / 100))) : amount;
-  const range = (lo: number, hi: number) => (hi > lo ? `${m(lo)} ~ ${m(hi)}` : m(lo));
   return (
     // HỢP ĐỒNG CAO ĐỀU (lệnh Tín 2026-11-08): thẻ KHÔNG đặt h-full (làm flex/
     // grid hết kéo giãn theo hàng) — cha (grid/rail) stretch thẻ theo ô cao
@@ -72,22 +73,36 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
         {item.flashPct > 0 && !contact && (
           <span className="absolute left-2 top-2 z-10 rounded-full bg-rose-600 px-2 py-0.5 text-[11px] font-extrabold text-white shadow">-{item.flashPct}%</span>
         )}
+        {/* Tag giao hàng + thủ công NẰM TRÊN ẢNH (lệnh Tín 2026-11-08 01:34):
+            góc dưới-trái của ảnh — không đụng huy hiệu flash ở góc trên-trái. */}
+        <div className="absolute bottom-2 left-2 z-10 flex flex-wrap gap-1.5">
+          {item.delivery === "FAST" ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white shadow">
+              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
+              {t("Giao nhanh")}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-600 px-2 py-0.5 text-[11px] font-bold text-white shadow">
+              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
+              {t("Giao chậm")}
+            </span>
+          )}
+          {item.manual && (
+            <span className="inline-flex items-center rounded-full bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-white shadow">{t("Thủ công")}</span>
+          )}
+        </div>
       </div>
       <div className="flex flex-1 flex-col p-3 sm:p-4">
         <div className="line-clamp-2 min-h-[2.6em] text-[15px] font-bold leading-snug text-slate-900 group-hover:text-brand-700 sm:text-base">{item.name}</div>
-        <div className="mt-2 text-[15px] font-extrabold leading-tight text-rose-600 sm:text-[17px]">
-          {contact ? t("Liên hệ") : range(flashPrice(item.minPrice), flashPrice(item.maxPrice))}
+        {/* Giá LUÔN 1 hàng (lệnh Tín 2026-11-08 01:34): chỉ giá bắt đầu
+            "Từ ..." bọc nowrap — khoảng giá đầy đủ xem ở trang chi tiết. */}
+        <div className="mt-2 whitespace-nowrap text-[15px] font-extrabold leading-tight text-rose-600 sm:text-base">
+          {contact ? t("Liên hệ") : `${t("Từ")} ${m(flashPrice(item.minPrice))}`}
         </div>
-        <div aria-hidden={!(item.flashPct > 0 && !contact)} className={`mt-0.5 h-4 text-xs font-medium leading-4 text-slate-400 line-through ${item.flashPct > 0 && !contact ? "" : "invisible"}`}>{range(item.minPrice, item.maxPrice)}</div>
+        <div aria-hidden={!(item.flashPct > 0 && !contact)} className={`mt-0.5 h-4 whitespace-nowrap text-xs font-medium leading-4 text-slate-400 line-through ${item.flashPct > 0 && !contact ? "" : "invisible"}`}>{`${t("Từ")} ${m(item.minPrice)}`}</div>
         <div className="mt-2 flex min-h-4 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
           {item.reviewCount > 0 && <span className="inline-flex items-center gap-1.5"><Stars value={item.rating} className="h-3.5 w-3.5" /><b className="text-slate-700">{item.rating.toFixed(1)}</b>({item.reviewCount})</span>}
           {item.sold > 0 && <span>{t("Đã bán ")}{item.sold.toLocaleString("vi-VN")}</span>}
-          {item.instant && item.hasStock && (
-            <span className="inline-flex items-center gap-1 font-bold text-brand-600">
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" /></svg>
-              {t("Giao ngay")}
-            </span>
-          )}
         </div>
         <div className="mt-auto flex items-center justify-between gap-2 pt-3">
           {/* CTA thẻ = "Xem sản phẩm" + mũi tên (lệnh Tín 2026-11-08 00:55):

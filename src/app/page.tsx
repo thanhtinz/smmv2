@@ -32,7 +32,7 @@ export default async function HomePage() {
       prisma.premiumProduct.findMany({
         where: { active: true, panelId: null },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true } } },
+        include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true } } },
       }),
     ]);
     const cards = await premiumCardsFor(products as any);

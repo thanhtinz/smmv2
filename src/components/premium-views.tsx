@@ -21,7 +21,7 @@ import { FlashBanner } from "@/components/flash-banner";
 
 /** Dựng dữ liệu thẻ cho một nhóm sản phẩm: khoảng giá gói, tổng đã bán, còn kho. */
 async function buildCardData(
-  products: { id: number; slug: string; name: string; color: string; images: string | null; imageUrl: string | null; fulfillment: string; customFields?: string | null; variants: { id: number; name?: string; price: number; providerGroup?: string | null }[] }[],
+  products: { id: number; slug: string; name: string; color: string; images: string | null; imageUrl: string | null; fulfillment: string; customFields?: string | null; variants: { id: number; name?: string; price: number; providerGroup?: string | null; deliveryType?: string | null }[] }[],
 ): Promise<PremiumCardData[]> {
   const variantProduct = new Map<number, number>();
   for (const p of products) for (const v of p.variants) variantProduct.set(v.id, p.id);
@@ -68,6 +68,8 @@ async function buildCardData(
       maxPrice: prices.length ? Math.max(...prices) : 0,
       sold: soldMap.get(p.id) || 0,
       instant: p.fulfillment === "AUTO_STOCK",
+      delivery: p.variants.some((v) => resolveDeliveryType(v.deliveryType, p.fulfillment) === "FAST") ? "FAST" as const : "SLOW" as const,
+      manual: p.fulfillment === "MANUAL",
       hasStock: (stockByProduct.get(p.id) || 0) > 0,
       rating: rv?.avg || 0,
       reviewCount: rv?.count || 0,
@@ -120,7 +122,7 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
   const allProducts = await prisma.premiumProduct.findMany({
     where: { active: true, ...(catId ? { categoryId: catId } : {}), panelId: null },
     orderBy: { sort: "asc" },
-    include: { category: true, variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true } } },
+    include: { category: true, variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true } } },
   });
   let items = await buildCardData(allProducts);
   const bySlug = new Map(allProducts.map((p) => [p.slug, p]));
@@ -314,7 +316,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   const relatedRaw = await prisma.premiumProduct.findMany({
     where: { active: true, categoryId: product.categoryId, id: { not: product.id }, panelId: null },
     orderBy: { sort: "asc" }, take: 4,
-    include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true } } },
+    include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true } } },
   });
   const related = await buildCardData(relatedRaw);
   // Các khối gập nội dung: xếp chồng trong cột trái, ngay dưới danh sách gói
