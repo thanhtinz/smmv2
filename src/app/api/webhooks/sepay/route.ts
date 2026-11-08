@@ -45,13 +45,16 @@ export async function POST(req: NextRequest) {
 
   // Thanh toán TRỰC TIẾP mua giỏ hàng: nội dung chứa mã phiên MUAxxxxxx ->
   // xử lý như một PurchasePayment (thực thi đơn), KHÔNG cộng ví như nạp thường.
+  // Tra phiên ở MỌI trạng thái: webhook bắn TRÙNG sau khi phiên đã EXECUTED
+  // vẫn phải bị chặn tại đây (claim PUR:<txId>), tuyệt đối không rơi xuống
+  // nhánh khớp mã nạp ví bên dưới.
   {
     const normP = content.toUpperCase().replace(/[^A-Z0-9]/g, "");
     const windows9 = new Set<string>();
     for (let i = 0; i + 9 <= normP.length; i++) windows9.add(normP.slice(i, i + 9));
     const purchases = windows9.size ? await prisma.purchasePayment.findMany({
-      where: { code: { in: Array.from(windows9) }, status: { in: ["PENDING", "EXPIRED"] } },
-      select: { id: true, code: true },
+      where: { code: { in: Array.from(windows9) } },
+      select: { id: true, code: true, status: true },
     }) : [];
     const hit = purchases.find((p) => normP.includes(p.code.toUpperCase()));
     if (hit) {
@@ -59,6 +62,9 @@ export async function POST(req: NextRequest) {
         await prisma.webhookReceipt.create({ data: { ref: `PUR:${txId}` } });
       } catch {
         return NextResponse.json({ success: true, skipped: "duplicate purchase tx" });
+      }
+      if (hit.status !== "PENDING" && hit.status !== "EXPIRED") {
+        return NextResponse.json({ success: true, skipped: "purchase already settled" });
       }
       const { settlePurchasePayment } = await import("@/lib/purchase");
       const r = await settlePurchasePayment(hit.id, { paidVnd: amount, finalIfUnderpaid: "wait" });

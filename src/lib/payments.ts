@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { prisma } from "./db";
 import { applyBalance } from "./wallet";
 import { getSettings, calcBonus, bonusTiersFor, DEFAULT_SETTINGS } from "./settings";
+import { fxDepositRate } from "./rates";
 import { genCode } from "./format";
 
 /** Nạp tiền qua cổng quốc tế (PayPal / Stripe): khách trả USD, hệ thống cộng VND theo tỉ giá usd_rate.
@@ -15,26 +16,44 @@ export const MIN_USD = 5;
  *  Dùng cho cả lúc tạo checkout, trang quay về và webhook. */
 export type IntlConfig = {
   source: "mother";
+  /** Tỉ giá USD đang dùng (chưa trừ biên) — dùng cho quy đổi MUA HÀNG trực tiếp. */
   rate: number;
+  /** Tỉ giá cộng tiền NẠP hiệu lực: bằng rate, trừ biên an toàn khi đang dùng
+   *  tỉ giá auto không khoá tay. Trang nạp hiển thị đúng số này cho khách. */
+  depositRate: number;
+  depositMarginApplied: boolean;
+  depositMarginPercent: number;
   minUsd: number;
+  /** paypal/stripe = thông tin cổng ĐÃ CẤU HÌNH (đủ key) — dùng cho thanh toán
+   *  trực tiếp, trang quay về và webhook, bất kể tick mục đích nào đang bật. */
   paypal: { clientId: string; secret: string; mode: string } | null;
   stripe: { secretKey: string; webhookSecret: string | null } | null;
+  /** Tick mục đích "Nạp vào ví" của từng cổng (đúng setting *_enabled cũ). */
+  paypalDepositEnabled: boolean;
+  stripeDepositEnabled: boolean;
 };
 
 export async function resolveIntlConfig(userId: number): Promise<IntlConfig> {
   const s = await getSettings();
   let rate = parseInt(s.usd_rate || DEFAULT_SETTINGS.usd_rate, 10) || Number(DEFAULT_SETTINGS.usd_rate);
   let paypal: IntlConfig["paypal"] =
-    s.paypal_enabled === "1" && s.paypal_client_id && s.paypal_client_secret
+    s.paypal_client_id && s.paypal_client_secret
       ? { clientId: s.paypal_client_id, secret: s.paypal_client_secret, mode: s.paypal_mode || "sandbox" }
       : null;
   let stripe: IntlConfig["stripe"] =
-    s.stripe_enabled === "1" && s.stripe_secret_key
+    s.stripe_secret_key
       ? { secretKey: s.stripe_secret_key, webhookSecret: s.stripe_webhook_secret || null }
       : null;
+  const dep = fxDepositRate(s, "USD");
   const minUsd = parseInt(s.intl_min_usd) || MIN_USD;
   const source: IntlConfig["source"] = "mother";
-  return { source, rate, paypal, stripe, minUsd };
+  return {
+    source, rate,
+    depositRate: dep.rate, depositMarginApplied: dep.marginApplied, depositMarginPercent: dep.marginPercent,
+    paypal, stripe, minUsd,
+    paypalDepositEnabled: s.paypal_enabled === "1" && !!paypal,
+    stripeDepositEnabled: s.stripe_enabled === "1" && !!stripe,
+  };
 }
 
 /** Như resolveIntlConfig nhưng tra từ externalId của Deposit (trang quay về / capture). */
@@ -223,10 +242,7 @@ export async function paypalTestConnection(clientId: string, secret: string, mod
   return `đã lấy được access token (môi trường ${mode === "live" ? "Live" : "Sandbox"})`;
 }
 
-export async function sepayTestConnection(apiKey: string, baseUrl = "https://userapi.sepay.vn"): Promise<string> {
-  const r = await fetch(`${baseUrl}/v2/bank-accounts`, { headers: { Authorization: `Bearer ${apiKey}` } });
-  const j: any = await r.json().catch(() => null);
-  if (!r.ok) throw new Error(j?.message || j?.error || `SePay HTTP ${r.status}`);
-  const n = Array.isArray(j?.data) ? j.data.length : 0;
-  return `API key hợp lệ — ${n} tài khoản ngân hàng đã liên kết`;
-}
+/* SePay KHÔNG có API gọi thử tương đương cho secret webhook: kiểm tra của
+ * SePay là kiểm tra TRẠNG THÁI trung thực (URL webhook + lần webhook gần
+ * nhất nhận được, đọc từ ApiLog/WebhookReceipt) — nằm ở adminSepayStatusAction,
+ * TUYỆT ĐỐI không giả vờ đã gọi thử SePay. */

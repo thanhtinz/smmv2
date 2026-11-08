@@ -8,7 +8,8 @@ import { requireUser, currentIp } from "@/lib/auth";
 import { createSmmOrder, createPremiumOrder } from "@/lib/orders";
 import { notifyUser } from "@/lib/notify";
 import { applyBalance } from "@/lib/wallet";
-import { getSettings, calcBonus, bonusTiersFor, usdtRateOf } from "@/lib/settings";
+import { getSettings, calcBonus, bonusTiersFor } from "@/lib/settings";
+import { usdtDepositRate } from "@/lib/rates";
 import { moduleOn } from "@/lib/modules";
 import { rateLimitExceeded } from "@/lib/rate-limit";
 import { passwordError } from "@/lib/security";
@@ -188,6 +189,7 @@ export async function createDepositAction(formData: FormData) {
   // action riêng; nhận method lạ từ form là tạo yêu cầu nạp giả gây nhiễu hàng duyệt.
   if (!["BANK", "MOMO"].includes(method)) back("/dashboard/nap-tien", "err", "Phương thức nạp không hợp lệ");
   const settings = await getSettings();
+  if (settings.sepay_enabled === "0") back("/dashboard/nap-tien", "err", "Phương thức nạp QR ngân hàng hiện đang tắt");
   const min = parseInt(settings.deposit_min);
   if (!amount || amount < min) back("/dashboard/nap-tien", "err", `Số tiền nạp tối thiểu là ${min.toLocaleString("vi-VN")}đ`);
   const bonus = calcBonus(amount, bonusTiersFor(null, false, settings.deposit_bonus_tiers));
@@ -409,12 +411,13 @@ export async function startStripeCheckoutAction(formData: FormData) {
   if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, stripeCreateCheckout, siteOrigin, resolveIntlConfig } = await import("@/lib/payments");
   const cfg = await resolveIntlConfig(user.id);
-  if (!cfg.stripe) back("/dashboard/nap-tien", "err", "Stripe chưa được cấu hình");
+  if (!cfg.stripe || !cfg.stripeDepositEnabled) back("/dashboard/nap-tien", "err", "Stripe chưa được cấu hình");
   const usd = parseFloat(String(formData.get("usd") || "0"));
   const minUsd = cfg.minUsd || MIN_USD;
   if (!usd || usd < minUsd) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${minUsd}`);
   const usdCents = Math.round(usd * 100);
-  const amountVnd = Math.round(usd * cfg.rate);
+  // Cộng tiền theo tỉ giá NẠP hiệu lực (đã trừ biên an toàn nếu dùng tỉ giá auto).
+  const amountVnd = Math.round(usd * cfg.depositRate);
   const dep = await createPendingDeposit(user.id, "STRIPE", amountVnd, usdCents);
   const origin = await siteOrigin();
   let url = "";
@@ -441,12 +444,13 @@ export async function startPaypalCheckoutAction(formData: FormData) {
   if (rateLimitExceeded(`dep|${user.id}`, 10, 3600000)) back("/dashboard/nap-tien", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   const { MIN_USD, createPendingDeposit, attachExternalId, failDeposit, paypalAccessToken, paypalCreateOrder, siteOrigin, resolveIntlConfig } = await import("@/lib/payments");
   const cfg = await resolveIntlConfig(user.id);
-  if (!cfg.paypal) back("/dashboard/nap-tien", "err", "PayPal chưa được cấu hình");
+  if (!cfg.paypal || !cfg.paypalDepositEnabled) back("/dashboard/nap-tien", "err", "PayPal chưa được cấu hình");
   const usd = parseFloat(String(formData.get("usd") || "0"));
   const minUsd = cfg.minUsd || MIN_USD;
   if (!usd || usd < minUsd) back("/dashboard/nap-tien", "err", `Số tiền tối thiểu $${minUsd}`);
   const usdCents = Math.round(usd * 100);
-  const amountVnd = Math.round(usd * cfg.rate);
+  // Cộng tiền theo tỉ giá NẠP hiệu lực (đã trừ biên an toàn nếu dùng tỉ giá auto).
+  const amountVnd = Math.round(usd * cfg.depositRate);
   const dep = await createPendingDeposit(user.id, "PAYPAL", amountVnd, usdCents);
   const origin = await siteOrigin();
   let url = "";
@@ -484,7 +488,9 @@ export async function createBoltDepositAction(formData: FormData) {
   const enabledNetworks = boltEnabledNetworks(settings);
   const networkRaw = String(formData.get("network") || cfg.defaultNetwork).toUpperCase();
   const network = enabledNetworks.includes(networkRaw) ? networkRaw : (enabledNetworks.includes(cfg.defaultNetwork) ? cfg.defaultNetwork : enabledNetworks[0]);
-  const rate = usdtRateOf(settings);
+  // Tỉ giá NẠP USDT hiệu lực (trừ biên an toàn khi đang dùng tỉ giá auto) —
+  // snapshot vào providerData, lúc đối soát cộng đúng theo số này.
+  const rate = usdtDepositRate(settings).rate;
   const usd = Math.round((amountVnd / rate) * 100) / 100;
   const minUsdt = parseFloat(settings.usdt_min || "") || 5;
   if (amountVnd < 10000) back("/dashboard/nap-tien", "err", "Số tiền nạp tối thiểu là 10.000đ");

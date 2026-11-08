@@ -29,6 +29,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // Thanh toán quốc tế (PayPal / Stripe) — khách trả USD, hệ thống cộng VND theo tỉ giá này
   usd_rate: "25000",
   sepay_secret: "",
+  sepay_enabled: "1", // tick mục đích "Nạp vào ví" của SePay (mặc định bật — giữ nguyên hành vi cũ)
   cron_secret: "",
   intl_min_usd: "5",
   premium_max_qty: "50",
@@ -198,10 +199,20 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   rate_jpy: "165",
   rate_krw: "18",
   usdt_rate: "", // tỉ giá riêng 1 USDT (VNĐ) — để trống = dùng usd_rate
-  // Tỉ giá thị trường tự động (2026-11-08): cron kéo từ open.er-api.com khi bật
+  // Tỉ giá thị trường tự động (2026-11-08): nguồn CHÍNH Frankfurter v2, dự phòng
+  // open.er-api.com — cả hai là tỉ giá THAM CHIẾU THEO NGÀY. Mỗi tiền tệ có bộ ba
+  // fx_manual_<code> / fx_auto_<code> / fx_lock_<code> (rỗng = suy từ tỉ giá hiệu
+  // lực hiện tại); khoá tay = auto không bao giờ ghi đè tỉ giá đang dùng.
   rates_auto_enabled: "0",
   rates_auto_updated_at: "", // ISO lần cập nhật tự động gần nhất
-  rates_auto_source: "", // nguồn tỉ giá tự động đang dùng
+  rates_auto_source: "", // nguồn tỉ giá tự động đã dùng ở lần cập nhật gần nhất
+  rates_auto_error: "", // lỗi cập nhật tự động gần nhất (rỗng = lần cuối thành công)
+  fx_safety_margin_percent: "1", // % biên an toàn khi cộng tiền NẠP bằng tỉ giá auto (không khoá tay)
+  // Log lần kiểm tra kết nối gần nhất của từng cổng nạp (JSON {at, ok, detail})
+  gateway_test_sepay: "",
+  gateway_test_boltutil: "",
+  gateway_test_paypal: "",
+  gateway_test_stripe: "",
   // BoltUtil thay nạp USDT thủ công (2026-11-07): cổng stablecoin không giữ tiền,
   // tiền về thẳng ví nhận của shop cấu hình trong dashboard BoltUtil.
   boltutil_enabled: "0",
@@ -211,6 +222,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   direct_boltutil_enabled: "0",
   direct_stripe_enabled: "0",
   direct_paypal_enabled: "0",
+  purchase_payment_expires_minutes: "30", // hạn chờ của 1 phiên thanh toán trực tiếp ở giỏ (phút)
   boltutil_api_key: "", // X-Bolt-Key (mã hoá secret-box qua setSetting)
   boltutil_webhook_secret: "", // khoá ký HMAC webhook + gọi API (mã hoá secret-box)
   boltutil_api_url: "", // để trống = https://api.boltutil.com (chỉ đổi khi test mock)

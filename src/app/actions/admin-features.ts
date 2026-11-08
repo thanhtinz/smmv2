@@ -287,17 +287,27 @@ export async function cleanupAllAction(formData: FormData) {
 /* ---------- Tiền tệ: tỉ giá quy đổi hiển thị ---------- */
 export async function saveRatesAction(formData: FormData) {
   await requireAdmin();
-  for (const k of ["usd_rate", "rate_eur", "rate_cny", "rate_thb", "rate_jpy", "rate_krw", "usdt_rate"]) {
-    const v = parseFloat(str(formData, k).replace(",", "."));
-    if (!isNaN(v) && v > 0) await setSetting(k, String(v));
+  if (str(formData, "rates_form_full") === "1") {
+    // Form tỉ giá ĐẦY ĐỦ (trang Cấu hình nạp tiền): tỉ giá tay + khoá tay từng
+    // tiền tệ + biên an toàn + công tắc auto + thêm tiền tệ — qua lib/rates.
+    const { saveFxSettingsForm } = await import("@/lib/rates");
+    await saveFxSettingsForm(formData);
+  } else {
+    // Form tỉ giá gọn (trang Tiền tệ): số admin nhập là tỉ giá TAY — ghi vào
+    // fx_manual_* rồi đồng bộ tỉ giá đang dùng (auto không khoá tay vẫn theo auto).
+    const LEGACY: Record<string, string> = { usd_rate: "usd", rate_eur: "eur", rate_cny: "cny", rate_thb: "thb", rate_jpy: "jpy", rate_krw: "krw", usdt_rate: "usdt" };
+    let touched = false;
+    for (const [k, lc] of Object.entries(LEGACY)) {
+      const v = parseFloat(str(formData, k).replace(",", "."));
+      if (!isNaN(v) && v > 0) { await setSetting(`fx_manual_${lc}`, String(v)); touched = true; }
+    }
+    if (touched) {
+      const { syncAllEffectiveRates } = await import("@/lib/rates");
+      await syncAllEffectiveRates();
+    }
   }
   const minUsd = parseInt(str(formData, "intl_min_usd"));
   if (!isNaN(minUsd) && minUsd >= 1) await setSetting("intl_min_usd", String(minUsd));
-  // Công tắc tỉ giá tự động chỉ có ở form tỉ giá ĐẦY ĐỦ (trang Cấu hình nạp
-  // tiền, có field ẩn rates_form_full) — form ở trang Tiền tệ không đụng vào.
-  if (str(formData, "rates_form_full") === "1") {
-    await setSetting("rates_auto_enabled", formData.get("rates_auto_enabled") === "on" ? "1" : "0");
-  }
   const backTo = str(formData, "back");
   done(backTo.startsWith("/admin/") ? backTo : "/admin/tien-te", "Đã lưu tỉ giá");
 }

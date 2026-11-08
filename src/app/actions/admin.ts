@@ -564,18 +564,43 @@ export async function adminPremiumOrderAction(formData: FormData) {
 }
 
 /* ---------- Nạp tiền ---------- */
-/** Kiểm tra kết nối BoltUtil (GET /api/v1/ping bằng khoá đã cấu hình). */
-export async function adminBoltPingAction() {
+/** Ghi log lần kiểm tra cổng gần nhất vào Settings — mở lại trang cấu hình
+ *  là thấy lần test cuối (giờ + đạt/không + chi tiết). */
+async function recordGatewayTest(method: "sepay" | "boltutil" | "paypal" | "stripe", ok: boolean, detail: string) {
+  await setSetting(`gateway_test_${method}`, JSON.stringify({ at: new Date().toISOString(), ok, detail: detail.slice(0, 250) }));
+}
+
+/** Kiểm tra kết nối BoltUtil (GET /api/v1/ping) — nút nằm TRONG thẻ BoltUtil,
+ *  ưu tiên API key/secret admin vừa gõ trong form (chưa lưu) như các cổng khác. */
+export async function adminBoltPingAction(formData?: FormData) {
   await requireAdmin();
+  const s = await getSettings();
   const { getBoltConfig, boltPing } = await import("@/lib/boltutil");
-  const cfg = await getBoltConfig();
-  if (!cfg.apiKey || !cfg.webhookSecret) back("/admin/cau-hinh-nap-tien", "err", "Chưa nhập API key / webhook secret của BoltUtil");
+  const base = await getBoltConfig();
+  const cfg: Awaited<ReturnType<typeof getBoltConfig>> = { ...base };
+  if (formData) {
+    const k = pickSubmitted(formData, "boltutil_api_key", base.apiKey);
+    if (k) cfg.apiKey = k;
+    const w = pickSubmitted(formData, "boltutil_webhook_secret", base.webhookSecret);
+    if (w) cfg.webhookSecret = w;
+    const u = String(formData.get("boltutil_api_url") || "").trim();
+    if (u) cfg.apiUrl = u;
+  }
+  if (!cfg.apiKey || !cfg.webhookSecret) {
+    await recordGatewayTest("boltutil", false, "Chưa nhập API key / webhook secret");
+    back("/admin/cau-hinh-nap-tien", "err", "Chưa nhập API key / webhook secret của BoltUtil");
+  }
+  // KHÔNG gọi back() trong try: back() ném NEXT_REDIRECT, catch sẽ nuốt mất
+  // và biến kết quả thành công thành "thất bại: NEXT_REDIRECT".
+  let pingErr = "";
   try {
     await boltPing(cfg);
-    back("/admin/cau-hinh-nap-tien", "msg", "Kết nối BoltUtil OK — API key và chữ ký hợp lệ");
   } catch (e: any) {
-    back("/admin/cau-hinh-nap-tien", "err", `Kết nối BoltUtil thất bại: ${String(e?.message || e).slice(0, 160)}`);
+    pingErr = String(e?.message || e).slice(0, 160);
   }
+  await recordGatewayTest("boltutil", !pingErr, pingErr || "API key và chữ ký hợp lệ (ping)");
+  if (pingErr) back("/admin/cau-hinh-nap-tien", "err", `Kết nối BoltUtil thất bại: ${pingErr}`);
+  back("/admin/cau-hinh-nap-tien", "msg", "Kết nối BoltUtil OK — API key và chữ ký hợp lệ");
 }
 
 /** Ưu tiên giá trị admin VỪA GÕ trong form (chưa lưu) để test trước khi lưu;
@@ -590,14 +615,21 @@ export async function adminStripeTestAction(formData: FormData) {
   await requireAdmin();
   const s = await getSettings();
   const key = pickSubmitted(formData, "stripe_secret_key", String(s.stripe_secret_key || "").trim());
-  if (!key) back("/admin/cau-hinh-nap-tien", "err", "Chưa nhập Secret Key của Stripe");
-  try {
-    const { stripeTestConnection } = await import("@/lib/payments");
-    const detail = await stripeTestConnection(key);
-    back("/admin/cau-hinh-nap-tien", "msg", `Kết nối Stripe OK — ${detail}`);
-  } catch (e: any) {
-    back("/admin/cau-hinh-nap-tien", "err", `Kết nối Stripe thất bại: ${String(e?.message || e).slice(0, 160)}`);
+  if (!key) {
+    await recordGatewayTest("stripe", false, "Chưa nhập Secret Key");
+    back("/admin/cau-hinh-nap-tien", "err", "Chưa nhập Secret Key của Stripe");
   }
+  const { stripeTestConnection } = await import("@/lib/payments");
+  let detail = "";
+  let testErr = "";
+  try {
+    detail = await stripeTestConnection(key);
+  } catch (e: any) {
+    testErr = String(e?.message || e).slice(0, 160);
+  }
+  await recordGatewayTest("stripe", !testErr, testErr || detail);
+  if (testErr) back("/admin/cau-hinh-nap-tien", "err", `Kết nối Stripe thất bại: ${testErr}`);
+  back("/admin/cau-hinh-nap-tien", "msg", `Kết nối Stripe OK — ${detail}`);
 }
 
 /** Kiểm tra kết nối PayPal (xin access token OAuth bằng Client ID/Secret). */
@@ -607,44 +639,62 @@ export async function adminPaypalTestAction(formData: FormData) {
   const clientId = String(formData.get("paypal_client_id") || "").trim() || String(s.paypal_client_id || "").trim();
   const secret = pickSubmitted(formData, "paypal_client_secret", String(s.paypal_client_secret || "").trim());
   const mode = String(formData.get("paypal_mode") || s.paypal_mode || "sandbox");
-  if (!clientId || !secret) back("/admin/cau-hinh-nap-tien", "err", "Chưa nhập Client ID / Client Secret của PayPal");
-  try {
-    const { paypalTestConnection } = await import("@/lib/payments");
-    const detail = await paypalTestConnection(clientId, secret, mode);
-    back("/admin/cau-hinh-nap-tien", "msg", `Kết nối PayPal OK — ${detail}`);
-  } catch (e: any) {
-    back("/admin/cau-hinh-nap-tien", "err", `Kết nối PayPal thất bại: ${String(e?.message || e).slice(0, 160)}`);
+  if (!clientId || !secret) {
+    await recordGatewayTest("paypal", false, "Chưa nhập Client ID / Client Secret");
+    back("/admin/cau-hinh-nap-tien", "err", "Chưa nhập Client ID / Client Secret của PayPal");
   }
+  const { paypalTestConnection } = await import("@/lib/payments");
+  let detail = "";
+  let testErr = "";
+  try {
+    detail = await paypalTestConnection(clientId, secret, mode);
+  } catch (e: any) {
+    testErr = String(e?.message || e).slice(0, 160);
+  }
+  await recordGatewayTest("paypal", !testErr, testErr || detail);
+  if (testErr) back("/admin/cau-hinh-nap-tien", "err", `Kết nối PayPal thất bại: ${testErr}`);
+  back("/admin/cau-hinh-nap-tien", "msg", `Kết nối PayPal OK — ${detail}`);
 }
 
-/** Kiểm tra kết nối SePay (GET /v2/bank-accounts bằng API key đã lưu). Lưu ý:
- *  đây là API dữ liệu của SePay — key chỉ dùng cho webhook mà SePay cấp riêng
- *  có thể bị từ chối ở đây dù webhook vẫn nhận bình thường. */
-export async function adminSepayTestAction(formData: FormData) {
+/** Kiểm tra TRẠNG THÁI SePay — SePay không có API gọi thử tương đương cho
+ *  secret webhook, nên mức kiểm tra trung thực là: URL webhook đã cấu hình
+ *  + lần webhook gần nhất hệ thống nhận được (ApiLog kind "webhook" /
+ *  WebhookReceipt). KHÔNG giả vờ đã gọi thử SePay. */
+export async function adminSepayStatusAction() {
   await requireAdmin();
   const s = await getSettings();
-  const key = pickSubmitted(formData, "sepay_secret", String(s.sepay_secret || "").trim());
-  if (!key) back("/admin/cau-hinh-nap-tien", "err", "Chưa nhập API Key của SePay");
-  try {
-    const { sepayTestConnection } = await import("@/lib/payments");
-    const detail = await sepayTestConnection(key);
-    back("/admin/cau-hinh-nap-tien", "msg", `Kết nối SePay OK — ${detail}`);
-  } catch (e: any) {
-    back("/admin/cau-hinh-nap-tien", "err", `Kết nối SePay thất bại: ${String(e?.message || e).slice(0, 160)}`);
+  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn";
+  const url = `${base}/api/webhooks/sepay`;
+  const lastLog = await prisma.apiLog.findFirst({ where: { kind: "webhook" }, orderBy: { id: "desc" }, select: { createdAt: true } });
+  const lastReceipt = await prisma.webhookReceipt.findFirst({ orderBy: { id: "desc" }, select: { createdAt: true } });
+  const lastAt = lastLog?.createdAt || lastReceipt?.createdAt || null;
+  const lastText = lastAt ? new Date(lastAt).toLocaleString("vi-VN") : "chưa nhận webhook nào";
+  if (!s.sepay_secret) {
+    await recordGatewayTest("sepay", false, `Chưa cấu hình secret webhook · Webhook gần nhất: ${lastText}`);
+    back("/admin/cau-hinh-nap-tien", "err", `SePay: chưa cấu hình secret webhook. URL webhook: ${url} · Lần nhận gần nhất: ${lastText}`);
   }
+  const detail = `URL webhook đã cấu hình · Webhook gần nhất: ${lastText}`;
+  await recordGatewayTest("sepay", true, detail);
+  back("/admin/cau-hinh-nap-tien", "msg", `Trạng thái SePay — ${detail} (${url})`);
 }
 
-/** Cập nhật tỉ giá thị trường NGAY (bất kể công tắc tự động) — Admin → Cấu hình nạp tiền. */
-export async function adminFetchRatesNowAction() {
+/** Cập nhật tỉ giá thị trường NGAY — lưu trước các ô tỉ giá đang có trong
+ *  form (tay/khoá/biên/công tắc), rồi kéo số auto từ nguồn chính Frankfurter
+ *  (lỗi thì dự phòng open.er-api). Đồng khoá tay không bị ghi đè. */
+export async function adminFetchRatesNowAction(formData?: FormData) {
   await requireAdmin();
+  const { applyMarketRates, saveFxSettingsForm } = await import("@/lib/rates");
+  let result: Awaited<ReturnType<typeof applyMarketRates>> | null = null;
+  let fetchErr = "";
   try {
-    const { applyMarketRates } = await import("@/lib/rates");
-    const r = await applyMarketRates({ force: true });
-    const s = await getSettings();
-    back("/admin/cau-hinh-nap-tien", "msg", `Đã cập nhật tỉ giá thị trường (${r.updated.join(", ")}) — 1 USD = ${Number(s.usd_rate || 0).toLocaleString("vi-VN")}đ`);
+    if (formData && String(formData.get("rates_form_full") || "") === "1") await saveFxSettingsForm(formData);
+    result = await applyMarketRates({ force: true });
   } catch (e: any) {
-    back("/admin/cau-hinh-nap-tien", "err", `Cập nhật tỉ giá thất bại: ${String(e?.message || e).slice(0, 160)}`);
+    fetchErr = String(e?.message || e).slice(0, 160);
   }
+  if (fetchErr || !result) back("/admin/cau-hinh-nap-tien", "err", `Cập nhật tỉ giá thất bại: ${fetchErr}`);
+  const s = await getSettings();
+  back("/admin/cau-hinh-nap-tien", "msg", `Đã kéo tỉ giá tự động (${result.updated.join(", ")}) từ ${result.source} — 1 USD đang dùng = ${Number(s.usd_rate || 0).toLocaleString("vi-VN")}đ`);
 }
 
 export async function adminDepositAction(formData: FormData) {
@@ -765,6 +815,17 @@ export async function adminSaveSettings(formData: FormData) {
     const v = formData.get(k);
     if (v !== null) { await setSetting(k, String(v).trim()); savedKeys.push(k); }
   }
+  // Ô tỉ giá ở trang này là tỉ giá TAY: mirror sang fx_manual_* rồi đồng bộ
+  // lại tỉ giá đang dùng (đồng đang dùng auto không khoá tay vẫn theo auto).
+  const RATE_MIRROR: Record<string, string> = { usd_rate: "usd", rate_eur: "eur", rate_cny: "cny", rate_thb: "thb", rate_jpy: "jpy", rate_krw: "krw", usdt_rate: "usdt" };
+  let mirrored = false;
+  for (const [k, lc] of Object.entries(RATE_MIRROR)) {
+    if (savedKeys.includes(k)) { await setSetting(`fx_manual_${lc}`, String(formData.get(k) || "").trim()); mirrored = true; }
+  }
+  if (mirrored) {
+    const { syncAllEffectiveRates } = await import("@/lib/rates");
+    await syncAllEffectiveRates();
+  }
   await auditAdmin(actor, "settings.update", "setting", "adminSaveSettings", `Lưu ${savedKeys.length} mục cấu hình`);
   done("/admin/cau-hinh", "Đã lưu cấu hình");
 }
@@ -794,7 +855,7 @@ export async function adminSaveMethodsAction(formData: FormData) {
   }
   const keys = [
     "sepay_secret", "intl_min_usd", "usd_rate", "deposit_min", "deposit_bonus_tiers", "affiliate_percent",
-    "usdt_rate", "usdt_min",
+    "usdt_rate", "usdt_min", "purchase_payment_expires_minutes",
     "boltutil_enabled", "boltutil_api_key", "boltutil_webhook_secret", "boltutil_api_url", "boltutil_default_network", "boltutil_expires_minutes", "boltutil_payment_method",
     "paypal_enabled", "paypal_client_id", "paypal_client_secret", "paypal_mode",
     "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret",
@@ -817,6 +878,13 @@ export async function adminSaveMethodsAction(formData: FormData) {
   // field ẩn *_present thì mới ghi (cả khi bỏ tick -> "0"), tránh form cổng
   // này ghi đè tick của cổng khác.
   for (const k of ["direct_sepay_enabled", "direct_boltutil_enabled", "direct_stripe_enabled", "direct_paypal_enabled"]) {
+    if (formData.get(`${k}_present`) === "1") {
+      await setSetting(k, formData.get(k) === "1" ? "1" : "0");
+    }
+  }
+  // Tick mục đích "Nạp vào ví" (= setting *_enabled cũ của từng cổng; SePay
+  // có setting riêng mặc định bật) — cùng cơ chế *_present như tick trực tiếp.
+  for (const k of ["sepay_enabled", "boltutil_enabled", "paypal_enabled", "stripe_enabled"]) {
     if (formData.get(`${k}_present`) === "1") {
       await setSetting(k, formData.get(k) === "1" ? "1" : "0");
     }

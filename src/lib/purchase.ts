@@ -40,7 +40,9 @@ const savePurchaseData = async (id: number, patch: Record<string, any>) => {
   await prisma.purchasePayment.update({ where: { id }, data: { providerData: JSON.stringify({ ...parsePurchaseData(pp), ...patch }) } });
 };
 
-/** Cổng nào được phép thanh toán trực tiếp lúc này (bật + tick + đủ cấu hình). */
+/** Cổng nào được phép thanh toán trực tiếp lúc này: có tick "Thanh toán trực
+ *  tiếp" + đủ cấu hình. Hai tick mục đích ĐỘC LẬP — cổng chỉ mở trực tiếp
+ *  (tắt nạp ví) vẫn hiện ở giỏ, và ngược lại. */
 export async function availableDirectMethods(): Promise<{ id: DirectMethodId; name: string }[]> {
   const s = await getSettings();
   const out: { id: DirectMethodId; name: string }[] = [];
@@ -48,9 +50,9 @@ export async function availableDirectMethods(): Promise<{ id: DirectMethodId; na
     const bank = await prisma.bankAccount.findFirst({ where: { active: true }, select: { id: true } });
     if (bank) out.push(DIRECT_METHODS[0]);
   }
-  if (s.direct_boltutil_enabled === "1" && s.boltutil_enabled === "1" && s.boltutil_api_key && s.boltutil_webhook_secret) out.push(DIRECT_METHODS[1]);
-  if (s.direct_stripe_enabled === "1" && s.stripe_enabled === "1" && s.stripe_secret_key) out.push(DIRECT_METHODS[2]);
-  if (s.direct_paypal_enabled === "1" && s.paypal_enabled === "1" && s.paypal_client_id && s.paypal_client_secret) out.push(DIRECT_METHODS[3]);
+  if (s.direct_boltutil_enabled === "1" && s.boltutil_api_key && s.boltutil_webhook_secret) out.push(DIRECT_METHODS[1]);
+  if (s.direct_stripe_enabled === "1" && s.stripe_secret_key) out.push(DIRECT_METHODS[2]);
+  if (s.direct_paypal_enabled === "1" && s.paypal_client_id && s.paypal_client_secret) out.push(DIRECT_METHODS[3]);
   return out;
 }
 
@@ -90,7 +92,8 @@ export async function createPurchasePayment(input: {
     lines: input.lines.slice(0, 50).map((l, i) => ({ variantId: l.variantId, qty: Math.max(1, Math.floor(l.qty) || 1), custom: l.custom || {}, buyerInfo: l.buyerInfo || null, share: shares[i] })),
     promo: input.promoCode?.trim() ? input.promoCode.trim().toUpperCase() : null,
   };
-  const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+  const expiryMinutes = Math.min(120, Math.max(5, parseInt(s.purchase_payment_expires_minutes || "30") || 30));
+  const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
   const pp = await prisma.purchasePayment.create({
     data: { code: "TMP", userId: input.userId, method: input.method, amount: total, status: "PENDING", snapshot: JSON.stringify(snapshot), expiresAt },
   });
@@ -109,14 +112,16 @@ export async function createPurchasePayment(input: {
     } else if (input.method === "BOLTUTIL") {
       const { getBoltConfig, boltCreateOrder } = await import("@/lib/boltutil");
       const cfg = await getBoltConfig();
-      if (!cfg.enabled) throw new Error("Cổng USDT đang tắt hoặc chưa cấu hình");
+      if (!cfg.configured) throw new Error("Cổng USDT chưa cấu hình đủ API key / webhook secret");
       const rate = usdtRateOf(s);
       const usd = Math.round((total / rate) * 100) / 100;
       const minUsd = parseFloat(s.usdt_min || "") || 5;
       if (usd < minUsd) throw new Error(`Tổng đơn chưa đạt tối thiểu ${minUsd} USD của cổng USDT`);
       const network = cfg.defaultNetwork;
       const order = await boltCreateOrder(cfg, { externalOrderId: code, amountUsd: usd, network });
-      await prisma.purchasePayment.update({ where: { id: pp.id }, data: { providerRef: `bolt:${code}`, expiresAt: order.expiresAt ? new Date(order.expiresAt) : expiresAt } });
+      // Hạn phiên = hạn cấu hình của web, hoặc hạn cổng trả về nếu sớm hơn.
+      const boltExpiry = order.expiresAt ? new Date(order.expiresAt) : null;
+      await prisma.purchasePayment.update({ where: { id: pp.id }, data: { providerRef: `bolt:${code}`, expiresAt: boltExpiry && boltExpiry < expiresAt ? boltExpiry : expiresAt } });
       await savePurchaseData(pp.id, {
         rateVndPerUsd: rate, network, currency: "USDT", boltOrderId: order.orderId || null,
         checkoutUrl: order.checkoutUrl || order.paymentUrl || null,

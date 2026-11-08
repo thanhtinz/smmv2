@@ -13,7 +13,10 @@ import { getSettings, calcBonus, bonusTiersFor } from "./settings";
  */
 
 export type BoltConfig = {
+  /** Tick mục đích "Nạp vào ví" + đủ key. */
   enabled: boolean;
+  /** Đủ API key + webhook secret (dùng cho thanh toán trực tiếp kể cả khi tick nạp ví tắt). */
+  configured: boolean;
   apiKey: string;
   webhookSecret: string;
   apiUrl: string;
@@ -35,6 +38,7 @@ export async function getBoltConfig(): Promise<BoltConfig> {
   const exp = parseInt(s.boltutil_expires_minutes || "30") || 30;
   return {
     enabled: s.boltutil_enabled === "1" && !!s.boltutil_api_key && !!s.boltutil_webhook_secret,
+    configured: !!s.boltutil_api_key && !!s.boltutil_webhook_secret,
     apiKey: s.boltutil_api_key || "",
     webhookSecret: s.boltutil_webhook_secret || "",
     apiUrl: (s.boltutil_api_url || "https://api.boltutil.com").replace(/\/+$/, ""),

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getSettings, depositContent, vietQrUrl, usdtRateOf } from "@/lib/settings";
+import { getSettings, depositContent, vietQrUrl } from "@/lib/settings";
+import { usdtDepositRate } from "@/lib/rates";
 import { vietqrUrl } from "@/lib/vietqr";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { DepositCard } from "@/components/deposit-card";
@@ -27,21 +28,23 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
   // Method quốc tế theo cấu hình của web mẹ
   const { resolveIntlConfig } = await import("@/lib/payments");
   const intlCfg = await resolveIntlConfig(user.id);
-  const paypalOn = !!intlCfg.paypal;
-  const stripeOn = !!intlCfg.stripe;
+  // Trang nạp CHỈ hiện method có tick mục đích "Nạp vào ví" (+ đủ cấu hình).
+  const paypalOn = intlCfg.paypalDepositEnabled;
+  const stripeOn = intlCfg.stripeDepositEnabled;
+  const sepayOn = s.sepay_enabled !== "0";
   return (
     <div>
       <PageHead title={L("Nạp tiền")} desc={L("Chọn phương thức nạp bên dưới. QR ngân hàng (ngân hàng & MoMo) cộng tự động khi đúng nội dung; PayPal/Stripe cộng tự động theo tỉ giá ngay khi thanh toán thành công.")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <DepositCard
-          banks={banksProp}
-          bank={s.bank_account ? { name: s.bank_name, account: s.bank_account, holder: s.bank_holder, qr: vietQrUrl(s.bank_name, s.bank_account, 0, content, s.bank_holder), content, min: parseInt(s.deposit_min || "10000", 10) || 10000 } : null}
-          momo={s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}
+          banks={sepayOn ? banksProp : []}
+          bank={sepayOn && s.bank_account ? { name: s.bank_name, account: s.bank_account, holder: s.bank_holder, qr: vietQrUrl(s.bank_name, s.bank_account, 0, content, s.bank_holder), content, min: parseInt(s.deposit_min || "10000", 10) || 10000 } : null}
+          momo={sepayOn && s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}
           tiers={effTiers}
-          intl={paypalOn || stripeOn ? { rate: intlCfg.rate, paypal: paypalOn, stripe: stripeOn, minUsd: intlCfg.minUsd || 5 } : null}
+          intl={paypalOn || stripeOn ? { rate: intlCfg.depositRate, paypal: paypalOn, stripe: stripeOn, minUsd: intlCfg.minUsd || 5 } : null}
           usdt={s.boltutil_enabled === "1" && s.boltutil_api_key ? {
-            rate: usdtRateOf(s),
+            rate: usdtDepositRate(s).rate,
             minUsd: parseFloat(s.usdt_min || "") || 5,
             defaultNetwork: s.boltutil_default_network || "TRON",
             networks: String(s.boltutil_networks || "TRON").split(",").map((x: string) => x.trim().toUpperCase()).filter((x: string) => ["TRON", "BSC", "ETHEREUM", "SOLANA", "ARBITRUM", "BASE"].includes(x)),
