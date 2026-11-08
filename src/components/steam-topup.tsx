@@ -10,15 +10,18 @@ export type SteamRate = { code: string; rate: string };
 /** Form nạp Steam Wallet (Top-Up CIS) — dựng theo ảnh mẫu FZR của Tín trong
  *  ngôn ngữ thẻ của trang Telegram: thẻ chi tiết (ô login có nút cảnh báo +
  *  bong bóng tooltip tối, mệnh giá, loại tiền) → thẻ Summary có nút Continue
- *  bên trong. RÀNG BUỘC DỮ LIỆU: provider chỉ bán mệnh giá USD CỐ ĐỊNH đã
+ *  bên trong. Bố cục (lệnh Tín 2026-11-08): desktop lg+ CHIA 2 CỘT 73/27 như
+ *  trang chi tiết Premium — cột trái = header + thẻ chi tiết, cột phải =
+ *  Summary GHIM DÍNH (sticky top-24); dưới lg xếp 1 cột theo đúng thứ tự cũ. RÀNG BUỘC DỮ LIỆU: provider chỉ bán mệnh giá USD CỐ ĐỊNH đã
  *  đồng bộ (5/10/20/50/100) nên ô Amount là lưới chọn mệnh giá; loại tiền chỉ
  *  USD thực thi được — RUB/KZT/UAH hiện dạng pill bị khoá kèm ghi chú, không
  *  giả lập quy đổi. Discount chỉ hiện khi dữ liệu tỉ giá của provider có. */
-export function SteamTopupForm({ denominations, rates, discount, balance }: {
+export function SteamTopupForm({ denominations, rates, discount, balance, header }: {
   denominations: SteamDenom[];
   rates: SteamRate[] | null;
   discount: string | null; // vd "3.55%" — null = dữ liệu không có
   balance: number;
+  header?: ReactNode; // thẻ header + Flash của trang — nằm ở đầu cột trái trong bố cục 2 cột
 }) {
   const { t, m } = useLang();
   const [login, setLogin] = useState("");
@@ -53,8 +56,10 @@ export function SteamTopupForm({ denominations, rates, discount, balance }: {
   );
 
   return (
-    <form action={placeSteamTopupAction} className="space-y-4 sm:space-y-5">
+    <form action={placeSteamTopupAction} className="flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,73fr)_minmax(0,27fr)] lg:items-start lg:gap-x-5">
+      <div className="min-w-0 space-y-4 sm:space-y-5">
       <input type="hidden" name="variantId" value={denom?.variantId || 0} />
+      {header}
 
       <section className="card p-5 sm:p-6">
         <div className="flex items-start gap-3.5">
@@ -132,8 +137,9 @@ export function SteamTopupForm({ denominations, rates, discount, balance }: {
           <p className="mt-2 text-sm text-slate-400">{t("Hiện chỉ hỗ trợ USD — các loại tiền khác sẽ mở khi nhà cung cấp hỗ trợ.")}</p>
         </div>
       </section>
+      </div>
 
-      <section className="card p-5 sm:p-6">
+      <section className="card p-5 sm:p-6 lg:sticky lg:top-24">
         <div className="text-xl font-extrabold text-slate-900">{t("Tóm tắt")}</div>
         <p className="mt-1 text-sm text-slate-500">{t("Tổng tiền cập nhật theo mệnh giá bạn chọn.")}</p>
         <div className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-200">

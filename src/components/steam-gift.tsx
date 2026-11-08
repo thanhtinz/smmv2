@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useLang } from "@/components/lang";
 import { I } from "@/components/ui";
 import { placeSteamGiftAction } from "@/app/actions/steam";
@@ -15,12 +15,15 @@ export type SteamGame = {
 /** Form Steam Gift Games — dựng theo ảnh mẫu FZR của Tín: thẻ tìm kiếm →
  *  1 Game → 2 Phiên bản → 3 Vùng & giá → thẻ Summary (ô link mời + các dòng
  *  App ID / Package ID / Phiên bản / Vùng / Giá / Link mời, nút Proceed bên
- *  trong). RÀNG BUỘC DỮ LIỆU: catalog đã đồng bộ có 1 variant "Bản gift" mỗi
+ *  trong). Bố cục (lệnh Tín 2026-11-08): desktop lg+ CHIA 2 CỘT 73/27 như
+ *  trang chi tiết Premium — cột trái = header + tìm kiếm + §1 + §2 + §3,
+ *  cột phải = Summary GHIM DÍNH (sticky top-24); dưới lg 1 cột thứ tự cũ.
+ *  RÀNG BUỘC DỮ LIỆU: catalog đã đồng bộ có 1 variant "Bản gift" mỗi
  *  game (mục Phiên bản liệt kê đúng các variant đó) và KHÔNG mang dữ liệu
  *  vùng/package — vùng chốt theo offer rẻ nhất phía provider khi đặt (giá
  *  cũng chốt tươi lúc mua trong createPremiumOrder), nên Package ID để "—"
  *  và mục Vùng ghi rõ điều này thay vì bịa danh sách vùng. */
-export function SteamGiftForm({ games, balance }: { games: SteamGame[]; balance: number }) {
+export function SteamGiftForm({ games, balance, header }: { games: SteamGame[]; balance: number; header?: ReactNode }) {
   const { t, m } = useLang();
   const [q, setQ] = useState("");
   const [gameId, setGameId] = useState<number>(0);
@@ -50,8 +53,10 @@ export function SteamGiftForm({ games, balance }: { games: SteamGame[]; balance:
     : <span className={`${cls} flex shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white [&>svg]:h-6 [&>svg]:w-6`}>{I.gamepad}</span>;
 
   return (
-    <form action={placeSteamGiftAction} className="space-y-4 sm:space-y-5">
+    <form action={placeSteamGiftAction} className="flex flex-col gap-4 sm:gap-5 lg:grid lg:grid-cols-[minmax(0,73fr)_minmax(0,27fr)] lg:items-start lg:gap-x-5">
+      <div className="min-w-0 space-y-4 sm:space-y-5">
       <input type="hidden" name="variantId" value={edition?.variantId || 0} />
+      {header}
 
       <section className="card p-5 sm:p-6">
         <label className={lbl} htmlFor="sg-search">{t("Tìm game theo tên hoặc ID")}</label>
@@ -108,8 +113,9 @@ export function SteamGiftForm({ games, balance }: { games: SteamGame[]; balance:
           {!edition ? t("Chọn phiên bản để xem các vùng") : t("Chưa có dữ liệu vùng cho gói này — vùng được chốt theo offer của nhà cung cấp khi đặt đơn.")}
         </p>
       </section>
+      </div>
 
-      <section className="card p-5 sm:p-6">
+      <section className="card p-5 sm:p-6 lg:sticky lg:top-24">
         <div className="text-xl font-extrabold text-slate-900">{t("Tóm tắt")}</div>
         <div className="mt-5">
           <label className={lbl} htmlFor="sg-invite">{t("Link mời Steam")}</label>

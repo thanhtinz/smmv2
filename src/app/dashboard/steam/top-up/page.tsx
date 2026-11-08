@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
  *  FZR: mệnh giá USD CỐ ĐỊNH từ các gói steam_topup đã đồng bộ (không có
  *  nạp số tự do phía provider), tỉ giá lấy tươi từ /steam-topup/rates khi
  *  có nhà cung cấp FZR. Chưa đồng bộ gói nào → giữ nguyên khung trang +
- *  thẻ "chưa có dữ liệu". */
+ *  thẻ "chưa có dữ liệu". Desktop lg+ chia 2 cột 73/27 (Summary dính) như
+ *  trang chi tiết Premium; mobile 1 cột. */
 export default async function SteamTopupPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   const user = (await getCurrentUser())!;
   const { L, Ld } = await getServerI18n();
@@ -52,20 +53,27 @@ export default async function SteamTopupPage({ searchParams }: { searchParams: {
     }
   }
 
-  return (
-    <div className="mx-auto max-w-[600px] space-y-4 sm:space-y-5">
+  const headerNode = (
+    <>
       <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-brand-50/60 to-white px-6 py-6 sm:px-7">
         <h1 className="text-[26px] font-black leading-tight text-slate-900">Steam Top-Up (CIS)</h1>
         <p className="mt-1.5 text-[15px] text-slate-500">{L("Nạp Steam bằng tên đăng nhập. Chọn loại tiền và số tiền.")}</p>
       </div>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
+    </>
+  );
+  return (
+    <div className="mx-auto max-w-[600px] lg:max-w-[1100px]">
       {denominations.length === 0 ? (
-        <div className="card p-8 text-center">
-          <div className="text-lg font-bold text-slate-900">{L("Chưa có dữ liệu Steam")}</div>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{L("Danh mục Steam chưa được đồng bộ — vui lòng quay lại sau.")}</p>
+        <div className="space-y-4 sm:space-y-5">
+          {headerNode}
+          <div className="card p-8 text-center">
+            <div className="text-lg font-bold text-slate-900">{L("Chưa có dữ liệu Steam")}</div>
+            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{L("Danh mục Steam chưa được đồng bộ — vui lòng quay lại sau.")}</p>
+          </div>
         </div>
       ) : (
-        <SteamTopupForm denominations={denominations} rates={rates} discount={discount} balance={user.balance} />
+        <SteamTopupForm header={headerNode} denominations={denominations} rates={rates} discount={discount} balance={user.balance} />
       )}
     </div>
   );
