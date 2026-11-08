@@ -128,8 +128,12 @@ export default function AdminRealtime({ endpoint, suffix }: { endpoint: string; 
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" title={t("Đang theo dõi trực tiếp")} />
           {total > 0 && <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-gradient-to-r from-rose-500 to-red-500 px-1 text-center text-[10px] font-bold leading-[18px] text-white shadow">{total}</span>}
         </button>
+        {/* Panel thông báo: mobile dùng fixed theo viewport (mép đều 2
+            bên) — neo absolute vào chuông sẽ tràn mép trái vì chuông không
+            sát mép phải header (sau nó còn nút Cài đặt/Đăng xuất). Từ sm:
+            dropdown neo chuông như cũ. Cùng mẫu DisplaySettings. */}
         {open && (
-          <div className="absolute right-0 top-12 z-50 w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+          <div className="fixed inset-x-3 top-[76px] z-50 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-[380px] sm:max-w-[calc(100vw-2rem)]">
             <div className="flex items-center gap-2 border-b border-slate-100 bg-gradient-to-r from-blue-600 to-violet-600 px-4 py-3 text-white">
               <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" /></span>
               <span className="text-sm font-bold">{t("Thông báo realtime")}</span>
