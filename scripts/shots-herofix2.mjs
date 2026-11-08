@@ -49,14 +49,14 @@ const heroInfo = () => evaluate(`(() => {
 })()`);
 
 const filterGeom = () => evaluate(`(() => {
-  const form = document.querySelector('form');
+  const form = [...document.querySelectorAll('form')].find((f) => f.querySelector('select[name="platform"]'));
   if (!form) return null;
   const R = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), right: Math.round(r.right) }; };
   const q = form.querySelector('input[name="q"]');
   const plat = form.querySelector('select[name="platform"]');
   const reg = form.querySelector('select[name="region"]');
-  const submit = [...form.querySelectorAll('button')].find((b) => b.type === 'submit' || !b.type);
-  const fav = q ? q.parentElement.querySelector('a,button:not([type="submit"])') : null;
+  const submit = [...form.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Lọc');
+  const fav = q ? q.parentElement.querySelector('a,button') : null;
   return { form: R(form), q: R(q), fav: R(fav), platform: R(plat), region: R(reg), loc: R(submit), vw: innerWidth };
 })()`);
 
@@ -72,6 +72,8 @@ if (MODE === "hero") {
 }
 
 if (MODE === "filter" || MODE === "functest") {
+  await viewport(1440, 1000);
+  await navigate(`${BASE}/`, 1500);
   await evaluate(`document.cookie = 'smmv2_session=${demoToken}; path=/'; document.cookie = 'smmv2-lang=vi; path=/'; 'ok'`);
   await viewport(1440, 1000);
   await navigate(`${BASE}/dashboard/game-key`, 3200);
@@ -79,14 +81,16 @@ if (MODE === "filter" || MODE === "functest") {
   await shot("2026-11-08-gkfilter2-desktop");
   if (MODE === "functest") {
     const res = await evaluate(`(async () => {
-      const sel = document.querySelector('select[name="platform"]');
+      const form = [...document.querySelectorAll('form')].find((f) => f.querySelector('select[name="platform"]'));
+      const sel = form.querySelector('select[name="platform"]');
       const opts = [...sel.options].map((o) => o.value).filter(Boolean);
       if (!opts.length) return { error: 'no platform options' };
-      const before = document.querySelectorAll('a[href^="/dashboard/game-key/"]').length;
+      const cards = () => [...document.querySelectorAll('a[href^="/dashboard/game-key/"]')].filter((a) => /\\/dashboard\\/game-key\\/\\d+$/.test(a.getAttribute('href'))).length;
+      const before = cards();
       sel.value = opts[0];
-      const btn = [...document.querySelectorAll('form button')].find((b) => b.type === 'submit' || !b.type);
+      const btn = [...form.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Lọc');
       btn.click();
-      return { picked: opts[0], linksBefore: before };
+      return { picked: opts[0], cardsBefore: before };
     })()`);
     console.log("FUNC PICK:", JSON.stringify(res));
     await sleep(3200);

@@ -76,32 +76,34 @@ export default async function GameKeyCatalogPage({ searchParams }: {
       {/* Thẻ tìm kiếm + lọc */}
       <form method="get" className="card mt-5 p-4 sm:p-5">
         <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{L("Tìm trong danh mục")}</div>
-        {/* Bố cục bộ lọc: mobile giữ nguyên (ô tìm đầy bề ngang, 2 select
-            cạnh nhau); PC không kéo dài hết thẻ — ô tìm tối đa 400px, mỗi
-            select 210px, hàng gọn về phía trái (Tín 2026-11-08 13:52). */}
-        <div className="mt-2.5 flex gap-2">
-          <input className="inp flex-1 sm:w-[400px] sm:max-w-[400px] sm:flex-none" name="q" defaultValue={q} placeholder={L("Tìm game theo tên")} />
-          <GkFavFilterButton active={favActive} basePath={filterBase} />
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:flex">
-          <div className="sm:w-[210px]">
-            <label className="lbl">{L("Nền tảng")}</label>
-            <select className="inp" name="platform" defaultValue={platform}>
-              <option value="">{L("Tất cả")}</option>
-              {platforms.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
+        {/* Khối lọc gọn 1 khối thẳng mép (Tín 2026-11-08 13:58): mọi control
+            gói trong khối max-w-680px — hàng 1: ô tìm (flex-1) + nút sao ở
+            cuối; hàng 2: 2 select bằng nhau + nút Lọc ở CUỐI cùng hàng, cao
+            42px bằng đúng ô select, không còn hàng nút mồ côi bên dưới.
+            Mobile giữ xếp chồng như cũ, Lọc cũng ở cuối hàng select. */}
+        <div className="max-w-[680px]">
+          <div className="mt-2.5 flex gap-2">
+            <input className="inp flex-1" name="q" defaultValue={q} placeholder={L("Tìm game theo tên")} />
+            <GkFavFilterButton active={favActive} basePath={filterBase} />
           </div>
-          <div className="sm:w-[210px]">
-            <label className="lbl">{L("Vùng")}</label>
-            <select className="inp" name="region" defaultValue={region}>
-              <option value="">{L("Tất cả")}</option>
-              {regions.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <div className="min-w-0 flex-1 basis-28">
+              <label className="lbl">{L("Nền tảng")}</label>
+              <select className="inp" name="platform" defaultValue={platform}>
+                <option value="">{L("Tất cả")}</option>
+                {platforms.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div className="min-w-0 flex-1 basis-28">
+              <label className="lbl">{L("Vùng")}</label>
+              <select className="inp" name="region" defaultValue={region}>
+                <option value="">{L("Tất cả")}</option>
+                {regions.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <button className="btn-primary h-[42px] shrink-0 px-5">{L("Lọc")}</button>
+            {hasFilter && <Link href="/dashboard/game-key" className="btn-ghost h-[42px] shrink-0 px-4">{L("Xoá lọc")}</Link>}
           </div>
-        </div>
-        <div className="mt-3.5 flex gap-2">
-          <button className="btn-primary !py-2.5">{L("Lọc")}</button>
-          {hasFilter && <Link href="/dashboard/game-key" className="btn-ghost !py-2.5">{L("Xoá lọc")}</Link>}
         </div>
       </form>
 
