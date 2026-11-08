@@ -8,11 +8,12 @@ import { restoreVariantStock } from "./variant-stock";
 import {
   FzrError, FZR_LABELS,
   fzrUsdToVnd, fzrUsdCostVnd, fzrOrderStatus, fzrOrderIdOf, extractFzrDelivery, fzrDeliveryOrRaw,
-  fzrCreateGameKeyOrder, fzrCreateGiftCardOrder, fzrCreateTopupOrder, fzrValidateTopupId,
+  fzrCreateGameKeyOrder, fzrCreateGiftCardOrder, fzrCreateTopupOrder, fzrValidateTopupId, fzrTopupValidations,
   fzrCreateManualOrder, fzrBuyTelegramStars, fzrBuyTelegramPremium,
   fzrCreateSteamTopupOrder, fzrCreateSteamGiftOrder, fzrGetOrder,
-  fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrSteamGiftOffers, parseDecimalScaled,
+  fzrTelegramStarsQuote, fzrSteamGiftOffers,
 } from "./fzr";
+import { parsePremiumFields } from "./format";
 import { fzrMarkupFor } from "./fzr-markup";
 import type { PremiumOrder, PremiumVariant, Provider } from "@prisma/client";
 
@@ -97,13 +98,19 @@ function telegramUsernameOf(inputs: Record<string, string>): string {
   return v.trim().replace(/^@/, "");
 }
 
-/** BigInt scaled x10^7 -> chuỗi thập phân gọn cho tham số amount của top-up. */
-function scaledToDecimalString(scaled: bigint): string {
-  const neg = scaled < BigInt(0);
-  const abs = neg ? -scaled : scaled;
-  const int = abs / BigInt(10000000);
-  const frac = (abs % BigInt(10000000)).toString().padStart(7, "0").replace(/0+$/, "");
-  return `${neg ? "-" : ""}${int}${frac ? "." + frac : ""}`;
+/** Object fields gửi cho nhà cung cấp từ thông tin khách đã điền: chỉ các
+ *  trường CÓ KEY trong customFields của sản phẩm (trường phía NCC — topups /
+ *  manual replenishment), ánh xạ NHÃN admin đang dùng -> KEY của NCC. Giá trị
+ *  lấy từ inputs theo đúng nhãn (buyerInfo được createPremiumOrder gộp theo
+ *  nhãn) — không đoán mò theo tên trường. */
+function keyedFieldsOf(customFieldsJson: string | null | undefined, inputs: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const f of parsePremiumFields(customFieldsJson)) {
+    if (!f.key) continue;
+    const v = (inputs[f.label] || "").trim();
+    if (v) out[f.key] = v;
+  }
+  return out;
 }
 
 /**
@@ -124,25 +131,16 @@ async function telegramViaTopupOrHold(
   const username = telegramUsernameOf(inputs);
   if (!username) throw new LocalDefinitiveError("Thiếu username Telegram của khách");
   const st = await getSettings();
+  const categoryId = (st.telegram_topup_category_id || "").trim();
   const offerId = (st.telegram_topup_offer_id || "").trim();
   const field = (st.telegram_topup_field || "").trim();
   const sameProvider = String(st.telegram_topup_provider_id || "") === String(provider.id);
-  if (offerId && field && sameProvider) {
-    let amountUsd: string | null = null;
-    try {
-      if (kind === "stars") {
-        const q = await fzrTelegramStarsQuote(provider);
-        amountUsd = scaledToDecimalString(parseDecimalScaled(q.pricePerStar) * BigInt(order.quantity));
-      } else {
-        const plans = await fzrTelegramPremiumPlans(provider);
-        const plan = plans.find((x) => x.durationMonths === months);
-        amountUsd = plan ? String(plan.finalPrice || plan.price) : null;
-      }
-    } catch { amountUsd = null; }
-    if (amountUsd) {
-      const raw = await fzrCreateTopupOrder(provider, { offerId, amount: amountUsd, quantity: 1, orderParams: { [field]: username } }, String(order.id));
-      return { orderId: fzrOrderIdOf(raw), raw };
-    }
+  if (categoryId && offerId && field && sameProvider) {
+    // Body top-up theo OpenAPI mới: { category_id, offer_id, fields } — offer
+    // của category Telegram có giá cố định phía NCC nên không còn tham số
+    // amount như bản đấu nối cũ (kind/months không còn quyết định số tiền).
+    const raw = await fzrCreateTopupOrder(provider, { categoryId, offerId, fields: { [field]: username } }, String(order.id));
+    return { orderId: fzrOrderIdOf(raw), raw };
   }
   throw new HoldForManualError(`Đơn Telegram cho @${username} chỉ có username: chưa có đường giao tự động (khách không cấp Telegram ID số và catalog chưa có offer top-up Telegram) — xử lý tay`);
 }
@@ -177,28 +175,42 @@ async function createOne(
       return { orderId: fzrOrderIdOf(raw), raw };
     }
     case "topups": {
-      const [offerId, amount] = item.split("|");
-      if (!offerId || !amount) throw new LocalDefinitiveError("Gói top-up thiếu offerId/số tiền phía FZR");
-      const player = pickInput(inputs, FZR_LABELS.playerId, "id");
-      if (player) {
-        // Kiểm tra ID người chơi trước khi đặt: ID sai là lỗi dứt khoát, hoàn tiền ngay.
-        // Lỗi mạng khi validate thì bỏ qua kiểm tra và đặt đơn như thường (không chặn oan).
-        try {
-          const v = await fzrValidateTopupId(provider, offerId, player);
-          if (!v.valid) throw new LocalDefinitiveError(`ID người chơi không hợp lệ phía nhà cung cấp: ${player}`);
-        } catch (e) {
-          if (e instanceof LocalDefinitiveError) throw e;
+      // Theo OpenAPI FZR: order cần category_id (= providerProductId của sản
+      // phẩm), offer_id (= providerItemId của gói) và fields — object theo
+      // ĐÚNG khoá fields[].key của category, dựng từ customFields đã lưu.
+      const prod = await prisma.premiumProduct.findUnique({ where: { id: variant.productId }, select: { providerProductId: true, customFields: true } });
+      const categoryId = prod?.providerProductId || "";
+      if (!categoryId || !item) throw new LocalDefinitiveError("Gói top-up thiếu category_id/offer_id phía FZR");
+      const fields = keyedFieldsOf(prod?.customFields, inputs);
+      // Category có hỗ trợ kiểm tra ID (nằm trong danh sách GET validate-id)
+      // thì kiểm tra TRƯỚC khi đặt: ID không hợp lệ (valid=false hoặc NCC trả
+      // lỗi dứt khoát như 422) = từ chối đơn + hoàn tiền, không gọi order.
+      // Lỗi mơ hồ (mạng/5xx) khi kiểm tra thì bỏ qua và đặt như thường.
+      try {
+        const supported = await fzrTopupValidations(provider);
+        const cats = Array.isArray(supported?.items) ? supported.items : [];
+        if (cats.some((c: any) => String(c?.category_id) === categoryId) && Object.keys(fields).length) {
+          const v = await fzrValidateTopupId(provider, categoryId, fields);
+          if (!v.valid) throw new LocalDefinitiveError("ID người chơi không hợp lệ phía nhà cung cấp — khách kiểm tra lại thông tin đã điền");
         }
+      } catch (e) {
+        if (e instanceof LocalDefinitiveError) throw e;
+        if (e instanceof FzrError && e.definitive) throw new LocalDefinitiveError(`Nhà cung cấp không xác nhận được ID người chơi: ${e.message}`);
       }
-      const raw = await fzrCreateTopupOrder(provider, { offerId, amount, quantity: order.quantity, orderParams: player ? { value: player } : {} }, idem);
+      const raw = await fzrCreateTopupOrder(provider, { categoryId, offerId: item, fields }, idem);
       return { orderId: fzrOrderIdOf(raw), raw };
     }
     case "manual": {
-      const [serviceId, offerId] = item.split(":");
-      if (!serviceId || !offerId) throw new LocalDefinitiveError("Gói dịch vụ thủ công thiếu serviceId/offerId phía FZR");
-      const additionalData: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(inputs)) if (v) additionalData[k] = v;
-      const raw = await fzrCreateManualOrder(provider, { manualServiceId: serviceId, offerId, quantity: order.quantity, additionalData }, idem);
+      // Theo OpenAPI FZR: body { manual_service_id, product_id, fields? } —
+      // manual_service_id = providerProductId của sản phẩm, product_id =
+      // offer id ở providerItemId; fields chỉ cho category replenishment
+      // (dựng theo field code đã lưu trong customFields), category thường
+      // đặt KHÔNG kèm fields.
+      const prod = await prisma.premiumProduct.findUnique({ where: { id: variant.productId }, select: { providerProductId: true, customFields: true } });
+      const serviceId = prod?.providerProductId || "";
+      if (!serviceId || !item) throw new LocalDefinitiveError("Gói dịch vụ thủ công thiếu manual_service_id/product_id phía FZR");
+      const fields = keyedFieldsOf(prod?.customFields, inputs);
+      const raw = await fzrCreateManualOrder(provider, { manualServiceId: serviceId, productId: item, fields }, idem);
       return { orderId: fzrOrderIdOf(raw), raw };
     }
     case "telegram_stars": {

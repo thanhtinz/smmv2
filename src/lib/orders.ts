@@ -484,7 +484,11 @@ export async function createPremiumOrder(input: {
   if (fields.length > 0 && input.customData !== undefined) {
     const lines: string[] = [];
     for (const f of fields) {
-      const val = String(input.customData[f.label] || "").trim();
+      // Giá trị tra theo NHÃN (form web + giỏ hàng gửi theo nhãn); trường có
+      // KEY của nhà cung cấp (FZR topups/manual) còn tra thêm theo key để
+      // API v2 gửi fields bằng đúng khoá NCC cũng khớp.
+      const rawVal = input.customData[f.label] ?? (f.key ? input.customData[f.key] : undefined);
+      const val = String(rawVal || "").trim();
       if (f.required && !val) throw new Error(`Thiếu thông tin: ${f.label}`);
       if (val) lines.push(`${f.label}: ${val}`);
     }

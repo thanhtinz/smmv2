@@ -93,14 +93,32 @@ export function genCode(prefix: string, id: number) {
 }
 
 /** Trường tuỳ chỉnh của sản phẩm premium — khách điền khi mua (vd Gmail nâng cấp, link, loại thiết bị).
- *  Admin định nghĩa theo từng sản phẩm; lưu JSON trên PremiumProduct.customFields. */
+ *  Admin định nghĩa theo từng sản phẩm; lưu JSON trên PremiumProduct.customFields.
+ *  `key` (tuỳ chọn): khoá ánh xạ của NHÀ CUNG CẤP (FZR topups dùng fields[].key,
+ *  manual-services replenishment dùng fields[].code) — trường có key là trường
+ *  của nhà cung cấp: nhãn admin sửa tự do, nhưng khi thực thi đơn giá trị được
+ *  gửi đi theo ĐÚNG key này trong object fields của body đặt đơn. Trường không
+ *  có key là trường admin tự định nghĩa (hành vi cũ, chỉ nằm trong buyerInfo). */
 export type PremiumCustomField = {
   label: string;
   type: "text" | "textarea" | "select";
   required: boolean;
   placeholder?: string;
   options?: string[];
+  key?: string;
 };
+
+/** Lựa chọn của trường select phía nhà cung cấp có thể là chuỗi hoặc object
+ *  ({value|label|name|id}) — chuẩn hoá về chuỗi GIÁ TRỊ sẽ gửi lại cho NCC. */
+export function premiumFieldOptionValue(o: unknown): string {
+  if (typeof o === "string") return o;
+  if (o && typeof o === "object") {
+    const r = o as Record<string, unknown>;
+    const v = r.value ?? r.label ?? r.name ?? r.id;
+    return v === undefined || v === null ? "" : String(v);
+  }
+  return o === undefined || o === null ? "" : String(o);
+}
 
 export function parsePremiumFields(json?: string | null): PremiumCustomField[] {
   try {
@@ -113,7 +131,8 @@ export function parsePremiumFields(json?: string | null): PremiumCustomField[] {
         type: f.type === "textarea" || f.type === "select" ? f.type : ("text" as const),
         required: !!f.required,
         placeholder: f.placeholder ? String(f.placeholder).slice(0, 120) : undefined,
-        options: Array.isArray(f.options) ? f.options.map((o: unknown) => String(o).slice(0, 60)).filter(Boolean).slice(0, 12) : undefined,
+        options: Array.isArray(f.options) ? f.options.map((o: unknown) => premiumFieldOptionValue(o).slice(0, 60)).filter(Boolean).slice(0, 12) : undefined,
+        ...(typeof f.key === "string" && f.key.trim() ? { key: String(f.key).trim().slice(0, 60) } : {}),
       }))
       .slice(0, 8);
   } catch {

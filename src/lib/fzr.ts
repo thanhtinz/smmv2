@@ -190,12 +190,87 @@ export async function fzrGiftCardCards(provider: Provider, categoryId: string): 
   return call<any>(provider, "GET", "/api/v2/giftcards/cards", { query: { category_id: categoryId, include_ui: 1 } });
 }
 
-export async function fzrTopups(provider: Provider, page: number, q?: string): Promise<any> {
-  return call<any>(provider, "GET", "/api/v2/topups", { query: { page, limit: 100, q } });
+/** Trường tuỳ chỉnh PHÍA NHÀ CUNG CẤP sau chuẩn hoá — dùng chung cho cả hai
+ *  nhóm FZR có định nghĩa trường người mua: topups (fields[] với key) và
+ *  manual-services replenishment (fields[] với code). key = khoá ánh xạ khoá
+ *  cứng khi gửi đơn; label = nhãn phía NCC (admin được đổi khi lưu vào sản
+ *  phẩm); required: body đặt đơn của cả hai nhóm đều yêu cầu object fields
+ *  theo đúng các khoá này nên mặc định bắt buộc. */
+export type FzrProviderField = { key: string; label: string; type: "text" | "select"; required: boolean; options?: string[] };
+
+function providerFieldOptions(raw: any): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out = raw
+    .map((o: any) => {
+      if (typeof o === "string") return o;
+      if (o && typeof o === "object") {
+        const v = o.value ?? o.label ?? o.name ?? o.id;
+        return v === undefined || v === null ? "" : String(v);
+      }
+      return "";
+    })
+    .filter(Boolean)
+    .slice(0, 12);
+  return out.length ? out : undefined;
+}
+
+/** fields[] của topups (GET /topups/offers): { key, label, type: text|select, options[] }. */
+export function normalizeTopupFields(raw: any): FzrProviderField[] {
+  if (!Array.isArray(raw)) return [];
+  const out: FzrProviderField[] = [];
+  for (const f of raw) {
+    const key = String(f?.key || "").trim();
+    if (!key) continue;
+    const type = f?.type === "select" ? ("select" as const) : ("text" as const);
+    out.push({
+      key,
+      label: String(f?.label || key).slice(0, 80),
+      type,
+      required: true,
+      ...(type === "select" ? { options: providerFieldOptions(f?.options) } : {}),
+    });
+  }
+  return out.slice(0, 8);
+}
+
+/** fields[] của manual-services (GET /manual-services/:id/offers — CHỈ có khi
+ *  category.kind = "replenishment"): theo OpenAPI mỗi field chỉ có { code,
+ *  name } — code là khoá, name là nhãn; không có type/options nên mọi trường
+ *  là ô nhập 1 dòng, và body đặt đơn ghi rõ "required field codes only". */
+export function normalizeManualFields(raw: any): FzrProviderField[] {
+  if (!Array.isArray(raw)) return [];
+  const out: FzrProviderField[] = [];
+  for (const f of raw) {
+    const key = String(f?.code || "").trim();
+    if (!key) continue;
+    out.push({ key, label: String(f?.name || key).slice(0, 80), type: "text" as const, required: true });
+  }
+  return out.slice(0, 8);
+}
+
+/** Top-Ups — theo OpenAPI FZR (đọc lại 2026-11-08): GET /topups phân trang
+ *  CURSOR (limit + cursor, include_ui=1 để có ảnh bìa), items[] phẳng:
+ *  { category_id (= topup_id), name, note?, imageurl? } — tầng category
+ *  KHÔNG có fields và KHÔNG có giá; offers + fields nằm ở GET /topups/offers. */
+export async function fzrTopups(provider: Provider, cursor?: string): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/topups", { query: { limit: 100, include_ui: 1, ...(cursor ? { cursor } : {}) } });
+}
+
+/** Offers + fields của 1 category top-up: { category_id, name, note?,
+ *  imageurl?, offers: [{ offer_id (có thể null), name, price_usd }],
+ *  fields: [{ key, label, type, options? }] } — fields là của CATEGORY. */
+export async function fzrTopupOffers(provider: Provider, categoryId: string): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/topups/offers", { query: { category_id: categoryId, include_ui: 1 } });
+}
+
+/** Các category top-up HỖ TRỢ kiểm tra ID người chơi (GET /topups/validate-id):
+ *  { items: [{ category_id, name, fields[] }] } — danh sách động phía NCC. */
+export async function fzrTopupValidations(provider: Provider): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/topups/validate-id");
 }
 
 export async function fzrManualServices(provider: Provider): Promise<any> {
-  return call<any>(provider, "GET", "/api/v2/manual-services");
+  return call<any>(provider, "GET", "/api/v2/manual-services", { query: { include_ui: 1 } });
 }
 
 export async function fzrManualOffers(provider: Provider, manualServiceId: string): Promise<any> {
@@ -245,30 +320,54 @@ export async function fzrCreateGiftCardOrder(provider: Provider, categoryId: str
   return r?.order ?? r;
 }
 
-export async function fzrValidateTopupId(provider: Provider, offerId: string, value: string): Promise<{ valid: boolean; playerName?: string }> {
-  const r = await call<any>(provider, "POST", "/api/v2/topups/validate-id", { body: { offerId, value } });
-  return { valid: !!r?.valid, playerName: r?.player_name };
+/** Kiểm tra ID người chơi — body theo OpenAPI: { category_id, fields } với
+ *  fields là object theo ĐÚNG khoá fields[].key của category. Trả { valid,
+ *  player_name, player_id, region }. HTTP 422 = không xác nhận được ID (lỗi
+ *  dứt khoát trong thang FzrError). */
+export async function fzrValidateTopupId(
+  provider: Provider,
+  categoryId: string,
+  fields: Record<string, string>
+): Promise<{ valid: boolean; playerName?: string; playerId?: string; region?: string }> {
+  const r = await call<any>(provider, "POST", "/api/v2/topups/validate-id", { body: { category_id: categoryId, fields } });
+  return {
+    valid: !!r?.valid,
+    ...(r?.player_name ? { playerName: String(r.player_name) } : {}),
+    ...(r?.player_id ? { playerId: String(r.player_id) } : {}),
+    ...(r?.region ? { region: String(r.region) } : {}),
+  };
 }
 
+/** Đặt đơn top-up — body theo OpenAPI: { category_id, offer_id, fields } (cả
+ *  ba bắt buộc; fields là object theo khoá của category, có thể rỗng khi
+ *  category không định nghĩa trường). KHÔNG còn amount/quantity/orderParams. */
 export async function fzrCreateTopupOrder(
   provider: Provider,
-  input: { offerId: string; amount: string; quantity?: number; orderParams?: Record<string, unknown> },
+  input: { categoryId: string; offerId: string; fields: Record<string, string> },
   idemKey: string
 ): Promise<any> {
   const r = await call<any>(provider, "POST", "/api/v2/topups/order", {
-    body: { offerId: input.offerId, amount: input.amount, quantity: input.quantity, orderParams: input.orderParams || {} },
+    body: { category_id: input.categoryId, offer_id: input.offerId, fields: input.fields },
     idempotencyKey: idemKey,
   });
   return r?.order ?? r;
 }
 
+/** Đặt đơn manual — body theo OpenAPI: { manual_service_id, product_id,
+ *  fields? } — fields CHỈ gửi cho category replenishment có trường (object
+ *  theo field code); KHÔNG có quantity/additionalData trong tài liệu.
+ *  Response PHẲNG ở top-level: { order_id, kind, status: "created", ... }. */
 export async function fzrCreateManualOrder(
   provider: Provider,
-  input: { manualServiceId: string; offerId: string; quantity: number; additionalData?: Record<string, unknown> },
+  input: { manualServiceId: string; productId: string; fields?: Record<string, string> },
   idemKey: string
 ): Promise<any> {
   const r = await call<any>(provider, "POST", "/api/v2/manual-services/order", {
-    body: { manualServiceId: input.manualServiceId, offerId: input.offerId, quantity: input.quantity, additionalData: input.additionalData || {} },
+    body: {
+      manual_service_id: input.manualServiceId,
+      product_id: input.productId,
+      ...(input.fields && Object.keys(input.fields).length ? { fields: input.fields } : {}),
+    },
     idempotencyKey: idemKey,
   });
   return r?.order ?? r;

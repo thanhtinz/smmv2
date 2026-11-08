@@ -3,9 +3,11 @@ import { FZR_LABELS, fzrUsdToVnd, fzrUsdCostVnd } from "./fzr";
 import { ADMIN_VARIANT_MARK } from "./families";
 import { DEFAULT_STAR_PACKAGES } from "./tg";
 import {
-  fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrGiftCardCards, fzrTopups, fzrManualServices, fzrManualOffers,
+  fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrGiftCardCards, fzrTopups, fzrTopupOffers, fzrManualServices, fzrManualOffers,
   fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrSteamGiftGames,
+  normalizeTopupFields, normalizeManualFields,
 } from "./fzr";
+import { parsePremiumFields, type PremiumCustomField } from "./format";
 import type { Provider } from "@prisma/client";
 
 /**
@@ -31,7 +33,7 @@ type SyncItem = {
   image?: string;
   platform?: string;
   region?: string;
-  customFields?: { label: string; type: string; required: boolean; placeholder?: string }[];
+  customFields?: PremiumCustomField[];
   variants: SyncVariant[];
 };
 
@@ -42,52 +44,31 @@ function asArray(v: any): any[] {
   return Array.isArray(v) ? v : [];
 }
 
-/** Lấy danh sách category từ các response dạng {categories:[…]} / {data:{…}} / mảng phẳng. */
-function categoriesOf(raw: any): any[] {
-  if (Array.isArray(raw)) return raw;
-  if (Array.isArray(raw?.categories)) return raw.categories;
-  if (Array.isArray(raw?.data?.categories)) return raw.data.categories;
-  if (Array.isArray(raw?.data)) return raw.data;
-  return [];
-}
-
-function itemsOf(cat: any, keys: string[]): any[] {
-  for (const k of keys) if (Array.isArray(cat?.[k])) return cat[k];
-  return [];
-}
-
 function firstDefined(...vals: any[]): any {
   for (const v of vals) if (v !== undefined && v !== null && v !== "") return v;
   return undefined;
 }
 
-/** Gộp các trang catalog lồng category->items; dừng khi hết dữ liệu hoặc đủ total. */
-async function collectPaged(
-  fetchPage: (page: number) => Promise<any>,
-  itemKeys: string[]
-): Promise<{ cats: { name: string; items: any[] }[]; totalItems: number }> {
-  const cats: { name: string; items: any[] }[] = [];
-  let totalItems = 0;
-  for (let page = 1; page <= 20; page++) {
-    const raw = await fetchPage(page);
-    const pageCats = categoriesOf(raw);
-    let pageItems = 0;
-    for (const c of pageCats) {
-      const items = itemsOf(c, itemKeys);
-      pageItems += items.length;
-      if (items.length) cats.push({ name: String(c?.name || c?.title || ""), items });
-    }
-    // Response phẳng không có category (mảng item trực tiếp)
-    if (!pageCats.length && Array.isArray(raw?.items)) {
-      pageItems = raw.items.length;
-      if (pageItems) cats.push({ name: "", items: raw.items });
-    }
-    totalItems += pageItems;
-    const total = Number(raw?.total);
-    if (pageItems === 0) break;
-    if (!isNaN(total) && total > 0 && totalItems >= total) break;
+/** Gộp trường tuỳ chỉnh khi ĐỒNG BỘ LẠI cho hai nhóm có trường phía nhà cung
+ *  cấp (topups / manual): trường theo KEY lấy từ nguồn làm khung (thứ tự +
+ *  type + options + required theo NCC), nhưng NHÃN thì giữ nhãn admin đã đổi
+ *  cho key còn tồn tại; key mới xuất hiện dùng nhãn NCC; key NCC đã bỏ thì
+ *  mất theo. Trường KHÔNG key do admin tự thêm ở editor chung được giữ lại,
+ *  trừ các nhãn generic do chính đồng bộ cũ gắn (playerId cho topups,
+ *  extraInfo cho manual — chúng là trường giả của bản đấu nối sai trước đây,
+ *  không phải trường NCC thật nên phải dọn). */
+function mergeSyncedFields(group: string, existingJson: string | null | undefined, incoming: PremiumCustomField[]): PremiumCustomField[] {
+  const existing = parsePremiumFields(existingJson);
+  const byKey = new Map(existing.filter((f) => f.key).map((f) => [f.key!, f]));
+  const legacyLabel = group === "topups" ? FZR_LABELS.playerId : group === "manual" ? FZR_LABELS.extraInfo : null;
+  const merged: PremiumCustomField[] = incoming.map((f) => {
+    const prev = f.key ? byKey.get(f.key) : undefined;
+    return prev ? { ...f, label: prev.label } : f;
+  });
+  for (const f of existing) {
+    if (!f.key && f.label !== legacyLabel) merged.push(f);
   }
-  return { cats, totalItems };
+  return merged.slice(0, 8);
 }
 
 /** Game Keys theo OpenAPI FZR (đọc lại 2026-11-08 khi làm khu Game Key):
@@ -214,76 +195,121 @@ async function collectGiftCards(provider: Provider): Promise<{ items: SyncItem[]
   return { items, skipped };
 }
 
-async function collectTopups(provider: Provider): Promise<{ items: SyncItem[]; skipped: number; tgTopup: { offerId: string; field: string } | null }> {
-  const { cats } = await collectPaged((p) => fzrTopups(provider, p), ["offers", "products", "items"]);
+/** Top-Ups theo OpenAPI FZR (đọc lại 2026-11-08 — bản cũ gửi {page, limit, q}
+ *  và tưởng response lồng category->offers có sẵn amount: ngược tài liệu, đấu
+ *  key thật sẽ sync 0 sản phẩm và order bị 400, đúng bệnh gamekeys/giftcards):
+ *  - GET /topups: CURSOR, items[] phẳng { category_id, name, note?, imageurl? }.
+ *  - GET /topups/offers?category_id=: { offers: [{ offer_id (có thể null),
+ *    name, price_usd }], fields: [{ key, label, type, options? }] } — fields
+ *    là của CATEGORY, lưu vào customFields của sản phẩm KÈM key (admin đổi
+ *    nhãn tự do; thực thi đơn gửi theo key — xem fzr-orders).
+ *  Ánh xạ: 1 category = 1 PremiumProduct (providerProductId = category_id,
+ *  note -> description), 1 offer = 1 variant (providerItemId = offer_id).
+ *  Đường giao Telegram theo username (docs reseller): category tên chứa
+ *  "Telegram" có trường username-like -> ghi nhận {categoryId, offerId đầu
+ *  tiên, fieldKey} vào Settings cho luồng thực thi đơn Telegram. */
+async function collectTopups(provider: Provider): Promise<{ items: SyncItem[]; skipped: number; tgTopup: { categoryId: string; offerId: string; field: string } | null }> {
+  const rawCats: any[] = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < 50; page++) {
+    const raw = await fzrTopups(provider, cursor);
+    const pageItems = asArray(raw?.items);
+    rawCats.push(...pageItems);
+    const next = raw?.meta?.next_cursor;
+    if (!raw?.meta?.has_more || !next || pageItems.length === 0) break;
+    cursor = String(next);
+  }
   const items: SyncItem[] = [];
   let skipped = 0;
-  // Phát hiện đường giao Telegram theo username (docs reseller): danh mục top-up
-  // tên chứa "Telegram" có offer với fields[] gồm trường username-like.
-  let tgTopup: { offerId: string; field: string } | null = null;
-  for (const cat of cats) {
-    if (!/telegram/i.test(cat.name)) continue;
-    for (const o of cat.items) {
-      const fields = (o?.fields || o?.formFields || []) as any[];
-      if (!Array.isArray(fields)) continue;
-      const f = fields.find((x) => /user|telegram|nick|account/i.test(`${x?.name || x?.key || ""} ${x?.label || ""}`));
-      if (f && o?.id !== undefined) { tgTopup = { offerId: String(o.id), field: String(f.name || f.key) }; break; }
-    }
-    if (tgTopup) break;
-  }
-  for (const cat of cats) {
-    for (const o of cat.items) {
-      const id = firstDefined(o?.id);
-      // amount = số tiền phía FZR tính khi đặt đơn (USD hoặc RUB theo offerType);
-      // price = giá bán lẻ USD. Ưu tiên amount/value cho tham số đơn, price cho giá bán.
-      const amount = firstDefined(o?.amount, o?.value, o?.price);
-      const price = firstDefined(o?.price, o?.amount, o?.value);
-      if (id === undefined || amount === undefined || price === undefined) { skipped++; continue; }
-      items.push({
-        group: "topups",
-        productKey: String(id),
-        productName: String(o?.name || `Top-up ${id}`),
-        categoryName: cat.name || "Nạp dịch vụ",
-        image: firstDefined(o?.image, o?.imageUrl, o?.logo),
-        customFields: [{ label: FZR_LABELS.playerId, type: "text", required: true, placeholder: "ID người chơi / tài khoản nhận" }],
-        variants: [{ itemId: `${id}|${amount}`, name: String(o?.name || "Gói nạp"), usd: String(price) }],
+  let tgTopup: { categoryId: string; offerId: string; field: string } | null = null;
+  for (const c of rawCats) {
+    const categoryId = firstDefined(c?.category_id, c?.categoryId);
+    if (categoryId === undefined) { skipped++; continue; }
+    let offersRaw: any;
+    try {
+      offersRaw = await fzrTopupOffers(provider, String(categoryId));
+    } catch { skipped++; continue; }
+    const variants: SyncVariant[] = [];
+    for (const o of asArray(offersRaw?.offers)) {
+      const price = firstDefined(o?.price_usd, o?.price);
+      if (price === undefined) { skipped++; continue; }
+      variants.push({
+        // offer_id có thể null phía FZR: offer đó không gọi order được bằng
+        // offer_id — vẫn lưu theo tên để admin thấy, lúc đặt FZR trả lỗi dứt
+        // khoát -> hoàn tiền như các lỗi cứng khác (như gamekeys/giftcards).
+        itemId: o?.offer_id != null && o?.offer_id !== "" ? String(o.offer_id) : `name:${String(o?.name || "Gói nạp")}`,
+        name: String(o?.name || c?.name || "Gói nạp"),
+        usd: String(price),
       });
+    }
+    if (!variants.length) { skipped++; continue; }
+    const fields = normalizeTopupFields(offersRaw?.fields);
+    const note = firstDefined(offersRaw?.note, c?.note);
+    items.push({
+      group: "topups",
+      productKey: String(categoryId),
+      productName: String(c?.name || offersRaw?.name || `Top-Up ${categoryId}`),
+      categoryName: "Top-Up",
+      ...(note ? { description: String(note) } : {}),
+      image: firstDefined(c?.imageurl, offersRaw?.imageurl, c?.image, c?.imageUrl),
+      customFields: fields,
+      variants,
+    });
+    if (!tgTopup && /telegram/i.test(String(c?.name || ""))) {
+      const f = fields.find((x) => /user|telegram|nick|account/i.test(`${x.key} ${x.label}`));
+      const firstRealOffer = variants.find((v) => !v.itemId.startsWith("name:"));
+      if (f && firstRealOffer) tgTopup = { categoryId: String(categoryId), offerId: firstRealOffer.itemId, field: f.key };
     }
   }
   return { items, skipped, tgTopup };
 }
 
+/** Manual services theo OpenAPI FZR (đọc lại 2026-11-08 — bản cũ tưởng
+ *  response lồng categories->services và giá ở price, order bằng
+ *  {manualServiceId, offerId, additionalData}: ngược tài liệu ở cả ba điểm):
+ *  - GET /manual-services: items[] PHẲNG { id, name, kind, chat, info } —
+ *    mỗi item là một CATEGORY; `info` là văn bản của NCC cho khách -> lưu
+ *    vào description của sản phẩm.
+ *  - GET /manual-services/:id/offers: { items: [{ id, name, price_usd,
+ *    delivery_minutes, note_product? }], info, fields? } — fields CHỈ có khi
+ *    category.kind = "replenishment" ({ code, name }) -> lưu vào
+ *    customFields kèm key = code. Category không phải replenishment KHÔNG
+ *    có trường phía NCC: ô "Thông tin bổ sung" generic của bản cũ bị BỎ
+ *    (tài liệu không định nghĩa trường nào cho chúng; thông tin bàn giao
+ *    của khách vẫn nằm ở buyerInfo của đơn cho admin xử lý tay).
+ *  Ánh xạ: 1 category = 1 PremiumProduct (providerProductId = id), 1 offer
+ *  = 1 variant (providerItemId = offer id — id category lấy từ sản phẩm lúc
+ *  đặt đơn, giống gamekeys/giftcards/topups). */
 async function collectManual(provider: Provider): Promise<{ items: SyncItem[]; skipped: number }> {
   const raw = await fzrManualServices(provider);
-  const cats = categoriesOf(raw);
-  const services: { svc: any; categoryName: string }[] = [];
-  for (const c of cats) {
-    const inner = itemsOf(c, ["services", "manualServices", "offers", "items", "products"]);
-    if (inner.length) for (const s of inner) services.push({ svc: s, categoryName: String(c?.name || "") });
-    else if (c?.id !== undefined) services.push({ svc: c, categoryName: "" });
-  }
+  const cats = asArray(raw?.items);
   const items: SyncItem[] = [];
   let skipped = 0;
-  for (const { svc, categoryName } of services) {
+  for (const svc of cats) {
     const serviceId = firstDefined(svc?.id);
     if (serviceId === undefined) { skipped++; continue; }
-    const offersRaw = await fzrManualOffers(provider, String(serviceId));
-    const offers = Array.isArray(offersRaw) ? offersRaw : asArray(offersRaw?.offers || offersRaw?.data?.offers || offersRaw?.data);
+    let offersRaw: any;
+    try {
+      offersRaw = await fzrManualOffers(provider, String(serviceId));
+    } catch { skipped++; continue; }
     const variants: SyncVariant[] = [];
-    for (const o of offers) {
+    for (const o of asArray(offersRaw?.items)) {
       const offerId = firstDefined(o?.id);
-      const price = firstDefined(o?.price, o?.amount);
+      const price = firstDefined(o?.price_usd, o?.price);
       if (offerId === undefined || price === undefined) { skipped++; continue; }
-      variants.push({ itemId: `${serviceId}:${offerId}`, name: String(o?.name || o?.title || `Gói ${offerId}`), usd: String(price) });
+      variants.push({ itemId: String(offerId), name: String(o?.name || o?.title || `Gói ${offerId}`), usd: String(price) });
     }
     if (!variants.length) { skipped++; continue; }
+    const kind = String(offersRaw?.category?.kind || svc?.kind || "");
+    const info = firstDefined(offersRaw?.info, svc?.info);
     items.push({
       group: "manual",
       productKey: String(serviceId),
       productName: String(svc?.name || svc?.title || `Dịch vụ ${serviceId}`),
-      categoryName: categoryName || "Dịch vụ thủ công",
-      description: svc?.description ? String(svc.description) : undefined,
-      customFields: [{ label: FZR_LABELS.extraInfo, type: "textarea", required: false, placeholder: "Thông tin cần thiết để thực hiện dịch vụ" }],
+      categoryName: "Dịch vụ thủ công",
+      ...(info ? { description: String(info) } : {}),
+      image: firstDefined(svc?.imageurl, offersRaw?.imageurl, svc?.image, svc?.imageUrl),
+      customFields: kind === "replenishment" ? normalizeManualFields(offersRaw?.fields) : [],
       variants,
     });
   }
@@ -403,10 +429,12 @@ export async function syncFzrCatalog(provider: Provider, opts: {
     try {
       const { setSetting } = await import("./settings");
       if (topupsRes.tgTopup) {
+        await setSetting("telegram_topup_category_id", topupsRes.tgTopup.categoryId);
         await setSetting("telegram_topup_offer_id", topupsRes.tgTopup.offerId);
         await setSetting("telegram_topup_field", topupsRes.tgTopup.field);
         await setSetting("telegram_topup_provider_id", String(provider.id));
       } else if (String((await (await import("./settings")).getSettings()).telegram_topup_provider_id || "") === String(provider.id)) {
+        await setSetting("telegram_topup_category_id", "");
         await setSetting("telegram_topup_offer_id", "");
         await setSetting("telegram_topup_field", "");
         await setSetting("telegram_topup_provider_id", "");
@@ -440,7 +468,16 @@ export async function syncFzrCatalog(provider: Provider, opts: {
       where: { providerId: provider.id, providerProductId: item.productKey },
     });
     let productId: number;
-    const fieldsJson = item.customFields ? JSON.stringify(item.customFields) : undefined;
+    // Hai nhóm có trường phía NCC (topups/manual): khi sản phẩm ĐÃ có, gộp
+    // trường theo key để giữ nhãn admin đã đổi (mergeSyncedFields); nhóm
+    // khác giữ hành vi ghi đè như cũ.
+    const fieldsJson = item.customFields
+      ? JSON.stringify(
+          existing && (item.group === "topups" || item.group === "manual")
+            ? mergeSyncedFields(item.group, existing.customFields, item.customFields)
+            : item.customFields
+        )
+      : undefined;
     if (existing) {
       await prisma.premiumProduct.update({
         where: { id: existing.id },

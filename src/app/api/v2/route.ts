@@ -242,6 +242,9 @@ async function handle(req: NextRequest) {
         const flashPct = await flashPercentForProduct(p.id);
         const requiredFields = parsePremiumFields(p.customFields).map((f) => ({
           label: f.label, type: f.type, required: f.required,
+          // Trường của nhà cung cấp (FZR) kèm thêm `key`: khi đặt đơn qua
+          // API, gửi `fields` theo đúng key này (hoặc theo nhãn đều khớp).
+          ...(f.key ? { key: f.key } : {}),
           ...(f.placeholder ? { placeholder: f.placeholder } : {}),
           ...(f.options ? { options: f.options } : {}),
         }));
@@ -352,6 +355,13 @@ async function handle(req: NextRequest) {
       if (note && !record[FZR_LABELS.extraInfo]) record[FZR_LABELS.extraInfo] = note;
       const fresh = await prisma.user.findUnique({ where: { id: user.id } });
       const declared = parsePremiumFields(variant.product.customFields);
+      // player_id tiện ích: sản phẩm top-up của FZR khai trường theo KEY của
+      // NCC (nhãn do admin đặt) — gắn giá trị vào đúng trường khai báo có key
+      // kiểu player/id thay vì chỉ nhãn generic cũ.
+      if (get("player_id")) {
+        const pf = declared.find((f) => f.key && /player|user_?id|^id$/i.test(f.key)) || declared.find((f) => f.label === FZR_LABELS.playerId);
+        if (pf && !record[pf.label]) record[pf.label] = get("player_id");
+      }
       try {
         const order = await createPremiumOrder({
           user: fresh!,

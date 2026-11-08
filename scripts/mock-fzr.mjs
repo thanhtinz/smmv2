@@ -167,20 +167,100 @@ const server = http.createServer(async (req, res) => {
       ...(cat.note ? { note: cat.note } : {}), imageurl: cat.imageurl, offers: GC_OFFERS[cid] || [],
     });
   }
-  if (p === "/topups") {
-    return send(res, 200, {
-      ok: true, total: 2,
-      categories: [
-        { id: 1, name: "Mobile Legends", offers: [{ id: "tp-1", name: "MLBB 86 Diamonds", price: "1.85", amount: "1.85" }] },
-        { id: 2, name: "Telegram (V2)", offers: [{ id: "tp-tg", name: "Telegram Stars by username", price: "0.02", amount: "0.02", fields: [{ name: "username", label: "Telegram username", required: true }] }] },
+  // Top-Ups theo OpenAPI thật (sửa 2026-11-08): danh sách category phẳng +
+  // phân trang cursor; offers + fields (của category) ở /topups/offers.
+  const TP_CATS = [
+    { category_id: "tp-1", name: "Mobile Legends: Bang Bang", note: "Nạp kim cương MLBB theo ID người chơi.", imageurl: "https://cdn.example.com/tp-mlbb.jpg" },
+    { category_id: "tp-2", name: "Genshin Impact", note: "Nạp Genesis Crystal theo UID.", imageurl: "https://cdn.example.com/tp-gi.jpg" },
+    { category_id: "tp-tg", name: "Telegram (V2)", imageurl: null },
+  ];
+  const TP_OFFERS = {
+    "tp-1": {
+      offers: [
+        { offer_id: "tp-1-86", name: "86 Diamonds", price_usd: "1.85" },
+        { offer_id: "tp-1-172", name: "172 Diamonds", price_usd: "3.70" },
       ],
+      fields: [
+        { key: "player_id", label: "Player ID", type: "text" },
+        { key: "zone_id", label: "Zone ID", type: "text" },
+      ],
+    },
+    "tp-2": {
+      offers: [{ offer_id: "tp-2-60", name: "60 Genesis Crystal", price_usd: "0.99" }],
+      fields: [
+        { key: "uid", label: "UID", type: "text" },
+        { key: "server", label: "Server", type: "select", options: [{ value: "asia", label: "Asia" }, { value: "america", label: "America" }, { value: "europe", label: "Europe" }] },
+      ],
+    },
+    "tp-tg": {
+      offers: [{ offer_id: "tp-tg-stars", name: "Telegram Stars by username", price_usd: "0.02" }],
+      fields: [{ key: "username", label: "Telegram username", type: "text" }],
+    },
+  };
+  if (p === "/topups" && req.method === "GET") {
+    const limit = Math.min(100, parseInt(u.searchParams.get("limit") || "100") || 100);
+    const start = Math.max(0, parseInt(u.searchParams.get("cursor") || "0") || 0);
+    const slice = TP_CATS.slice(start, start + limit);
+    const nextIdx = start + slice.length;
+    return send(res, 200, {
+      ok: true, kind: "topup", items: slice,
+      meta: { total: TP_CATS.length, limit, next_cursor: nextIdx < TP_CATS.length ? String(nextIdx) : null, has_more: nextIdx < TP_CATS.length },
     });
   }
-  if (p === "/manual-services") {
-    return send(res, 200, { ok: true, categories: [{ id: 1, name: "Social Services", services: [{ id: "ms-1", name: "TikTok Followers Boost" }] }] });
+  if (p === "/topups/offers") {
+    const cid = u.searchParams.get("category_id") || "";
+    const cat = TP_CATS.find((c) => c.category_id === cid);
+    if (!cat) return send(res, 404, { ok: false, error: "Category not found", code: "NOT_FOUND" });
+    const data = TP_OFFERS[cid] || { offers: [], fields: [] };
+    return send(res, 200, {
+      ok: true, kind: "topup", category_id: cid, name: cat.name,
+      ...(cat.note ? { note: cat.note } : {}), imageurl: cat.imageurl, offers: data.offers, fields: data.fields,
+    });
   }
-  if (p === "/manual-services/ms-1/offers") {
-    return send(res, 200, { ok: true, offers: [{ id: "of-1", name: "100 followers", price: "2.50" }, { id: "of-2", name: "1000 followers", price: "19.99" }] });
+  if (p === "/topups/validate-id" && req.method === "GET") {
+    // Chỉ tp-1 (MLBB) hỗ trợ kiểm tra ID trong mock này
+    return send(res, 200, {
+      ok: true, kind: "topup",
+      items: [{ category_id: "tp-1", name: "Mobile Legends: Bang Bang", fields: TP_OFFERS["tp-1"].fields }],
+    });
+  }
+  // Manual services theo OpenAPI thật (sửa 2026-11-08): items[] phẳng ở
+  // list; offers ở items[] của /offers kèm info; fields {code, name} CHỈ
+  // cho category kind=replenishment (ms-2).
+  const MS_CATS = [
+    { id: "ms-1", name: "TikTok Followers Boost", kind: "standard", chat: true, info: "", imageurl: null },
+    { id: "ms-2", name: "MLBB Diamonds (Manual Recharge)", kind: "replenishment", chat: false, info: "Nhập đúng ID người chơi và máy chủ.", imageurl: null },
+  ];
+  const MS_OFFERS = {
+    "ms-1": {
+      items: [
+        { id: "of-1", name: "100 followers", price_usd: "2.50", delivery_minutes: 60 },
+        { id: "of-2", name: "1000 followers", price_usd: "19.99", delivery_minutes: 240 },
+      ],
+      fields: null,
+    },
+    "ms-2": {
+      items: [{ id: "of-m1", name: "86 Diamonds", price_usd: "1.90", delivery_minutes: 30 }],
+      fields: [
+        { code: "player_id", name: "Player ID" },
+        { code: "server", name: "Server" },
+      ],
+    },
+  };
+  if (p === "/manual-services") {
+    return send(res, 200, { ok: true, items: MS_CATS });
+  }
+  if (p.startsWith("/manual-services/") && p.endsWith("/offers")) {
+    const mid = decodeURIComponent(p.split("/")[2] || "");
+    const cat = MS_CATS.find((c) => c.id === mid);
+    if (!cat) return send(res, 404, { ok: false, error: "Category not found", code: "NOT_FOUND" });
+    const data = MS_OFFERS[mid] || { items: [], fields: null };
+    return send(res, 200, {
+      ok: true, manual_service_id: mid,
+      category: { id: cat.id, name: cat.name, kind: cat.kind, chat: cat.chat },
+      items: data.items, info: cat.info || "",
+      ...(data.fields ? { fields: data.fields } : {}),
+    });
   }
   if (p === "/telegram/stars") {
     return send(res, 200, { ok: true, pricePerStar: "0.0150000", price: "0.0150000", minAmount: 50, maxAmount: 10000, currency: "USD", balanceEnough: true });
@@ -222,17 +302,32 @@ const server = http.createServer(async (req, res) => {
     const o = newOrder("giftcard", { category_id: body.category_id, card_id: body.card_id, quantity: body.quantity }, poll);
     return send(res, 200, { ok: true, order: o });
   }
-  if (p === "/topups/validate-id") {
-    return send(res, 200, { ok: true, valid: body.value !== "bad-id", player_name: "PlayerOne" });
+  if (p === "/topups/validate-id" && req.method === "POST") {
+    // Body theo tài liệu: { category_id, fields }; player_id "bad-id" = ID sai
+    const pid = String(body.fields?.player_id || "");
+    const valid = pid !== "bad-id";
+    return send(res, 200, { ok: true, category_id: body.category_id, valid, player_name: valid ? "PlayerOne" : null, player_id: pid || null, region: "VN" });
   }
   if (p === "/topups/order") {
-    const o = newOrder("topup", { offerId: body.offerId }, { status: "completed" });
+    // Body theo tài liệu: { category_id, offer_id, fields (bắt buộc, là object) }
+    if (!body.category_id || !body.offer_id || typeof body.fields !== "object" || body.fields === null) {
+      return send(res, 400, { ok: false, error: "Missing params", code: "BAD_REQUEST" });
+    }
+    const o = newOrder("topup", { category_id: body.category_id, offer_id: body.offer_id, fields: body.fields }, { status: "completed" });
     return send(res, 201, { ok: true, orderId: o.id, order: o });
   }
   if (p === "/manual-services/order") {
-    const o = newOrder("manual", { manualServiceId: body.manualServiceId, offerId: body.offerId }, { status: "processing" });
-    // Nhóm manual trả order_id ở top-level, status "created" (theo docs)
-    return send(res, 200, { ok: true, order_id: o.id, kind: "manual_transfer", status: "created", category_id: 1 });
+    // Body theo tài liệu: { manual_service_id, product_id, fields? } —
+    // response PHẲNG { order_id, kind, status, ... } không bọc trong order.
+    if (!body.manual_service_id || !body.product_id) return send(res, 400, { ok: false, error: "Missing params", code: "BAD_REQUEST" });
+    const o = newOrder("manual", { manual_service_id: body.manual_service_id, product_id: body.product_id, fields: body.fields || null }, { status: "processing" });
+    return send(res, 200, {
+      ok: true, order_id: o.id,
+      kind: body.manual_service_id === "ms-2" ? "manual_replenishment" : "manual_transfer",
+      status: "created", category_id: body.manual_service_id, product_id: body.product_id,
+      price_usd: "2.50", deadline_at: new Date(Date.now() + 3600e3).toISOString(),
+      chat_required: false, chat_status: "none",
+    });
   }
   if (p === "/telegram/stars/buy") {
     const o = newOrder("stars", { quantity: body.quantity, userId: body.userId }, { status: "completed" });

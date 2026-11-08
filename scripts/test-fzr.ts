@@ -3,7 +3,12 @@
  *   npx tsx scripts/test-fzr.ts
  * Kiểm: số dư USD, đồng bộ catalog + công thức giá, idempotent khi sync lại,
  * mua game key (idempotency-key + trích key khi poll), fallback JSON thô cho
- * trường giao hàng lạ, gift card bị refund -> hoàn tiền đủ, top-up map orderParams,
+ * trường giao hàng lạ, gift card bị refund -> hoàn tiền đủ, top-up theo OpenAPI
+ * (validate-id {category_id, fields} trước -> order {category_id, offer_id,
+ * fields theo key}; ID sai = từ chối + hoàn, không gọi order; nhãn admin đổi
+ * được giữ khi đồng bộ lại và thực thi vẫn gửi key gốc), manual theo OpenAPI
+ * (body {manual_service_id, product_id, fields? theo code} — chỉ replenishment
+ * mới có fields; info của category -> description; nhãn đổi giữ theo code),
  * Telegram Stars timeout mơ hồ -> gọi ĐÚNG 1 lần + giữ PENDING (không hoàn tự động),
  * lỗi dứt khoát 402 -> huỷ + hoàn đủ, Steam gift chỉ sync khi bấm tay + báo giá lúc mua.
  */
@@ -13,6 +18,7 @@ import { providerBalance } from "../src/lib/provider";
 import { syncFzrCatalog } from "../src/lib/fzr-sync";
 import { createPremiumOrder } from "../src/lib/orders";
 import { pollFzrPremiumOrder } from "../src/lib/fzr-orders";
+import { parsePremiumFields } from "../src/lib/format";
 
 const MOCK = "http://127.0.0.1:3998";
 const RATE = 25000, MARKUP = 20; // hệ số giá bán = 25000 x 1.2 = 30000
@@ -78,9 +84,21 @@ async function main() {
     ok(gkV.providerGroup === "gamekeys" && gkV.providerId === provider.id && gkV.providerStock === 101, "linkage variant gamekeys đúng (group + tồn kho NCC 101)");
     ok(gk!.providerPlatform === "Steam" && gk!.providerRegion === "GLOBAL", `gamekeys sync lưu platform/region thật: ${gk!.providerPlatform}/${gk!.providerRegion}`);
     const tp = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "tp-1" }, include: { variants: true } });
-    ok(tp?.variants[0]?.providerItemId === "tp-1|1.85", `topup providerItemId composite = ${tp?.variants[0]?.providerItemId}`);
+    ok(!!tp && tp.variants.length === 2 && tp.variants[0].providerItemId === "tp-1-86" && tp.variants[0].price === sell(1.85), `topup: category = sản phẩm, offer = variant theo offer_id (${tp?.variants[0]?.providerItemId})`);
+    const tpFields = parsePremiumFields(tp!.customFields);
+    ok(tpFields.length === 2 && tpFields[0].key === "player_id" && tpFields[0].label === "Player ID" && tpFields[1].key === "zone_id", `topup lưu fields[] THẬT kèm key của NCC: ${JSON.stringify(tpFields.map((f) => f.key))}`);
+    ok((tp!.description || "").includes("MLBB"), "topup note của category lưu ở description");
+    const tp2 = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "tp-2" } });
+    const tp2Fields = parsePremiumFields(tp2?.customFields);
+    const serverField = tp2Fields.find((f) => f.key === "server");
+    ok(serverField?.type === "select" && JSON.stringify(serverField?.options) === JSON.stringify(["asia", "america", "europe"]), `topup trường select: options normalize về giá trị: ${JSON.stringify(serverField?.options)}`);
     const ms = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "ms-1" }, include: { variants: true } });
-    ok(ms?.variants.length === 2 && ms.variants[0].providerItemId === "ms-1:of-1", "manual service có 2 gói offer, itemId composite service:offer");
+    ok(ms?.variants.length === 2 && ms.variants[0].providerItemId === "of-1", "manual: category = sản phẩm, offer = variant theo offer id");
+    ok(parsePremiumFields(ms!.customFields).length === 0, "manual kind=standard KHÔNG có trường phía NCC (không còn ô generic giả)");
+    const ms2 = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "ms-2" }, include: { variants: true } });
+    const ms2Fields = parsePremiumFields(ms2?.customFields);
+    ok(ms2Fields.length === 2 && ms2Fields[0].key === "player_id" && ms2Fields[0].label === "Player ID" && ms2Fields[1].key === "server", `manual replenishment lưu fields[] {code, name} -> key/label: ${JSON.stringify(ms2Fields.map((f) => f.key))}`);
+    ok((ms2!.description || "").includes("ID người chơi"), "manual info của category lưu ở description");
     const stars = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "telegram-stars" }, include: { variants: true } });
     ok(stars?.variants[0]?.price === sell(0.015), `giá 1 sao = ${stars?.variants[0]?.price} (kỳ vọng ${sell(0.015)})`);
     const tgp = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "telegram-premium" }, include: { variants: true } });
@@ -163,20 +181,64 @@ async function main() {
     const o4bp: any = await pollFzrPremiumOrder(o4b);
     ok(o4bp.status === "DELIVERED" && (o4bp.deliveryData || "").includes("GC-CODE-1"), `gift card poll -> DELIVERED + trích được mã: ${o4bp.deliveryData}`);
 
-    /* 5) Top-up: map orderParams từ thông tin khách điền */
-    const o5: any = await buy(tp!.variants[0].id, 1, { "Tài khoản / ID người chơi": "player123" });
+    /* 5) Top-up theo OpenAPI: validate-id {category_id, fields} TRƯỚC, rồi
+       order {category_id, offer_id, fields} — fields theo ĐÚNG key của NCC */
+    const o5: any = await buy(tp!.variants[0].id, 1, { "Player ID": "player123", "Zone ID": "1234" });
     const log5 = await mockLog();
-    const call5 = log5.filter((l) => l.path === "/api/v2/topups/order").pop();
-    ok(call5?.body?.offerId === "tp-1" && call5?.body?.amount === "1.85" && call5?.body?.orderParams?.value === "player123", `topup orderParams map đúng: ${JSON.stringify(call5?.body)}`);
+    const valIdx = log5.findIndex((l) => l.path === "/api/v2/topups/validate-id" && l.method === "POST");
+    const ordIdx = log5.findIndex((l) => l.path === "/api/v2/topups/order");
+    ok(valIdx >= 0 && ordIdx > valIdx, "validate-id được gọi TRƯỚC order");
+    const callVal = log5[valIdx];
+    ok(callVal?.body?.category_id === "tp-1" && callVal?.body?.fields?.player_id === "player123" && callVal?.body?.fields?.zone_id === "1234", `validate-id body {category_id, fields theo key}: ${JSON.stringify(callVal?.body)}`);
+    const call5 = log5[ordIdx];
+    ok(call5?.body?.category_id === "tp-1" && call5?.body?.offer_id === "tp-1-86" && call5?.body?.fields?.player_id === "player123" && call5?.body?.fields?.zone_id === "1234", `topup order body {category_id, offer_id, fields} theo OpenAPI: ${JSON.stringify(call5?.body)}`);
     const o5p: any = await pollFzrPremiumOrder(o5);
     ok(o5p.status === "DELIVERED", "topup poll -> DELIVERED");
 
-    /* 5b) Manual: additionalData từ thông tin khách */
-    const oM: any = await buy(ms!.variants[0].id, 1, { "Thông tin bổ sung": "@tiktokuser" });
+    /* 5c) Top-up ID sai (validate trả valid=false): từ chối TRƯỚC order + hoàn đủ */
+    const orderCallsBefore5c = (await mockLog()).filter((l) => l.path === "/api/v2/topups/order").length;
+    const balBefore5c = (await demoNow()).balance;
+    const o5c: any = await buy(tp!.variants[0].id, 1, { "Player ID": "bad-id", "Zone ID": "1" });
+    ok(o5c.status === "REFUNDED", "validate valid=false -> đơn REFUNDED ngay");
+    ok((await demoNow()).balance === balBefore5c, "validate fail -> khách được hoàn đủ, không bị trừ");
+    ok((await mockLog()).filter((l) => l.path === "/api/v2/topups/order").length === orderCallsBefore5c, "validate fail -> KHÔNG gọi /topups/order");
+
+    /* 5d) Admin đổi NHÃN trường: đồng bộ lại giữ nhãn theo key; mua bằng nhãn
+       mới vẫn gửi KEY gốc cho NCC (cơ chế picker/label của task 3) */
+    const tpNow = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "tp-1" } });
+    const renamed = parsePremiumFields(tpNow!.customFields).map((f) => (f.key === "player_id" ? { ...f, label: "ID người chơi MLBB" } : f));
+    await prisma.premiumProduct.update({ where: { id: tpNow!.id }, data: { customFields: JSON.stringify(renamed) } });
+    await syncFzrCatalog(await fresh() as any);
+    const tpAfter = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "tp-1" }, include: { variants: true } });
+    const fieldsAfter = parsePremiumFields(tpAfter!.customFields);
+    ok(fieldsAfter.find((f) => f.key === "player_id")?.label === "ID người chơi MLBB" && fieldsAfter.find((f) => f.key === "zone_id")?.label === "Zone ID", `đồng bộ lại GIỮ nhãn admin đã đổi theo key: ${JSON.stringify(fieldsAfter.map((f) => f.label))}`);
+    const o5d: any = await buy(tpAfter!.variants[0].id, 1, { "ID người chơi MLBB": "player999", "Zone ID": "777" });
+    const log5d = await mockLog();
+    const call5d = log5d.filter((l) => l.path === "/api/v2/topups/order").pop();
+    ok(call5d?.body?.fields?.player_id === "player999" && call5d?.body?.fields?.zone_id === "777", `mua bằng nhãn đã đổi -> mock vẫn nhận KEY gốc: ${JSON.stringify(call5d?.body?.fields)}`);
+    ok(o5d.status === "PENDING", "đơn top-up nhãn-đổi tạo thành công (chờ poll)");
+
+    /* 5b) Manual kind=standard: body {manual_service_id, product_id}, KHÔNG fields */
+    const oM: any = await buy(ms!.variants[0].id, 1, {});
     const logM = await mockLog();
     const callM = logM.filter((l) => l.path === "/api/v2/manual-services/order").pop();
-    ok(callM?.body?.manualServiceId === "ms-1" && callM?.body?.offerId === "of-1" && JSON.stringify(callM?.body?.additionalData || {}).includes("@tiktokuser"), "manual order map service/offer/additionalData đúng");
+    ok(callM?.body?.manual_service_id === "ms-1" && callM?.body?.product_id === "of-1" && !("fields" in (callM?.body || {})), `manual standard order đúng OpenAPI (không fields): ${JSON.stringify(callM?.body)}`);
     ok(oM.status === "PENDING" && !!oM.providerOrderId, `manual order_id top-level được lưu: ${oM.providerOrderId}`);
+
+    /* 5e) Manual replenishment: order kèm fields theo field CODE */
+    const ms2Now = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "ms-2" }, include: { variants: true } });
+    const o5e: any = await buy(ms2Now!.variants[0].id, 1, { "Player ID": "mlbb-9", "Server": "Asia" });
+    const log5e = await mockLog();
+    const call5e = log5e.filter((l) => l.path === "/api/v2/manual-services/order").pop();
+    ok(call5e?.body?.manual_service_id === "ms-2" && call5e?.body?.product_id === "of-m1" && call5e?.body?.fields?.player_id === "mlbb-9" && call5e?.body?.fields?.server === "Asia", `manual replenishment order {manual_service_id, product_id, fields theo code}: ${JSON.stringify(call5e?.body)}`);
+    ok(o5e.status === "PENDING" && !!o5e.providerOrderId, "manual replenishment tạo đơn FZR thành công");
+
+    /* 5f) Admin đổi nhãn trường manual: đồng bộ lại giữ nhãn theo code */
+    const renamedMs = parsePremiumFields(ms2Now!.customFields).map((f) => (f.key === "player_id" ? { ...f, label: "ID MLBB" } : f));
+    await prisma.premiumProduct.update({ where: { id: ms2Now!.id }, data: { customFields: JSON.stringify(renamedMs) } });
+    await syncFzrCatalog(await fresh() as any);
+    const ms2After = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "ms-2" } });
+    ok(parsePremiumFields(ms2After!.customFields).find((f) => f.key === "player_id")?.label === "ID MLBB", "manual: đồng bộ lại GIỮ nhãn admin đã đổi theo code");
 
     /* 6) Telegram Stars: timeout mơ hồ -> đúng 1 lần gọi, giữ PENDING, không hoàn */
     await mockControl({ starsBehavior: "hang" });
