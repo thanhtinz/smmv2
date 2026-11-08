@@ -53,6 +53,7 @@ function Leaf({ it, pathname, sub = false }: { it: AdminNavItem; pathname: strin
 }
 
 function Group({ entry, pathname }: { entry: { group: string; icon: string; children: AdminNavItem[] }; pathname: string }) {
+  const { t } = useLang();
   const Icon = (I as any)[entry.icon] || I.list;
   const hasActive = entry.children.some((c) => isActive(pathname, c.href));
   const [open, setOpen] = useState(hasActive);
@@ -64,7 +65,7 @@ function Group({ entry, pathname }: { entry: { group: string; icon: string; chil
         className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${hasActive ? "text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}
       >
         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white shadow ${GROUP_TILES[entry.icon] || "bg-gradient-to-br from-slate-500 to-slate-600"}`}>{Icon}</span>
-        <span className="truncate font-medium">{entry.group}</span>
+        <span className="truncate font-medium">{t(entry.group)}</span>
         <svg viewBox="0 0 24 24" className={`ml-auto h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
       </button>
       {open && (
