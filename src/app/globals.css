@@ -57,6 +57,55 @@ input:focus, select:focus, textarea:focus { @apply ring-2 ring-brand-500/40 bord
   .td { @apply px-4 py-3 text-sm align-middle; }
 }
 
+/* ============ iOS SAFARI — Ô NGÀY/GIỜ PHÌNH TO (lệnh Tín 2026-11-07 23:11) ============
+   Gốc lỗi: iOS Safari vẽ input date/time/datetime-local bằng control native
+   và BỎ QUA padding + chiều cao của .inp, nên ô ngày/giờ cao và dài hơn hẳn
+   các ô chữ/select đứng cạnh trong cùng hàng lọc. Cách sửa chuẩn: gỡ
+   appearance để Safari tôn trọng đúng hộp CSS của .inp như ô chữ thường
+   (mọi nơi dùng ngày/giờ trong app đều mang .inp hoặc inputCls chung của
+   hàng — kể cả các hàng gọn !py-2, mọi ô trong hàng cùng một cỡ nên KHÔNG
+   ghim min-height cứng, tránh làm riêng ô ngày cao hơn hàng), chuẩn hoá
+   phần tử giá trị bên trong và nút mở lịch. */
+input[type="date"], input[type="time"], input[type="datetime-local"],
+input[type="month"], input[type="week"] {
+  -webkit-appearance: none;
+  appearance: none;
+  line-height: 1.25rem; /* bằng line-height của text-sm trong .inp */
+}
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value,
+input[type="month"]::-webkit-date-and-time-value,
+input[type="week"]::-webkit-date-and-time-value {
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+input[type="time"]::-webkit-datetime-edit-fields-wrapper,
+input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper,
+input[type="month"]::-webkit-datetime-edit-fields-wrapper,
+input[type="week"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0; /* UA của Chromium/WebKit cộng ~2px đệm dọc vào wrapper này — gỡ để bằng đúng chiều cao ô chữ */
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="week"]::-webkit-calendar-picker-indicator {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  opacity: 0.55;
+  cursor: pointer;
+}
+/* iOS tự phóng to trang khi focus vào ô có cỡ chữ < 16px ("tự làm to" còn
+   lại): trên thiết bị chạm (coarse pointer) đặt mọi control 16px; desktop
+   không đổi. */
+@media (hover: none) and (pointer: coarse) {
+  input, select, textarea { font-size: 16px; }
+}
+
 /* ============ CHẾ ĐỘ TỐI: ánh xạ lại các màu bề mặt/chữ dùng chung toàn site ============ */
 .dark body { background: #0a1120; color: #d7e1ef; }
 .dark .card { background: #101a2e; border-color: rgba(120,150,200,.14); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
