@@ -22,8 +22,9 @@ function ChevronBtn({ dir, onClick, label, className = "" }: { dir: "prev" | "ne
   );
 }
 
-/** Slider hero trang chủ kiểu shopkey: banner rộng ~3.2:1, tự chuyển, có
- *  mũi tên + chấm chỉ vị trí. Slide dựng từ dữ liệu thật (site + danh mục). */
+/** Slider hero trang chủ kiểu shopkey: banner lớn (cao 300/380/470 theo
+ *  viewport — lệnh Tín 2026-11-08 cho bự ra), tự chuyển, có mũi tên + chấm
+ *  chỉ vị trí. Slide dựng từ dữ liệu thật (site + danh mục). */
 function HeroSlider({ slides }: { slides: HomeSlide[] }) {
   const { t } = useLang();
   const [idx, setIdx] = useState(0);
@@ -38,7 +39,11 @@ function HeroSlider({ slides }: { slides: HomeSlide[] }) {
   const go = (d: number) => setIdx((i) => (i + d + n) % n);
   return (
     <section className="relative overflow-hidden rounded-3xl" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      <div className="relative h-[240px] sm:h-[300px] lg:h-[380px]">
+      {/* Chiều cao hero (lệnh Tín 2026-11-08 "banner cho bự ra"): 240/300/380
+          -> 300/380/470 — mobile 358x300 (~1.2:1, nặng thị giác hẳn), desktop
+          1248x470 (~2.65:1 thay vì 3.28:1). Ảnh nền object-cover cắt giữa,
+          không méo; nội dung/chấm/mũi tên giữ nguyên. */}
+      <div className="relative h-[300px] sm:h-[380px] lg:h-[470px]">
         {slides.map((s, i) => (
           <div key={i} className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? "opacity-100" : "pointer-events-none opacity-0"}`}>
             {s.image ? (
