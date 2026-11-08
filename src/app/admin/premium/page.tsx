@@ -8,7 +8,7 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 const RT = "/admin/premium";
 
 export default async function AdminPremiumProducts({ searchParams }: { searchParams: { q?: string; cat?: string; status?: string; page?: string; msg?: string; err?: string } }) {
@@ -19,7 +19,7 @@ export default async function AdminPremiumProducts({ searchParams }: { searchPar
   if (searchParams.cat) where.categoryId = parseInt(searchParams.cat);
   if (searchParams.status === "on") where.active = true;
   if (searchParams.status === "off") where.active = false;
-  // Phân trang phía máy chủ (20 sản phẩm/trang) — bộ lọc q/cat/status giữ
+  // Phân trang phía máy chủ (10 sản phẩm/trang) — bộ lọc q/cat/status giữ
   // nguyên qua query khi lật trang.
   const total = await prisma.premiumProduct.count({ where: { ...where, panelId: null } });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));

@@ -96,7 +96,7 @@ export async function loadGameKeyFamilies(opts?: { q?: string; page?: number; pa
   page: number;
   pages: number;
 }> {
-  const pageSize = opts?.pageSize ?? 20;
+  const pageSize = opts?.pageSize ?? 10;
   const q = (opts?.q || "").trim();
   const productWhere: any = {
     variants: { some: { providerGroup: "gamekeys" } },
@@ -167,7 +167,7 @@ export async function loadGiftCardFamilies(opts?: { q?: string; page?: number; p
   page: number;
   pages: number;
 }> {
-  const pageSize = opts?.pageSize ?? 20;
+  const pageSize = opts?.pageSize ?? 10;
   const q = (opts?.q || "").trim();
   const productWhere: any = {
     variants: { some: { providerGroup: "giftcards" } },
@@ -232,7 +232,7 @@ export type TopupProduct = FamilyVariant["product"] & {
  *  gói nạp = các variant topups (providerItemId = offer_id). customFields
  *  của sản phẩm mang fields[] của category (key khoá cứng + nhãn admin đặt)
  *  để trang admin sửa nhãn. Phân trang phía máy chủ theo SẢN PHẨM như các
- *  họ khác (20/trang, tìm theo tên category qua `q`). */
+ *  họ khác (10/trang, tìm theo tên category qua `q`). */
 export async function loadTopupFamilies(opts?: { q?: string; page?: number; pageSize?: number }): Promise<{
   providers: Provider[];
   groups: { product: TopupProduct; variants: FamilyVariant[] }[];
@@ -240,7 +240,7 @@ export async function loadTopupFamilies(opts?: { q?: string; page?: number; page
   page: number;
   pages: number;
 }> {
-  const pageSize = opts?.pageSize ?? 20;
+  const pageSize = opts?.pageSize ?? 10;
   const q = (opts?.q || "").trim();
   const productWhere: any = {
     variants: { some: { providerGroup: "topups" } },

@@ -38,8 +38,11 @@ export function regularPremiumWhere(userId?: number) {
  *  /premium + sản phẩm liên quan): sản phẩm Steam (gift games + sản phẩm
  *  giữ chỗ top-up) thuộc khu Steam riêng — có mục "Steam Gift Games" riêng
  *  trên trang chủ và các trang Steam — nên không lẫn vào catalog Premium.
- *  `none` ở đây an toàn (không có bẫy NULL như ở tầng đơn): sản phẩm không
- *  còn variant Steam nào đang tồn tại thì là sản phẩm thường. */
+ *  Sản phẩm Top-Up (nhóm topups) cũng có catalog riêng ở /dashboard/top-up
+ *  (lệnh chủ site 2026-11-08 18:14: không chung cái nào hết) nên rời khỏi
+ *  catalog Premium luôn như Steam. `none` ở đây an toàn (không có bẫy NULL
+ *  như ở tầng đơn): sản phẩm không còn variant thuộc các nhóm trên đang
+ *  tồn tại thì là sản phẩm thường. */
 export function regularCatalogWhere() {
-  return { variants: { none: { providerGroup: { in: STEAM_GROUPS } } } };
+  return { variants: { none: { providerGroup: { in: [...STEAM_GROUPS, ...TOPUP_GROUPS] } } } };
 }

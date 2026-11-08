@@ -71,11 +71,11 @@ export async function buildCustomerNav(
     { href: "/dashboard/gift-card", label: L("Mua gift card") },
     { href: "/dashboard/gift-card/don-hang", label: L("Đơn hàng") },
   ];
-  // Top-Up (lệnh Tín 2026-11-08 17:50): dropdown riêng ngay sau Gift Card —
-  // nhóm FZR topups tách HẲN khỏi Premium; giao diện mua Top-Up làm sau nên
-  // hiện chỉ có mục Đơn hàng (lịch sử), mục Mua sẽ vào cùng dropdown khi
-  // trang mua được dựng.
+  // Top-Up (lệnh Tín 2026-11-08 17:50 + 18:14): dropdown riêng ngay sau
+  // Gift Card — nhóm FZR topups tách HẲN khỏi Premium; trang mua theo ảnh
+  // mẫu FZR (danh sách game phân trang + trang mua hai cột trên PC).
   const topupChildren = [
+    { href: "/dashboard/top-up", label: L("Nạp game") },
     { href: "/dashboard/top-up/don-hang", label: L("Đơn hàng") },
   ];
   // (Đã bỏ phân đoạn nền tảng SMM riêng trong menu theo lệnh Tín 2026-11-07 20:33 —

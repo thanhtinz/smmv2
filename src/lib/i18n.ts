@@ -3869,6 +3869,14 @@ export const DICT: Record<string, Tr> = {
   "Mọi đơn nạp dịch vụ bạn đã đặt.": e("Every top-up order you have placed.", "您下过的每一个充值订单。", "คำสั่งซื้อเติมเงินทั้งหมดที่คุณเคยสั่ง", "これまでに注文したすべてのトップアップ注文。", "지금까지 주문한 모든 충전 주문입니다."),
   "Chưa có đơn Top-Up nào": e("No Top-Up orders yet", "暂无充值订单", "ยังไม่มีคำสั่งซื้อ Top-Up", "トップアップ注文はまだありません", "아직 충전 주문이 없습니다"),
   "Mã đơn, tên dịch vụ": e("Order code, service name", "订单号、服务名称", "รหัสคำสั่งซื้อ, ชื่อบริการ", "注文コード、サービス名", "주문 코드, 서비스 이름"),
+  // Top-Up phía khách (khu riêng nhóm topups — trang mua theo ảnh mẫu FZR)
+  "Nạp game": e("Top up games", "游戏充值", "เติมเกม", "ゲームにチャージ", "게임 충전"),
+  "Danh mục nạp game và dịch vụ — chọn game để xem các gói nạp và giá.": e("Top-up catalog for games and services — pick a game to see its top-up packages and prices.", "游戏与服务充值目录 — 选择游戏查看充值包和价格。", "แค็ตตาล็อกเติมเกมและบริการ — เลือกเกมเพื่อดูแพ็กเกจเติมเงินและราคา", "ゲームとサービスのチャージカタログ — ゲームを選ぶとチャージパッケージと価格が表示されます。", "게임 및 서비스 충전 카탈로그 — 게임을 선택하면 충전 패키지와 가격이 표시됩니다."),
+  "Gói nạp": e("Top-up packages", "充值包", "แพ็กเกจเติมเงิน", "チャージパッケージ", "충전 패키지"),
+  "Chưa có dữ liệu Top-Up": e("No Top-Up data yet", "暂无充值数据", "ยังไม่มีข้อมูล Top-Up", "トップアップのデータがまだありません", "충전 데이터가 아직 없습니다"),
+  "Danh mục nạp chưa được đồng bộ — vui lòng quay lại sau.": e("The top-up catalog has not been synced yet — please come back later.", "充值目录尚未同步 — 请稍后再来。", "แค็ตตาล็อกเติมเงินยังไม่ถูกซิงค์ — โปรดกลับมาใหม่ภายหลัง", "チャージカタログはまだ同期されていません — 後ほどお戻りください。", "충전 카탈로그가 아직 동기화되지 않았습니다 — 나중에 다시 와 주세요."),
+  "Gói nạp không khả dụng": e("This top-up package is unavailable", "该充值包不可用", "แพ็กเกจเติมเงินนี้ไม่พร้อมใช้งาน", "このチャージパッケージは利用できません", "이 충전 패키지는 이용할 수 없습니다"),
+  "Đặt đơn thành công — thông tin nạp sẽ hiện trong lịch sử Top-Up khi xử lý xong": e("Order placed — the top-up will appear in your Top-Up history once processed", "下单成功 — 充值处理完成后会显示在充值历史中", "สั่งซื้อสำเร็จ — ข้อมูลการเติมเงินจะปรากฏในประวัติ Top-Up เมื่อดำเนินการเสร็จ", "注文が完了しました — 処理が終わるとトップアップ履歴に表示されます", "주문이 완료되었습니다 — 처리가 끝나면 충전 내역에 표시됩니다"),
 
 };
 

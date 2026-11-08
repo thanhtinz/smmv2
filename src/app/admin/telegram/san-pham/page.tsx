@@ -20,7 +20,7 @@ const RT = "/admin/telegram/san-pham";
  *  tháng, giá bán = giá gói trong catalog). Hai họ tách thành 2 TAB (?tab=),
  *  form thêm gói nằm ở ĐẦU mỗi tab; thẻ đồng bộ & markup phủ cả 2 nhóm nên
  *  ở ngoài, phía trên tab. */
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export default async function AdminTelegramProducts({ searchParams }: { searchParams: { msg?: string; err?: string; spage?: string; ppage?: string; tab?: string } }) {
   await requireAdminPage();

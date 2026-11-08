@@ -18,7 +18,7 @@ const RT = "/admin/steam/san-pham";
  *  lúc mua nên giá hiển thị chỉ là giá gần nhất; tỉ giá + markup chung nằm ở
  *  form nhà cung cấp — Admin → Nhà cung cấp, markup riêng khu ở AreaSyncCard).
  *  Sửa ở đây ghi vào đúng PremiumProduct/PremiumVariant trang khách đọc. */
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export default async function AdminSteamProducts({ searchParams }: { searchParams: { msg?: string; err?: string; tpage?: string; gpage?: string; gq?: string } }) {
   await requireAdminPage();
