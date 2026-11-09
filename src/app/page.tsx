@@ -6,6 +6,7 @@ import { HomeModal } from "@/components/gates";
 import { getServerI18n } from "@/lib/lang-server";
 import { premiumCardsFor } from "@/components/premium-views";
 import { HeroSlider, HomeShop, type HomeCard, type HomeCat, type HomeSlide } from "@/components/home-shop";
+import { HomeStripRow, type StripTile } from "@/components/home-strip";
 import { type HomeGift } from "@/components/home-gifts";
 import { regularCatalogWhere } from "@/lib/order-scope";
 import { productImages } from "@/lib/format";
@@ -22,6 +23,27 @@ export default async function HomePage() {
   const { L, Ld } = await getServerI18n();
   const user = await getCurrentUser().catch(() => null);
   const premiumOff = s.module_premium === "0";
+  // Dải icon lối tắt dưới hero (lệnh Tín 2026-11-08 21:08): ẩn/hiện từng ô
+  // THEO ĐÚNG điều kiện của buildCustomerNav để dải và menu khách không bao
+  // giờ lệch nhau — ô SMM theo module_smm (như mục "Đặt đơn"), ô Premium
+  // theo module_premium (như mục "Tất cả sản phẩm"), 2 ô Telegram theo
+  // telegram_enabled (như nhóm Telegram); Steam / Game Key / Gift Card /
+  // Top-Up luôn hiện như các nhóm menu tương ứng (menu luôn hiện vô điều kiện).
+  const stripTiles: StripTile[] = [
+    ...(s.module_smm !== "0" ? [{ href: "/dashboard/dat-hang", label: L("Mạng xã hội"), img: "/home-strip/smm.jpg" }] : []),
+    ...(s.module_premium !== "0" ? [{ href: "/premium", label: L("Tất cả sản phẩm"), img: "/home-strip/premium.jpg" }] : []),
+    { href: "/dashboard/steam/top-up", label: L("Steam Top-Up"), img: "/home-strip/steam-topup.jpg" },
+    { href: "/dashboard/steam/gift-games", label: L("Steam Gift"), img: "/home-strip/steam-gift.jpg" },
+    ...(s.telegram_enabled !== "0"
+      ? [
+          { href: "/dashboard/telegram?tab=stars", label: L("Telegram Stars"), img: "/home-strip/telegram-stars.jpg" },
+          { href: "/dashboard/telegram?tab=premium", label: L("Telegram Premium"), img: "/home-strip/telegram-premium.jpg" },
+        ]
+      : []),
+    { href: "/dashboard/game-key", label: L("Game Key"), img: "/home-strip/game-key.jpg" },
+    { href: "/dashboard/gift-card", label: L("Gift Card"), img: "/home-strip/gift-card.jpg" },
+    { href: "/dashboard/top-up", label: L("Top-Up Game"), img: "/home-strip/top-up.jpg" },
+  ];
   const homeModal = s.home_modal_enabled === "1" && s.home_modal_content?.trim() ? s.home_modal_content : null;
 
   let cats: HomeCat[] = [];
@@ -105,6 +127,7 @@ export default async function HomePage() {
       {homeModal && user ? <HomeModal content={homeModal} /> : null}
       {premiumOff ? (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
+          <HomeStripRow tiles={stripTiles} />
           <div className="card mt-10 p-8 text-center">
             <div className="text-lg font-bold text-slate-900">{L("Mảng Premium đang tạm ngưng")}</div>
             <p className="mt-2 text-sm text-slate-500">{L("Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau hoặc dùng dịch vụ SMM.")}</p>
@@ -112,6 +135,7 @@ export default async function HomePage() {
         </main>
       ) : all.length === 0 && gifts.length === 0 ? (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
+          <HomeStripRow tiles={stripTiles} />
           <div className="card mt-10 p-8 text-center">
             <p className="text-sm text-slate-500">{L("Chưa có sản phẩm nào phù hợp.")}</p>
           </div>
@@ -129,6 +153,9 @@ export default async function HomePage() {
             <HeroSlider slides={slides} />
           </div>
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
+            {/* Dải icon lối tắt NGAY DƯỚI hero, trên nền thường của trang
+                (đính chính Tín 2026-11-08 21:10: không dải nền màu). */}
+            <HomeStripRow tiles={stripTiles} />
             <HomeShop slides={slides} cats={cats} all={all} best={best} gifts={gifts} hero={false} />
           </main>
         </>

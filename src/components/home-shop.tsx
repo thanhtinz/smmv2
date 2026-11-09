@@ -17,7 +17,7 @@ const PAGE = 8;
 function ChevronBtn({ dir, onClick, label, className = "" }: { dir: "prev" | "next"; onClick: () => void; label: string; className?: string }) {
   return (
     <button type="button" onClick={onClick} aria-label={label} title={label}
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 sm:h-10 sm:w-10 ${className}`}>
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 ${className}`}>
       <span className={`[&>svg]:h-4 [&>svg]:w-4 ${dir === "prev" ? "rotate-90" : "-rotate-90"}`}>{I.chevron}</span>
     </button>
   );
@@ -30,19 +30,51 @@ function ChevronBtn({ dir, onClick, label, className = "" }: { dir: "prev" | "ne
  *  bề ngang viewport, không lề, góc vuông; chiều cao giữ 300/380/470 như bản
  *  fix9 (6bb0644). Tự chuyển, có mũi tên + chấm chỉ vị trí. Slide dựng từ dữ
  *  liệu thật (site + danh mục); khối chữ canh theo container max-w-7xl của
- *  trang để không trôi ra mép ở màn rất rộng. */
+ *  trang để không trôi ra mép ở màn rất rộng. Mũi tên qua/lại hiện ở MỌI bề
+ *  rộng (nút 40px, bấm được trên điện thoại — lệnh Tín 2026-11-08 21:13). */
+const HERO_AUTOPLAY_MS = 5500;
+
 export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
   const { t } = useLang();
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const n = slides.length;
+  // Tự chạy + chấm TIẾN TRÌNH dùng CHUNG MỘT đồng hồ rAF (lệnh Tín
+  // 2026-11-08 21:12): accRef = số ms đã chạy của slide hiện tại — thanh
+  // đầy (acc chạm HERO_AUTOPLAY_MS) thì chuyển slide ngay trong cùng tick,
+  // nên thanh và thời điểm chuyển không bao giờ lệch nhau. Hover/tạm dừng
+  // thì rAF dừng, acc giữ nguyên, thanh đứng yên theo. Chuyển tay (mũi
+  // tên/chấm) = acc về 0, thanh chạy lại từ đầu. Tab ẩn thì rAF tự dừng —
+  // cả hai cùng đứng yên.
+  const accRef = useRef(0);
+  const fillRef = useRef<HTMLSpanElement | null>(null);
   useEffect(() => {
     if (n <= 1 || paused) return;
-    const id = setInterval(() => setIdx((i) => (i + 1) % n), 5500);
-    return () => clearInterval(id);
+    let raf = 0;
+    let last = 0;
+    const tick = (now: number) => {
+      if (!last) last = now;
+      accRef.current += now - last;
+      last = now;
+      if (accRef.current >= HERO_AUTOPLAY_MS) {
+        accRef.current = 0;
+        if (fillRef.current) fillRef.current.style.width = "0%";
+        setIdx((i) => (i + 1) % n);
+      } else if (fillRef.current) {
+        fillRef.current.style.width = `${(accRef.current / HERO_AUTOPLAY_MS) * 100}%`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [n, paused]);
   if (n === 0) return null;
-  const go = (d: number) => setIdx((i) => (i + d + n) % n);
+  const goTo = (i: number) => {
+    accRef.current = 0;
+    if (fillRef.current) fillRef.current.style.width = "0%";
+    setIdx(((i % n) + n) % n);
+  };
+  const go = (d: number) => goTo(idx + d);
   return (
     <section className="relative w-full overflow-hidden" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       {/* Chiều cao hero: giữ nguyên 300/380/470 của fix9 (6bb0644) — đợt
@@ -80,10 +112,19 @@ export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
         <>
           <div className="absolute inset-y-0 left-3 flex items-center sm:left-4"><ChevronBtn dir="prev" label={t("Trang trước")} onClick={() => go(-1)} /></div>
           <div className="absolute inset-y-0 right-3 flex items-center sm:right-4"><ChevronBtn dir="next" label={t("Trang sau")} onClick={() => go(1)} /></div>
-          <div className="absolute bottom-3.5 left-1/2 flex -translate-x-1/2 gap-1.5">
-            {slides.map((_, i) => (
-              <button key={i} type="button" aria-label={`Slide ${i + 1}`} onClick={() => setIdx(i)} className={`h-2 rounded-full transition-all ${i === idx ? "w-6 bg-white" : "w-2 bg-white/45 hover:bg-white/70"}`} />
-            ))}
+          {/* Chấm trang: chấm đang chạy = THANH TIẾN TRÌNH (pill có phần
+              đầy chạy theo đúng thời gian tự chuyển slide, cùng đồng hồ
+              rAF ở trên); chấm chưa tới vẫn là chấm tròn nhỏ. */}
+          <div className="absolute bottom-3.5 left-1/2 flex -translate-x-1/2 items-center gap-1.5">
+            {slides.map((_, i) =>
+              i === idx ? (
+                <button key={i} type="button" aria-label={`Slide ${i + 1}`} onClick={() => goTo(i)} className="h-2 w-8 overflow-hidden rounded-full bg-white/35 sm:w-10">
+                  <span ref={fillRef} className="block h-full rounded-full bg-white" style={{ width: "0%" }} />
+                </button>
+              ) : (
+                <button key={i} type="button" aria-label={`Slide ${i + 1}`} onClick={() => goTo(i)} className="h-2 w-2 rounded-full bg-white/45 transition hover:bg-white/70" />
+              )
+            )}
           </div>
         </>
       )}

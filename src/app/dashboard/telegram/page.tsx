@@ -11,7 +11,7 @@ import { ProductReviews } from "@/components/product-reviews";
 export const dynamic = "force-dynamic";
 
 /** Đặt đơn Telegram Stars & Premium (khu riêng, công tắc ở Admin → Telegram). */
-export default async function TelegramOrderPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function TelegramOrderPage({ searchParams }: { searchParams: { msg?: string; err?: string; tab?: string } }) {
   const user = (await getCurrentUser())!;
   const { L, Ld } = await getServerI18n();
   if (!(await telegramEnabled())) redirect("/");
@@ -87,7 +87,7 @@ export default async function TelegramOrderPage({ searchParams }: { searchParams
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{L("Telegram Stars & Premium chưa mở bán — vui lòng quay lại sau.")}</p>
         </div>
       ) : (
-        <TelegramOrderForm starPrice={starPrice} starMin={starMin} starMax={starMax} starPackages={starPackages} plans={plans} balance={user.balance} reviewsStars={reviewsStars} reviewsPremium={reviewsPremium} />
+        <TelegramOrderForm starPrice={starPrice} starMin={starMin} starMax={starMax} starPackages={starPackages} plans={plans} balance={user.balance} reviewsStars={reviewsStars} reviewsPremium={reviewsPremium} initialMode={searchParams.tab === "premium" ? "premium" : "stars"} />
       )}
     </div>
   );

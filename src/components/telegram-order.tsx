@@ -11,7 +11,7 @@ export type TelegramPlan = { months: number; price: number };
  *  2 Chọn gói) → thẻ Summary có nút Continue bên trong. Người nhận CHỈ có
  *  username (không còn ô Telegram ID — đơn username đi đường top-up username
  *  hoặc chờ xử lý tay như máy chủ đã làm). Giá hiện bằng tiền của site. */
-export function TelegramOrderForm({ starPrice, starMin, starMax, starPackages, plans, balance, reviewsStars, reviewsPremium }: {
+export function TelegramOrderForm({ starPrice, starMin, starMax, starPackages, plans, balance, reviewsStars, reviewsPremium, initialMode }: {
   starPrice: number; // VNĐ / 1 sao đã quy đổi (0 = chưa có giá)
   starMin: number;
   starMax: number;
@@ -20,9 +20,10 @@ export function TelegramOrderForm({ starPrice, starMin, starMax, starPackages, p
   balance: number;
   reviewsStars?: ReactNode; // khối đánh giá của sản phẩm Stars (server render) — hiện khi tab Stars mở
   reviewsPremium?: ReactNode; // khối đánh giá của sản phẩm Telegram Premium — hiện khi tab Premium mở
+  initialMode?: "stars" | "premium"; // tab mở sẵn theo ?tab= (dải icon trang chủ trỏ vào)
 }) {
   const { t, m } = useLang();
-  const [mode, setMode] = useState<"stars" | "premium">("stars");
+  const [mode, setMode] = useState<"stars" | "premium">(initialMode ?? "stars");
   const [username, setUsername] = useState("");
   const [amount, setAmount] = useState(starPackages[0] ?? 50);
   const [showAll, setShowAll] = useState(false);
