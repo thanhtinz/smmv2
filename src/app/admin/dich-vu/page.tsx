@@ -78,9 +78,9 @@ export default async function AdminServices({ searchParams }: { searchParams: { 
             <option value="off">{L("Đã tắt")}</option>
           </select>
           <button className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{L("Lọc")}</button>
-          {(q || cat || provider || status) && <Link href="/admin/dich-vu" className="btn-ghost btn-sm !px-4 !py-2.5">{L("Đặt lại")}</Link>}
+          {(q || cat || provider || status) && <Link href="/admin/dich-vu" className="btn-ghost !px-4">{L("Đặt lại")}</Link>}
         </form>
-        <form action={adminSyncAllProviders}><button className="btn-ghost btn-sm !px-4 !py-2.5">{L("Đồng bộ dịch vụ")}</button></form>
+        <form action={adminSyncAllProviders}><button className="btn-ghost !px-4">{L("Đồng bộ dịch vụ")}</button></form>
         <AddServiceButton categories={catDTOs} providers={provOpts} bots={botOpts} />
       </div>
 

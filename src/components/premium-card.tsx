@@ -52,8 +52,9 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
   const { t, td, m } = useLang();
   const contact = item.minPrice <= 0;
   // Công thức flash phía client — khớp applyFlashAmount phía server (lib/flash).
+  // flashPct đã qua trần flash_max_percent ở getActiveFlashSale — không kẹp lại.
   const flashPrice = (amount: number) =>
-    item.flashPct > 0 && amount > 0 ? Math.max(1, Math.round(amount * (1 - Math.min(90, item.flashPct) / 100))) : amount;
+    item.flashPct > 0 && amount > 0 ? Math.max(1, Math.round(amount * (1 - item.flashPct / 100))) : amount;
   return (
     // HỢP ĐỒNG CAO ĐỀU (lệnh Tín 2026-11-08): thẻ KHÔNG đặt h-full (làm flex/
     // grid hết kéo giãn theo hàng) — cha (grid/rail) stretch thẻ theo ô cao
@@ -93,7 +94,10 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
         </div>
       </div>
       <div className="flex flex-1 flex-col p-3 sm:p-4">
-        <div className="line-clamp-2 min-h-[2.6em] text-[15px] font-bold leading-snug text-slate-900 group-hover:text-brand-700 sm:text-base">{item.name}</div>
+        {/* Giữ sẵn ĐÚNG 2 dòng: line-height thực tế 1.5em/dòng nên 2 dòng = 3em
+            (bản 2.6em thiếu 0.4em — thẻ có tên dài 2 dòng cao hơn 6px, rà soát
+            đồng nhất 2026-11-08 đo được 347 so với 353). */}
+        <div className="line-clamp-2 min-h-[3em] text-[15px] font-bold leading-snug text-slate-900 group-hover:text-brand-700 sm:text-base">{item.name}</div>
         {/* Giá LUÔN 1 hàng (lệnh Tín 2026-11-08 01:34): chỉ giá bắt đầu
             "Từ ..." bọc nowrap — khoảng giá đầy đủ xem ở trang chi tiết. */}
         <div className="mt-2 whitespace-nowrap text-[15px] font-extrabold leading-tight text-rose-600 sm:text-base">

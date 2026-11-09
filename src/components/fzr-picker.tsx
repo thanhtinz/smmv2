@@ -57,11 +57,11 @@ function PickerBox({ group, onPick, picked }: {
       <div className="mt-2 flex flex-wrap gap-2">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm theo tên trong catalog FZR..." className={`${inp} min-w-[200px] flex-1`}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); search(); } }} />
-        <button type="button" onClick={() => search()} disabled={busy} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">{busy ? "Đang gọi..." : "Tìm"}</button>
+        <button type="button" onClick={() => search()} disabled={busy} className="btn-primary btn-row !px-3.5 disabled:opacity-50">{busy ? "Đang gọi..." : "Tìm"}</button>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <input value={lookupId} onChange={(e) => setLookupId(e.target.value)} placeholder="Hoặc dán mã phía FZR để kiểm chứng" className={`${inp} min-w-[200px] flex-1`} />
-        <button type="button" onClick={lookup} disabled={busy} className="btn-ghost btn-sm !px-3.5 !py-2 disabled:opacity-50">Kiểm tra mã</button>
+        <button type="button" onClick={lookup} disabled={busy} className="btn-ghost btn-row !px-3.5 disabled:opacity-50">Kiểm tra mã</button>
       </div>
       {lookupMsg && <p className="mt-1.5 text-xs font-semibold text-rose-600">{lookupMsg}</p>}
       {error && <p className="mt-1.5 text-xs font-semibold text-rose-600">{error}</p>}
@@ -176,7 +176,7 @@ export function GameKeyAddForm({ returnTo }: { returnTo: string }) {
           <span className={lbl}>Giá bán (VNĐ)</span>
           <input name="price" type="number" min={0} required placeholder="1299000" className={`${inp} !w-36`} />
         </label>
-        <button disabled={!picked || !editionId} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm game</button>
+        <button disabled={!picked || !editionId} className="btn-primary btn-row !px-3.5 disabled:opacity-50">Thêm game</button>
       </form>
       {err && <p className="mt-1.5 text-xs font-semibold text-rose-600">{err}</p>}
       {!picked && <p className="mt-1.5 text-xs text-slate-400">Tìm hoặc kiểm chứng mã game ở khung trên trước — nút Thêm chỉ mở khi đã chọn đúng game từ nguồn.</p>}
@@ -204,7 +204,7 @@ export function GameKeyEditionForm({ productId, gameId, existing, returnTo }: {
         <span className={lbl}>Giá bán (VNĐ)</span>
         <input name="price" type="number" min={0} required placeholder="1299000" className={`${inp} !w-36`} />
       </label>
-      <button disabled={!editionId} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm phiên bản</button>
+      <button disabled={!editionId} className="btn-primary btn-row !px-3.5 disabled:opacity-50">Thêm phiên bản</button>
       {err && <p className="w-full text-xs font-semibold text-rose-600">{err}</p>}
     </form>
   );
@@ -238,7 +238,7 @@ export function GiftCardAddForm({ returnTo }: { returnTo: string }) {
           <span className={lbl}>Giá bán (VNĐ)</span>
           <input name="price" type="number" min={0} required placeholder="250000" className={`${inp} !w-36`} />
         </label>
-        <button disabled={!picked || !editionId} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm danh mục</button>
+        <button disabled={!picked || !editionId} className="btn-primary btn-row !px-3.5 disabled:opacity-50">Thêm danh mục</button>
       </form>
       {err && <p className="mt-1.5 text-xs font-semibold text-rose-600">{err}</p>}
       {!picked && <p className="mt-1.5 text-xs text-slate-400">Tìm hoặc kiểm chứng mã danh mục ở khung trên trước — nút Thêm chỉ mở khi đã chọn đúng danh mục từ nguồn.</p>}
@@ -266,7 +266,7 @@ export function GiftCardDenomForm({ productId, categoryId, existing, returnTo }:
         <span className={lbl}>Giá bán (VNĐ)</span>
         <input name="price" type="number" min={0} required placeholder="25000" className={`${inp} !w-36`} />
       </label>
-      <button disabled={!editionId} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm mệnh giá</button>
+      <button disabled={!editionId} className="btn-primary btn-row !px-3.5 disabled:opacity-50">Thêm mệnh giá</button>
       {err && <p className="w-full text-xs font-semibold text-rose-600">{err}</p>}
     </form>
   );
@@ -295,7 +295,7 @@ export function SteamGiftAddForm({ returnTo }: { returnTo: string }) {
           <span className={lbl}>Giá bán (VNĐ)</span>
           <input name="price" type="number" min={0} required placeholder="1150000" className={`${inp} !w-36`} />
         </label>
-        <button disabled={!picked} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm game</button>
+        <button disabled={!picked} className="btn-primary btn-row !px-3.5 disabled:opacity-50">Thêm game</button>
       </form>
       {!picked && <p className="mt-1.5 text-xs text-slate-400">Tìm game hoặc kiểm chứng AppID ở khung trên trước — nút Thêm chỉ mở khi đã chọn đúng game từ nguồn. Giá thật chốt theo offer rẻ nhất lúc mua.</p>}
     </div>
@@ -339,7 +339,7 @@ export function TelegramPremiumAddForm({ returnTo }: { returnTo: string }) {
         <span className={lbl}>Giá bán (VNĐ)</span>
         <input name="price" type="number" min={0} required placeholder="129000" className={`${inp} !w-36`} />
       </label>
-      <button disabled={!months} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm gói</button>
+      <button disabled={!months} className="btn-primary btn-row !px-3.5 disabled:opacity-50">Thêm gói</button>
       {error && <p className="w-full text-xs font-semibold text-rose-600">{error}</p>}
     </form>
   );
@@ -403,7 +403,7 @@ export function TopupAddForm({ returnTo }: { returnTo: string }) {
         <span className={lbl}>Giá bán (VNĐ)</span>
         <input name="price" type="number" min={0} required placeholder="55000" className={`${inp} !w-32`} />
       </label>
-      <button disabled={!picked || !edition} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm danh mục</button>
+      <button disabled={!picked || !edition} className="btn-primary btn-row !px-3.5 disabled:opacity-50">Thêm danh mục</button>
       {err && <p className="w-full text-xs font-semibold text-rose-600">{err}</p>}
       {(fieldsNote || fields.length > 0) && (
         <div className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3">
@@ -499,7 +499,7 @@ export function ManualAddForm({ returnTo }: { returnTo: string }) {
         <span className={lbl}>Giá bán (VNĐ)</span>
         <input name="price" type="number" min={0} required placeholder="55000" className={`${inp} !w-32`} />
       </label>
-      <button disabled={!picked || !edition} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm dịch vụ</button>
+      <button disabled={!picked || !edition} className="btn-primary btn-row !px-3.5 disabled:opacity-50">Thêm dịch vụ</button>
       {err && <p className="w-full text-xs font-semibold text-rose-600">{err}</p>}
       {info && (
         <p className="w-full whitespace-pre-line rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-500">
@@ -562,7 +562,7 @@ export function ManualOfferForm({ productId, serviceId, existing, returnTo }: {
         <span className={lbl}>Giá bán (VNĐ)</span>
         <input name="price" type="number" min={0} required placeholder="55000" className={`${inp} !w-32`} />
       </label>
-      <button disabled={!edition} className="btn-ghost btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm gói</button>
+      <button disabled={!edition} className="btn-ghost btn-row !px-3.5 disabled:opacity-50">Thêm gói</button>
     </form>
   );
 }
@@ -597,7 +597,7 @@ export function TopupOfferForm({ productId, categoryId, existing, returnTo }: {
         <span className={lbl}>Giá bán (VNĐ)</span>
         <input name="price" type="number" min={0} required placeholder="55000" className={`${inp} !w-32`} />
       </label>
-      <button disabled={!edition} className="btn-ghost btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm gói nạp</button>
+      <button disabled={!edition} className="btn-ghost btn-row !px-3.5 disabled:opacity-50">Thêm gói nạp</button>
     </form>
   );
 }

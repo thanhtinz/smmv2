@@ -69,7 +69,7 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
             <span className="mb-1 block text-[11px] font-semibold text-slate-400">Giá bán (VNĐ)</span>
             <input name="price" type="number" min={1} required placeholder="15000" className="inp !w-36 !py-2 text-[13px]" />
           </label>
-          <button className="btn-primary btn-sm !px-3.5 !py-2">Thêm mệnh giá</button>
+          <button className="btn-primary btn-row !px-3.5">Thêm mệnh giá</button>
         </form>
         {topup.length ? (
           <>
@@ -122,7 +122,7 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
                     <span className="mb-1 block text-[11px] font-semibold text-slate-400">Ảnh bìa (URL)</span>
                     <input name="imageUrl" defaultValue={product.imageUrl || ""} placeholder="https://…" className="inp !py-2 text-[13px]" />
                   </label>
-                  <button className="btn-primary btn-sm !px-3.5 !py-2">Lưu game</button>
+                  <button className="btn-primary btn-row !px-3.5">Lưu game</button>
                 </form>
               </div>
               {variants.map((v) => (

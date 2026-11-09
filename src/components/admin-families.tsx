@@ -40,13 +40,13 @@ export function VariantRow({ v, returnTo, meta, deletable }: { v: FamilyVariant;
           <span className="mb-1 block text-[11px] font-semibold text-slate-400">Giá bán (VNĐ)</span>
           <input name="price" type="number" min={0} defaultValue={v.price} className="inp !w-36 !py-2 text-[13px]" />
         </label>
-        <button className="btn-primary btn-sm !px-3.5 !py-2">Lưu</button>
+        <button className="btn-primary btn-row !px-3.5">Lưu</button>
       </form>
       <form action={famToggleVariant}>
         <input type="hidden" name="id" value={v.id} />
         <input type="hidden" name="returnTo" value={returnTo} />
         <input type="hidden" name="on" value={selling ? "0" : "1"} />
-        <button className={`btn-sm !px-3.5 !py-2 ${selling ? "btn-ghost !text-rose-600" : "btn-ghost !text-emerald-600"}`}>
+        <button className={`btn-row !px-3.5 ${selling ? "btn-ghost !text-rose-600" : "btn-ghost !text-emerald-600"}`}>
           {selling ? "Tắt bán" : "Bật bán"}
         </button>
       </form>
@@ -111,13 +111,13 @@ export function AreaSyncCard({ provider, groups, overrides, returnTo }: {
               />
             </label>
           ))}
-          <button className="btn-ghost btn-sm !px-3.5 !py-2">Lưu markup khu</button>
+          <button className="btn-ghost btn-row !px-3.5">Lưu markup khu</button>
         </form>
         <form action={famSyncArea}>
           <input type="hidden" name="returnTo" value={returnTo} />
           <input type="hidden" name="providerId" value={provider.id} />
           <input type="hidden" name="groups" value={groups.join(",")} />
-          <button className="btn-primary btn-sm !px-3.5 !py-2">Đồng bộ khu này</button>
+          <button className="btn-primary btn-row !px-3.5">Đồng bộ khu này</button>
         </form>
       </div>
     </section>

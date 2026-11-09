@@ -299,7 +299,7 @@ export function ProvidersClient({ providers, webhookSecretSet }: { providers: Pr
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <form action={adminSyncAllProviders}><button className="btn-ghost btn-sm !px-4 !py-2.5">{t("Đồng bộ tất cả")}</button></form>
+        <form action={adminSyncAllProviders}><button className="btn-ghost !px-4">{t("Đồng bộ tất cả")}</button></form>
         <span className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
         <button onClick={() => openAdd("SMM")} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm nhà cung cấp SMM")}</button>
         <button onClick={() => openAdd("PREMIUM")} className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600">{t("+ Thêm nhà cung cấp Premium")}</button>

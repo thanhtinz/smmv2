@@ -19,7 +19,7 @@ export default async function CartPage({ searchParams }: { searchParams?: { purc
   const directMethods = user ? await availableDirectMethods().catch(() => []) : [];
   return (
     <PublicFrame>
-      <main className="mx-auto w-full max-w-[640px] flex-1 px-4 py-6 sm:py-8">
+      <main className="mx-auto w-full max-w-[640px] flex-1 px-4 py-12">
         <CartView loggedIn={!!user} balance={user ? user.balance : null} flash={flash} directMethods={directMethods} initialPurchase={searchParams?.purchase || null} />
       </main>
     </PublicFrame>

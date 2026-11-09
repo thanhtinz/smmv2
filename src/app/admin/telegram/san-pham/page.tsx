@@ -63,7 +63,7 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
           <span className="mb-1 block text-[11px] font-semibold text-slate-400">Giá hiển thị (VNĐ, trống = tự tính)</span>
           <input name="price" type="number" min={0} placeholder="11655" className="inp !w-40 !py-2 text-[13px]" />
         </label>
-        <button className="btn-primary btn-sm !px-3.5 !py-2">Thêm gói sao</button>
+        <button className="btn-primary btn-row !px-3.5">Thêm gói sao</button>
       </form>
       {stars ? (
         <>

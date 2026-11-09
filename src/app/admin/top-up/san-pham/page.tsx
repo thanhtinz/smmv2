@@ -82,7 +82,7 @@ export default async function AdminTopupProducts({ searchParams }: { searchParam
                         <span className="mb-1 block text-[11px] font-semibold text-slate-400">Ảnh bìa (URL)</span>
                         <input name="imageUrl" defaultValue={product.imageUrl || ""} placeholder="https://…" className="inp !py-2 text-[13px]" />
                       </label>
-                      <button className="btn-primary btn-sm !px-3.5 !py-2">Lưu danh mục</button>
+                      <button className="btn-primary btn-row !px-3.5">Lưu danh mục</button>
                     </form>
                     <div className="mt-1.5 text-xs text-slate-400">
                       Category ID: {product.providerProductId || "—"}
@@ -123,7 +123,7 @@ export default async function AdminTopupProducts({ searchParams }: { searchParam
                         </div>
                       ))}
                     </div>
-                    <button className="btn-primary btn-sm mt-3 !px-3.5 !py-2">Lưu nhãn trường</button>
+                    <button className="btn-primary btn-row mt-3 !px-3.5">Lưu nhãn trường</button>
                   </form>
                 )}
               </div>

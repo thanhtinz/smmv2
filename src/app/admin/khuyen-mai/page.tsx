@@ -56,7 +56,7 @@ export default async function AdminPromotions({ searchParams }: { searchParams: 
           <div className="font-bold text-slate-900">{L("Hoa hồng giới thiệu")}</div>
           <p className="text-sm text-slate-500">{L("Người giới thiệu nhận % trên tiền mua của người được giới thiệu.")}</p>
           <div><label className="lbl">{L("% hoa hồng")}</label><input className="inp" name="affiliate_percent" type="number" min={0} max={50} step="0.5" defaultValue={s.affiliate_percent} /></div>
-          <p className="text-xs leading-relaxed text-slate-400">{L("Hoa hồng cộng thẳng vào số dư của người giới thiệu ngay khi đơn của người được giới thiệu hoàn thành, và hiện ở mục Kiếm tiền của họ.")}</p>
+          <p className="text-xs leading-relaxed text-slate-400">{L("Hoa hồng cộng thẳng vào số dư của người giới thiệu ngay khi đơn của người được giới thiệu hoàn thành, và hiện ở mục Kiếm tiền của họ. Khách lấy link giới thiệu và xem thống kê hoa hồng tại mục Kiếm tiền trong trang khách.")}</p>
           <button className="btn-primary !py-2.5">{L("Lưu hoa hồng")}</button>
         </form>
 

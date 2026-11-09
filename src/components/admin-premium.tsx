@@ -318,7 +318,7 @@ export function ProductsClient({ products, categories, providers, returnTo = "/a
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
-        <Link href="/admin/kho-premium" className="btn-ghost btn-sm !px-4 !py-2.5">{t("Kho tài khoản")}</Link>
+        <Link href="/admin/kho-premium" className="btn-ghost !px-4">{t("Kho tài khoản")}</Link>
         <button onClick={() => { setEditing(undefined); setOpen(true); }} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm sản phẩm mới")}</button>
       </div>
       {filterForm}
@@ -354,7 +354,7 @@ export function ProductsClient({ products, categories, providers, returnTo = "/a
                 </td>
                 <td className="td">
                   <div className="flex items-center justify-end gap-1.5">
-                    <button className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50" onClick={() => setVariantFor(p)}>{t("Gói")}</button>
+                    <button className="inline-flex h-8 items-center rounded-lg border border-slate-200 px-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50" onClick={() => setVariantFor(p)}>{t("Gói")}</button>
                     <button className={iconBtn} title={t("Sửa")} onClick={() => { setEditing(p); setOpen(true); }}><Pencil /></button>
                     <form action={adminDeleteProduct} onSubmit={(e) => { if (!confirm(`${t("Xoá sản phẩm")} "${p.name}"?`)) e.preventDefault(); }}>
                       <input type="hidden" name="id" value={p.id} />
