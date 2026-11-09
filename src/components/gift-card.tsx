@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLang } from "@/components/lang";
-import { I } from "@/components/ui";
+import { I, StarIcon } from "@/components/ui";
 import { placeGiftCardAction } from "@/app/actions/gift-card";
 
 /** Gift Card — yêu thích lưu phía khách (localStorage, cùng kiểu Game Key):
@@ -23,12 +23,6 @@ function writeGcFavs(ids: number[]) {
   try { localStorage.setItem(GC_FAV_KEY, JSON.stringify(ids)); } catch { /* private mode */ }
 }
 
-const starSvg = (filled: boolean) => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
-    <path d="M12 3.5l2.55 5.37 5.9.72-4.34 4.06 1.1 5.83L12 16.9l-5.21 2.58 1.1-5.83L3.55 9.59l5.9-.72L12 3.5z" />
-  </svg>
-);
-
 /** Nút sao ở trang danh mục: bật = chỉ hiện danh mục yêu thích (điều hướng
  *  kèm danh sách id); tắt = bỏ lọc. */
 export function GcFavFilterButton({ active, basePath }: { active: boolean; basePath: string }) {
@@ -47,7 +41,7 @@ export function GcFavFilterButton({ active, basePath }: { active: boolean; baseP
       type="button" onClick={toggle} title={t("Chỉ hiện danh mục yêu thích")}
       className={`flex h-[42px] w-[46px] shrink-0 items-center justify-center rounded-xl border transition ${active ? "border-amber-300 bg-amber-50 text-amber-500" : "border-slate-200 bg-white text-slate-400 hover:text-amber-500"} ${!active && !hasFav ? "opacity-60" : ""}`}
     >
-      {starSvg(active)}
+      <StarIcon filled={active} />
     </button>
   );
 }
@@ -103,7 +97,7 @@ export function GiftCardBuyForm({ product, balance }: { product: GcProduct; bala
             type="button" onClick={toggleFav}
             className={`mt-3 flex w-full items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-bold transition ${fav ? "border-amber-300 bg-amber-50 text-amber-600" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}`}
           >
-            <span className="[&>svg]:h-[18px] [&>svg]:w-[18px]">{starSvg(fav)}</span>
+            <StarIcon filled={fav} size={18} />
             {fav ? t("Đã lưu yêu thích") : t("Thêm vào yêu thích")}
           </button>
           <Link href="/dashboard/gift-card" className="mt-2 flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-bold text-slate-700 transition hover:border-slate-300">

@@ -61,18 +61,20 @@ export default async function GiftCardCatalogPage({ searchParams }: {
         <p className="mt-1 text-sm text-slate-500">{L("Danh mục thẻ quà tặng và mã nạp — chọn danh mục để xem các mệnh giá và giá.")}</p>
       </div>
 
-      {/* Thẻ tìm kiếm — cùng khối gọn thẳng mép như Game Key: ô tìm + nút sao */}
+      {/* Thẻ tìm kiếm — cùng khối gọn thẳng mép như Game Key: hàng nhãn +
+          hàng ô tìm đều NẰM TRONG khối max-w-680px (nhãn "Yêu thích" đứng
+          ngay trên nút sao), nút Xoá lọc nằm CÙNG hàng ô tìm, cao 42px. */}
       <form method="get" className="card mt-5 p-4 sm:p-5">
-        <div className="flex items-center justify-between">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{L("Tìm trong danh mục")}</div>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{L("Yêu thích")}</div>
-        </div>
         <div className="max-w-[680px]">
-          <div className="mt-2.5 flex gap-2">
-            <input className="inp flex-1" name="q" defaultValue={q} placeholder={L("Tìm theo tên danh mục...")} />
-            <GcFavFilterButton active={favActive} basePath={filterBase} />
+          <div className="flex items-center justify-between">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{L("Tìm trong danh mục")}</div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{L("Yêu thích")}</div>
           </div>
-          {hasFilter && <Link href="/dashboard/gift-card" className="btn-ghost btn-sm mt-3 !py-2">{L("Xoá lọc")}</Link>}
+          <div className="mt-2.5 flex gap-2">
+            <input className="inp min-w-0 flex-1" name="q" defaultValue={q} placeholder={L("Tìm theo tên danh mục...")} />
+            <GcFavFilterButton active={favActive} basePath={filterBase} />
+            {hasFilter && <Link href="/dashboard/gift-card" className="btn-ghost h-[42px] shrink-0 px-4">{L("Xoá lọc")}</Link>}
+          </div>
         </div>
       </form>
 

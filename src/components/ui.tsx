@@ -101,6 +101,15 @@ export function HeroStat({ v, l }: { v: string; l: string }) {
 const P = ({ d, size = 20 }: { d: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>
 );
+/** Sao YÊU THÍCH dùng chung toàn site — đúng path của I.star: đã lưu =
+ *  tô đầy (fill currentColor), chưa lưu = chỉ viền. Mọi nút yêu thích
+ *  (Game Key / Gift Card / Top-Up / khám phá dịch vụ SMM) đều dùng
+ *  component này, không tự vẽ sao riêng ở từng trang nữa. */
+export function StarIcon({ filled = false, size = 20 }: { filled?: boolean; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3.5l2.55 5.37 5.9.72-4.34 4.06 1.1 5.83L12 16.9l-5.21 2.58 1.1-5.83L3.55 9.59l5.9-.72L12 3.5z" /></svg>
+  );
+}
 export const I = {
   globe: <P d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM3 12h18M12 3c2.5 2.6 3.9 5.7 3.9 9S14.5 18.4 12 21c-2.5-2.6-3.9-5.7-3.9-9S9.5 5.6 12 3Z" />,
   home: <P d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,

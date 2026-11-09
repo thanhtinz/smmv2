@@ -50,9 +50,9 @@ export default async function AdminGiftCardProducts({ searchParams }: { searchPa
         </div>
         <GiftCardAddForm returnTo={RT} />
         <form method="get" className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
-          <input name="q" defaultValue={q} placeholder="Tìm danh mục theo tên..." className="inp min-w-[220px] flex-1 !py-2 text-[13px]" />
-          <button className="btn-primary btn-sm !px-3.5 !py-2">Tìm kiếm</button>
-          {q && <a href={RT} className="btn-ghost btn-sm !px-3.5 !py-2">Xoá lọc</a>}
+          <input name="q" defaultValue={q} placeholder="Tìm danh mục theo tên..." className="inp min-w-[220px] flex-1 !py-2 text-[13px] sm:max-w-[400px]" />
+          <button className="btn-primary btn-sm h-[38px] !px-3.5">Tìm kiếm</button>
+          {q && <a href={RT} className="btn-ghost btn-sm h-[38px] !px-3.5">Xoá lọc</a>}
         </form>
         {groups.length ? (
           groups.map(({ product, variants }) => (

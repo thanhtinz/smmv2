@@ -95,9 +95,9 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
         <SteamGiftAddForm returnTo={RT} />
         <form method="get" className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
           <input type="hidden" name="tpage" value={topupPage} />
-          <input name="gq" defaultValue={gq} placeholder="Tìm game gift theo tên..." className="inp min-w-[220px] flex-1 !py-2 text-[13px]" />
-          <button className="btn-primary btn-sm !px-3.5 !py-2">Tìm kiếm</button>
-          {gq && <a href={`${RT}?tpage=${topupPage}`} className="btn-ghost btn-sm !px-3.5 !py-2">Xoá lọc</a>}
+          <input name="gq" defaultValue={gq} placeholder="Tìm game gift theo tên..." className="inp min-w-[220px] flex-1 !py-2 text-[13px] sm:max-w-[400px]" />
+          <button className="btn-primary btn-sm h-[38px] !px-3.5">Tìm kiếm</button>
+          {gq && <a href={`${RT}?tpage=${topupPage}`} className="btn-ghost btn-sm h-[38px] !px-3.5">Xoá lọc</a>}
         </form>
         {giftFiltered.length ? (
           giftSlice.map(({ product, variants }) => (

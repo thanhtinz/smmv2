@@ -2,7 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { num, PLATFORMS, type PremiumCustomField } from "@/lib/format";
-import { I, PLATFORM_COLORS } from "@/components/ui";
+import { I, PLATFORM_COLORS, StarIcon } from "@/components/ui";
 import { OrderSupportActions } from "@/components/order-support-actions";
 import { warrantyAction } from "@/app/actions/user";
 import { useLang } from "@/components/lang";
@@ -19,7 +19,7 @@ const StarBtn = ({ active, onClick }: { active: boolean; onClick: () => void }) 
   return (
   <button type="button" onClick={onClick} title={active ? t("Bỏ yêu thích") : t("Đánh dấu yêu thích")}
     className={`p-1.5 rounded-lg transition ${active ? "text-amber-500" : "text-slate-300 hover:text-amber-400"}`}>
-    <svg width="17" height="17" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M12 3.5 14.9 9.4l6.5.9-4.7 4.6 1.1 6.5L12 18.3l-5.8 3.1 1.1-6.5L2.6 10.3l6.5-.9L12 3.5Z" /></svg>
+    <StarIcon filled={active} size={17} />
   </button>
   );
 };
@@ -85,7 +85,7 @@ export function ServicesExplorer({ services, orderMode = false, registerHref }: 
             <option value="m10">{t("10.000 – 50.000đ")}</option>
             <option value="o50">{t("Trên 50.000đ")}</option>
           </select>
-          <button onClick={() => setFavOnly((v) => !v)} className={`btn-sm rounded-full font-semibold ${favOnly ? "bg-amber-500 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>{t("Yêu thích (")}{favs.length})</button>
+          <button onClick={() => setFavOnly((v) => !v)} className={`btn-sm inline-flex items-center gap-1.5 rounded-full font-semibold ${favOnly ? "bg-amber-500 text-white" : "bg-white border border-slate-200 text-slate-600"}`}><StarIcon filled={favOnly} size={14} />{t("Yêu thích (")}{favs.length})</button>
           <div className="flex rounded-full border border-slate-200 bg-white p-0.5">
             <button onClick={() => setView("table")} className={`btn-sm rounded-full font-semibold ${view === "table" ? "bg-brand-600 text-white" : "text-slate-500"}`}>{t("Bảng")}</button>
             <button onClick={() => setView("grid")} className={`btn-sm rounded-full font-semibold ${view === "grid" ? "bg-brand-600 text-white" : "text-slate-500"}`}>{t("Lưới")}</button>

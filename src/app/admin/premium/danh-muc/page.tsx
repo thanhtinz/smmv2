@@ -20,13 +20,13 @@ export default async function AdminPremiumCategories({ searchParams }: { searchP
       <PageHead title={L("Quản lý Danh mục Premium")} desc={L("Quản lý các danh mục sản phẩm Premium")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form method="get" className="card mb-4 flex flex-wrap items-center gap-3 p-4">
-        <input name="q" defaultValue={searchParams.q || ""} className="inp min-w-[220px] flex-1" placeholder={L("Tìm theo tên danh mục hoặc slug...")} />
-        <select name="status" defaultValue={searchParams.status || ""} className="inp !w-44">
+        <input name="q" defaultValue={searchParams.q || ""} className="inp min-w-[220px] flex-1 sm:max-w-[400px]" placeholder={L("Tìm theo tên danh mục hoặc slug...")} />
+        <select name="status" defaultValue={searchParams.status || ""} className="inp !w-52">
           <option value="">{L("Tất cả trạng thái")}</option>
           <option value="on">{L("Đang hoạt động")}</option>
           <option value="off">{L("Tạm dừng")}</option>
         </select>
-        <button className="btn-primary btn-sm !px-4 !py-2.5">{L("Tìm kiếm")}</button>
+        <button className="btn-primary btn-sm h-[42px] !px-4">{L("Tìm kiếm")}</button>
       </form>
       <PremiumCategoriesClient categories={dtos} />
     </div>
