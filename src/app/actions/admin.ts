@@ -810,6 +810,7 @@ export async function adminSaveSettings(formData: FormData) {
     "auto_refill_window_days", "auto_refill_settle_minutes", "cleanup_retention_days", "usdt_min",
     "points_per_100k", "points_value_vnd", "points_min_redeem", "ga_id", "gsc_verification",
     "catalog_page_size", "history_page_size", "admin_product_page_size", "admin_list_page_size",
+    "watermark_enabled", "watermark_text", "watermark_opacity",
     "password_reset_ttl_minutes", "email_verify_ttl_hours", "flash_max_percent",
   ];
   const savedKeys: string[] = [];

@@ -1,38 +1,35 @@
 "use client";
 import { useRef, useState } from "react";
 import { useLang } from "@/components/lang";
+import { uploadImageFile } from "@/lib/upload-client";
 
 export type BannerInit = { id?: number; image: string; href: string; lang: string; sort: number };
 
-/** Form thêm/sửa banner trang chủ: dán link ảnh HOẶC tải ảnh từ máy (ảnh tải
- *  lên được nén lại phía client xuống tối đa 1920px bề ngang rồi lưu dạng
- *  data-URL), link đích tuỳ chọn, NGÔN NGỮ banner (VI/EN — khách chọn ngôn
- *  ngữ nào thấy banner ngôn ngữ đó), thứ tự chạy. */
+/** Form thêm/sửa banner trang chủ: dán link ảnh HOẶC tải ảnh từ máy qua
+ *  pipeline dùng chung (ảnh được chuẩn hoá + ĐÓNG DẤU MỜ phía server rồi
+ *  lưu DB, giá trị lưu là /media/<id>), link đích tuỳ chọn, NGÔN NGỮ banner
+ *  (VI/EN — khách chọn ngôn ngữ nào thấy banner ngôn ngữ đó), thứ tự chạy. */
 export function BannerForm({ action, initial }: { action: (fd: FormData) => void; initial: BannerInit }) {
   const { t } = useLang();
   const [image, setImage] = useState(initial.image || "");
   const [lang, setLang] = useState(initial.lang === "en" ? "en" : "vi");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const onFile = (f: File | undefined) => {
+  const onFile = async (f: File | undefined) => {
     if (!f) return;
-    const url = URL.createObjectURL(f);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const scale = Math.min(1, 1920 / img.naturalWidth);
-      const w = Math.max(1, Math.round(img.naturalWidth * scale));
-      const h = Math.max(1, Math.round(img.naturalHeight * scale));
-      const cv = document.createElement("canvas");
-      cv.width = w; cv.height = h;
-      const ctx = cv.getContext("2d");
-      if (!ctx) return;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
-      setImage(cv.toDataURL("image/jpeg", 0.88));
-    };
-    img.src = url;
+    setBusy(true);
+    setErr("");
+    try {
+      const r = await uploadImageFile(f, true);
+      setImage(r.url);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t("Tải ảnh thất bại."));
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   return (
@@ -53,10 +50,11 @@ export function BannerForm({ action, initial }: { action: (fd: FormData) => void
             )}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button type="button" className="btn-ghost !px-3.5 text-sm font-semibold" onClick={() => fileRef.current?.click()}>{t("Tải ảnh")}</button>
+            <button type="button" className="btn-ghost !px-3.5 text-sm font-semibold" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? t("Đang tải…") : t("Tải ảnh")}</button>
             {image && <button type="button" className="btn-ghost !px-3.5 text-sm font-semibold" onClick={() => setImage("")}>{t("Xoá")}</button>}
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" data-upload-input onChange={(e) => onFile(e.target.files?.[0])} />
           </div>
+          {err && <p className="mt-1 text-xs text-rose-500">{err}</p>}
         </div>
         <div className="space-y-4">
           <div>

@@ -91,16 +91,16 @@ export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
               s.href ? (
                 <Link href={s.href} className="absolute inset-0" aria-label="Banner">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.image || ""} alt="" className="h-full w-full object-cover" />
+                  <img src={s.image || ""} alt="" draggable={false} onContextMenu={(e) => e.preventDefault()} className="h-full w-full select-none object-cover" />
                 </Link>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={s.image || ""} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                <img src={s.image || ""} alt="" draggable={false} onContextMenu={(e) => e.preventDefault()} className="absolute inset-0 h-full w-full select-none object-cover" />
               )
             ) : s.image ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={s.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                <img src={s.image} alt="" draggable={false} onContextMenu={(e) => e.preventDefault()} className="absolute inset-0 h-full w-full select-none object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
               </>
             ) : (

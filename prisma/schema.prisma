@@ -568,6 +568,20 @@ model ContactWidget {
   updatedAt DateTime    @updatedAt
 }
 
+// Kho ảnh tải lên (đợt watermark 2026-11-08): MỌI ảnh admin tải lên qua
+// pipeline dùng chung đều lưu vào DB (bền trên cả Vercel lẫn VPS, không phụ
+// thuộc đĩa) và phục vụ qua route /media/<id>. original = bản gốc đã chuẩn
+// hoá (xoay EXIF + giới hạn 1920px); stamped = bản đã đóng dấu mờ (JPEG) —
+// mặt công khai chỉ hiển thị bản stamped; logo/favicon tải với stamp=0 nên
+// stamped để trống (dấu hiệu của thương hiệu, không đóng dấu).
+model MediaAsset {
+  id        Int      @id @default(autoincrement())
+  mime      String   @db.VarChar(60) // mime của bản gốc
+  original  Bytes
+  stamped   Bytes?
+  createdAt DateTime @default(now())
+}
+
 // Banner hero trang chủ do admin quản lý (lệnh Tín 2026-11-08 21:46): mỗi
 // banner gắn MỘT ngôn ngữ hiển thị ("vi" | "en") — khách chọn ngôn ngữ nào
 // thì hero chỉ chạy banner của ngôn ngữ đó; ngôn ngữ chưa có banner thì

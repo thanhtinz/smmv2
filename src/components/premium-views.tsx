@@ -10,6 +10,7 @@ import { parsePremiumFields, productImages } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { RichText } from "@/components/rich-text";
 import { ProductGallery } from "@/components/rich-editor";
+import { PImg } from "@/components/protected-img";
 import { PremiumCard, Stars, type PremiumCardData } from "@/components/premium-card";
 import { PremiumGrid } from "@/components/premium-grid";
 import { ProductReviews } from "@/components/product-reviews";
@@ -342,7 +343,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
               <ProductGallery images={images} name={product.name} />
             ) : images.length === 1 ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={images[0]} alt={product.name} className="aspect-video max-h-[240px] w-full object-cover" />
+              <PImg src={images[0]} alt={product.name} className="aspect-video max-h-[240px] w-full select-none object-cover" />
             ) : (
               <div className="flex aspect-video max-h-[240px] w-full items-center justify-center" style={{ background: `linear-gradient(135deg, ${product.color}, #0ea5e9)` }}>
                 <span className="text-7xl font-black text-white/90">{product.name.charAt(0)}</span>

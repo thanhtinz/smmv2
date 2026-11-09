@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/components/lang";
+import { uploadImageFile } from "@/lib/upload-client";
+import { PImg } from "@/components/protected-img";
 
 /** Trình soạn thảo văn bản giàu (WYSIWYG nhẹ): đậm/nghiêng/gạch chân, tiêu đề,
  *  danh sách, liên kết — lưu HTML vào input ẩn cùng tên để form gửi như thường. */
@@ -69,6 +71,22 @@ export function RichTextEditor({ name, defaultValue, minHeight = 130 }: { name: 
 export function ImagesField({ defaults }: { defaults: string[] }) {
   const { t, td } = useLang();
   const [list, setList] = useState<string[]>(defaults.length ? defaults : [""]);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const pick = async (f: File | null) => {
+    if (!f) return;
+    setBusy(true);
+    try {
+      const r = await uploadImageFile(f, true);
+      setList((l) => {
+        const empty = l.findIndex((x) => !x.trim());
+        return empty >= 0 ? l.map((x, j) => (j === empty ? r.url : x)) : [...l, r.url];
+      });
+    } catch { /* giữ nguyên danh sách khi tải lỗi */ } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
   return (
     <div className="space-y-2">
       {list.map((v, i) => (
@@ -78,7 +96,11 @@ export function ImagesField({ defaults }: { defaults: string[] }) {
           <button type="button" className="btn-ghost btn-sm !px-2.5 !py-1.5 !text-rose-600" onClick={() => setList((l) => (l.length > 1 ? l.filter((_, j) => j !== i) : [""]))}>{t("Xoá")}</button>
         </div>
       ))}
-      <button type="button" className="btn-ghost btn-sm" onClick={() => setList((l) => [...l, ""])}>{t("+ Thêm ảnh")}</button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className="btn-ghost btn-sm" onClick={() => setList((l) => [...l, ""])}>{t("+ Thêm ảnh")}</button>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" data-upload-input onChange={(e) => pick(e.target.files?.[0] || null)} />
+        <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? t("Đang tải…") : t("Tải ảnh lên")}</button>
+      </div>
       <p className="text-xs text-slate-400">{t("Ảnh đầu tiên là ảnh bìa hiện ở danh sách.")}</p>
     </div>
   );
@@ -91,12 +113,12 @@ export function ProductGallery({ images, name }: { images: string[]; name: strin
   const cur = images[Math.min(active, images.length - 1)];
   return (
     <div className="mb-5">
-      <img src={cur} alt={name} className="aspect-[16/9] w-full rounded-3xl border border-slate-200 object-cover" />
+      <PImg src={cur} alt={name} className="aspect-[16/9] w-full rounded-3xl border border-slate-200 object-cover select-none" />
       {images.length > 1 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {images.map((src, i) => (
             <button key={i} type="button" onClick={() => setActive(i)} className={`overflow-hidden rounded-xl border-2 ${i === active ? "border-brand-600" : "border-transparent opacity-70 hover:opacity-100"}`}>
-              <img src={src} alt="" className="h-14 w-20 object-cover" />
+              <PImg src={src} alt="" className="h-14 w-20 object-cover select-none" />
             </button>
           ))}
         </div>

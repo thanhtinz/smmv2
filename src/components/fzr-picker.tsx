@@ -6,6 +6,7 @@ import {
   famAddGiftGame, famAddTelegramPlan, famAddTopupCategory, famAddTopupOffer,
   famAddManualService, famAddManualOffer,
 } from "@/app/actions/admin-families";
+import { UploadButton } from "@/components/image-upload";
 
 /** FIX11 TASK 3 — Picker chọn sản phẩm TỪ NGUỒN FZR cho các trang admin
  *  Telegram/Steam/Game Key/Gift Card. Admin tìm trong catalog thật của nhà
@@ -159,10 +160,7 @@ export function GameKeyAddForm({ returnTo }: { returnTo: string }) {
           <span className={lbl}>Tên game</span>
           <input name="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Tên game" className={`${inp} !w-52`} />
         </label>
-        <label className="block">
-          <span className={lbl}>Ảnh bìa (URL)</span>
-          <input name="imageUrl" placeholder="https://…" className={`${inp} !w-44`} />
-        </label>
+        <ImageUrlField />
         <label className="block">
           <span className={lbl}>Platform</span>
           <input name="platform" value={picked?.extra || ""} readOnly placeholder="—" className={`${inp} !w-32 bg-slate-50`} />
@@ -229,10 +227,7 @@ export function GiftCardAddForm({ returnTo }: { returnTo: string }) {
           <span className={lbl}>Tên danh mục</span>
           <input name="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Tên danh mục" className={`${inp} !w-52`} />
         </label>
-        <label className="block">
-          <span className={lbl}>Ảnh bìa (URL)</span>
-          <input name="imageUrl" placeholder="https://…" className={`${inp} !w-44`} />
-        </label>
+        <ImageUrlField />
         {editionSelect(editions, editionId, setEditionId)}
         <label className="block">
           <span className={lbl}>Giá bán (VNĐ)</span>
@@ -287,10 +282,7 @@ export function SteamGiftAddForm({ returnTo }: { returnTo: string }) {
           <span className={lbl}>Tên game</span>
           <input name="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Tên game" className={`${inp} !w-52`} />
         </label>
-        <label className="block">
-          <span className={lbl}>Ảnh bìa (URL)</span>
-          <input name="imageUrl" placeholder="https://…" className={`${inp} !w-44`} />
-        </label>
+        <ImageUrlField />
         <label className="block">
           <span className={lbl}>Giá bán (VNĐ)</span>
           <input name="price" type="number" min={0} required placeholder="1150000" className={`${inp} !w-36`} />
@@ -347,6 +339,21 @@ export function TelegramPremiumAddForm({ returnTo }: { returnTo: string }) {
 
 type LoadedField = { key: string; label: string; type: "text" | "select"; required: boolean; options?: string[] };
 
+/** Ô ảnh bìa cho các form thêm từ picker: dán URL như cũ HOẶC tải ảnh từ
+ *  máy qua pipeline dùng chung (ảnh được đóng dấu mờ, lưu /media/<id>). */
+function ImageUrlField() {
+  const [v, setV] = useState("");
+  return (
+    <label className="block">
+      <span className={lbl}>Ảnh bìa (URL)</span>
+      <span className="flex items-center gap-2">
+        <input name="imageUrl" value={v} onChange={(e) => setV(e.target.value)} placeholder="https://…" className={`${inp} !w-44`} />
+        <UploadButton onUploaded={setV} />
+      </span>
+    </label>
+  );
+}
+
 /** Thêm CATEGORY Top-Up: chọn category từ nguồn -> chọn offer đầu tiên từ
  *  nguồn -> fields[] của category TỰ NẠP từ nhà cung cấp vào form: KEY khoá
  *  cứng (chỉ hiển thị), type + options chỉ đọc, NHÃN sửa được (điền sẵn
@@ -396,7 +403,7 @@ export function TopupAddForm({ returnTo }: { returnTo: string }) {
       </label>
       <label className="block min-w-[180px] flex-1">
         <span className={lbl}>Ảnh bìa (URL)</span>
-        <input name="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" className={`${inp} w-full`} />
+        <span className="flex items-center gap-2"><input name="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" className={`${inp} w-full`} /><UploadButton onUploaded={setImageUrl} /></span>
       </label>
       {editionSelect(editions, editionId, setEditionId)}
       <label className="block">
@@ -488,7 +495,7 @@ export function ManualAddForm({ returnTo }: { returnTo: string }) {
       </label>
       <label className="block min-w-[180px] flex-1">
         <span className={lbl}>Ảnh bìa (URL)</span>
-        <input name="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" className={`${inp} w-full`} />
+        <span className="flex items-center gap-2"><input name="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" className={`${inp} w-full`} /><UploadButton onUploaded={setImageUrl} /></span>
       </label>
       <label className="block">
         <span className={lbl}>Loại giao (kind của NCC)</span>

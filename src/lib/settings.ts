@@ -226,6 +226,12 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // Phân trang danh sách (rà soát hardcode 2026-11-08): cỡ trang của các danh
   // mục/lịch sử phía khách + trang sản phẩm phía admin — sửa ở Cấu hình → Chung/Bảo mật.
   catalog_page_size: "24", // số sản phẩm mỗi trang ở các danh mục khu riêng (Game Key / Gift Card / Top-Up / Manual)
+  // Watermark ảnh tải lên (đợt 2026-11-08): đóng dấu mờ tên site lên ảnh
+  // sản phẩm/banner tải qua pipeline /api/admin/upload. watermark_text để
+  // trống = dùng site_name. opacity = % độ đậm của dấu (5..80).
+  watermark_enabled: "1",
+  watermark_text: "",
+  watermark_opacity: "35",
   history_page_size: "15", // số đơn mỗi trang ở các trang lịch sử đơn của khách
   admin_product_page_size: "10", // số sản phẩm mỗi trang ở các trang quản trị sản phẩm
   admin_list_page_size: "20", // số dòng mỗi trang ở các danh sách vận hành trong quản trị (nạp tiền, bảo mật, đơn Telegram)

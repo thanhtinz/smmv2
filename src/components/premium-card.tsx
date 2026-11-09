@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useLang } from "@/components/lang";
 import { I } from "@/components/ui";
+import { PImg } from "@/components/protected-img";
 
 /** Dữ liệu thẻ sản phẩm Premium (đã tính sẵn phía server: khoảng giá, đã bán, kho). */
 export type PremiumCardData = {
@@ -65,7 +66,7 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
       <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
         {item.image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.image} alt={item.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" loading="lazy" />
+          <PImg src={item.image} alt={item.name} className="h-full w-full select-none object-cover transition duration-300 group-hover:scale-[1.03]" loading="lazy" />
         ) : (
           <div className="flex h-full w-full items-center justify-center" style={{ background: `linear-gradient(135deg, ${item.color}, rgb(var(--b500)))` }}>
             <span className="text-4xl font-black text-white/90 sm:text-5xl">{item.name.charAt(0)}</span>

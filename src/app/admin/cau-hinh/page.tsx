@@ -6,6 +6,7 @@ import { adminSaveSettings } from "@/app/actions/admin";
 import SettingsTabs from "@/components/settings-tabs";
 import { BonusTiersEditor, TelegramBotsEditor, ToolKeyField } from "@/components/settings-editors";
 import { RichTextEditor } from "@/components/rich-editor";
+import { ImageUpload } from "@/components/image-upload";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -34,9 +35,18 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <div className="font-bold text-slate-900">{L("Thương hiệu")}</div>
           <div><label className="lbl">{L("Tên website")}</label><input className="inp" name="site_name" defaultValue={s.site_name} /></div>
           <div><label className="lbl">{L("Khẩu hiệu (tagline)")}</label><input className="inp" name="site_tagline" defaultValue={s.site_tagline} /></div>
-          <div><label className="lbl">{L("Logo (URL ảnh — để trống dùng chữ viết tắt)")}</label><input className="inp" name="logo_url" defaultValue={s.logo_url} placeholder="https://.../logo.png" /><p className="mt-1 text-xs text-slate-400">{L("PNG, JPG — hiển thị ở header.")}</p></div>
-          <div><label className="lbl">{L("Logo menu (URL ảnh ngang — để trống dùng logo nhỏ)")}</label><input className="inp" name="logo_menu_url" defaultValue={s.logo_menu_url} placeholder="https://.../logo-menu.png" /><p className="mt-1 text-xs text-slate-400">{L("PNG, JPG — hiển thị ở đầu ngăn kéo menu trên điện thoại.")}</p></div>
-          <div><label className="lbl">{L("Favicon (URL ảnh)")}</label><input className="inp" name="favicon_url" defaultValue={s.favicon_url} placeholder="https://.../favicon.png" /><p className="mt-1 text-xs text-slate-400">{L("Ảnh vuông (tỉ lệ 1x1) hiển thị trên tab trình duyệt, ICO hoặc PNG.")}</p></div>
+          <div><label className="lbl">{L("Logo (để trống dùng chữ viết tắt)")}</label><ImageUpload name="logo_url" defaultValue={s.logo_url} stamp={false} /><p className="mt-1 text-xs text-slate-400">{L("PNG, JPG — hiển thị ở header. Logo là dấu hiệu thương hiệu nên KHÔNG bị đóng dấu mờ.")}</p></div>
+          <div><label className="lbl">{L("Logo menu (ảnh ngang — để trống dùng logo nhỏ)")}</label><ImageUpload name="logo_menu_url" defaultValue={s.logo_menu_url} stamp={false} /><p className="mt-1 text-xs text-slate-400">{L("PNG, JPG — hiển thị ở đầu ngăn kéo menu trên điện thoại.")}</p></div>
+          <div><label className="lbl">{L("Favicon")}</label><ImageUpload name="favicon_url" defaultValue={s.favicon_url} stamp={false} previewClass="h-16 w-16" /><p className="mt-1 text-xs text-slate-400">{L("Ảnh vuông (tỉ lệ 1x1) hiển thị trên tab trình duyệt, ICO hoặc PNG.")}</p></div>
+          <div className="rounded-xl border border-slate-200 p-4">
+            <div className="text-sm font-bold text-slate-800">{L("Đóng dấu mờ (watermark) lên ảnh tải lên")}</div>
+            <p className="mt-1 text-xs text-slate-400">{L("Ảnh sản phẩm, banner, ảnh bìa... tải lên qua các ô ảnh trong admin sẽ có thêm bản đã đóng dấu mờ lặp chéo; mặt công khai chỉ hiển thị bản đó. Logo/favicon không bị đóng dấu.")}</p>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div><label className="lbl">{L("Bật đóng dấu")}</label><select className="inp" name="watermark_enabled" defaultValue={s.watermark_enabled || "1"}><option value="1">{L("Bật")}</option><option value="0">{L("Tắt")}</option></select></div>
+              <div><label className="lbl">{L("Chữ đóng dấu (để trống = tên website)")}</label><input className="inp" name="watermark_text" defaultValue={s.watermark_text} placeholder={s.site_name} /></div>
+              <div><label className="lbl">{L("Độ đậm dấu mờ (%)")}</label><input className="inp" name="watermark_opacity" type="number" min={5} max={80} defaultValue={s.watermark_opacity || "35"} /></div>
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="lbl">{L("Màu chủ đạo mặc định (khách mới)")}</label>
@@ -87,7 +97,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <div className="font-bold text-slate-900">SEO & Meta Tags</div>
           <div><label className="lbl">{L("Mô tả SEO (Meta Description)")}</label><textarea className="inp" name="meta_description" rows={3} defaultValue={s.meta_description} placeholder={L("Mô tả ngắn hiển thị trên Google...")} /><p className="mt-1 text-xs text-slate-400">{L("Khuyến nghị tối đa ~160 ký tự.")}</p></div>
           <div><label className="lbl">{L("Từ khoá SEO (Meta Keywords, cách nhau dấu phẩy)")}</label><input className="inp" name="meta_keywords" defaultValue={s.meta_keywords} /></div>
-          <div><label className="lbl">{L("Ảnh chia sẻ (OG Image — URL)")}</label><input className="inp" name="og_image_url" defaultValue={s.og_image_url} placeholder="https://.../og.jpg" /><p className="mt-1 text-xs text-slate-400">{L("Ảnh hiển thị khi chia sẻ link website lên mạng xã hội (Zalo, Facebook...). Kích thước khuyến nghị: 1200x630.")}</p></div>
+          <div><label className="lbl">{L("Ảnh chia sẻ (OG Image)")}</label><ImageUpload name="og_image_url" defaultValue={s.og_image_url} stamp /><p className="mt-1 text-xs text-slate-400">{L("Ảnh hiển thị khi chia sẻ link website lên mạng xã hội (Zalo, Facebook...). Kích thước khuyến nghị: 1200x630.")}</p></div>
           <div><label className="lbl">{L("Google Analytics — GA4 Measurement ID")}</label><input className="inp" name="ga_id" defaultValue={s.ga_id} placeholder="G-XXXXXXXXXX" /><p className="mt-1 text-xs text-slate-400">{L("Điền ID đo lường GA4, hệ thống tự chèn mã theo dõi vào mọi trang.")}</p></div>
           <div><label className="lbl">{L("Google Search Console — mã xác minh")}</label><input className="inp" name="gsc_verification" defaultValue={s.gsc_verification} placeholder={L("Mã trong thẻ meta google-site-verification")} /><p className="mt-1 text-xs text-slate-400">{L("Chỉ dán phần mã (content), hệ thống tự sinh thẻ meta xác minh.")}</p></div>
         </section>

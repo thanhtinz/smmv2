@@ -1,3 +1,4 @@
+import { ImageUpload } from "@/components/image-upload";
 import Link from "next/link";
 import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -67,7 +68,7 @@ export default async function AdminPosts({ searchParams }: { searchParams: { edi
                 <option value="">{L("— Không chọn —")}</option>
                 {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select></div>
-            <div><label className="lbl">{L("Ảnh bìa (URL)")}</label><input className="inp" name="coverUrl" defaultValue={edit?.coverUrl || ""} placeholder="https://..." /></div>
+            <div><label className="lbl">{L("Ảnh bìa")}</label><ImageUpload name="coverUrl" defaultValue={edit?.coverUrl || ""} stamp /></div>
           </div>
           <div><label className="lbl">{L("Tóm tắt")}</label><textarea className="inp" name="excerpt" rows={2} defaultValue={edit?.excerpt || ""} /></div>
           <div><label className="lbl">{L("Nội dung")}</label><textarea className="inp" name="content" rows={12} required defaultValue={edit?.content || ""} placeholder={L("Mỗi dòng là một đoạn văn.\nDòng bắt đầu bằng ## là tiêu đề mục.")} /></div>
