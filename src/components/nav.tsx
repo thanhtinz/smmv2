@@ -41,6 +41,12 @@ function NavLinks({ items, onNavigate }: { items: NavEntry[]; onNavigate?: () =>
     if (href === "/" || href === "/dashboard") return path === href ? 5000 + href.length : 0;
     if (path === href) return 5000 + href.length;
     if (path.startsWith(href + "/")) return 1000 + href.length;
+    // Bí danh (lệnh Tín 2026-11-08 22:29, đóng tồn đọng từ fix5): trang chi
+    // tiết Premium trong khu khách (/dashboard/premium...) không có lá menu
+    // riêng — tô lá "Tất cả sản phẩm" (/premium). Điểm ở tầng tiền tố để
+    // luật MỘT lá thắng duy nhất giữ nguyên: khớp query/khớp đúng của lá
+    // khác vẫn thắng bí danh này.
+    if (href === "/premium" && (path === "/dashboard/premium" || path.startsWith("/dashboard/premium/"))) return 1000 + href.length;
     return 0;
   };
   let winner: object | null = null;

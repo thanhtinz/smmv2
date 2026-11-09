@@ -178,10 +178,11 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
             <p className="mt-1.5 text-xs text-slate-400">{L("Bấm để chọn — không cần gõ tay mã mạng. Chỉ hiện các mạng đã cấu hình ví nhận trong dashboard BoltUtil.")}</p>
           </div>
           <div>
-            <label className="lbl">{L("Hình thức thanh toán")}</label>
+            <label className="lbl">{L("Cách khách trả USDT")}</label>
             <select className="inp" name="boltutil_payment_method" defaultValue={s.boltutil_payment_method || "MANUAL_TRANSFER"}>
-              <option value="WALLET">WALLET</option><option value="MANUAL_TRANSFER">MANUAL_TRANSFER</option>
+              <option value="MANUAL_TRANSFER">{L("Chuyển khoản thủ công tới địa chỉ ví hiển thị")}</option><option value="WALLET">{L("Trang thanh toán BoltUtil")}</option>
             </select>
+            <p className="mt-1 text-xs text-slate-400">{L("Thủ công: khách tự chuyển USDT tới địa chỉ ví hiện ở bước thanh toán. Trang BoltUtil: khách được đưa sang trang thanh toán của BoltUtil để trả.")}</p>
           </div>
           <div>
             <label className="lbl">{L("URL webhook (dán vào BoltUtil → Integrations → API)")}</label>
