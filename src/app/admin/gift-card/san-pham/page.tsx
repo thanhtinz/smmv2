@@ -78,6 +78,10 @@ export default async function AdminGiftCardProducts({ searchParams }: { searchPa
                       <span className="mb-1 block text-[11px] font-semibold text-slate-400">Ảnh bìa (URL)</span>
                       <input name="imageUrl" defaultValue={product.imageUrl || ""} placeholder="https://…" className="inp !py-2 text-[13px]" />
                     </label>
+                    <label className="block w-full">
+                      <span className="mb-1 block text-[11px] font-semibold text-slate-400">Ghi chú của nhà cung cấp (sửa được — khách thấy ở trang mua)</span>
+                      <textarea name="note" rows={2} defaultValue={product.description || ""} placeholder="—" className="inp w-full !py-2 text-[13px]" />
+                    </label>
                     <button className="btn-primary btn-row !px-3.5">Lưu danh mục</button>
                   </form>
                   <div className="mt-1.5 text-xs text-slate-400">
@@ -92,7 +96,7 @@ export default async function AdminGiftCardProducts({ searchParams }: { searchPa
               {variants.map((v) => (
                 <VariantRow
                   key={v.id} v={v} returnTo={RT}
-                  meta={`Card ID: ${v.providerItemId || "—"} · Tồn kho NCC: ${v.providerStock == null ? "—" : v.providerStock}`}
+                  meta={`Card ID: ${v.providerItemId || "—"} · Tồn kho NCC: ${v.providerStock == null ? "—" : v.providerStock}${v.minOrderQty != null || v.maxOrderQty != null ? ` · SL/đơn: ${v.minOrderQty ?? "—"}–${v.maxOrderQty ?? "—"}` : ""}`}
                 />
               ))}
               <GiftCardDenomForm productId={product.id} categoryId={product.providerProductId} existing={variants.map((v) => v.providerItemId || "")} returnTo={RT} />

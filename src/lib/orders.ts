@@ -478,6 +478,11 @@ export async function createPremiumOrder(input: {
     }
   }
   if (input.quantity < 1 || input.quantity > maxQty) throw new Error("Số lượng không hợp lệ");
+  // Giới hạn số lượng mỗi đơn CỦA GÓI phía NCC (FZR gamekeys/giftcards:
+  // min_order_quantity / max_order_quantity đã lưu ở gói) — chặn tại đây
+  // để khách nhận lỗi rõ ràng thay vì lỗi NCC sau khi trừ tiền.
+  if (variant.minOrderQty != null && input.quantity < variant.minOrderQty) throw new Error(`Số lượng tối thiểu cho gói này là ${variant.minOrderQty}`);
+  if (variant.maxOrderQty != null && input.quantity > variant.maxOrderQty) throw new Error(`Số lượng tối đa cho gói này là ${variant.maxOrderQty}`);
   // Trường tuỳ chỉnh của sản phẩm: validate trường bắt buộc và gộp thành thông tin bàn giao
   const fields = parsePremiumFields(variant.product.customFields);
   let buyerInfo = input.buyerInfo;

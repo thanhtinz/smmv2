@@ -25,7 +25,7 @@ export default async function GiftCardDetailPage({ params, searchParams }: {
       id: true, name: true, imageUrl: true, images: true, description: true,
       variants: {
         where: { providerGroup: "giftcards", active: true },
-        select: { id: true, name: true, price: true, providerStock: true },
+        select: { id: true, name: true, price: true, providerStock: true, minOrderQty: true, maxOrderQty: true },
         orderBy: [{ price: "asc" }],
       },
     },
@@ -49,7 +49,7 @@ export default async function GiftCardDetailPage({ params, searchParams }: {
     name: product.name,
     image: cover,
     note: product.description?.trim() ? product.description : null,
-    denoms: product.variants.map((v) => ({ variantId: v.id, name: v.name, price: v.price, stock: v.providerStock })),
+    denoms: product.variants.map((v) => ({ variantId: v.id, name: v.name, price: v.price, stock: v.providerStock, minQty: v.minOrderQty, maxQty: v.maxOrderQty })),
   };
 
   return (

@@ -168,14 +168,14 @@ export async function fzrGetOrder(provider: Provider, orderId: string): Promise<
  *  platform, region_restriction, appid, imageurl } — KHÔNG có giá ở tầng game:
  *  giá + tồn kho nằm ở từng edition qua GET /gamekeys/keys?game_id=. */
 export async function fzrGameKeys(provider: Provider, cursor?: string): Promise<any> {
-  return call<any>(provider, "GET", "/api/v2/gamekeys", { query: { limit: 100, ...(cursor ? { cursor } : {}) } });
+  return call<any>(provider, "GET", "/api/v2/gamekeys", { query: { limit: 100, include_ui: 1, ...(cursor ? { cursor } : {}) } });
 }
 
 /** Editions (keys) của 1 game: { game_id, GameName, region, platform,
  *  region_restriction, appid, imageurl, keys: [{ key_id, name, price_usd,
  *  stock, min_order_quantity, max_order_quantity }] }. */
 export async function fzrGameKeyKeys(provider: Provider, gameId: string): Promise<any> {
-  return call<any>(provider, "GET", "/api/v2/gamekeys/keys", { query: { game_id: gameId } });
+  return call<any>(provider, "GET", "/api/v2/gamekeys/keys", { query: { game_id: gameId, include_ui: 1 } });
 }
 
 /** Gift Cards — theo OpenAPI FZR (đọc lại 2026-11-08 khi làm khu Gift Card):

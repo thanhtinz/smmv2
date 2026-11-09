@@ -15,7 +15,7 @@ import { UploadButton } from "@/components/image-upload";
  *  nào bị trói nhầm dịch vụ. Các action famAdd* phía máy chủ giữ nguyên
  *  (kiểm tra trùng + dấu CUSTOM); picker chỉ điền đúng mã thật vào form. */
 
-export type PickItem = { id: string; name: string; priceUsd: string | null; extra: string; extra2?: string };
+export type PickItem = { id: string; name: string; priceUsd: string | null; extra: string; extra2?: string; minQty?: number | null; maxQty?: number | null; appid?: number | null };
 
 const lbl = "mb-1 block text-[11px] font-semibold text-slate-400";
 const inp = "inp !py-2 text-[13px]";
@@ -141,13 +141,44 @@ const editionSelect = (
   );
 };
 
-/** Thêm GAME Game Key: chọn game từ nguồn -> chọn edition đầu từ nguồn. */
-export function GameKeyAddForm({ returnTo }: { returnTo: string }) {
+function QtyLimitFields({ edition }: { edition?: PickItem }) {
+  const [min, setMin] = useState("");
+  const [max, setMax] = useState("");
+  useEffect(() => {
+    setMin(edition?.minQty != null ? String(edition.minQty) : "");
+    setMax(edition?.maxQty != null ? String(edition.maxQty) : "");
+  }, [edition?.id, edition?.minQty, edition?.maxQty]);
+  return (
+    <>
+      <label className="block">
+        <span className={lbl}>SL tối thiểu/đơn</span>
+        <input name="minQty" type="number" min={1} value={min} onChange={(e) => setMin(e.target.value)} placeholder="—" className={`${inp} !w-24`} />
+      </label>
+      <label className="block">
+        <span className={lbl}>SL tối đa/đơn</span>
+        <input name="maxQty" type="number" min={1} value={max} onChange={(e) => setMax(e.target.value)} placeholder="—" className={`${inp} !w-24`} />
+      </label>
+    </>
+  );
+}
+
+/** Thêm GAME Game Key: chọn game từ nguồn -> chọn edition đầu từ nguồn.
+ *  Platform/Region điền sẵn từ nguồn nhưng SỬA ĐƯỢC (chọn giá trị đang có
+ *  trong gợi ý hoặc gõ giá trị MỚI — bộ lọc phía khách lấy từ các giá trị
+ *  đã lưu này); AppID cũng điền sẵn + sửa được. */
+export function GameKeyAddForm({ returnTo, platformOptions = [], regionOptions = [] }: { returnTo: string; platformOptions?: string[]; regionOptions?: string[] }) {
   const [picked, setPicked] = useState<PickItem | null>(null);
   const [name, setName] = useState("");
+  const [platform, setPlatform] = useState("");
+  const [region, setRegion] = useState("");
+  const [appid, setAppid] = useState("");
   const { editions, editionId, setEditionId, err } = useEditions("gamekeys", picked?.id || null);
   const edition = editions.find((e) => e.id === editionId);
-  const pick = (it: PickItem) => { setPicked(it); setName(it.name); };
+  const pick = (it: PickItem) => {
+    setPicked(it); setName(it.name);
+    setPlatform(it.extra || ""); setRegion(it.extra2 || "");
+    setAppid(it.appid != null ? String(it.appid) : "");
+  };
   return (
     <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3.5">
       <PickerBox group="gamekeys" onPick={pick} picked={picked} />
@@ -162,14 +193,21 @@ export function GameKeyAddForm({ returnTo }: { returnTo: string }) {
         </label>
         <ImageUrlField />
         <label className="block">
-          <span className={lbl}>Platform</span>
-          <input name="platform" value={picked?.extra || ""} readOnly placeholder="—" className={`${inp} !w-32 bg-slate-50`} />
+          <span className={lbl}>Platform (chọn hoặc gõ mới)</span>
+          <input name="platform" value={platform} onChange={(e) => setPlatform(e.target.value)} list="gk-platform-options" placeholder="Steam" className={`${inp} !w-40`} />
+          <datalist id="gk-platform-options">{platformOptions.map((o) => <option key={o} value={o} />)}</datalist>
         </label>
         <label className="block">
-          <span className={lbl}>Region</span>
-          <input name="region" value={picked?.extra2 || ""} readOnly placeholder="—" className={`${inp} !w-32 bg-slate-50`} />
+          <span className={lbl}>Region (chọn hoặc gõ mới)</span>
+          <input name="region" value={region} onChange={(e) => setRegion(e.target.value)} list="gk-region-options" placeholder="GLOBAL" className={`${inp} !w-40`} />
+          <datalist id="gk-region-options">{regionOptions.map((o) => <option key={o} value={o} />)}</datalist>
+        </label>
+        <label className="block">
+          <span className={lbl}>AppID (tuỳ chọn)</span>
+          <input name="appid" type="number" min={1} value={appid} onChange={(e) => setAppid(e.target.value)} placeholder="—" className={`${inp} !w-28`} />
         </label>
         {editionSelect(editions, editionId, setEditionId)}
+        <QtyLimitFields edition={edition} />
         <label className="block">
           <span className={lbl}>Giá bán (VNĐ)</span>
           <input name="price" type="number" min={0} required placeholder="1299000" className={`${inp} !w-36`} />
@@ -198,6 +236,7 @@ export function GameKeyEditionForm({ productId, gameId, existing, returnTo }: {
       <input type="hidden" name="keyId" value={editionId} />
       <input type="hidden" name="name" value={edition?.name || ""} />
       {editionSelect(editions, editionId, setEditionId, existing)}
+      <QtyLimitFields edition={edition} />
       <label className="block">
         <span className={lbl}>Giá bán (VNĐ)</span>
         <input name="price" type="number" min={0} required placeholder="1299000" className={`${inp} !w-36`} />
@@ -229,6 +268,7 @@ export function GiftCardAddForm({ returnTo }: { returnTo: string }) {
         </label>
         <ImageUrlField />
         {editionSelect(editions, editionId, setEditionId)}
+        <QtyLimitFields edition={edition} />
         <label className="block">
           <span className={lbl}>Giá bán (VNĐ)</span>
           <input name="price" type="number" min={0} required placeholder="250000" className={`${inp} !w-36`} />
@@ -257,6 +297,7 @@ export function GiftCardDenomForm({ productId, categoryId, existing, returnTo }:
       <input type="hidden" name="cardId" value={editionId} />
       <input type="hidden" name="name" value={edition?.name || ""} />
       {editionSelect(editions, editionId, setEditionId, existing)}
+      <QtyLimitFields edition={edition} />
       <label className="block">
         <span className={lbl}>Giá bán (VNĐ)</span>
         <input name="price" type="number" min={0} required placeholder="25000" className={`${inp} !w-36`} />

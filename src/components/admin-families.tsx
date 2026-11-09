@@ -40,6 +40,30 @@ export function VariantRow({ v, returnTo, meta, deletable }: { v: FamilyVariant;
           <span className="mb-1 block text-[11px] font-semibold text-slate-400">Giá bán (VNĐ)</span>
           <input name="price" type="number" min={0} defaultValue={v.price} className="inp !w-36 !py-2 text-[13px]" />
         </label>
+        {(v.providerGroup === "gamekeys" || v.providerGroup === "giftcards") && (
+          <>
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-semibold text-slate-400">SL tối thiểu/đơn</span>
+              <input name="minQty" type="number" min={1} defaultValue={v.minOrderQty ?? ""} placeholder="—" className="inp !w-24 !py-2 text-[13px]" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-semibold text-slate-400">SL tối đa/đơn</span>
+              <input name="maxQty" type="number" min={1} defaultValue={v.maxOrderQty ?? ""} placeholder="—" className="inp !w-24 !py-2 text-[13px]" />
+            </label>
+          </>
+        )}
+        {v.providerGroup === "manual" && (
+          <>
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-semibold text-slate-400">Thời gian giao (phút)</span>
+              <input name="minutes" type="number" min={0} defaultValue={v.deliveryMinutes ?? ""} placeholder="—" className="inp !w-28 !py-2 text-[13px]" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-semibold text-slate-400">Ghi chú gói (khách thấy)</span>
+              <input name="noteProduct" defaultValue={v.providerNote ?? ""} placeholder="—" className="inp !w-52 !py-2 text-[13px]" />
+            </label>
+          </>
+        )}
         <button className="btn-primary btn-row !px-3.5">Lưu</button>
       </form>
       <form action={famToggleVariant}>

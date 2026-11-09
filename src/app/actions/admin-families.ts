@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getTelegramProvider } from "@/lib/tg";
 import { ADMIN_VARIANT_MARK, steamAddProvider, gameKeyAddProvider, giftCardAddProvider, topupAddProvider, manualAddProvider } from "@/lib/families";
 import { FZR_LABELS, fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrGiftCardCards, fzrSteamGiftGames, fzrTelegramPremiumPlans, fzrTopups, fzrTopupOffers, normalizeTopupFields, fzrManualServices, fzrManualOffers, normalizeManualFields } from "@/lib/fzr";
-import { syncFzrCatalog } from "@/lib/fzr-sync";
+import { syncFzrCatalog, withProviderOverride } from "@/lib/fzr-sync";
 import { fzrMarkupKey, fzrMarkupResolver } from "@/lib/fzr-markup";
 import { normalizePremiumFieldsJson, parsePremiumFields } from "@/lib/format";
 import { setSetting } from "@/lib/settings";
@@ -26,16 +26,53 @@ function back(returnTo: string, ok: boolean, text: string): never {
 }
 const rt = (fd: FormData) => String(fd.get("returnTo") || "");
 const money = (v: FormDataEntryValue | null) => Math.max(0, Math.floor(Number(String(v || "0").replace(/[^\d]/g, "")) || 0));
+/** Ô số lượng giới hạn mỗi đơn (min/max phía NCC): trống -> null (không
+ *  giới hạn); số nguyên dương -> số đó; rác -> undefined (báo lỗi). */
+const qtyField = (v: FormDataEntryValue | null): number | null | undefined => {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  const n = parseInt(s);
+  return Number.isInteger(n) && n > 0 ? n : undefined;
+};
 
 /** Sửa tên + giá bán của một gói (giá này là giá trang khách tính tiền, trừ
- *  Stars/Gift vốn chốt theo báo giá FZR — markup nằm ở thẻ nhà cung cấp). */
+ *  Stars/Gift vốn chốt theo báo giá FZR — markup nằm ở thẻ nhà cung cấp).
+ *  Các ô PHỤ theo nhóm chỉ gửi khi form của khu đó có (VariantRow):
+ *  minQty/maxQty (Game Key + Gift Card — giới hạn số lượng mỗi đơn phía
+ *  NCC, ô trống = bỏ giới hạn) và minutes/noteProduct (Manual — thời gian
+ *  giao + ghi chú gói phía khách). */
 export async function famSaveVariant(fd: FormData) {
   await requireAdmin();
   const id = parseInt(String(fd.get("id") || "0"));
   const name = String(fd.get("name") || "").trim();
   const price = money(fd.get("price"));
   if (!id || !name) back(rt(fd), false, "Thiếu tên gói hoặc gói không hợp lệ");
-  await prisma.premiumVariant.update({ where: { id }, data: { name, price } });
+  const data: Record<string, unknown> = { name, price };
+  const qtyOrNull = (v: FormDataEntryValue | null) => {
+    const s = String(v ?? "").trim();
+    if (!s) return null;
+    const n = parseInt(s);
+    return Number.isInteger(n) && n > 0 ? n : undefined; // undefined = không hợp lệ
+  };
+  if (fd.has("minQty") || fd.has("maxQty")) {
+    const minQ = qtyOrNull(fd.get("minQty"));
+    const maxQ = qtyOrNull(fd.get("maxQty"));
+    if (minQ === undefined || maxQ === undefined) back(rt(fd), false, "Số lượng tối thiểu/tối đa phải là số nguyên dương hoặc để trống");
+    if (minQ !== null && maxQ !== null && minQ > maxQ) back(rt(fd), false, "Số lượng tối thiểu không được lớn hơn tối đa");
+    data.minOrderQty = minQ;
+    data.maxOrderQty = maxQ;
+  }
+  if (fd.has("minutes")) {
+    const s = String(fd.get("minutes") || "").trim();
+    const n = s ? parseInt(s) : NaN;
+    data.deliveryMinutes = s === "" ? null : (Number.isInteger(n) && n >= 0 ? n : undefined);
+    if (data.deliveryMinutes === undefined) back(rt(fd), false, "Thời gian giao phải là số phút nguyên hoặc để trống");
+  }
+  if (fd.has("noteProduct")) {
+    const s = String(fd.get("noteProduct") || "").trim();
+    data.providerNote = s ? s.slice(0, 1000) : null;
+  }
+  await prisma.premiumVariant.update({ where: { id }, data });
   back(rt(fd), true, "Đã lưu gói");
 }
 
@@ -254,14 +291,54 @@ export async function famAddTopupDenom(fd: FormData) {
   back(rt(fd), true, `Đã thêm mệnh giá ${amount} USD`);
 }
 
-/** Sửa tên + ảnh bìa của một game gift (appid nằm ở gói, không sửa ở đây). */
+/** Sửa tên + ảnh bìa của một sản phẩm họ FZR (appid game gift nằm ở gói,
+ *  không sửa ở đây). Các khu Gift Card / Top-Up / Manual gửi thêm ô "note"
+ *  = mô tả phía NCC — admin sửa tay thì ghi dấu providerOverride để đồng
+ *  bộ không đè lại. */
 export async function famSaveGiftProduct(fd: FormData) {
   await requireAdmin();
   const productId = parseInt(String(fd.get("productId") || "0"));
   const name = String(fd.get("name") || "").trim();
   const imageUrl = String(fd.get("imageUrl") || "").trim();
   if (!productId || !name) back(rt(fd), false, "Thiếu tên game hoặc game không hợp lệ");
-  await prisma.premiumProduct.update({ where: { id: productId }, data: { name, imageUrl: imageUrl || null } });
+  const data: Record<string, unknown> = { name, imageUrl: imageUrl || null };
+  if (fd.has("note")) {
+    const note = String(fd.get("note") || "").trim().slice(0, 2000);
+    const cur = await prisma.premiumProduct.findUnique({ where: { id: productId }, select: { providerOverride: true } });
+    data.description = note || null;
+    data.providerOverride = withProviderOverride(cur?.providerOverride, ["description"]);
+  }
+  await prisma.premiumProduct.update({ where: { id: productId }, data });
+  back(rt(fd), true, "Đã lưu thông tin game");
+}
+
+/** Lưu đầu sản phẩm GAME KEY: tên + ảnh + NỀN TẢNG + VÙNG + AppID. Platform
+ *  và region là ô nhập tự do (chọn từ giá trị đang có hoặc gõ MỚI — bộ lọc
+ *  phía khách lấy từ chính các giá trị đã lưu này); mọi giá trị admin đặt
+ *  ở đây đều ghi dấu providerOverride để đồng bộ FZR không ghi đè. */
+export async function famSaveGameKeyProduct(fd: FormData) {
+  await requireAdmin();
+  const productId = parseInt(String(fd.get("productId") || "0"));
+  const name = String(fd.get("name") || "").trim();
+  const imageUrl = String(fd.get("imageUrl") || "").trim();
+  const platform = String(fd.get("platform") || "").trim().slice(0, 60);
+  const region = String(fd.get("region") || "").trim().slice(0, 60);
+  const appidRaw = String(fd.get("appid") || "").trim();
+  if (!productId || !name) back(rt(fd), false, "Thiếu tên game hoặc game không hợp lệ");
+  const appid = appidRaw === "" ? null : parseInt(appidRaw);
+  if (appid !== null && (!Number.isInteger(appid) || appid <= 0)) back(rt(fd), false, "AppID phải là số nguyên dương hoặc để trống");
+  const cur = await prisma.premiumProduct.findUnique({ where: { id: productId }, select: { providerOverride: true } });
+  await prisma.premiumProduct.update({
+    where: { id: productId },
+    data: {
+      name,
+      imageUrl: imageUrl || null,
+      providerPlatform: platform || null,
+      providerRegion: region || null,
+      providerAppId: appid,
+      providerOverride: withProviderOverride(cur?.providerOverride, ["platform", "region", "appid"]),
+    },
+  });
   back(rt(fd), true, "Đã lưu thông tin game");
 }
 
@@ -312,6 +389,10 @@ export async function famAddGameKeyEdition(fd: FormData) {
   const keyId = String(fd.get("keyId") || "").trim();
   const name = String(fd.get("name") || "").trim();
   const price = money(fd.get("price"));
+  const minQ = qtyField(fd.get("minQty"));
+  const maxQ = qtyField(fd.get("maxQty"));
+  if (minQ === undefined || maxQ === undefined) back(rt(fd), false, "Số lượng tối thiểu/tối đa không hợp lệ");
+  if (minQ !== null && maxQ !== null && minQ > maxQ) back(rt(fd), false, "Số lượng tối thiểu không được lớn hơn tối đa");
   const product = productId ? await prisma.premiumProduct.findUnique({ where: { id: productId }, select: { id: true, providerId: true } }) : null;
   if (!product) back(rt(fd), false, "Game không hợp lệ");
   if (!keyId || !name) back(rt(fd), false, "Key ID và tên phiên bản là bắt buộc");
@@ -326,6 +407,8 @@ export async function famAddGameKeyEdition(fd: FormData) {
       providerId: product!.providerId, providerGroup: "gamekeys",
       providerItemId: keyId,
       deliveryType: ADMIN_VARIANT_MARK,
+      ...(minQ !== null ? { minOrderQty: minQ } : {}),
+      ...(maxQ !== null ? { maxOrderQty: maxQ } : {}),
     },
   });
   back(rt(fd), true, `Đã thêm phiên bản ${name}`);
@@ -344,6 +427,13 @@ export async function famAddGameKey(fd: FormData) {
   const keyId = String(fd.get("keyId") || "").trim();
   const editionName = String(fd.get("editionName") || "").trim() || name;
   const price = money(fd.get("price"));
+  const appidRaw = String(fd.get("appid") || "").trim();
+  const appid = appidRaw === "" ? null : parseInt(appidRaw);
+  if (appid !== null && (!Number.isInteger(appid) || appid <= 0)) back(rt(fd), false, "AppID không hợp lệ");
+  const minQ = qtyField(fd.get("minQty"));
+  const maxQ = qtyField(fd.get("maxQty"));
+  if (minQ === undefined || maxQ === undefined) back(rt(fd), false, "Số lượng tối thiểu/tối đa không hợp lệ");
+  if (minQ !== null && maxQ !== null && minQ > maxQ) back(rt(fd), false, "Số lượng tối thiểu không được lớn hơn tối đa");
   const provider = await gameKeyAddProvider();
   if (!provider) back(rt(fd), false, "Chưa có nhà cung cấp FZR đang bật");
   if (!gameId || !name || !keyId) back(rt(fd), false, "Game ID, tên game và Key ID phiên bản đầu là bắt buộc");
@@ -361,6 +451,8 @@ export async function famAddGameKey(fd: FormData) {
       imageUrl: imageUrl || null,
       providerPlatform: platform || null,
       providerRegion: region || null,
+      providerAppId: appid,
+      providerOverride: JSON.stringify(["platform", "region", "appid"]),
       fulfillment: "API",
       providerId: provider!.id,
       providerProductId: gameId,
@@ -372,6 +464,8 @@ export async function famAddGameKey(fd: FormData) {
       providerId: provider!.id, providerGroup: "gamekeys",
       providerItemId: keyId,
       deliveryType: ADMIN_VARIANT_MARK,
+      ...(minQ !== null ? { minOrderQty: minQ } : {}),
+      ...(maxQ !== null ? { maxOrderQty: maxQ } : {}),
     },
   });
   back(rt(fd), true, `Đã thêm game ${name}`);
@@ -386,6 +480,10 @@ export async function famAddGiftCardDenomination(fd: FormData) {
   const cardId = String(fd.get("cardId") || "").trim();
   const name = String(fd.get("name") || "").trim();
   const price = money(fd.get("price"));
+  const minQ = qtyField(fd.get("minQty"));
+  const maxQ = qtyField(fd.get("maxQty"));
+  if (minQ === undefined || maxQ === undefined) back(rt(fd), false, "Số lượng tối thiểu/tối đa không hợp lệ");
+  if (minQ !== null && maxQ !== null && minQ > maxQ) back(rt(fd), false, "Số lượng tối thiểu không được lớn hơn tối đa");
   const product = productId ? await prisma.premiumProduct.findUnique({ where: { id: productId }, select: { id: true, providerId: true } }) : null;
   if (!product) back(rt(fd), false, "Danh mục không hợp lệ");
   if (!cardId || !name) back(rt(fd), false, "Card ID và tên mệnh giá là bắt buộc");
@@ -400,6 +498,8 @@ export async function famAddGiftCardDenomination(fd: FormData) {
       providerId: product!.providerId, providerGroup: "giftcards",
       providerItemId: cardId,
       deliveryType: ADMIN_VARIANT_MARK,
+      ...(minQ !== null ? { minOrderQty: minQ } : {}),
+      ...(maxQ !== null ? { maxOrderQty: maxQ } : {}),
     },
   });
   back(rt(fd), true, `Đã thêm mệnh giá ${name}`);
@@ -415,6 +515,10 @@ export async function famAddGiftCardCategory(fd: FormData) {
   const cardId = String(fd.get("cardId") || "").trim();
   const denomName = String(fd.get("denomName") || "").trim() || name;
   const price = money(fd.get("price"));
+  const minQ = qtyField(fd.get("minQty"));
+  const maxQ = qtyField(fd.get("maxQty"));
+  if (minQ === undefined || maxQ === undefined) back(rt(fd), false, "Số lượng tối thiểu/tối đa không hợp lệ");
+  if (minQ !== null && maxQ !== null && minQ > maxQ) back(rt(fd), false, "Số lượng tối thiểu không được lớn hơn tối đa");
   const provider = await giftCardAddProvider();
   if (!provider) back(rt(fd), false, "Chưa có nhà cung cấp FZR đang bật");
   if (!categoryIdFzr || !name || !cardId) back(rt(fd), false, "Category ID, tên danh mục và Card ID mệnh giá đầu là bắt buộc");
@@ -441,6 +545,8 @@ export async function famAddGiftCardCategory(fd: FormData) {
       providerId: provider!.id, providerGroup: "giftcards",
       providerItemId: cardId,
       deliveryType: ADMIN_VARIANT_MARK,
+      ...(minQ !== null ? { minOrderQty: minQ } : {}),
+      ...(maxQ !== null ? { maxOrderQty: maxQ } : {}),
     },
   });
   back(rt(fd), true, `Đã thêm danh mục ${name}`);
@@ -495,7 +601,7 @@ export async function famSyncArea(fd: FormData) {
   back(rt(fd), okFlag, msg!);
 }
 
-type PickItem = { id: string; name: string; priceUsd: string | null; extra: string; extra2?: string };
+type PickItem = { id: string; name: string; priceUsd: string | null; extra: string; extra2?: string; minQty?: number | null; maxQty?: number | null; appid?: number | null };
 type PickResult = { ok: boolean; items?: PickItem[]; item?: PickItem; error?: string; hasMore?: boolean; page?: number };
 
 /** Số kết quả picker mỗi trang — picker lật trang THẬT qua catalog phía
@@ -549,10 +655,12 @@ export async function fzrPickSearch(group: string, query: string, pageRaw?: numb
           if (id === undefined || id === null) continue;
           const name = String(g?.name || id);
           if (q && !name.toLowerCase().includes(q)) continue;
+          const appidNum = group === "gamekeys" ? Number(g?.appid) : NaN;
           matches.push({
             id: String(id), name, priceUsd: null,
             extra: group === "gamekeys" ? String(g?.platform || "") : "",
             extra2: group === "gamekeys" ? String(g?.region || "") : "",
+            appid: Number.isInteger(appidNum) && appidNum > 0 ? appidNum : null,
           });
           if (matches.length >= need) break;
         }
@@ -646,6 +754,8 @@ export async function fzrPickEditions(group: string, parentId: string): Promise<
           name: String(k?.name || "Key"),
           priceUsd: k?.price_usd != null ? String(k.price_usd) : (k?.price != null ? String(k.price) : null),
           extra: k?.stock != null ? `Tồn kho ${k.stock}` : "",
+          minQty: Number.isInteger(Number(k?.min_order_quantity)) && Number(k?.min_order_quantity) > 0 ? Number(k.min_order_quantity) : null,
+          maxQty: Number.isInteger(Number(k?.max_order_quantity)) && Number(k?.max_order_quantity) > 0 ? Number(k.max_order_quantity) : null,
         })),
       };
     }
@@ -658,6 +768,8 @@ export async function fzrPickEditions(group: string, parentId: string): Promise<
           name: String(k?.name || "Card"),
           priceUsd: k?.price_usd != null ? String(k.price_usd) : null,
           extra: k?.stock != null ? `Tồn kho ${k.stock}` : "",
+          minQty: Number.isInteger(Number(k?.min_order_quantity)) && Number(k?.min_order_quantity) > 0 ? Number(k.min_order_quantity) : null,
+          maxQty: Number.isInteger(Number(k?.max_order_quantity)) && Number(k?.max_order_quantity) > 0 ? Number(k.max_order_quantity) : null,
         })),
       };
     }
@@ -708,7 +820,8 @@ export async function fzrPickLookup(group: string, idRaw: string): Promise<PickR
         const raw: any = await fzrGameKeys(provider, cursor);
         for (const g of asArr(raw?.items)) {
           if (String(g?.game_id ?? g?.id) === id) {
-            return { ok: true, item: { id, name: String(g?.name || id), priceUsd: null, extra: String(g?.platform || ""), extra2: String(g?.region || "") } };
+            const lkAppid = Number(g?.appid);
+            return { ok: true, item: { id, name: String(g?.name || id), priceUsd: null, extra: String(g?.platform || ""), extra2: String(g?.region || ""), appid: Number.isInteger(lkAppid) && lkAppid > 0 ? lkAppid : null } };
           }
         }
         const next = raw?.meta?.next_cursor;

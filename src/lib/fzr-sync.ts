@@ -23,7 +23,7 @@ import type { Provider } from "@prisma/client";
  *    KHÔNG gọi offers theo từng game — giá chốt tại thời điểm mua (refreshFzrQuotePrice).
  */
 
-type SyncVariant = { itemId: string; name: string; usd: string | null; cycle?: number; stock?: number; minutes?: number | null; note?: string };
+type SyncVariant = { itemId: string; name: string; usd: string | null; cycle?: number; stock?: number; minutes?: number | null; note?: string; minQty?: number; maxQty?: number };
 type SyncItem = {
   group: string;
   productKey: string;
@@ -33,10 +33,28 @@ type SyncItem = {
   image?: string;
   platform?: string;
   region?: string;
+  appid?: number;
+  regionRestricted?: boolean;
   kind?: string;
   customFields?: PremiumCustomField[];
   variants: SyncVariant[];
 };
+
+/** Thuộc tính sản phẩm ADMIN đã đặt tay (PremiumProduct.providerOverride —
+ *  JSON mảng khoá): đồng bộ không ghi đè các khoá này, mở rộng luật bảo vệ
+ *  CUSTOM của gói lên tầng sản phẩm (platform/region/appid/description/kind). */
+export function parseProviderOverride(json: string | null | undefined): Set<string> {
+  if (!json) return new Set();
+  try {
+    const arr = JSON.parse(json);
+    return new Set(Array.isArray(arr) ? arr.map((x) => String(x)) : []);
+  } catch { return new Set(); }
+}
+export function withProviderOverride(json: string | null | undefined, keys: string[]): string {
+  const s = parseProviderOverride(json);
+  for (const k of keys) s.add(k);
+  return JSON.stringify(Array.from(s));
+}
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "khac";
@@ -107,6 +125,8 @@ async function collectGameKeys(provider: Provider): Promise<{ items: SyncItem[];
       const price = firstDefined(k?.price_usd, k?.price);
       if (price === undefined) { skipped++; continue; }
       const stockNum = Number(k?.stock);
+      const minQ = Number(k?.min_order_quantity);
+      const maxQ = Number(k?.max_order_quantity);
       variants.push({
         // key_id có thể null phía FZR (OpenAPI cho phép null): edition đó
         // không gọi order được bằng key_id — vẫn lưu theo tên để admin thấy,
@@ -115,9 +135,14 @@ async function collectGameKeys(provider: Provider): Promise<{ items: SyncItem[];
         name: String(k?.name || g?.name || "Key game"),
         usd: String(price),
         ...(Number.isFinite(stockNum) ? { stock: stockNum } : {}),
+        ...(Number.isInteger(minQ) && minQ > 0 ? { minQty: minQ } : {}),
+        ...(Number.isInteger(maxQ) && maxQ > 0 ? { maxQty: maxQ } : {}),
       });
     }
     if (!variants.length) { skipped++; continue; }
+    const appidRaw = firstDefined(g?.appid, keysRaw?.appid);
+    const appidNum = appidRaw !== undefined ? Number(appidRaw) : NaN;
+    const restrictedRaw = firstDefined(g?.region_restriction, keysRaw?.region_restriction);
     items.push({
       group: "gamekeys",
       productKey: String(gameId),
@@ -126,6 +151,8 @@ async function collectGameKeys(provider: Provider): Promise<{ items: SyncItem[];
       image: firstDefined(g?.imageurl, g?.image, g?.imageUrl, keysRaw?.imageurl),
       platform: firstDefined(g?.platform, keysRaw?.platform) ? String(firstDefined(g?.platform, keysRaw?.platform)) : undefined,
       region: firstDefined(g?.region, keysRaw?.region) ? String(firstDefined(g?.region, keysRaw?.region)) : undefined,
+      ...(Number.isInteger(appidNum) && appidNum > 0 ? { appid: appidNum } : {}),
+      ...(typeof restrictedRaw === "boolean" ? { regionRestricted: restrictedRaw } : {}),
       variants,
     });
   }
@@ -171,6 +198,8 @@ async function collectGiftCards(provider: Provider): Promise<{ items: SyncItem[]
       const price = firstDefined(o?.price_usd, o?.price);
       if (price === undefined) { skipped++; continue; }
       const stockNum = Number(o?.stock);
+      const minQ = Number(o?.min_order_quantity);
+      const maxQ = Number(o?.max_order_quantity);
       variants.push({
         // card_id có thể null phía FZR (OpenAPI cho phép null): offer đó
         // không gọi order được bằng card_id — vẫn lưu theo tên để admin
@@ -179,6 +208,8 @@ async function collectGiftCards(provider: Provider): Promise<{ items: SyncItem[]
         name: String(o?.name || c?.name || "Gift card"),
         usd: String(price),
         ...(Number.isFinite(stockNum) ? { stock: stockNum } : {}),
+        ...(Number.isInteger(minQ) && minQ > 0 ? { minQty: minQ } : {}),
+        ...(Number.isInteger(maxQ) && maxQ > 0 ? { maxQty: maxQ } : {}),
       });
     }
     if (!variants.length) { skipped++; continue; }
@@ -496,17 +527,22 @@ export async function syncFzrCatalog(provider: Provider, opts: {
         )
       : undefined;
     if (existing) {
+      // Thuộc tính admin đã đặt tay (providerOverride) thì sync KHÔNG ghi
+      // đè — luật bảo vệ CUSTOM mở rộng lên tầng sản phẩm.
+      const ovr = parseProviderOverride(existing.providerOverride);
       await prisma.premiumProduct.update({
         where: { id: existing.id },
         data: {
           categoryId: catId,
           fulfillment: "API",
           ...(provider.syncContent ? { name: item.productName } : {}),
-          ...(item.description && provider.syncContent ? { description: item.description } : {}),
+          ...(item.description && provider.syncContent && !ovr.has("description") ? { description: item.description } : {}),
           ...(item.image ? { imageUrl: item.image } : {}),
-          ...(item.platform ? { providerPlatform: item.platform } : {}),
-          ...(item.region ? { providerRegion: item.region } : {}),
-          ...(item.kind ? { providerKind: item.kind } : {}),
+          ...(item.platform && !ovr.has("platform") ? { providerPlatform: item.platform } : {}),
+          ...(item.region && !ovr.has("region") ? { providerRegion: item.region } : {}),
+          ...(item.appid && !ovr.has("appid") ? { providerAppId: item.appid } : {}),
+          ...(item.regionRestricted !== undefined ? { providerRegionRestricted: item.regionRestricted } : {}),
+          ...(item.kind && !ovr.has("kind") ? { providerKind: item.kind } : {}),
           ...(fieldsJson ? { customFields: fieldsJson } : {}),
         },
       });
@@ -522,6 +558,8 @@ export async function syncFzrCatalog(provider: Provider, opts: {
           imageUrl: item.image || null,
           providerPlatform: item.platform || null,
           providerRegion: item.region || null,
+          providerAppId: item.appid || null,
+          providerRegionRestricted: item.regionRestricted ?? null,
           providerKind: item.kind || null,
           fulfillment: "API",
           providerId: provider.id,
@@ -550,6 +588,8 @@ export async function syncFzrCatalog(provider: Provider, opts: {
             ...(provider.autoUpdatePrice && ev.deliveryType !== ADMIN_VARIANT_MARK ? { price, cost } : {}),
             ...(v.cycle ? { providerCycle: v.cycle } : {}),
             ...(v.stock !== undefined ? { providerStock: v.stock } : {}),
+            ...(v.minQty !== undefined ? { minOrderQty: v.minQty } : {}),
+            ...(v.maxQty !== undefined ? { maxOrderQty: v.maxQty } : {}),
             ...(v.minutes !== undefined ? { deliveryMinutes: v.minutes } : {}),
             ...(v.note !== undefined ? { providerNote: v.note } : {}),
           },
@@ -562,6 +602,8 @@ export async function syncFzrCatalog(provider: Provider, opts: {
             providerId: provider.id, providerGroup: item.group, providerItemId: v.itemId,
             providerCycle: v.cycle ?? null,
             providerStock: v.stock ?? null,
+            minOrderQty: v.minQty ?? null,
+            maxOrderQty: v.maxQty ?? null,
             deliveryMinutes: v.minutes ?? null,
             providerNote: v.note ?? null,
           },

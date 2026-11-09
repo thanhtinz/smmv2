@@ -82,6 +82,10 @@ export default async function AdminTopupProducts({ searchParams }: { searchParam
                         <span className="mb-1 block text-[11px] font-semibold text-slate-400">Ảnh bìa (URL)</span>
                         <input name="imageUrl" defaultValue={product.imageUrl || ""} placeholder="https://…" className="inp !py-2 text-[13px]" />
                       </label>
+                      <label className="block w-full">
+                        <span className="mb-1 block text-[11px] font-semibold text-slate-400">Ghi chú của nhà cung cấp (sửa được — khách thấy ở trang mua)</span>
+                        <textarea name="note" rows={2} defaultValue={product.description || ""} placeholder="—" className="inp w-full !py-2 text-[13px]" />
+                      </label>
                       <button className="btn-primary btn-row !px-3.5">Lưu danh mục</button>
                     </form>
                     <div className="mt-1.5 text-xs text-slate-400">

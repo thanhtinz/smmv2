@@ -48,10 +48,11 @@ export function GkFavFilterButton({ active, basePath }: { active: boolean; baseP
   );
 }
 
-export type GkEdition = { variantId: number; name: string; price: number; stock: number | null };
+export type GkEdition = { variantId: number; name: string; price: number; stock: number | null; minQty?: number | null; maxQty?: number | null };
 export type GkGame = {
   id: number; name: string; image: string | null;
   platform: string | null; region: string | null;
+  appid?: number | null; regionRestricted?: boolean | null;
   editions: GkEdition[];
 };
 
@@ -70,6 +71,10 @@ export function GameKeyBuyForm({ game, balance }: { game: GkGame; balance: numbe
   const [fav, setFav] = useState(false);
   useEffect(() => { setFav(readGkFavs().includes(game.id)); }, [game.id]);
   const edition = useMemo(() => game.editions.find((e) => e.variantId === editionId) || game.editions[0], [game.editions, editionId]);
+  // Giới hạn số lượng mỗi đơn của edition phía NCC (min/max_order_quantity).
+  const qtyMin = edition?.minQty ?? 1;
+  const qtyMax = Math.max(qtyMin, Math.min(100, edition?.maxQty ?? 100));
+  useEffect(() => { setQty((q) => Math.min(qtyMax, Math.max(qtyMin, q))); }, [qtyMin, qtyMax]);
   const total = (edition?.price || 0) * qty;
   const enough = balance >= total;
   const soldOut = !edition || edition.stock === 0;
@@ -151,6 +156,7 @@ export function GameKeyBuyForm({ game, balance }: { game: GkGame; balance: numbe
             {[
               [t("Nền tảng"), game.platform || "—"],
               [t("Vùng"), game.region || "—"],
+              ...(game.appid ? [["AppID", String(game.appid)] as [string, string]] : []),
               ["Key", edition?.name || "—"],
               [t("Giá key"), edition ? m(edition.price) : "—"],
               [t("Số dư ví"), m(balance)],
@@ -166,11 +172,15 @@ export function GameKeyBuyForm({ game, balance }: { game: GkGame; balance: numbe
             <span className="text-[22px] font-black leading-none text-brand-700">{m(total)}</span>
           </div>
           {!enough && !soldOut && <p className="mt-2.5 text-sm font-medium text-rose-600">{t("Số dư không đủ, vui lòng nạp thêm tiền")}</p>}
+          {game.regionRestricted === true && <p className="mt-2.5 text-sm font-medium text-amber-600">{t("Key giới hạn quốc gia kích hoạt — kiểm tra kỹ vùng của key trước khi mua")}</p>}
+          {(edition?.minQty != null || edition?.maxQty != null) && (
+            <p className="mt-2 text-xs text-slate-400">{t("Số lượng mỗi đơn")}: {edition?.minQty != null ? `${t("tối thiểu")} ${edition.minQty}` : ""}{edition?.minQty != null && edition?.maxQty != null ? " · " : ""}{edition?.maxQty != null ? `${t("tối đa")} ${edition.maxQty}` : ""}</p>
+          )}
           <div className="mt-4 flex gap-2.5">
             <div className="flex items-center rounded-xl border border-slate-200">
-              <button type="button" aria-label="-" onClick={() => setQty((q) => Math.max(1, q - 1))} className="flex h-full w-11 items-center justify-center text-lg font-bold text-slate-500 transition hover:text-slate-800">−</button>
+              <button type="button" aria-label="-" onClick={() => setQty((q) => Math.max(qtyMin, q - 1))} className="flex h-full w-11 items-center justify-center text-lg font-bold text-slate-500 transition hover:text-slate-800">−</button>
               <span className="w-8 text-center text-[15px] font-black text-slate-900">{qty}</span>
-              <button type="button" aria-label="+" onClick={() => setQty((q) => Math.min(100, q + 1))} className="flex h-full w-11 items-center justify-center text-lg font-bold text-slate-500 transition hover:text-slate-800">+</button>
+              <button type="button" aria-label="+" onClick={() => setQty((q) => Math.min(qtyMax, q + 1))} className="flex h-full w-11 items-center justify-center text-lg font-bold text-slate-500 transition hover:text-slate-800">+</button>
             </div>
             <button disabled={soldOut || !enough} className="flex-1 rounded-xl bg-gradient-to-r from-brand-700 via-brand-600 to-cyan-500 py-3.5 text-base font-extrabold text-white shadow-lg shadow-brand-600/25 transition hover:opacity-95 disabled:opacity-50">
               {t("Tiếp tục")}

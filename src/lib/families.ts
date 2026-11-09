@@ -81,6 +81,8 @@ export type GameKeyProduct = FamilyVariant["product"] & {
   providerPlatform: string | null;
   providerRegion: string | null;
   providerProductId: string | null;
+  providerAppId: number | null;
+  providerRegionRestricted: boolean | null;
 };
 
 /** Họ Game Key (FIX10, theo OpenAPI FZR): 1 game = 1 sản phẩm (provider
@@ -96,6 +98,8 @@ export async function loadGameKeyFamilies(opts?: { q?: string; page?: number; pa
   total: number;
   page: number;
   pages: number;
+  platformOptions: string[];
+  regionOptions: string[];
 }> {
   const pageSize = opts?.pageSize ?? (await adminProductPageSize());
   const q = (opts?.q || "").trim();
@@ -111,7 +115,7 @@ export async function loadGameKeyFamilies(opts?: { q?: string; page?: number; pa
     orderBy: { name: "asc" },
     skip: (page - 1) * pageSize,
     take: pageSize,
-    select: { id: true, name: true, slug: true, imageUrl: true, active: true, providerPlatform: true, providerRegion: true, providerProductId: true },
+    select: { id: true, name: true, slug: true, imageUrl: true, active: true, providerPlatform: true, providerRegion: true, providerProductId: true, providerAppId: true, providerRegionRestricted: true },
   })) as GameKeyProduct[];
   const variants = productRows.length
     ? ((await prisma.premiumVariant.findMany({
@@ -133,7 +137,18 @@ export async function loadGameKeyFamilies(opts?: { q?: string; page?: number; pa
   const providers = providerIds.length
     ? await prisma.provider.findMany({ where: { id: { in: providerIds } }, orderBy: { id: "asc" } })
     : await prisma.provider.findMany({ where: { driver: "FZR", active: true }, orderBy: { id: "asc" }, take: 1 });
-  return { providers, groups, total, page, pages };
+  // Giá trị platform/region ĐANG có trong kho — gợi ý cho ô nhập ở form
+  // thêm/sửa game (admin chọn giá trị cũ hoặc gõ giá trị MỚI đều được; bộ
+  // lọc phía khách lấy từ chính các giá trị đã lưu này).
+  const [platformRows, regionRows] = await Promise.all([
+    prisma.premiumProduct.findMany({ where: { variants: { some: { providerGroup: "gamekeys" } }, providerPlatform: { not: null } }, distinct: ["providerPlatform"], select: { providerPlatform: true }, orderBy: { providerPlatform: "asc" } }),
+    prisma.premiumProduct.findMany({ where: { variants: { some: { providerGroup: "gamekeys" } }, providerRegion: { not: null } }, distinct: ["providerRegion"], select: { providerRegion: true }, orderBy: { providerRegion: "asc" } }),
+  ]);
+  return {
+    providers, groups, total, page, pages,
+    platformOptions: platformRows.map((r) => r.providerPlatform!).filter(Boolean),
+    regionOptions: regionRows.map((r) => r.providerRegion!).filter(Boolean),
+  };
 }
 
 /** Nhà cung cấp dùng khi admin THÊM game/edition Game Key: ưu tiên nhà cung

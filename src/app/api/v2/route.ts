@@ -274,6 +274,8 @@ async function handle(req: NextRequest) {
             delivery: resolveDeliveryType(v.deliveryType, p.fulfillment),
             stock: soldOut ? "out_of_stock" : "in_stock",
             ...(qty !== null ? { stock_qty: qty } : {}),
+            ...(v.minOrderQty != null ? { min_order_quantity: v.minOrderQty } : {}),
+            ...(v.maxOrderQty != null ? { max_order_quantity: v.maxOrderQty } : {}),
           });
         }
       }

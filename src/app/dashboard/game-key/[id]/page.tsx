@@ -21,10 +21,10 @@ export default async function GameKeyDetailPage({ params, searchParams }: {
   const product = await prisma.premiumProduct.findFirst({
     where: { id, active: true, panelId: null, variants: { some: { providerGroup: "gamekeys", active: true } } },
     select: {
-      id: true, name: true, imageUrl: true, images: true, providerPlatform: true, providerRegion: true,
+      id: true, name: true, imageUrl: true, images: true, providerPlatform: true, providerRegion: true, providerAppId: true, providerRegionRestricted: true,
       variants: {
         where: { providerGroup: "gamekeys", active: true },
-        select: { id: true, name: true, price: true, providerStock: true },
+        select: { id: true, name: true, price: true, providerStock: true, minOrderQty: true, maxOrderQty: true },
         orderBy: [{ price: "asc" }],
       },
     },
@@ -49,7 +49,9 @@ export default async function GameKeyDetailPage({ params, searchParams }: {
     image: cover,
     platform: product.providerPlatform,
     region: product.providerRegion,
-    editions: product.variants.map((v) => ({ variantId: v.id, name: v.name, price: v.price, stock: v.providerStock })),
+    appid: product.providerAppId,
+    regionRestricted: product.providerRegionRestricted,
+    editions: product.variants.map((v) => ({ variantId: v.id, name: v.name, price: v.price, stock: v.providerStock, minQty: v.minOrderQty, maxQty: v.maxOrderQty })),
   };
 
   return (

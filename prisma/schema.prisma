@@ -279,8 +279,11 @@ model PremiumProduct {
   providerId       Int?
   provider         Provider? @relation(fields: [providerId], references: [id])
   providerProductId String?  @db.VarChar(50) // ID sản phẩm phía nhà cung cấp (khi fulfillment = API)
-  providerPlatform String?  @db.VarChar(60) // nền tảng phía NCC (FZR gamekeys: item.platform, vd "Steam") — dữ liệu thật từ API, chỉ để hiện/lọc
-  providerRegion   String?  @db.VarChar(60) // vùng phía NCC (FZR gamekeys: item.region, vd "GLOBAL"/"CIS") — dữ liệu thật từ API, chỉ để hiện/lọc
+  providerPlatform String?  @db.VarChar(60) // nền tảng phía NCC (FZR gamekeys: item.platform, vd "Steam") — dữ liệu thật từ API, hiện + lọc phía khách; admin sửa được (ghi vào providerOverride để sync không ghi đè)
+  providerRegion   String?  @db.VarChar(60) // vùng phía NCC (FZR gamekeys: item.region, vd "GLOBAL"/"CIS") — như platform
+  providerAppId    Int? // app id phía NCC (FZR gamekeys: item.appid khi include_ui=1) — chỉ để hiện (admin + chi tiết khách)
+  providerRegionRestricted Boolean? // FZR gamekeys: item.region_restriction — key giới hạn quốc gia kích hoạt; null = NCC không báo
+  providerOverride String?  @db.Text // JSON mảng khoá thuộc tính ADMIN đã đặt tay (platform|region|appid|description|kind): đồng bộ FZR KHÔNG ghi đè các thuộc tính này nữa
   providerKind     String?  @db.VarChar(40) // kiểu thực hiện phía NCC (FZR manual-services: category.kind, vd "replenishment") — dữ liệu thật từ API, hiện ở chip loại giao trên thẻ + trang mua
   customFields String?  @db.Text // JSON: trường tuỳ chỉnh khách điền khi mua [{label,type,required,placeholder,options}]
   buyNote     String?  @db.VarChar(500) // hướng dẫn riêng của sản phẩm, hiện trong hộp phía trên form mua (kiểu thatim)
@@ -319,6 +322,8 @@ model PremiumVariant {
   outOfStock   Boolean        @default(false) // chặn bán thủ công cho gói MANUAL/API (gói AUTO_STOCK theo dõi bằng dòng kho, không dùng cờ này)
   stockQty     Int? // tồn kho theo SỐ LƯỢNG cho gói MANUAL/API (nắp kho của shop trên cả provider); null = không theo dõi (không giới hạn); gói AUTO_STOCK để null — kho của chúng là dòng PremiumStock
   providerStock Int? // tồn kho PHÍA NCC báo (FZR gamekeys: keys[].stock theo từng edition) — chỉ hiện + suy "hết hàng" ở khu Game Key; KHÔNG phải nắp kho của shop (stockQty) và không bị trừ khi đặt (NCC tự thực thi lúc gọi order)
+  minOrderQty  Int? // số lượng mua TỐI THIỂU mỗi đơn phía NCC (FZR gamekeys keys[] + giftcards offers: min_order_quantity) — createPremiumOrder chặn trước khi gọi NCC; null = không giới hạn
+  maxOrderQty  Int? // số lượng mua TỐI ĐA mỗi đơn phía NCC (max_order_quantity) — như trên; null = không giới hạn
   providerNote String?       @db.Text // ghi chú theo GÓI phía NCC (FZR manual-services offers: note_product) — chỉ để hiện ở trang mua
   deliveryMinutes Int? // thời gian giao điển hình theo phút phía NCC báo (FZR manual-services offers: delivery_minutes) — chỉ để hiện
   active      Boolean        @default(true)
