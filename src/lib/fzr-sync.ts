@@ -366,13 +366,20 @@ async function collectSynthetic(provider: Provider): Promise<SyncItem[]> {
           { label: FZR_LABELS.telegramId, type: "text", required: false, placeholder: "ID số của tài khoản Telegram (không bắt buộc)" },
           { label: "Tên người dùng Telegram", type: "text", required: true, placeholder: "@username của tài khoản nhận" },
         ],
-        variants: plans.filter((p) => [3, 6, 12].includes(p.durationMonths)).map((p) => ({
+        // MỌI số tháng NCC trả về đều được đồng bộ (lệnh chủ 2026-11-08 —
+        // bỏ lọc cứng [3,6,12]; hiện tại OpenAPI vẫn chỉ liệt kê 3/6/12
+        // nhưng NCC thêm tháng nào là catalog có tháng đó, kể cả gói
+        // admin tự thêm số tháng khác khi bán).
+        variants: plans.filter((p) => Number.isInteger(p.durationMonths) && p.durationMonths > 0).map((p) => ({
           itemId: String(p.durationMonths), name: `${p.durationMonths} tháng`, usd: p.price, cycle: p.durationMonths,
         })),
       });
     }
   } catch { /* bỏ qua nếu nhóm lỗi */ }
-  // Steam Top-Up — mệnh giá USD cố định, nạp theo login
+  // Steam Top-Up — mệnh giá USD cố định, nạp theo login. GIỮ NGUYÊN bộ
+  // [5,10,20,50,100]: endpoint rates của NCC chỉ trả TỈ GIÁ tiền tệ, KHÔNG
+  // công bố danh sách mệnh giá nào (đã đối chiếu OpenAPI 2026-11-08) —
+  // order nhận amount tự do nên bộ mệnh giá là preset phía web.
   items.push({
     group: "steam_topup",
     productKey: "steam-topup",
@@ -384,7 +391,9 @@ async function collectSynthetic(provider: Provider): Promise<SyncItem[]> {
   return items;
 }
 
-/** Steam gift: CHỈ khi admin bấm tay — 1 request duy nhất (rate limit 1 lần/3 phút), tối đa 100 game đầu. */
+/** Steam gift: CHỈ khi admin bấm tay — 1 request duy nhất (rate limit 1 lần/3 phút), tối đa 100 game đầu.
+ *  GIỮ NGUYÊN cap 100: OpenAPI của endpoint games chỉ có tham số `limit`,
+ *  KHÔNG có offset/cursor/page để phân trang (đối chiếu 2026-11-08). */
 async function collectSteamGifts(provider: Provider): Promise<{ items: SyncItem[]; skipped: number }> {
   const raw = await fzrSteamGiftGames(provider, 1);
   const games: any[] = asArray(raw?.games || raw?.data?.games || raw?.data || raw?.items);

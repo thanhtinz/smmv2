@@ -151,10 +151,10 @@ async function createOne(
   variant: PremiumVariant,
   order: PremiumOrder,
   inputs: Record<string, string>
-): Promise<{ orderId: string | null; raw: any }> {
+): Promise<{ orderId: string | null; raw: any; note?: string }> {
   const group = variant.providerGroup || "";
   const item = variant.providerItemId || "";
-  const idem = String(order.id); // Idempotency-Key = id đơn của mình (Telegram không hỗ trợ -> không gửi)
+  const idem = String(order.id); // Idempotency-Key = id đơn của mình (gửi cho MỌI nhóm kể cả Telegram — lệnh chủ 2026-11-08; riêng Telegram không retry)
   switch (group) {
     case "gamekeys": {
       // Theo OpenAPI FZR: order cần CẢ game_id (id game = providerProductId
@@ -216,16 +216,29 @@ async function createOne(
     case "telegram_stars": {
       const uid = telegramUidOf(inputs);
       if (!uid) return telegramViaTopupOrHold(provider, order, inputs, "stars", 0);
-      // ĐÚNG 1 LẦN gọi — không idempotency, không retry kể cả khi timeout.
-      const raw = await fzrBuyTelegramStars(provider, order.quantity, uid);
-      return { orderId: fzrOrderIdOf(raw), raw };
+      // Báo giá tươi ngay trước khi mua CHỈ để đọc cờ balanceEnough (lệnh
+      // chủ 2026-11-08): NCC báo có thể không đủ số dư mà đơn vẫn chạy thì
+      // ghi chú cho admin đối soát — cờ này KHÔNG chặn đơn. Lỗi đọc cờ thì
+      // bỏ qua, không ảnh hưởng lượt mua.
+      let note: string | undefined;
+      try {
+        const q = await fzrTelegramStarsQuote(provider);
+        if (q.balanceEnough === false) note = "FZR: báo giá Stars báo balanceEnough=false (số dư tài khoản nhà cung cấp có thể không đủ) — cần đối soát đơn này";
+      } catch { /* đọc cờ là phụ */ }
+      // ĐÚNG 1 LẦN gọi — có Idempotency-Key, không retry kể cả khi timeout.
+      const raw = await fzrBuyTelegramStars(provider, order.quantity, uid, idem);
+      return { orderId: fzrOrderIdOf(raw), raw, note };
     }
     case "telegram_premium": {
       const months = parseInt(item);
-      if (![3, 6, 12].includes(months)) throw new LocalDefinitiveError("Gói Telegram Premium sai số tháng phía FZR");
+      // Không còn lọc cứng [3,6,12] (lệnh chủ 2026-11-08): chấp nhận MỌI số
+      // tháng NCC trả về khi đồng bộ + gói admin tự thêm — chỉ chặn giá trị
+      // vô nghĩa; số tháng NCC không hỗ trợ sẽ bị chính NCC từ chối dứt
+      // khoát -> đường hoàn tiền như thường.
+      if (!Number.isInteger(months) || months <= 0) throw new LocalDefinitiveError("Gói Telegram Premium sai số tháng phía FZR");
       const uid = telegramUidOf(inputs);
       if (!uid) return telegramViaTopupOrHold(provider, order, inputs, "premium", months);
-      const raw = await fzrBuyTelegramPremium(provider, uid, months);
+      const raw = await fzrBuyTelegramPremium(provider, uid, months, idem);
       return { orderId: fzrOrderIdOf(raw), raw };
     }
     case "steam_topup": {
@@ -272,6 +285,7 @@ export async function executeFzrPremiumOrder(args: {
   const units = variant.providerGroup === "telegram_premium" ? order.quantity : 1;
   const raws: any[] = [];
   const ids: string[] = [];
+  const notes: string[] = [];
   let firstError: any = null;
   let succeeded = 0;
   for (let i = 0; i < units; i++) {
@@ -279,6 +293,7 @@ export async function executeFzrPremiumOrder(args: {
       const r = await createOne(provider, variant, order, inputs);
       raws.push(r.raw);
       if (r.orderId) ids.push(r.orderId);
+      if (r.note) notes.push(r.note);
       succeeded++;
     } catch (e: any) {
       firstError = e;
@@ -341,8 +356,8 @@ export async function executeFzrPremiumOrder(args: {
       ...(st === "completed" || delivery
         ? { status: "DELIVERED" as const, deliveryData: fzrDeliveryOrRaw(raws[0]) }
         : {}),
-      ...(firstError && succeeded < units
-        ? { adminNote: [order.adminNote, `FZR: ${succeeded}/${units} lượt đã thực thi, phần còn lại đã hoàn tiền`].filter(Boolean).join(" · ").slice(0, 900) }
+      ...(notes.length || (firstError && succeeded < units)
+        ? { adminNote: [order.adminNote, ...notes, ...(firstError && succeeded < units ? [`FZR: ${succeeded}/${units} lượt đã thực thi, phần còn lại đã hoàn tiền`] : [])].filter(Boolean).join(" · ").slice(0, 900) }
         : {}),
     },
   });

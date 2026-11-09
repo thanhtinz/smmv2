@@ -10,7 +10,10 @@ import type { Provider } from "@prisma/client";
  *   - Envelope: thành công {ok:true, …}; lỗi {ok:false, error, code} kèm HTTP
  *     400/401/402 (hết số dư)/403 (thiếu gói/addon)/404/409/422/429/503.
  *   - Tạo đơn KHÔNG có endpoint chung — mỗi nhóm sản phẩm một endpoint riêng.
- *     Idempotency-Key được hỗ trợ ở mọi POST tạo đơn TRỪ Telegram.
+ *     Idempotency-Key: tài liệu reseller nói MỌI endpoint tạo đơn đều nhận
+ *     (OpenAPI liệt kê tường minh ở 6/8 endpoint, trừ 2 endpoint Telegram).
+ *     Từ 2026-11-08 (lệnh chủ) gửi khoá cho cả Telegram — nhưng Telegram
+ *     TUYỆT ĐỐI không retry tự động (xem cờ noRetry trong call()).
  *   - Đơn trả về KHÔNG có schema trường cố định: giữ nguyên JSON thô, trích nội
  *     dung giao hàng phòng thủ (extractFzrDelivery ở dưới).
  */
@@ -91,16 +94,16 @@ async function call<T = any>(
   provider: Provider,
   method: "GET" | "POST",
   path: string,
-  opts: { body?: Record<string, unknown>; query?: Record<string, string | number | undefined>; idempotencyKey?: string; timeoutMs?: number } = {}
+  opts: { body?: Record<string, unknown>; query?: Record<string, string | number | undefined>; idempotencyKey?: string; timeoutMs?: number; noRetry?: boolean } = {}
 ): Promise<T> {
   const url = new URL(baseUrl(provider) + path);
   for (const [k, v] of Object.entries(opts.query || {})) {
     if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
   }
   // 429 RATE_LIMITED: backoff theo Retry-After (tối đa 3 lần, 1s/2s/4s) — CHỈ
-  // retry khi an toàn: GET, hoặc POST có Idempotency-Key (Telegram buy không có
-  // khoá này nên không bao giờ bị gọi lại tự động).
-  const retryable = method === "GET" || !!opts.idempotencyKey;
+  // retry khi an toàn: GET, hoặc POST có Idempotency-Key. Telegram buy nay
+  // CÓ gửi khoá nhưng kèm noRetry=true nên vẫn không bao giờ bị gọi lại.
+  const retryable = method === "GET" || (!!opts.idempotencyKey && !opts.noRetry);
   let res: Response | null = null;
   for (let attempt = 0; attempt <= 3; attempt++) {
     try {
@@ -277,9 +280,12 @@ export async function fzrManualOffers(provider: Provider, manualServiceId: strin
   return call<any>(provider, "GET", `/api/v2/manual-services/${encodeURIComponent(manualServiceId)}/offers`);
 }
 
-export async function fzrTelegramStarsQuote(provider: Provider): Promise<{ pricePerStar: string; price?: string; minAmount?: number; maxAmount?: number; currency: string }> {
+export async function fzrTelegramStarsQuote(provider: Provider): Promise<{ pricePerStar: string; price?: string; minAmount?: number; maxAmount?: number; currency: string; balanceEnough?: boolean }> {
   const r = await call<any>(provider, "GET", "/api/v2/telegram/stars");
-  return { pricePerStar: String(r?.pricePerStar ?? r?.price ?? "0"), price: r?.price, minAmount: r?.minAmount, maxAmount: r?.maxAmount, currency: String(r?.currency || "USD") };
+  // balanceEnough: cờ NCC báo số dư tài khoản reseller có đủ cho báo giá này
+  // không — phía thực thi đơn đọc để ghi chú admin khi = false (không chặn đơn).
+  const be = (r as any)?.balanceEnough ?? (r as any)?.balance_enough;
+  return { pricePerStar: String(r?.pricePerStar ?? r?.price ?? "0"), price: r?.price, minAmount: r?.minAmount, maxAmount: r?.maxAmount, currency: String(r?.currency || "USD"), balanceEnough: typeof be === "boolean" ? be : undefined };
 }
 
 export async function fzrTelegramPremiumPlans(provider: Provider): Promise<{ durationMonths: number; price: string; finalPrice?: string }[]> {
@@ -373,15 +379,16 @@ export async function fzrCreateManualOrder(
   return r?.order ?? r;
 }
 
-/** Telegram Stars: API KHÔNG hỗ trợ Idempotency-Key — caller chỉ được gọi ĐÚNG 1 LẦN, không retry. */
-export async function fzrBuyTelegramStars(provider: Provider, quantity: number, userId: number): Promise<any> {
-  const r = await call<any>(provider, "POST", "/api/v2/telegram/stars/buy", { body: { quantity, userId } });
+/** Telegram Stars: gọi ĐÚNG 1 LẦN, không retry (kèm Idempotency-Key theo
+ *  tài liệu reseller + noRetry để call() không bao giờ tự gọi lại). */
+export async function fzrBuyTelegramStars(provider: Provider, quantity: number, userId: number, idemKey?: string): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/telegram/stars/buy", { body: { quantity, userId }, idempotencyKey: idemKey, noRetry: true });
   return r?.order ?? r;
 }
 
-/** Telegram Premium: cũng không gửi Idempotency-Key (nhóm Telegram không hỗ trợ). */
-export async function fzrBuyTelegramPremium(provider: Provider, userId: number, months: number): Promise<any> {
-  const r = await call<any>(provider, "POST", "/api/v2/telegram/premium/buy", { body: { userId, months } });
+/** Telegram Premium: như Stars — 1 lần gọi, không retry, có Idempotency-Key. */
+export async function fzrBuyTelegramPremium(provider: Provider, userId: number, months: number, idemKey?: string): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/telegram/premium/buy", { body: { userId, months }, idempotencyKey: idemKey, noRetry: true });
   return r?.order ?? r;
 }
 
@@ -536,4 +543,69 @@ export function fzrDeliveryOrRaw(raw: any): string | null {
   } catch {
     return null;
   }
+}
+
+/* ================= CHAT ĐƠN MANUAL (đợt 2026-11-08) =================
+ * Tài liệu FZR có đủ hai chiều:
+ *   GET  /manual-services/orders/{orderId}/chat -> { ok, chat_frozen,
+ *        chat_opened, chat_read_only, messages[{sender, body, image_url,
+ *        image_urls, created_at}] }
+ *   POST cùng đường (multipart/form-data: body, image?) -> { ok, message }
+ * orderId ở đây là mã đơn PHÍA NCC (PremiumOrder.providerOrderId). */
+
+export type FzrChatMessage = {
+  sender: string;
+  body: string | null;
+  image_url: string | null;
+  image_urls?: string[];
+  created_at: string | null;
+};
+export type FzrChatThread = {
+  chat_frozen: boolean;
+  chat_opened: boolean;
+  chat_read_only: boolean;
+  messages: FzrChatMessage[];
+};
+
+export async function fzrManualChatGet(provider: Provider, providerOrderId: string): Promise<FzrChatThread> {
+  const r = await call<any>(provider, "GET", `/api/v2/manual-services/orders/${encodeURIComponent(providerOrderId)}/chat`);
+  return {
+    chat_frozen: !!r?.chat_frozen,
+    chat_opened: !!r?.chat_opened,
+    chat_read_only: !!r?.chat_read_only,
+    messages: Array.isArray(r?.messages) ? r.messages : [],
+  };
+}
+
+/** Gửi 1 tin lên chat NCC. Multipart theo tài liệu; KHÔNG retry tự động
+ *  (tránh nhân đôi tin) — lỗi thì người dùng bấm gửi lại. */
+export async function fzrManualChatPost(provider: Provider, providerOrderId: string, body: string): Promise<FzrChatMessage> {
+  const form = new FormData();
+  form.append("body", body);
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl(provider)}/api/v2/manual-services/orders/${encodeURIComponent(providerOrderId)}/chat`, {
+      method: "POST",
+      headers: { "X-API-Key": decryptSecret(provider.apiKey) },
+      body: form,
+      cache: "no-store",
+      signal: AbortSignal.timeout(30000),
+    });
+  } catch (e: any) {
+    throw new FzrError(`FZR lỗi mạng/timeout khi gửi chat: ${String(e?.message || e)}`, 0);
+  }
+  const text = await res.text();
+  let json: any;
+  try { json = JSON.parse(text); } catch { throw new FzrError("FZR trả phản hồi chat không phải JSON", res.status); }
+  if (!res.ok || json?.ok === false) {
+    throw new FzrError(String(json?.error || `FZR chat HTTP ${res.status}`), res.status, json?.code);
+  }
+  const m = json?.message || {};
+  return {
+    sender: String(m?.sender ?? "reseller"),
+    body: m?.body ?? body,
+    image_url: m?.image_url ?? null,
+    image_urls: Array.isArray(m?.image_urls) ? m.image_urls : undefined,
+    created_at: m?.created_at ?? null,
+  };
 }
