@@ -211,7 +211,7 @@ async function main() {
     ["faq-api-o-dau", "Lấy API key và tài liệu API ở đâu?", "Vào Hồ sơ → tab Kết nối API để xem endpoint và API key của bạn; tài liệu đầy đủ có ở mục Tài liệu API trong menu. Giữ key bí mật như mật khẩu, tạo key mới sẽ làm key cũ hết hiệu lực ngay."],
     ["faq-hoan-tien", "Chính sách hoàn tiền như thế nào?", "Đơn huỷ hoặc lỗi phần nào sẽ hoàn đúng phần chưa thực hiện vào số dư ví, xem được trong Lịch sử giao dịch. Đơn đã chạy hoàn thành thì không hoàn. Có thể bấm Yêu cầu hoàn tiền trong chi tiết đơn để đội hỗ trợ xem xét trường hợp đặc biệt."],
     ["faq-thoi-gian-chay", "Đơn thường chạy trong bao lâu?", "Tuỳ dịch vụ: đa số bắt đầu trong vài phút đến vài giờ sau khi đặt. Thời gian dự kiến và tốc độ ghi rõ ở mô tả từng dịch vụ trong Bảng giá. Đơn chậm bất thường sẽ được hệ thống tự đồng bộ lại trạng thái."],
-    ["faq-nap-toi-thieu", "Nạp tối thiểu bao nhiêu và bằng cách nào?", "Số tiền nạp tối thiểu và các phương thức đang mở (chuyển khoản QR, PayPal/Stripe, USDT...) hiển thị ở trang Nạp tiền. Nạp qua chuyển khoản nhớ ghi đúng nội dung kèm mã nạp để tiền vào tự động."],
+    ["faq-nap-toi-thieu", "Nạp tối thiểu bao nhiêu và bằng cách nào?", "Số tiền nạp tối thiểu và các phương thức đang mở (QR ngân hàng, PayPal/Stripe, USDT...) hiển thị ở trang Nạp tiền. Nạp qua QR ngân hàng nhớ ghi đúng nội dung kèm mã nạp để tiền vào tự động."],
   ];
   for (const [slug, title, content] of faqs) {
     await prisma.post.upsert({

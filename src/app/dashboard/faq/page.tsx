@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { PageHead, Empty } from "@/components/ui";
+import { PageHead, Empty, I } from "@/components/ui";
 import { RichText } from "@/components/rich-text";
 import { getServerI18n } from "@/lib/lang-server";
 
@@ -26,13 +26,13 @@ export default async function FaqPage() {
       <PageHead title={L("Hỏi đáp thường gặp")} desc={L("Những câu hỏi khách hàng hay gặp nhất — vẫn chưa rõ thì gửi ticket, đội hỗ trợ luôn sẵn sàng.")} />
       {posts.length === 0 ? <Empty text={L("Chưa có câu hỏi nào")} /> : (
         <div className="space-y-3">
-          {posts.map((p) => (
-            <details key={p.id} className="card group p-5">
-              <summary className="cursor-pointer list-none font-bold text-slate-900 marker:hidden">
-                {p.title}
-                <span className="float-right text-slate-300 transition group-open:rotate-45">+</span>
+          {posts.map((p, i) => (
+            <details key={p.id} open={i === 0} className="card group overflow-hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
+                <span className="text-[15px] font-bold leading-snug text-slate-900">{p.title}</span>
+                <span className="shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180">{I.chevron}</span>
               </summary>
-              <div className="mt-3 text-sm leading-relaxed text-slate-600">
+              <div className="border-t border-slate-100 px-5 py-4 text-sm leading-relaxed text-slate-600">
                 <RichText value={p.content} />
               </div>
             </details>

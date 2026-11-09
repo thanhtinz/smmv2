@@ -825,55 +825,68 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
         {backBase ? <input type="hidden" name="returnTo" value={`${backBase}/${slug}`} /> : null}
         <input type="hidden" name="variantId" value={v?.id || ""} />
         <div className="order-1 lg:col-start-1">
-          <h2 className="text-lg font-extrabold text-slate-900">{t("Chọn gói sản phẩm")}</h2>
-          <div className="mt-4 space-y-2.5">
-            {variants.map((x) => {
-              const selected = x.id === v?.id;
-              return (
-                <button type="button" key={x.id} disabled={!!x.soldOut} onClick={() => setVariantId(x.id)}
-                  className={`flex w-full items-start gap-3 rounded-2xl border-2 px-4 py-3 text-left transition ${x.soldOut ? "cursor-not-allowed border-slate-200 bg-slate-50 opacity-70" : selected ? "border-brand-600 bg-brand-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${selected ? "border-brand-600" : "border-slate-300"}`}>
-                    {selected && <span className="h-2.5 w-2.5 rounded-full bg-brand-600" />}
-                  </span>
-                  {productImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={productImage} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
-                  ) : (
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-black text-white" style={{ background: productColor || "#3178fc" }}>{slug.charAt(0).toUpperCase()}</span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block break-words font-bold text-slate-900">{x.name}</span>
-                    <span className="mt-0.5 block text-xs text-slate-500">
-                      {x.warrantyDays ? <>{t("Bảo hành")} {x.warrantyDays} {t("ngày")}</> : t("Không bảo hành")}
-                      {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? <>{t(" · Còn ")}{x.stock}{t(" trong kho")}</> : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
-                      {x.stockQty != null && fulfillment !== "AUTO_STOCK" && !x.soldOut ? <>{t(" · Còn ")}{x.stockQty}{t(" trong kho")}</> : null}
+          {/* Khối chọn gói dựng lại theo mẫu shopkey (lệnh Tín 2026-11-09):
+              một thẻ có hàng tiêu đề riêng, các gói là HÀNG trong cùng thẻ
+              ngăn nhau bằng đường kẻ mảnh; gói đang chọn có nền brand nhạt +
+              vạch brand ở mép trái + radio đầy; gói hết hàng mờ + nhãn pill
+              "Hết hàng" và bị khoá chọn. Tên gói hiện TRỌN (không cắt). */}
+          <section className="card overflow-hidden">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white [&>svg]:h-4 [&>svg]:w-4">{I.box}</span>
+              <h2 className="text-base font-extrabold text-slate-900">{t("Chọn gói sản phẩm")}</h2>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {variants.map((x) => {
+                const selected = x.id === v?.id;
+                return (
+                  <button type="button" key={x.id} disabled={!!x.soldOut} onClick={() => setVariantId(x.id)}
+                    className={`relative flex w-full items-center gap-3 px-5 py-3.5 text-left transition ${x.soldOut ? "cursor-not-allowed bg-slate-50/70" : selected ? "bg-brand-50/80" : "bg-white hover:bg-slate-50"}`}>
+                    {selected && !x.soldOut && <span className="absolute inset-y-0 left-0 w-1 bg-brand-600" />}
+                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${x.soldOut ? "border-slate-200" : selected ? "border-brand-600" : "border-slate-300"}`}>
+                      {selected && !x.soldOut && <span className="h-2.5 w-2.5 rounded-full bg-brand-600" />}
                     </span>
-                    {x.delivery && (
-                      <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <DeliveryBadge type={x.delivery} t={t} />
+                    {productImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={productImage} alt="" className={`h-10 w-10 shrink-0 rounded-lg object-cover ${x.soldOut ? "opacity-50" : ""}`} />
+                    ) : (
+                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-black text-white ${x.soldOut ? "opacity-50" : ""}`} style={{ background: productColor || "#3178fc" }}>{slug.charAt(0).toUpperCase()}</span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className={`block break-words text-[15px] font-bold ${x.soldOut ? "text-slate-400" : "text-slate-900"}`}>{x.name}</span>
+                      <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="text-xs text-slate-500">
+                          {x.warrantyDays ? <>{t("Bảo hành")} {x.warrantyDays} {t("ngày")}</> : t("Không bảo hành")}
+                          {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? <>{t(" · Còn ")}{x.stock}{t(" trong kho")}</> : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
+                          {x.stockQty != null && fulfillment !== "AUTO_STOCK" && !x.soldOut ? <>{t(" · Còn ")}{x.stockQty}{t(" trong kho")}</> : null}
+                        </span>
+                        {x.delivery && <DeliveryBadge type={x.delivery} t={t} />}
+                      </span>
+                    </span>
+                    {x.soldOut ? (
+                      <span className="shrink-0 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-600">{t("Hết hàng")}</span>
+                    ) : (
+                      <span className="shrink-0 text-right">
+                        {flashPct ? (
+                          <>
+                            <span className="block text-xs font-semibold text-slate-400 line-through">{m(x.price)}</span>
+                            <span className="block text-base font-extrabold text-rose-600">{m(applyFlashClient(x.price, flashPct))}</span>
+                          </>
+                        ) : (
+                          <span className="block text-base font-extrabold text-rose-600">{m(x.price)}</span>
+                        )}
+                        {fulfillment === "AUTO_STOCK" && x.stock > 0 && (
+                          <span className="mt-0.5 flex items-center justify-end gap-1 text-[11px] font-bold text-brand-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                            {I.truck}
+                            {t("Giao ngay")}
+                          </span>
+                        )}
                       </span>
                     )}
-                  </span>
-                  {fulfillment === "AUTO_STOCK" && x.stock > 0 && (
-                    <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-xs font-bold text-brand-600 [&>svg]:h-3.5 [&>svg]:w-3.5">
-                      {I.truck}
-                      {t("Giao ngay")}
-                    </span>
-                  )}
-                  {x.soldOut ? (
-                    <span className="shrink-0 font-extrabold text-rose-600">{t("Hết hàng")}</span>
-                  ) : flashPct ? (
-                    <span className="shrink-0 text-right">
-                      <span className="block text-xs font-semibold text-slate-400 line-through">{m(x.price)}</span>
-                      <span className="block font-extrabold text-rose-600">{m(applyFlashClient(x.price, flashPct))}</span>
-                    </span>
-                  ) : (
-                    <span className="shrink-0 font-extrabold text-rose-600">{m(x.price)}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
         </div>
         {belowVariants && <div className="order-2 lg:col-start-1">{belowVariants}</div>}
         <div className="card order-3 space-y-4 p-5 lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-start lg:sticky lg:top-24">

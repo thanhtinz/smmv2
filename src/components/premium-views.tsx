@@ -442,29 +442,40 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
         ) : (
           <>
             <div className="lg:col-start-1">
-              <h2 className="text-lg font-extrabold text-slate-900">{L("Chọn gói sản phẩm")}</h2>
-              <div className="mt-4 space-y-2.5">
-                {product.variants.map((v) => {
-                  const soldOut = variantSoldOut(v, product.fulfillment);
-                  const delivery = resolveDeliveryType(v.deliveryType, product.fulfillment);
-                  return (
-                    <div key={v.id} className={`flex items-center justify-between gap-3 rounded-2xl border-2 border-slate-200 px-4 py-3.5 ${soldOut ? "bg-slate-50 opacity-70" : "bg-white"}`}>
-                      <span className="min-w-0">
-                        <span className="block break-words font-bold text-slate-900">{v.name}</span>
-                        <span className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold [&>svg]:h-3 [&>svg]:w-3 ${delivery === "FAST" ? "border-brand-200 bg-brand-50 text-brand-700" : "border-slate-200 bg-slate-100 text-slate-600"}`}>
-                          {delivery === "FAST"
-                            ? I.truck
-                            : <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>}
-                          {delivery === "FAST" ? L("Giao nhanh") : L("Giao chậm")}
+              {/* Bản chưa đăng nhập của cùng khối chọn gói (kiểu thẻ shopkey
+                  như bản đã đăng nhập ở client.tsx): thẻ có hàng tiêu đề,
+                  các gói là hàng ngăn bằng đường kẻ; hết hàng mờ + pill. */}
+              <section className="card overflow-hidden">
+                <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white [&>svg]:h-4 [&>svg]:w-4">{I.box}</span>
+                  <h2 className="text-base font-extrabold text-slate-900">{L("Chọn gói sản phẩm")}</h2>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {product.variants.map((v) => {
+                    const soldOut = variantSoldOut(v, product.fulfillment);
+                    const delivery = resolveDeliveryType(v.deliveryType, product.fulfillment);
+                    return (
+                      <div key={v.id} className={`flex items-center gap-3 px-5 py-3.5 ${soldOut ? "bg-slate-50/70" : "bg-white"}`}>
+                        <span className="min-w-0 flex-1">
+                          <span className={`block break-words text-[15px] font-bold ${soldOut ? "text-slate-400" : "text-slate-900"}`}>{v.name}</span>
+                          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="text-xs text-slate-500">{v.warrantyDays ? <>{L("Bảo hành")} {v.warrantyDays} {L("ngày")}</> : L("Không bảo hành")}</span>
+                            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold [&>svg]:h-3 [&>svg]:w-3 ${delivery === "FAST" ? "border-brand-200 bg-brand-50 text-brand-700" : "border-slate-200 bg-slate-100 text-slate-600"}`}>
+                              {delivery === "FAST"
+                                ? I.truck
+                                : <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>}
+                              {delivery === "FAST" ? L("Giao nhanh") : L("Giao chậm")}
+                            </span>
+                          </span>
                         </span>
-                      </span>
-                      {soldOut
-                        ? <span className="shrink-0 font-extrabold text-rose-600">{L("Hết hàng")}</span>
-                        : <span className="shrink-0 font-extrabold text-rose-600">{M(v.price)}</span>}
-                    </div>
-                  );
-                })}
-              </div>
+                        {soldOut
+                          ? <span className="shrink-0 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-600">{L("Hết hàng")}</span>
+                          : <span className="shrink-0 text-base font-extrabold text-rose-600">{M(v.price)}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             </div>
             <div className="lg:col-start-1">{infoSections}</div>
             <div className="card p-6 text-center lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-start lg:sticky lg:top-24">
