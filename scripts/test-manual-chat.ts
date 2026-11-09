@@ -75,7 +75,7 @@ async function main() {
 
     /* 3) Gửi tin: POST multipart lên NCC + lưu OUT */
     const sent = await postManualChat(order.id, "Xin chào, đơn của tôi xử lý đến đâu rồi?");
-    ok(sent.direction === "OUT" && sent.body?.includes("đến đâu"), `tin gửi lưu OUT: ${sent.body}`);
+    ok(sent.direction === "OUT" && !!sent.body && sent.body.includes("đến đâu"), `tin gửi lưu OUT: ${sent.body}`);
     const postCalls = (await mockLog()).filter((l) => l.method === "POST" && l.path.endsWith("/chat"));
     ok(postCalls.length === 1 && (postCalls[0].body?.body || "").includes("đến đâu"), `mock nhận POST chat multipart field body: ${JSON.stringify(postCalls[0]?.body)}`);
 
