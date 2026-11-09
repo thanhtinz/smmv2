@@ -103,11 +103,20 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
   const { L, Ld } = await getServerI18n();
   const session = await getSession();
   const cats = await prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } });
+  // Pill danh mục chỉ hiện danh mục có ÍT NHẤT 1 sản phẩm thường — danh mục
+  // chỉ chứa sản phẩm của các khu riêng (đã lọc khỏi lưới bên dưới) không
+  // được dẫn khách tới một lưới trống (cùng quy tắc khối danh mục trang chủ).
+  const catWithRegular = await prisma.premiumProduct.groupBy({
+    by: ["categoryId"],
+    where: { active: true, panelId: null, ...regularCatalogWhere() },
+  });
+  const pillCatIds = new Set(catWithRegular.map((r) => r.categoryId));
+  const pillCats = cats.filter((c) => pillCatIds.has(c.id));
   const catId = cat ? parseInt(cat) : undefined;
   const needle = (q || "").trim().toLowerCase();
   const allProducts = await prisma.premiumProduct.findMany({
-    // Sản phẩm Steam (gift + top-up) thuộc khu Steam riêng — không hiện ở
-    // catalog Premium này (cả lưới lẫn lọc theo danh mục).
+    // Sản phẩm của TẤT CẢ các khu riêng (8 nhóm FZR) không hiện ở catalog
+    // Premium này (cả lưới lẫn lọc theo danh mục) — regularCatalogWhere.
     where: { active: true, ...(catId ? { categoryId: catId } : {}), panelId: null, ...regularCatalogWhere() },
     orderBy: { sort: "asc" },
     include: { category: true, variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true } } },
@@ -170,7 +179,7 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
                 {L("Tất cả")}
               </span>
             </label>
-            {cats.map((c) => (
+            {pillCats.map((c) => (
               <label key={c.id} className="cursor-pointer">
                 <input type="radio" name="cat" value={c.id} defaultChecked={catId === c.id} className="peer sr-only" />
                 <span className="inline-flex items-center whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition peer-checked:border-brand-600 peer-checked:bg-brand-600 peer-checked:text-white hover:border-brand-300">

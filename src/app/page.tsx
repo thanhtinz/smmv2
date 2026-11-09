@@ -34,8 +34,10 @@ export default async function HomePage() {
     const [catRows, products] = await Promise.all([
       prisma.premiumCategory.findMany({ where: { active: true }, orderBy: { sort: "asc" } }),
       prisma.premiumProduct.findMany({
-        // Sản phẩm Steam thuộc khu riêng — không lẫn vào các mục Premium
-        // của trang chủ (nổi bật / bán chạy / đã xem / danh mục).
+        // Sản phẩm của TẤT CẢ các khu riêng (8 nhóm FZR) — không lẫn vào
+        // các mục Premium của trang chủ (nổi bật / bán chạy / đã xem /
+        // danh mục). Mục Steam Gift Games riêng bên dưới là ngoại lệ có
+        // chủ đích (khu riêng của Steam trên trang chủ, lệnh fix9).
         where: { active: true, panelId: null, ...regularCatalogWhere() },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true } } },

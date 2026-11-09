@@ -35,15 +35,18 @@ export function regularPremiumWhere(userId?: number) {
   };
 }
 
-/** Điều kiện "sản phẩm Premium THƯỜNG" cho các BỀ MẶT cửa hàng (trang chủ +
- *  /premium + sản phẩm liên quan): sản phẩm Steam (gift games + sản phẩm
- *  giữ chỗ top-up) thuộc khu Steam riêng — có mục "Steam Gift Games" riêng
- *  trên trang chủ và các trang Steam — nên không lẫn vào catalog Premium.
- *  Sản phẩm Top-Up (nhóm topups) cũng có catalog riêng ở /dashboard/top-up
- *  (lệnh chủ site 2026-11-08 18:14: không chung cái nào hết) nên rời khỏi
- *  catalog Premium luôn như Steam. `none` ở đây an toàn (không có bẫy NULL
- *  như ở tầng đơn): sản phẩm không còn variant thuộc các nhóm trên đang
- *  tồn tại thì là sản phẩm thường. */
+/** Điều kiện "sản phẩm Premium THƯỜNG" cho các BỀ MẶT cửa hàng chung
+ *  (trang chủ + /premium + sản phẩm liên quan + sitemap): TẤT CẢ 8 nhóm của
+ *  các khu riêng (Telegram Stars/Premium, Steam Top-Up/Gift, Game Key,
+ *  Gift Card, Top-Up, Manual) đều có catalog riêng của khu mình — sản phẩm
+ *  của chúng KHÔNG được lẫn vào cửa hàng chung (lệnh chủ site 2026-11-08
+ *  20:30: chủ site chưa thiết kế cách hiển thị chúng như sản phẩm cửa hàng
+ *  nên không được hiện ở danh mục Premium / Sản phẩm nổi bật; trước đó
+ *  Steam/Top-Up/Manual đã tách ở fix9/13/14, đợt này tách nốt gamekeys +
+ *  giftcards + telegram + steam_topup). Sản phẩm giữ chỗ Steam Top-Up vẫn
+ *  hiện ở các trang Steam như cũ — chỉ bề mặt chung là lọc. `none` ở đây an
+ *  toàn (không có bẫy NULL như ở tầng đơn): sản phẩm không còn variant
+ *  thuộc các nhóm trên đang tồn tại thì là sản phẩm thường. */
 export function regularCatalogWhere() {
-  return { variants: { none: { providerGroup: { in: [...STEAM_GROUPS, ...TOPUP_GROUPS, ...MANUAL_GROUPS] } } } };
+  return { variants: { none: { providerGroup: { in: DEDICATED_GROUPS } } } };
 }
