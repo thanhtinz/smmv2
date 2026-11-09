@@ -38,9 +38,11 @@ export function MsFavFilterButton({ active, basePath }: { active: boolean; baseP
   return (
     <button
       type="button" onClick={toggle} title={t("Chỉ hiện dịch vụ yêu thích")}
-      className={`flex h-[42px] w-[46px] shrink-0 items-center justify-center rounded-xl border transition ${active ? "border-amber-300 bg-amber-50 text-amber-500" : "border-slate-200 bg-white text-slate-400 hover:text-amber-500"} ${!active && !hasFav ? "opacity-60" : ""}`}
+      className={`flex h-[42px] w-[46px] shrink-0 items-center justify-center gap-2 rounded-xl border transition lg:w-auto lg:px-4 ${active ? "border-amber-300 bg-amber-50 text-amber-500" : "border-slate-200 bg-white text-slate-400 hover:text-amber-500"} ${!active && !hasFav ? "opacity-60" : ""}`}
     >
       <StarIcon filled={active} />
+      {/* PC (lg+): hiện thêm chữ "Yêu thích" trong nút; mobile chỉ icon */}
+      <span className="hidden text-sm font-bold lg:inline">{t("Yêu thích")}</span>
     </button>
   );
 }
