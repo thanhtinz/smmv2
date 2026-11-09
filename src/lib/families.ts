@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { adminProductPageSize } from "./settings";
 import { getTelegramProvider, TELEGRAM_GROUPS } from "./tg";
 import type { PremiumVariant, Provider } from "@prisma/client";
 
@@ -96,7 +97,7 @@ export async function loadGameKeyFamilies(opts?: { q?: string; page?: number; pa
   page: number;
   pages: number;
 }> {
-  const pageSize = opts?.pageSize ?? 10;
+  const pageSize = opts?.pageSize ?? (await adminProductPageSize());
   const q = (opts?.q || "").trim();
   const productWhere: any = {
     variants: { some: { providerGroup: "gamekeys" } },
@@ -167,7 +168,7 @@ export async function loadGiftCardFamilies(opts?: { q?: string; page?: number; p
   page: number;
   pages: number;
 }> {
-  const pageSize = opts?.pageSize ?? 10;
+  const pageSize = opts?.pageSize ?? (await adminProductPageSize());
   const q = (opts?.q || "").trim();
   const productWhere: any = {
     variants: { some: { providerGroup: "giftcards" } },
@@ -240,7 +241,7 @@ export async function loadTopupFamilies(opts?: { q?: string; page?: number; page
   page: number;
   pages: number;
 }> {
-  const pageSize = opts?.pageSize ?? 10;
+  const pageSize = opts?.pageSize ?? (await adminProductPageSize());
   const q = (opts?.q || "").trim();
   const productWhere: any = {
     variants: { some: { providerGroup: "topups" } },
@@ -313,7 +314,7 @@ export async function loadManualFamilies(opts?: { q?: string; page?: number; pag
   page: number;
   pages: number;
 }> {
-  const pageSize = opts?.pageSize ?? 10;
+  const pageSize = opts?.pageSize ?? (await adminProductPageSize());
   const q = (opts?.q || "").trim();
   const productWhere: any = {
     variants: { some: { providerGroup: "manual" } },

@@ -223,6 +223,15 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   direct_stripe_enabled: "0",
   direct_paypal_enabled: "0",
   purchase_payment_expires_minutes: "30", // hạn chờ của 1 phiên thanh toán trực tiếp ở giỏ (phút)
+  // Phân trang danh sách (rà soát hardcode 2026-11-08): cỡ trang của các danh
+  // mục/lịch sử phía khách + trang sản phẩm phía admin — sửa ở Cấu hình → Chung/Bảo mật.
+  catalog_page_size: "24", // số sản phẩm mỗi trang ở các danh mục khu riêng (Game Key / Gift Card / Top-Up / Manual)
+  history_page_size: "15", // số đơn mỗi trang ở các trang lịch sử đơn của khách
+  admin_product_page_size: "10", // số sản phẩm mỗi trang ở các trang quản trị sản phẩm
+  admin_list_page_size: "20", // số dòng mỗi trang ở các danh sách vận hành trong quản trị (nạp tiền, bảo mật, đơn Telegram)
+  password_reset_ttl_minutes: "60", // link đặt lại mật khẩu sống bao nhiêu phút
+  email_verify_ttl_hours: "24", // link xác thực email sống bao nhiêu giờ
+  flash_max_percent: "90", // trần % giảm của một đợt flash sale (áp ở getActiveFlashSale)
   boltutil_api_key: "", // X-Bolt-Key (mã hoá secret-box qua setSetting)
   boltutil_webhook_secret: "", // khoá ký HMAC webhook + gọi API (mã hoá secret-box)
   boltutil_api_url: "", // để trống = https://api.boltutil.com (chỉ đổi khi test mock)
@@ -327,6 +336,34 @@ export function levelDiscountFromSettings(s: Record<string, string>, level: stri
   if (Number.isFinite(v) && v >= 0 && v <= 90) return v;
   // Dự phòng lấy từ chính DEFAULT_SETTINGS — không giữ bảng số thứ hai trong code
   return parseInt(DEFAULT_SETTINGS["level_discount_" + level] || "0") || 0;
+}
+
+/** Đọc 1 setting dạng số nguyên có kẹp khoảng — nguồn mặc định duy nhất là DEFAULT_SETTINGS. */
+export function intSetting(s: Record<string, string>, key: string, min: number, max: number): number {
+  const v = parseInt(s[key] || "");
+  const d = parseInt(DEFAULT_SETTINGS[key] || "");
+  const n = Number.isFinite(v) && v > 0 ? v : d;
+  return Math.min(max, Math.max(min, Number.isFinite(n) && n > 0 ? n : min));
+}
+
+/** Cỡ trang các danh mục phía khách (Game Key / Gift Card / Top-Up / Manual Services). */
+export async function catalogPageSize(): Promise<number> {
+  return intSetting(await getSettings(), "catalog_page_size", 1, 100);
+}
+
+/** Cỡ trang các lịch sử đơn phía khách (cả 6 khu riêng + danh sách đơn Premium/SMM). */
+export async function historyPageSize(): Promise<number> {
+  return intSetting(await getSettings(), "history_page_size", 1, 100);
+}
+
+/** Cỡ trang các danh sách vận hành trong quản trị (nạp tiền / trung tâm bảo mật / đơn Telegram). */
+export async function adminListPageSize(): Promise<number> {
+  return intSetting(await getSettings(), "admin_list_page_size", 1, 200);
+}
+
+/** Cỡ trang các trang quản trị sản phẩm (Premium + 6 khu FZR). */
+export async function adminProductPageSize(): Promise<number> {
+  return intSetting(await getSettings(), "admin_product_page_size", 1, 100);
 }
 
 /** Tỉ giá 1 USDT (VNĐ) hiệu lực: ưu tiên usdt_rate riêng, trống thì dùng usd_rate.

@@ -5,15 +5,16 @@ import { DepositTable, DeleteAllDeposits, type DepositRowDTO } from "@/component
 import { adminDepositAction, adminDeleteDepositsAction } from "@/app/actions/admin";
 import { dt, relTime, DEP_METHOD } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
+import { adminListPageSize } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 20;
 const STATUS_OPTS: [string, string][] = [["", "Tất cả"], ["PENDING", "Chờ xử lý"], ["APPROVED", "Đã hoàn thành"], ["REJECTED", "Đã từ chối"]];
 
 export default async function AdminDeposits({ searchParams }: {
   searchParams: { msg?: string; err?: string; q?: string; status?: string; method?: string; from?: string; to?: string; sort?: string; dir?: string; page?: string };
 }) {
+  const PAGE_SIZE = await adminListPageSize();
   await requireAdminPage();
   const { L, Ld, M } = await getServerI18n(null);
   // Chỉ nạp của TÀI KHOẢN WEB MẸ — nạp của khách site con do chủ panel tự quản lý, mẹ không xem

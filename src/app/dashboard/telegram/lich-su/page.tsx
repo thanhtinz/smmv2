@@ -6,16 +6,17 @@ import { I, Flash, Badge, Empty, Stat } from "@/components/ui";
 import { PRE_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { telegramEnabled, telegramOrderWhere, telegramRecipient } from "@/lib/tg";
+import { historyPageSize } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 15;
 
 /** Lịch sử đơn Telegram của khách: thẻ thống kê + bộ lọc (tìm kiếm / loại /
  *  trạng thái / khoảng ngày) + bảng đơn, phân trang như các trang lịch sử khác. */
 export default async function TelegramHistoryPage({ searchParams }: {
   searchParams: { q?: string; type?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string };
 }) {
+  const PAGE_SIZE = await historyPageSize();
   const user = (await getCurrentUser())!;
   const { L, Ld, M } = await getServerI18n();
   if (!(await telegramEnabled())) redirect("/");

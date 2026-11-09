@@ -4,10 +4,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { I, Flash, Badge, Empty, Stat } from "@/components/ui";
 import { PRE_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
+import { historyPageSize } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 15;
 
 /** Lịch sử đơn Steam: cùng khung với lịch sử Telegram (header gradient + 4
  *  thẻ thống kê + thẻ lọc + thẻ đơn), dữ liệu = các đơn Premium mà variant
@@ -15,6 +15,7 @@ const PAGE_SIZE = 15;
 export default async function SteamHistoryPage({ searchParams }: {
   searchParams: { q?: string; type?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string };
 }) {
+  const PAGE_SIZE = await historyPageSize();
   const user = (await getCurrentUser())!;
   const { L, Ld, M } = await getServerI18n();
   const base: any = { userId: user.id, variant: { providerGroup: { in: ["steam_topup", "steam_gift"] } } };

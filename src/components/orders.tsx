@@ -6,6 +6,7 @@ import { num, SMM_STATUS, PRE_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { resolveDeliveryType } from "@/lib/variant-stock";
 import { regularPremiumWhere } from "@/lib/order-scope";
+import { historyPageSize } from "@/lib/settings";
 
 type SP = Record<string, string | string[] | undefined>;
 const arr = (v: string | string[] | undefined): string[] => (v === undefined ? [] : Array.isArray(v) ? v : [v]);
@@ -164,7 +165,7 @@ export async function PremiumOrdersView({ userId, sp, base }: { userId: number; 
   // thay bằng bộ lọc này; tham số ?tab= cũ vẫn được dịch sang trạng thái
   // tương đương để các liên kết cũ không gãy. Bấm Chi tiết vẫn mở modal tại
   // chỗ qua PremiumOrderCards như trước.
-  const PAGE_SIZE = 15;
+  const PAGE_SIZE = await historyPageSize();
   // Tách khu (lệnh chủ site): trang này CHỈ chứa đơn Premium thường — đơn
   // Telegram/Steam (variant thuộc nhóm riêng) nằm ở trang lịch sử riêng của
   // từng khu. Cả 4 thẻ thống kê + danh sách + đếm phân trang dùng CHUNG một

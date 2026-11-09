@@ -5,7 +5,7 @@ import { famAddStarPackage } from "@/app/actions/admin-families";
 import { TelegramPremiumAddForm } from "@/components/fzr-picker";
 import { AdminFamilyTabs } from "@/components/admin-tabs";
 import { loadTelegramFamilies } from "@/lib/families";
-import { getSettings } from "@/lib/settings";
+import { getSettings, adminProductPageSize } from "@/lib/settings";
 import { fzrMarkupKey } from "@/lib/fzr-markup";
 import { getServerI18n } from "@/lib/lang-server";
 
@@ -20,9 +20,9 @@ const RT = "/admin/telegram/san-pham";
  *  tháng, giá bán = giá gói trong catalog). Hai họ tách thành 2 TAB (?tab=),
  *  form thêm gói nằm ở ĐẦU mỗi tab; thẻ đồng bộ & markup phủ cả 2 nhóm nên
  *  ở ngoài, phía trên tab. */
-const PAGE_SIZE = 10;
 
 export default async function AdminTelegramProducts({ searchParams }: { searchParams: { msg?: string; err?: string; spage?: string; ppage?: string; tab?: string } }) {
+  const PAGE_SIZE = await adminProductPageSize();
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const { provider, stars, starsPackages, premium } = await loadTelegramFamilies();

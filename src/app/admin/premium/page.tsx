@@ -5,13 +5,14 @@ import { AdminPager } from "@/components/admin-families";
 import { loadAdminPremiumData } from "@/lib/admin-premium-data";
 import { prisma } from "@/lib/db";
 import { getServerI18n } from "@/lib/lang-server";
+import { adminProductPageSize } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 10;
 const RT = "/admin/premium";
 
 export default async function AdminPremiumProducts({ searchParams }: { searchParams: { q?: string; cat?: string; status?: string; page?: string; msg?: string; err?: string } }) {
+  const PAGE_SIZE = await adminProductPageSize();
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const where: any = {};

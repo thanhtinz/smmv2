@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { prisma } from "./db";
-import { getSettings } from "./settings";
+import { getSettings, intSetting } from "./settings";
 import { sendMail, smtpConfigured } from "./mailer";
 import { siteBaseUrl } from "./email-verify";
 import { hashPassword } from "./password";
@@ -8,12 +8,11 @@ import { writeAudit } from "./audit";
 import { notifyUser } from "./notify";
 
 /** Quên mật khẩu (fix5): cùng khuôn với xác thực email (lib/email-verify.ts) —
- *  token ngẫu nhiên chỉ lưu HASH sha256 trong DB, link sống 60 phút, dùng 1 lần.
+ *  token ngẫu nhiên chỉ lưu HASH sha256 trong DB, link sống theo setting
+ *  password_reset_ttl_minutes (mặc định 60 phút), dùng 1 lần.
  *  Yêu cầu mới GHI ĐÈ token cũ (token cũ tự mất hiệu lực). Chưa cấu hình SMTP thì
  *  KHÔNG gửi và KHÔNG báo lỗi — token vẫn được phát hành, trang vẫn trả lời chung
  *  chung như nhau để không lộ email nào có tài khoản. */
-
-export const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 
 function sha256Hex(v: string): string {
   return crypto.createHash("sha256").update(v).digest("hex");
@@ -24,21 +23,22 @@ function sha256Hex(v: string): string {
 export async function requestPasswordReset(email: string): Promise<string | null> {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || user.status === "BANNED") return null;
+  const s = await getSettings();
+  const ttlMin = intSetting(s, "password_reset_ttl_minutes", 1, 10080);
   const token = crypto.randomBytes(32).toString("hex");
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordResetToken: sha256Hex(token), passwordResetExpiry: new Date(Date.now() + PASSWORD_RESET_TTL_MS) },
+    data: { passwordResetToken: sha256Hex(token), passwordResetExpiry: new Date(Date.now() + ttlMin * 60 * 1000) },
   });
   const link = `${siteBaseUrl()}/reset-password?token=${token}`;
   try {
     if (await smtpConfigured()) {
-      const s = await getSettings();
       await sendMail(
         [user.email],
         `Đặt lại mật khẩu tài khoản ${user.username} — ${s.site_name || "SMMv2"}`,
         `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
           <h2 style="color:#0f172a">Đặt lại mật khẩu</h2>
-          <p>Chào ${user.username}, bấm nút bên dưới để đặt mật khẩu mới cho tài khoản của bạn. Liên kết có hiệu lực 60 phút và chỉ dùng được một lần.</p>
+          <p>Chào ${user.username}, bấm nút bên dưới để đặt mật khẩu mới cho tài khoản của bạn. Liên kết có hiệu lực ${ttlMin} phút và chỉ dùng được một lần.</p>
           <p><a href="${link}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600">Đặt lại mật khẩu</a></p>
           <p style="color:#64748b;font-size:13px">Nếu không bấm được, mở liên kết: ${link}</p>
           <p style="color:#64748b;font-size:13px">Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này — mật khẩu của bạn vẫn không thay đổi.</p>

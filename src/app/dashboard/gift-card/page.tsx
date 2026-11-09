@@ -5,10 +5,10 @@ import { I, Empty } from "@/components/ui";
 import { getServerI18n } from "@/lib/lang-server";
 import { GcFavFilterButton } from "@/components/gift-card";
 import { InfoChip } from "@/components/catalog-chips";
+import { catalogPageSize } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 24;
 
 /** Danh mục Gift Card (nhóm FZR giftcards) — dựng theo ảnh mẫu của chủ site:
  *  thẻ header -> thẻ tìm kiếm (tìm theo tên danh mục + nút sao lọc yêu thích)
@@ -18,6 +18,7 @@ const PAGE_SIZE = 24;
 export default async function GiftCardCatalogPage({ searchParams }: {
   searchParams: { q?: string; page?: string; fav?: string; ids?: string };
 }) {
+  const PAGE_SIZE = await catalogPageSize();
   await getCurrentUser();
   const { L } = await getServerI18n();
 

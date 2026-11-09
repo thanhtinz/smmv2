@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { getSettings, DEFAULT_SETTINGS } from "./settings";
 
 /** Flash sale: giảm THÊM % trên giá trong khung giờ, theo PHẠM VI (scope):
  *  "SMM" = chỉ dịch vụ SMM (mặc định — hành vi cũ), "PREMIUM" = chỉ sản phẩm
@@ -21,7 +22,15 @@ export async function getActiveFlashSale(kind?: FlashKind): Promise<FlashSaleRow
       },
       orderBy: { percent: "desc" },
     });
-    return sale as FlashSaleRow | null;
+    if (!sale) return null;
+    // Trần % giảm do admin đặt (setting flash_max_percent) — áp TẠI ĐÂY, điểm
+    // đọc duy nhất, để mọi nơi tính tiền/hiển thị đều nhận % đã kẹp.
+    const s = await getSettings();
+    const raw = parseInt(s.flash_max_percent || "");
+    const cap = Number.isFinite(raw) ? Math.min(100, Math.max(0, raw)) : parseInt(DEFAULT_SETTINGS.flash_max_percent);
+    const row = sale as FlashSaleRow;
+    row.percent = Math.min(row.percent, cap);
+    return row;
   } catch {
     return null;
   }
@@ -59,5 +68,6 @@ export async function flashPercentForProduct(productId: number): Promise<number>
 
 export function applyFlashAmount(amount: number, percent: number): number {
   if (!percent || percent <= 0) return amount;
-  return Math.max(1, Math.round(amount * (1 - Math.min(90, percent) / 100)));
+  // percent luôn đã qua trần flash_max_percent ở getActiveFlashSale — không kẹp lại tại đây.
+  return Math.max(1, Math.round(amount * (1 - percent / 100)));
 }

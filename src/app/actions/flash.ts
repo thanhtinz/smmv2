@@ -11,7 +11,8 @@ function int(fd: FormData, k: string) { return parseInt(str(fd, k)) || 0; }
 
 function parseSale(fd: FormData) {
   const name = str(fd, "name");
-  const percent = Math.min(90, Math.max(1, int(fd, "percent")));
+  // Lưu đúng % admin đặt (1–100); trần hiệu lực khi tính tiền là setting flash_max_percent (áp ở getActiveFlashSale).
+  const percent = Math.min(100, Math.max(1, int(fd, "percent")));
   const startsAt = new Date(str(fd, "startsAt"));
   const endsAt = new Date(str(fd, "endsAt"));
   // Phạm vi loại đơn: ALL (chung) | SMM | PREMIUM — mặc định SMM như hành vi cũ

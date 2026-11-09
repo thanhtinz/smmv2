@@ -5,10 +5,10 @@ import { I, Empty } from "@/components/ui";
 import { getServerI18n } from "@/lib/lang-server";
 import { MsFavFilterButton } from "@/components/manual-services";
 import { InfoChip, KindChip } from "@/components/catalog-chips";
+import { catalogPageSize } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 24;
 
 /** Danh mục Manual Services (nhóm FZR manual-services) — dựng theo ảnh
  *  mẫu của chủ site: thẻ header -> thẻ tìm kiếm (tìm theo tên + nút sao
@@ -22,6 +22,7 @@ const PAGE_SIZE = 24;
 export default async function ManualCatalogPage({ searchParams }: {
   searchParams: { q?: string; page?: string; fav?: string; ids?: string };
 }) {
+  const PAGE_SIZE = await catalogPageSize();
   await getCurrentUser();
   const { L } = await getServerI18n();
 

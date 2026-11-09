@@ -5,10 +5,10 @@ import { I, Empty } from "@/components/ui";
 import { getServerI18n } from "@/lib/lang-server";
 import { GkFavFilterButton } from "@/components/game-key";
 import { InfoChip } from "@/components/catalog-chips";
+import { catalogPageSize } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 24;
 
 /** Danh mục Game Key (nhóm FZR gamekeys) — dựng theo ảnh mẫu của chủ site:
  *  thẻ header -> thẻ tìm kiếm (tìm theo tên + lọc Nền tảng/Vùng + nút sao lọc
@@ -19,6 +19,7 @@ const PAGE_SIZE = 24;
 export default async function GameKeyCatalogPage({ searchParams }: {
   searchParams: { q?: string; platform?: string; region?: string; page?: string; fav?: string; ids?: string };
 }) {
+  const PAGE_SIZE = await catalogPageSize();
   await getCurrentUser();
   const { L } = await getServerI18n();
 

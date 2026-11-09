@@ -4,10 +4,10 @@ import { I, PageHead, Badge, Empty, Stat } from "@/components/ui";
 import { PRE_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { telegramOrderWhere, telegramRecipient } from "@/lib/tg";
+import { adminListPageSize } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 20;
 
 /** Đơn Telegram (khu riêng Admin → Telegram): thống kê + lọc + danh sách.
  *  Bản ghi vẫn là PremiumOrder với providerGroup telegram_* — trang này là
@@ -15,6 +15,7 @@ const PAGE_SIZE = 20;
 export default async function AdminTelegramOrdersPage({ searchParams }: {
   searchParams: { q?: string; type?: string; status?: string; from?: string; to?: string; page?: string };
 }) {
+  const PAGE_SIZE = await adminListPageSize();
   const { L, M } = await getServerI18n();
   const base = telegramOrderWhere();
   const startDay = new Date(); startDay.setHours(0, 0, 0, 0);

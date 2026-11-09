@@ -4,7 +4,7 @@ import { VariantRow, fmtVnd, AreaSyncCard, AdminPager } from "@/components/admin
 import { famAddTopupDenom, famSaveGiftProduct } from "@/app/actions/admin-families";
 import { SteamGiftAddForm } from "@/components/fzr-picker";
 import { loadSteamFamilies } from "@/lib/families";
-import { getSettings } from "@/lib/settings";
+import { getSettings, adminProductPageSize } from "@/lib/settings";
 import { fzrMarkupKey } from "@/lib/fzr-markup";
 import { getServerI18n } from "@/lib/lang-server";
 
@@ -18,9 +18,9 @@ const RT = "/admin/steam/san-pham";
  *  lúc mua nên giá hiển thị chỉ là giá gần nhất; tỉ giá + markup chung nằm ở
  *  form nhà cung cấp — Admin → Nhà cung cấp, markup riêng khu ở AreaSyncCard).
  *  Sửa ở đây ghi vào đúng PremiumProduct/PremiumVariant trang khách đọc. */
-const PAGE_SIZE = 10;
 
 export default async function AdminSteamProducts({ searchParams }: { searchParams: { msg?: string; err?: string; tpage?: string; gpage?: string; gq?: string } }) {
+  const PAGE_SIZE = await adminProductPageSize();
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const { providers, topup, giftGroups } = await loadSteamFamilies();

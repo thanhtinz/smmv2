@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { requireAdminPage } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getSettings } from "@/lib/settings";
+import { getSettings, adminListPageSize } from "@/lib/settings";
 import { PageHead, Flash, Empty, Badge, Stat, I, CardHead, RiskBar, deviceKind } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
 import { toggleLockdownAction, riskRecalcAction, riskReviewAction, riskSaveSettingsAction, rotateSessionSecretAction, rotateCronSecretAction, clearCronSecretOnceAction } from "@/app/actions/security-center";
@@ -12,7 +12,6 @@ import { dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
-const PAGE_SIZE = 20;
 
 const LEVEL_BADGE: Record<string, string> = {
   LOW: "bg-slate-100 text-slate-600",
@@ -30,6 +29,7 @@ function actionBadgeCls(action: string): string {
 }
 
 export default async function SecurityCenter({ searchParams }: { searchParams: { msg?: string; err?: string; action?: string; actor?: string; page?: string } }) {
+  const PAGE_SIZE = await adminListPageSize();
   const me = await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const now = Date.now();

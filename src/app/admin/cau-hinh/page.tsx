@@ -71,6 +71,16 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           </div>
           <div><label className="lbl">{L("Chữ chân trang (footer) — để trống dùng mặc định")}</label><input className="inp" name="footer_text" defaultValue={s.footer_text} /></div>
         </section>
+        <section className="card p-6 space-y-4">
+          <div className="font-bold text-slate-900">{L("Phân trang danh sách")}</div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div><label className="lbl">{L("Số sản phẩm mỗi trang ở danh mục khách")}</label><input className="inp" name="catalog_page_size" type="number" min="1" max="100" defaultValue={s.catalog_page_size} /></div>
+            <div><label className="lbl">{L("Số đơn mỗi trang ở lịch sử khách")}</label><input className="inp" name="history_page_size" type="number" min="1" max="100" defaultValue={s.history_page_size} /></div>
+            <div><label className="lbl">{L("Số sản phẩm mỗi trang ở trang quản trị sản phẩm")}</label><input className="inp" name="admin_product_page_size" type="number" min="1" max="100" defaultValue={s.admin_product_page_size} /></div>
+            <div><label className="lbl">{L("Số dòng mỗi trang ở danh sách quản trị")}</label><input className="inp" name="admin_list_page_size" type="number" min="1" max="200" defaultValue={s.admin_list_page_size} /></div>
+          </div>
+          <p className="text-xs text-slate-400">{L("Áp dụng cho danh mục các khu Game Key, Gift Card, Top-Up, Manual Services, các trang lịch sử đơn và toàn bộ trang sản phẩm trong quản trị.")}</p>
+        </section>
       </div>
       <div className="space-y-6">
         <section className="card p-6 space-y-4">
@@ -258,12 +268,19 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
 
   /* ---------------- Khuyến mãi ---------------- */
   const khuyenmai = (
+    <>
     <section className="card p-6 space-y-4">
       <div className="font-bold text-slate-900">{L("Khuyến mãi nạp tiền")}</div>
       <div className={infoBox}>{L("Phần thưởng được hiển thị công khai trên trang Nạp tiền khi khách truy cập. Nạp đúng hoặc hơn mốc sẽ nhận phần thưởng tương ứng.")}</div>
       <BonusTiersEditor initial={s.deposit_bonus_tiers} />
       <p className="text-xs text-slate-400">{L("Bảng này áp dụng cho khách của web mẹ. Khách panel con dùng mốc thưởng RIÊNG do chủ panel tự đặt ở Panel Admin — không tính chung với bảng này.")}</p>
     </section>
+    <section className="card p-6 space-y-4">
+      <div className="font-bold text-slate-900">{L("Flash sale")}</div>
+      <div><label className="lbl">{L("Giảm giá flash sale tối đa (%)")}</label><input className="inp" name="flash_max_percent" type="number" min="0" max="100" defaultValue={s.flash_max_percent} /></div>
+      <p className="text-xs text-slate-400">{L("Đợt flash sale đặt % cao hơn mức này vẫn chỉ giảm tối đa mức này khi tính tiền.")}</p>
+    </section>
+    </>
   );
 
   /* ---------------- Giới thiệu ---------------- */
@@ -289,6 +306,8 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <div><label className="lbl">{L("Phiên đăng nhập (ngày)")}</label><input className="inp" name="session_days" type="number" min="1" max="90" defaultValue={s.session_days} /></div>
           <div><label className="lbl">{L("Số lượng mua Premium tối đa / đơn")}</label><input className="inp" name="premium_max_qty" type="number" min="1" defaultValue={s.premium_max_qty} /></div>
           <div><label className="lbl">{L("Số link tối đa / lần đặt (nhiều link & hàng loạt)")}</label><input className="inp" name="order_max_links" type="number" min="1" defaultValue={s.order_max_links} /></div>
+          <div><label className="lbl">{L("Link đặt lại mật khẩu hết hạn sau (phút)")}</label><input className="inp" name="password_reset_ttl_minutes" type="number" min="1" max="10080" defaultValue={s.password_reset_ttl_minutes} /></div>
+          <div><label className="lbl">{L("Link xác thực email hết hạn sau (giờ)")}</label><input className="inp" name="email_verify_ttl_hours" type="number" min="1" max="720" defaultValue={s.email_verify_ttl_hours} /></div>
         </div>
       </section>
       <section className="card p-6 space-y-4">
