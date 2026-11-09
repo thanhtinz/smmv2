@@ -25,13 +25,13 @@ export default async function HomePage() {
   const premiumOff = s.module_premium === "0";
   // Dải icon lối tắt dưới hero (lệnh Tín 2026-11-08 21:08): ẩn/hiện từng ô
   // THEO ĐÚNG điều kiện của buildCustomerNav để dải và menu khách không bao
-  // giờ lệch nhau — ô SMM theo module_smm (như mục "Đặt đơn"), ô Premium
-  // theo module_premium (như mục "Tất cả sản phẩm"), 2 ô Telegram theo
-  // telegram_enabled (như nhóm Telegram); Steam / Game Key / Gift Card /
+  // giờ lệch nhau — ô SMM theo module_smm (như mục "Đặt đơn"), 2 ô Telegram
+  // theo telegram_enabled (như nhóm Telegram); Steam / Game Key / Gift Card /
   // Top-Up luôn hiện như các nhóm menu tương ứng (menu luôn hiện vô điều kiện).
+  // Ô "Tất cả sản phẩm" đã BỎ khỏi dải theo lệnh Tín 2026-11-08 21:42 (chỉ
+  // bỏ ô trên dải — trang /premium và mục menu giữ nguyên).
   const stripTiles: StripTile[] = [
     ...(s.module_smm !== "0" ? [{ href: "/dashboard/dat-hang", label: L("Mạng xã hội"), img: "/home-strip/smm.jpg" }] : []),
-    ...(s.module_premium !== "0" ? [{ href: "/premium", label: L("Tất cả sản phẩm"), img: "/home-strip/premium.jpg" }] : []),
     { href: "/dashboard/steam/top-up", label: L("Steam Top-Up"), img: "/home-strip/steam-topup.jpg" },
     { href: "/dashboard/steam/gift-games", label: L("Steam Gift"), img: "/home-strip/steam-gift.jpg" },
     ...(s.telegram_enabled !== "0"

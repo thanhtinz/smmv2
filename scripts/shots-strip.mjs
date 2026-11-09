@@ -1,5 +1,5 @@
 /** Dải icon trang chủ + hero tiến trình (lệnh Tín 2026-11-08 21:08–21:14):
- *  - 9 ô icon dưới hero, nhãn/href đúng, không tràn ngang, không nền màu.
+ *  - 8 ô icon dưới hero, nhãn/href đúng, không tràn ngang, không nền màu.
  *  - Chấm hero = thanh tiến trình chạy cùng đồng hồ với tự chuyển slide.
  *  - Mobile 390: mũi tên bấm được (≥40px), dải icon VỪA KÉO vừa BẤM.
  *  - Cổng: tắt telegram_enabled + module_smm → ô trên dải VÀ mục menu
@@ -143,11 +143,11 @@ async function main() {
     await navigate(BASE + "/");
     const tiles = await evaluate(stripTilesExpr);
     console.log("tiles:", JSON.stringify(tiles));
-    ok(tiles.length === 9, `dải có đủ 9 ô (thấy ${tiles.length})`);
-    const wantLabels = ["Mạng xã hội", "Tất cả sản phẩm", "Steam Top-Up", "Steam Gift", "Telegram Stars", "Telegram Premium", "Game Key", "Gift Card", "Top-Up Game"];
-    ok(wantLabels.every((l, i) => tiles[i]?.label === l), "nhãn 9 ô đúng thứ tự + tiếng Việt qua từ điển");
-    const wantHrefs = ["/dashboard/dat-hang", "/premium", "/dashboard/steam/top-up", "/dashboard/steam/gift-games", "/dashboard/telegram?tab=stars", "/dashboard/telegram?tab=premium", "/dashboard/game-key", "/dashboard/gift-card", "/dashboard/top-up"];
-    ok(wantHrefs.every((h, i) => tiles[i]?.href === h), "href 9 ô đúng đích");
+    ok(tiles.length === 8, `dải có đủ 8 ô (thấy ${tiles.length})`);
+    const wantLabels = ["Mạng xã hội", "Steam Top-Up", "Steam Gift", "Telegram Stars", "Telegram Premium", "Game Key", "Gift Card", "Top-Up Game"];
+    ok(wantLabels.every((l, i) => tiles[i]?.label === l), "nhãn 8 ô đúng thứ tự + tiếng Việt qua từ điển");
+    const wantHrefs = ["/dashboard/dat-hang", "/dashboard/steam/top-up", "/dashboard/steam/gift-games", "/dashboard/telegram?tab=stars", "/dashboard/telegram?tab=premium", "/dashboard/game-key", "/dashboard/gift-card", "/dashboard/top-up"];
+    ok(wantHrefs.every((h, i) => tiles[i]?.href === h), "href 8 ô đúng đích");
     const layout = await evaluate(`(() => {
       const hero = document.querySelector('section.relative.w-full.overflow-hidden');
       const strip = document.querySelector('[data-testid="home-strip"]');
@@ -243,14 +243,14 @@ async function main() {
     const stripY = await evaluate(`(() => { const r = document.querySelector('[data-testid="home-strip"]').getBoundingClientRect(); return Math.round(r.top + 34); })()`);
     await touchDrag(320, 150, stripY);
     await sleep(400);
-    let dragState = await evaluate(`(() => ({ path: location.pathname, sl: Math.round(document.querySelector('[data-testid="home-strip"] > div').scrollLeft) }))()`);
+    let dragState = await evaluate(`(() => ({ path: location.pathname, sl: Math.round(document.querySelector('[data-testid="home-strip"] [data-strip-scroll]').scrollLeft) }))()`);
     console.log("after drag1:", JSON.stringify(dragState));
     ok(dragState.path === "/" && dragState.sl > 30, `kéo dải: cuộn được (${dragState.sl}px) + không điều hướng`);
     // chờ cuộn dừng hẳn (hết quán tính) như người dùng thật rồi mới chạm
     for (let i = 0; i < 10; i++) {
-      const a = await evaluate(`Math.round(document.querySelector('[data-testid="home-strip"] > div').scrollLeft)`);
+      const a = await evaluate(`Math.round(document.querySelector('[data-testid="home-strip"] [data-strip-scroll]').scrollLeft)`);
       await sleep(300);
-      const b = await evaluate(`Math.round(document.querySelector('[data-testid="home-strip"] > div').scrollLeft)`);
+      const b = await evaluate(`Math.round(document.querySelector('[data-testid="home-strip"] [data-strip-scroll]').scrollLeft)`);
       if (a === b) break;
     }
     // kéo tiếp tới khi ô Game Key vào khung rồi CHẠM
@@ -267,9 +267,9 @@ async function main() {
     if (gkRect) {
       // đo lại toạ độ sau khi cuộn đã dừng hẳn, ngay trước khi chạm
       for (let i = 0; i < 10; i++) {
-        const a = await evaluate(`Math.round(document.querySelector('[data-testid="home-strip"] > div').scrollLeft)`);
+        const a = await evaluate(`Math.round(document.querySelector('[data-testid="home-strip"] [data-strip-scroll]').scrollLeft)`);
         await sleep(300);
-        const b = await evaluate(`Math.round(document.querySelector('[data-testid="home-strip"] > div').scrollLeft)`);
+        const b = await evaluate(`Math.round(document.querySelector('[data-testid="home-strip"] [data-strip-scroll]').scrollLeft)`);
         if (a === b) break;
       }
       gkRect = await evaluate(`(() => {
@@ -291,7 +291,7 @@ async function main() {
       await navigate(BASE + "/", 3200);
       const gated = await evaluate(stripTilesExpr);
       console.log("gated tiles:", JSON.stringify(gated.map((x) => x.label)));
-      ok(gated.length === 6, `tắt telegram+smm: dải còn 6 ô (thấy ${gated.length})`);
+      ok(gated.length === 5, `tắt telegram+smm: dải còn 5 ô (thấy ${gated.length})`);
       ok(!gated.some((x) => x.label.includes("Telegram")) && !gated.some((x) => x.label === "Mạng xã hội"), "ô Telegram + ô SMM biến mất khỏi dải");
       await navigate(BASE + "/dashboard/ho-so", 3200);
       const navText = await evaluate(`(() => { const h = document.querySelector('header'); return h ? h.textContent : ''; })()`);
@@ -304,7 +304,7 @@ async function main() {
     }
     await navigate(BASE + "/", 3200);
     const restored = await evaluate(stripTilesExpr);
-    ok(restored.length === 9, `khôi phục: dải lại đủ 9 ô (thấy ${restored.length})`);
+    ok(restored.length === 8, `khôi phục: dải lại đủ 8 ô (thấy ${restored.length})`);
   } finally {
     // dọn fixture
     await prisma.premiumVariant.deleteMany({ where: { providerId: provider.id } });
