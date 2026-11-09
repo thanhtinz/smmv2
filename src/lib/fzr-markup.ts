@@ -1,13 +1,13 @@
 import { getSettings } from "./settings";
 import type { Provider } from "@prisma/client";
 
-/** FIX11 TASK 3 — Markup theo KHU FZR. Mỗi nhóm sản phẩm FZR có thể có một
- *  markup % riêng do admin đặt ngay trên trang sản phẩm của khu đó, lưu ở
- *  Setting `fzr_markup_<group>`. Chưa đặt (hoặc để trống) thì dùng
- *  markupPercent chung của nhà cung cấp — hành vi cũ không đổi. Mọi đường
- *  tính giá của nhóm (đồng bộ catalog, báo giá tươi Stars/Steam gift, giá
- *  hiển thị Telegram) đều đọc qua đây để % hiện trên trang quản trị là %
- *  thật sự tính tiền. */
+/** Markup theo NHÓM FZR. Mỗi nhóm sản phẩm FZR có thể có một markup %
+ *  riêng do admin đặt trong form nhà cung cấp FZR — cùng chỗ với API key,
+ *  tỉ giá và markup chung — lưu ở Setting `fzr_markup_<group>`. Chưa đặt
+ *  (hoặc để trống) thì dùng markupPercent chung của nhà cung cấp. Mọi
+ *  đường tính giá của nhóm (đồng bộ catalog, báo giá tươi Stars/Steam
+ *  gift, giá hiển thị Telegram) đều đọc qua đây để % cấu hình ở nhà cung
+ *  cấp là % thật sự tính tiền. */
 export const fzrMarkupKey = (group: string) => `fzr_markup_${group}`;
 
 function parseOverride(raw: string | undefined): number | null {

@@ -7,9 +7,8 @@ import { getTelegramProvider } from "@/lib/tg";
 import { ADMIN_VARIANT_MARK, steamAddProvider, gameKeyAddProvider, giftCardAddProvider, topupAddProvider, manualAddProvider } from "@/lib/families";
 import { FZR_LABELS, fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrGiftCardCards, fzrSteamGiftGames, fzrTelegramPremiumPlans, fzrTopups, fzrTopupOffers, normalizeTopupFields, fzrManualServices, fzrManualOffers, normalizeManualFields } from "@/lib/fzr";
 import { syncFzrCatalog, withProviderOverride } from "@/lib/fzr-sync";
-import { fzrMarkupKey, fzrMarkupResolver, fzrMarkupFor } from "@/lib/fzr-markup";
+import { fzrMarkupResolver, fzrMarkupFor } from "@/lib/fzr-markup";
 import { normalizePremiumFieldsJson, parsePremiumFields } from "@/lib/format";
-import { setSetting } from "@/lib/settings";
 import type { Provider } from "@prisma/client";
 
 /** FIX8 TASK 4 — Actions cho admin họ Telegram/Steam (/admin/telegram/san-pham,
@@ -87,11 +86,10 @@ export async function famToggleVariant(fd: FormData) {
   back(rt(fd), true, on ? "Đã bật bán gói" : "Đã tắt bán gói");
 }
 
-/* (Đã gỡ famSaveProviderPricing: markup CHUNG + tỉ giá của nhà cung cấp
- *  chỉ còn sửa trong form nhà cung cấp — Admin → Nhà cung cấp, action
- *  adminSaveProvider ghi Provider.exchangeRate + markupPercent. Các trang
- *  khu vực không còn thẻ nhà cung cấp; markup riêng của khu đi qua
- *  famSaveAreaMarkup.) */
+/* (Mọi markup của FZR — markup chung + markup theo từng nhóm — chỉ còn
+ *  sửa trong form nhà cung cấp: Admin → Nhà cung cấp, action
+ *  adminSaveProvider ghi Provider.markupPercent + các Setting
+ *  fzr_markup_<group>. Các trang khu vực không còn ô markup.) */
 
 async function categoryId(name: string, providerId: number): Promise<number> {
   const found = await prisma.premiumCategory.findFirst({ where: { name } });
@@ -552,32 +550,15 @@ export async function famAddGiftCardCategory(fd: FormData) {
   back(rt(fd), true, `Đã thêm danh mục ${name}`);
 }
 
-/* ================= FIX11 TASK 3 — Đồng bộ + markup theo khu & picker ====
+/* ================= Đồng bộ theo khu & picker ==========================
  * Mỗi trang sản phẩm của một khu FZR có nút đồng bộ RIÊNG chỉ chạm nhóm
- * của khu đó + ô markup % riêng của khu (Setting fzr_markup_<group>, xem
- * lib/fzr-markup) — và luồng THÊM sản phẩm chọn thẳng từ catalog thật của
- * nhà cung cấp (tìm kiếm hoặc dán mã để kiểm chứng) thay cho ô nhập mã tự
- * do, để không gói nào bị trói nhầm dịch vụ. */
-
-/** Lưu markup % riêng của các nhóm trong khu (ô để trống = xoá override,
- *  quay về markup chung của nhà cung cấp). */
-export async function famSaveAreaMarkup(fd: FormData) {
-  await requireAdmin();
-  const groups = String(fd.get("groups") || "").split(",").map((s) => s.trim()).filter(Boolean);
-  for (const g of groups) {
-    const raw = String(fd.get(`markup_${g}`) || "").trim();
-    if (!raw) {
-      await prisma.setting.deleteMany({ where: { key: fzrMarkupKey(g) } });
-    } else {
-      const n = Math.max(0, Math.min(1000, parseInt(raw) || 0));
-      await setSetting(fzrMarkupKey(g), String(n));
-    }
-  }
-  back(rt(fd), true, "Đã lưu markup của khu");
-}
+ * của khu đó — và luồng THÊM sản phẩm chọn thẳng từ catalog thật của nhà
+ * cung cấp (tìm kiếm hoặc dán mã để kiểm chứng) thay cho ô nhập mã tự do,
+ * để không gói nào bị trói nhầm dịch vụ. Markup theo nhóm được cấu hình ở
+ * form nhà cung cấp (xem adminSaveProvider), không còn lưu tại trang khu. */
 
 /** Đồng bộ RIÊNG các nhóm của khu này từ nhà cung cấp FZR (markup hiệu lực
- *  = override của khu nếu có). Nhóm khác trong catalog không bị đụng. */
+ *  đọc từ cấu hình nhà cung cấp). Nhóm khác trong catalog không bị đụng. */
 export async function famSyncArea(fd: FormData) {
   await requireAdmin();
   const providerId = parseInt(String(fd.get("providerId") || "0"));

@@ -47,6 +47,17 @@ export type ProviderDTO = {
   minBalanceAlert: number; dailyLimit: number; serviceCount: number; lastSyncAt: string | null;
 };
 
+export const FZR_MARKUP_GROUPS = [
+  ["gamekeys", "Game Key"],
+  ["giftcards", "Gift Card"],
+  ["topups", "Top-Up"],
+  ["manual", "Dịch vụ thủ công"],
+  ["telegram_stars", "Telegram Stars"],
+  ["telegram_premium", "Telegram Premium"],
+  ["steam_topup", "Steam Top-Up"],
+  ["steam_gift", "Steam Gift Games"],
+] as const;
+
 export type ProviderMode = "SMM" | "PREMIUM" | "FZR" | "LEGACY";
 
 /** Chế độ form nhà cung cấp (lệnh Tín 2026-11-08): ba nút thêm riêng — SMM /
@@ -61,7 +72,7 @@ export function providerModeOf(p?: ProviderDTO): ProviderMode {
   return "LEGACY";
 }
 
-export function ProviderModal({ provider, onClose, webhookSecretSet, mode }: { provider?: ProviderDTO; onClose: () => void; webhookSecretSet?: boolean; mode?: ProviderMode }) {
+export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMarkups }: { provider?: ProviderDTO; onClose: () => void; webhookSecretSet?: boolean; mode?: ProviderMode; fzrMarkups?: Record<string, string> }) {
   const { t } = useLang();
   const [tab, setTab] = useState(0);
   const [driver, setDriver] = useState(provider?.driver || "STANDARD");
@@ -160,6 +171,20 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode }: { p
               <input name="markupPercent" type="number" min={0} max={500} defaultValue={p?.markupPercent ?? 30} className={inp} />
               <p className="mt-1 text-xs text-slate-400">{t("Tỷ lệ tăng giá khi đồng bộ dịch vụ từ nhà cung cấp.")}</p>
             </div>
+            {effectiveDriver === "FZR" && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                <div className="text-sm font-bold text-slate-800">{t("Markup theo nhóm FZR (%)")}</div>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">{t("Cấu hình ngay tại đây cùng API key và markup chung. Để trống một nhóm = nhóm đó dùng markup chung của nhà cung cấp.")}</p>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {FZR_MARKUP_GROUPS.map(([group, label]) => (
+                    <div key={group}>
+                      <label className={lbl}>{t(label)}</label>
+                      <input name={`fzr_markup_${group}`} type="number" min={0} max={1000} defaultValue={fzrMarkups?.[group] || ""} placeholder={String(p?.markupPercent ?? 30)} className={inp} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 px-4 py-2">
               <Switch name="syncServices" defaultChecked={p ? p.syncServices : true} label={t("Đồng bộ dịch vụ")} />
               <Switch name="syncCategories" defaultChecked={p ? p.syncCategories : true} label={t("Đồng bộ danh mục")} />
@@ -288,7 +313,7 @@ export function ImportServicesModal({ provider, onClose }: { provider: ProviderD
   );
 }
 
-export function ProvidersClient({ providers, webhookSecretSet }: { providers: ProviderDTO[]; webhookSecretSet?: boolean }) {
+export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups }: { providers: ProviderDTO[]; webhookSecretSet?: boolean; fzrMarkups?: Record<string, string> }) {
   const { t, td, m } = useLang();
   const [editing, setEditing] = useState<ProviderDTO | undefined>(undefined);
   const [addMode, setAddMode] = useState<ProviderMode>("SMM");
@@ -308,7 +333,7 @@ export function ProvidersClient({ providers, webhookSecretSet }: { providers: Pr
       {/* key theo đích mở: điều hướng mềm sau server action GIỮ instance modal
           (state không tự reset) — không có key, form thêm FZR mở sau form SMM
           sẽ còn nguyên URL đã gõ ở form trước (đã gặp thật khi kiểm chứng). */}
-      {open && <ProviderModal key={editing ? `edit-${editing.id}` : `add-${addMode}`} provider={editing} mode={addMode} onClose={() => setOpen(false)} webhookSecretSet={webhookSecretSet} />}
+      {open && <ProviderModal key={editing ? `edit-${editing.id}` : `add-${addMode}`} provider={editing} mode={addMode} onClose={() => setOpen(false)} webhookSecretSet={webhookSecretSet} fzrMarkups={fzrMarkups} />}
       {importing && <ImportServicesModal provider={importing} onClose={() => setImporting(undefined)} />}
       <div className="card mt-5 overflow-x-auto">
         <table className="w-full min-w-[880px]">

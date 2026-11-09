@@ -91,7 +91,20 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
         )}
       </div>
       <div className="mt-2">
-        <ProvidersClient providers={dtos} webhookSecretSet={Boolean(s.fzr_webhook_secret)} />
+        <ProvidersClient
+          providers={dtos}
+          webhookSecretSet={Boolean(s.fzr_webhook_secret)}
+          fzrMarkups={{
+            gamekeys: s.fzr_markup_gamekeys || "",
+            giftcards: s.fzr_markup_giftcards || "",
+            topups: s.fzr_markup_topups || "",
+            manual: s.fzr_markup_manual || "",
+            telegram_stars: s.fzr_markup_telegram_stars || "",
+            telegram_premium: s.fzr_markup_telegram_premium || "",
+            steam_topup: s.fzr_markup_steam_topup || "",
+            steam_gift: s.fzr_markup_steam_gift || "",
+          }}
+        />
       </div>
     </div>
   );

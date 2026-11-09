@@ -5,8 +5,6 @@ import { famSaveGiftProduct, famSaveFieldLabels } from "@/app/actions/admin-fami
 import { ManualAddForm, ManualOfferForm, BulkAddPanel } from "@/components/fzr-picker";
 import { loadManualFamilies } from "@/lib/families";
 import { parsePremiumFields } from "@/lib/format";
-import { getSettings } from "@/lib/settings";
-import { fzrMarkupKey } from "@/lib/fzr-markup";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -20,15 +18,13 @@ const RT = "/admin/manual-services/san-pham";
  *  fields[] CHỈ có khi kind = replenishment ({ code, name }) — key khoá
  *  cứng, NHÃN sửa được tại khối "Trường tuỳ chỉnh" và được giữ khi đồng bộ
  *  lại (gộp theo key). Gói admin tự thêm mang dấu CUSTOM — đồng bộ không
- *  ghi đè giá và không tắt. KHÔNG trang cấu hình riêng: tỉ giá + markup
- *  chung ở form nhà cung cấp, markup riêng của khu ở thẻ AreaSyncCard. */
+ *  ghi đè giá và không tắt. KHÔNG trang cấu hình riêng: tỉ giá + mọi
+ *  markup đều ở form nhà cung cấp (Admin → Nhà cung cấp). */
 export default async function AdminManualProducts({ searchParams }: { searchParams: { msg?: string; err?: string; q?: string; page?: string } }) {
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const q = (searchParams.q || "").trim();
   const { providers, groups, total, page, pages } = await loadManualFamilies({ q, page: parseInt(searchParams.page || "1") || 1 });
-  const settings = await getSettings();
-  const areaOverrides = { manual: settings[fzrMarkupKey("manual")] || "" };
   return (
     <div>
       <PageHead
@@ -42,7 +38,7 @@ export default async function AdminManualProducts({ searchParams }: { searchPara
           Chưa có nhà cung cấp FZR đang bật — thêm nhà cung cấp ở Admin → Nhà cung cấp (API) rồi đồng bộ catalog để có dịch vụ thủ công.
         </div>
       )}
-      {providers[0] && <AreaSyncCard provider={providers[0]} groups={["manual"]} overrides={areaOverrides} returnTo={RT} />}
+      {providers[0] && <AreaSyncCard provider={providers[0]} groups={["manual"]} returnTo={RT} />}
 
       <section className="card mb-4 overflow-hidden">
         <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">

@@ -5,8 +5,7 @@ import { famAddStarPackage } from "@/app/actions/admin-families";
 import { TelegramPremiumAddForm, BulkAddPanel } from "@/components/fzr-picker";
 import { AdminFamilyTabs } from "@/components/admin-tabs";
 import { loadTelegramFamilies } from "@/lib/families";
-import { getSettings, adminProductPageSize } from "@/lib/settings";
-import { fzrMarkupKey } from "@/lib/fzr-markup";
+import { adminProductPageSize } from "@/lib/settings";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -39,9 +38,6 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
   const premiumPages = Math.max(1, Math.ceil(premium.length / PAGE_SIZE));
   const premiumPage = Math.min(premiumPages, Math.max(1, parseInt(searchParams.ppage || "1") || 1));
   const premiumSlice = premium.slice((premiumPage - 1) * PAGE_SIZE, premiumPage * PAGE_SIZE);
-  const settings = await getSettings();
-  const areaOverrides = { telegram_stars: settings[fzrMarkupKey("telegram_stars")] || "", telegram_premium: settings[fzrMarkupKey("telegram_premium")] || "" };
-
   const starsSection = (
     <section className="card mb-4 overflow-hidden">
       <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
@@ -144,7 +140,7 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
           Chưa cấu hình nhà cung cấp FZR cho Telegram — vào Admin → Nhà cung cấp để chọn nhà cung cấp phục vụ Telegram, rồi đồng bộ catalog tại đó.
         </div>
       )}
-      {provider && <AreaSyncCard provider={provider} groups={["telegram_stars", "telegram_premium"]} overrides={areaOverrides} returnTo={rtTab} />}
+      {provider && <AreaSyncCard provider={provider} groups={["telegram_stars", "telegram_premium"]} returnTo={rtTab} />}
 
       <AdminFamilyTabs
         key={activeTab}

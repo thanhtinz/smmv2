@@ -8,6 +8,7 @@ import { refundSmmOrder, syncSmmOrderStatus, syncPremiumOrderStatus } from "@/li
 import { orderTransition } from "@/lib/notify";
 import { providerBalance, syncProviderServices, syncProviderPremium } from "@/lib/provider";
 import { getSettings, setSetting } from "@/lib/settings";
+import { fzrMarkupKey } from "@/lib/fzr-markup";
 import { DICT } from "@/lib/i18n";
 import { LANG_KEYS, sanitizeEnabled, sanitizeOverrides, type LangOverrides } from "@/lib/lang-config";
 import { encryptSecret } from "@/lib/secret-box";
@@ -145,6 +146,8 @@ export async function adminDeleteService(formData: FormData) {
 }
 
 /* ---------- Nhà cung cấp API ---------- */
+const FZR_MARKUP_GROUPS = ["gamekeys", "giftcards", "topups", "manual", "telegram_stars", "telegram_premium", "steam_topup", "steam_gift"] as const;
+
 export async function adminSaveProvider(formData: FormData) {
   const actor = await requireAdmin();
   const id = parseInt(String(formData.get("id") || "0"));
@@ -186,6 +189,21 @@ export async function adminSaveProvider(formData: FormData) {
   if (data.driver === "FZR") {
     const whSecret = String(formData.get("fzr_webhook_secret") || "").trim();
     if (whSecret) await setSetting("fzr_webhook_secret", whSecret);
+    // Markup theo nhóm FZR cũng cấu hình ngay trong form nhà cung cấp — cùng
+    // chỗ với API key, tỉ giá và markup chung — thay vì rải ở từng trang khu.
+    // Field không được gửi lên thì giữ nguyên; gửi trống thì xoá override để
+    // nhóm đó quay về markup chung của nhà cung cấp.
+    for (const group of FZR_MARKUP_GROUPS) {
+      const field = `fzr_markup_${group}`;
+      if (!formData.has(field)) continue;
+      const raw = String(formData.get(field) || "").trim();
+      if (!raw) {
+        await prisma.setting.deleteMany({ where: { key: fzrMarkupKey(group) } });
+      } else {
+        const n = Math.max(0, Math.min(1000, parseInt(raw) || 0));
+        await setSetting(fzrMarkupKey(group), String(n));
+      }
+    }
   }
   await auditAdmin(actor, "provider.save", "provider", id || data.name, `${data.name} — ${data.apiUrl}${rawKey && !rawKey.includes("•") ? " (đặt API key mới)" : ""}`);
   done("/admin/nha-cung-cap", "Đã lưu nhà cung cấp");

@@ -4,8 +4,7 @@ import { VariantRow, fmtVnd, AreaSyncCard, AdminPager, ProductSyncButton } from 
 import { famAddTopupDenom, famSaveGiftProduct } from "@/app/actions/admin-families";
 import { SteamGiftAddForm, BulkAddPanel } from "@/components/fzr-picker";
 import { loadSteamFamilies } from "@/lib/families";
-import { getSettings, adminProductPageSize } from "@/lib/settings";
-import { fzrMarkupKey } from "@/lib/fzr-markup";
+import { adminProductPageSize } from "@/lib/settings";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +14,8 @@ const RT = "/admin/steam/san-pham";
 /** FIX8 TASK 4 — Sản phẩm Steam theo đúng 2 họ phía FZR: Gói Top-Up (mệnh giá
  *  USD cố định, giá bán = giá gói trong catalog) và Game gift (mỗi game 1 sản
  *  phẩm theo appid + gói "Bản gift"; giá bán chốt tươi theo offer rẻ nhất tại
- *  lúc mua nên giá hiển thị chỉ là giá gần nhất; tỉ giá + markup chung nằm ở
- *  form nhà cung cấp — Admin → Nhà cung cấp, markup riêng khu ở AreaSyncCard).
+ *  lúc mua nên giá hiển thị chỉ là giá gần nhất; tỉ giá + mọi markup nằm ở
+ *  form nhà cung cấp — Admin → Nhà cung cấp).
  *  Sửa ở đây ghi vào đúng PremiumProduct/PremiumVariant trang khách đọc. */
 
 export default async function AdminSteamProducts({ searchParams }: { searchParams: { msg?: string; err?: string; tpage?: string; gpage?: string; gq?: string } }) {
@@ -35,8 +34,6 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
   const giftPages = Math.max(1, Math.ceil(giftFiltered.length / PAGE_SIZE));
   const giftPage = Math.min(giftPages, Math.max(1, parseInt(searchParams.gpage || "1") || 1));
   const giftSlice = giftFiltered.slice((giftPage - 1) * PAGE_SIZE, giftPage * PAGE_SIZE);
-  const settings = await getSettings();
-  const areaOverrides = { steam_topup: settings[fzrMarkupKey("steam_topup")] || "", steam_gift: settings[fzrMarkupKey("steam_gift")] || "" };
   return (
     <div>
       <PageHead
@@ -50,7 +47,7 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
           Chưa có nhà cung cấp FZR đang bật — thêm nhà cung cấp ở Admin → Nhà cung cấp (API) rồi đồng bộ catalog để có gói Steam.
         </div>
       )}
-      {providers[0] && <AreaSyncCard provider={providers[0]} groups={["steam_topup", "steam_gift"]} overrides={areaOverrides} returnTo={RT} />}
+      {providers[0] && <AreaSyncCard provider={providers[0]} groups={["steam_topup", "steam_gift"]} returnTo={RT} />}
 
       {/* Họ Top-Up */}
       <section className="card mb-4 overflow-hidden">

@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { I } from "./ui";
-import { famSaveVariant, famToggleVariant, famDeleteVariant, famSyncArea, famSaveAreaMarkup, famSyncProduct } from "@/app/actions/admin-families";
+import { famSaveVariant, famToggleVariant, famDeleteVariant, famSyncArea, famSyncProduct } from "@/app/actions/admin-families";
 import { ADMIN_VARIANT_MARK, type FamilyVariant } from "@/lib/families";
 import type { Provider } from "@prisma/client";
 
 /** FIX8 TASK 4 — Mảnh giao diện dùng chung cho admin họ Telegram/Steam:
- *  hàng gói (sửa tên/giá, bật/tắt) và thẻ đồng bộ & markup của khu.
- *  TỈ GIÁ + MARKUP CHUNG của nhà cung cấp KHÔNG còn thẻ riêng ở các trang
- *  khu vực: cả hai sống trọn trong form nhà cung cấp (Admin → Nhà cung
- *  cấp, Provider.exchangeRate / markupPercent — "chỉnh 1 lần cho toàn
- *  bộ"); trang khu vực chỉ còn markup RIÊNG của khu (AreaSyncCard).
+ *  hàng gói (sửa tên/giá, bật/tắt) và thẻ đồng bộ của khu.
+ *  TỈ GIÁ + MỌI MARKUP của FZR (markup chung và markup theo từng nhóm)
+ *  đều sống trọn trong form nhà cung cấp (Admin → Nhà cung cấp, cùng chỗ
+ *  với API key — "chỉnh 1 lần cho toàn bộ"); trang khu vực chỉ còn nút
+ *  đồng bộ đúng nhóm của khu đó (AreaSyncCard).
  *  Server components thuần form — không JS phía khách. */
 
 export const fmtVnd = (n: number) => `${n.toLocaleString("vi-VN")}đ`;
@@ -96,21 +96,19 @@ export const FZR_GROUP_LABELS: Record<string, string> = {
   manual: "Dịch vụ thủ công",
 };
 
-/** FIX11 TASK 3 — Thẻ "Đồng bộ & markup của khu" đặt trên trang sản phẩm
- *  của TỪNG khu FZR: nút đồng bộ chỉ kéo đúng nhóm của khu đó (như đồng bộ
- *  phía SMM), ô markup % riêng của khu ghi đè markup chung của nhà cung
- *  cấp cho nhóm đó (để trống = dùng markup chung). */
-export function AreaSyncCard({ provider, groups, overrides, returnTo }: {
+/** Thẻ đồng bộ đặt trên trang sản phẩm của TỪNG khu FZR: nút đồng bộ chỉ
+ *  kéo đúng nhóm của khu đó (như đồng bộ phía SMM). Markup không còn cấu
+ *  hình tại đây — mọi markup FZR nằm trong form Nhà cung cấp cùng API key. */
+export function AreaSyncCard({ provider, groups, returnTo }: {
   provider: Provider;
   groups: string[];
-  overrides: Record<string, string>;
   returnTo: string;
 }) {
   return (
     <section className="card mb-4 p-5">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-brand-600">{I.refresh}</span>
-        <h2 className="text-[15px] font-bold text-slate-800">Đồng bộ &amp; markup của khu này</h2>
+        <h2 className="text-[15px] font-bold text-slate-800">Đồng bộ của khu này</h2>
         <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500">
           Nguồn: {provider.name}
         </span>
@@ -119,24 +117,9 @@ export function AreaSyncCard({ provider, groups, overrides, returnTo }: {
         </span>
       </div>
       <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
-        Đồng bộ chỉ kéo các nhóm của khu này ({groups.map((g) => FZR_GROUP_LABELS[g] || g).join(", ")}) — catalog của khu khác không bị đụng. Markup riêng dưới đây ghi đè markup chung cho đúng nhóm đó, áp dụng cả khi đồng bộ lẫn khi chốt giá tươi lúc mua.
+        Đồng bộ chỉ kéo các nhóm của khu này ({groups.map((g) => FZR_GROUP_LABELS[g] || g).join(", ")}) — catalog của khu khác không bị đụng. Markup chung và markup theo từng nhóm được cấu hình tại Admin → Nhà cung cấp, cùng chỗ với API key và tỉ giá.
       </p>
-      <div className="mt-3.5 flex flex-wrap items-end gap-4">
-        <form action={famSaveAreaMarkup} className="flex flex-wrap items-end gap-3">
-          <input type="hidden" name="returnTo" value={returnTo} />
-          <input type="hidden" name="groups" value={groups.join(",")} />
-          {groups.map((g) => (
-            <label key={g} className="block">
-              <span className="mb-1 block text-[11px] font-semibold text-slate-400">Markup {FZR_GROUP_LABELS[g] || g} (%)</span>
-              <input
-                name={`markup_${g}`} type="number" min={0} max={1000}
-                defaultValue={overrides[g] || ""} placeholder={`${provider.markupPercent} (chung)`}
-                className="inp !w-36 !py-2 text-[13px]"
-              />
-            </label>
-          ))}
-          <button className="btn-ghost btn-row !px-3.5">Lưu markup khu</button>
-        </form>
+      <div className="mt-3.5">
         <form action={famSyncArea}>
           <input type="hidden" name="returnTo" value={returnTo} />
           <input type="hidden" name="providerId" value={provider.id} />

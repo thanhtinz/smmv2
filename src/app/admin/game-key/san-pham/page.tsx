@@ -4,8 +4,6 @@ import { VariantRow, AreaSyncCard, AdminPager, ProductSyncButton } from "@/compo
 import { famSaveGameKeyProduct } from "@/app/actions/admin-families";
 import { GameKeyAddForm, GameKeyEditionForm, BulkAddPanel } from "@/components/fzr-picker";
 import { loadGameKeyFamilies } from "@/lib/families";
-import { getSettings } from "@/lib/settings";
-import { fzrMarkupKey } from "@/lib/fzr-markup";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -19,15 +17,12 @@ const RT = "/admin/game-key/san-pham";
  *  (key_id, giá bán sửa ở đây là giá tính tiền, tồn kho là số phía FZR tại
  *  lần đồng bộ gần nhất). Edition admin tự thêm mang dấu CUSTOM — đồng bộ
  *  không ghi đè giá và không tắt. KHÔNG trang cấu hình riêng: tỉ giá +
- *  markup chung ở form nhà cung cấp (Admin → Nhà cung cấp), markup riêng
- *  của khu ở thẻ AreaSyncCard bên dưới. */
+ *  mọi markup đều ở form nhà cung cấp (Admin → Nhà cung cấp). */
 export default async function AdminGameKeyProducts({ searchParams }: { searchParams: { msg?: string; err?: string; q?: string; page?: string } }) {
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const q = (searchParams.q || "").trim();
   const { providers, groups, total, page, pages, platformOptions, regionOptions } = await loadGameKeyFamilies({ q, page: parseInt(searchParams.page || "1") || 1 });
-  const settings = await getSettings();
-  const areaOverrides = { gamekeys: settings[fzrMarkupKey("gamekeys")] || "" };
   return (
     <div>
       <PageHead
@@ -41,7 +36,7 @@ export default async function AdminGameKeyProducts({ searchParams }: { searchPar
           Chưa có nhà cung cấp FZR đang bật — thêm nhà cung cấp ở Admin → Nhà cung cấp (API) rồi đồng bộ catalog để có game.
         </div>
       )}
-      {providers[0] && <AreaSyncCard provider={providers[0]} groups={["gamekeys"]} overrides={areaOverrides} returnTo={RT} />}
+      {providers[0] && <AreaSyncCard provider={providers[0]} groups={["gamekeys"]} returnTo={RT} />}
 
       <section className="card mb-4 overflow-hidden">
         <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
