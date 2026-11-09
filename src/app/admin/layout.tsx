@@ -38,11 +38,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin", label: L("Tổng quan"), icon: "home" },
     { href: "/admin/phan-tich", label: L("Phân tích"), icon: "chart", adminOnly: true },
     {
-      group: "Quản lý SMM", icon: "cart",
+      group: "Quản lý SMM", icon: "share",
       children: [
         { href: "/admin/danh-muc", label: L("Danh mục dịch vụ"), icon: "layers", adminOnly: true } as any,
         { href: "/admin/dich-vu", label: L("Danh sách dịch vụ"), icon: "list", adminOnly: true } as any,
-        { href: "/admin/cap-bac", label: L("Cấp bậc người dùng"), icon: "percent", adminOnly: true } as any,
+        { href: "/admin/cap-bac", label: L("Cấp bậc người dùng"), icon: "star", adminOnly: true } as any,
         { href: "/admin/don-smm", label: L("Quản lý đơn hàng"), icon: "cart", badge: manualPending },
         { href: "/admin/kiem-tra-ai", label: L("Kiểm tra AI"), icon: "cpu", adminOnly: true } as any,
         { href: "/admin/gia-thong-minh", label: L("Giá thông minh"), icon: "money", adminOnly: true } as any,
@@ -51,21 +51,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     // FIX7 E1 (lệnh Tín 2026-11-08 02:12): Nhà cung cấp RA KHỎI dropdown —
     // thành mục top-level ngay sau nhóm Quản lý SMM (trước đây chôn trong
     // nhóm nên khó thấy; nhà cung cấp là nguồn sống của cả SMM lẫn Premium).
-    { href: "/admin/nha-cung-cap", label: L("Nhà cung cấp (API)"), icon: "server", adminOnly: true },
+    { href: "/admin/nha-cung-cap", label: L("Nhà cung cấp (API)"), icon: "link", adminOnly: true },
     {
       group: "Tài khoản Premium", icon: "gem",
       children: [
         { href: "/admin/premium/danh-muc", label: L("Danh mục sản phẩm"), icon: "layers", adminOnly: true } as any,
-        { href: "/admin/premium", label: L("Sản phẩm & Gói"), icon: "gem", adminOnly: true } as any,
-        { href: "/admin/kho-premium", label: L("Kho Premium"), icon: "box", adminOnly: true } as any,
-        { href: "/admin/don-premium", label: L("Quản lý đơn hàng"), icon: "box", badge: prePending },
+        { href: "/admin/premium", label: L("Sản phẩm & Gói"), icon: "box", adminOnly: true } as any,
+        { href: "/admin/kho-premium", label: L("Kho Premium"), icon: "db", adminOnly: true } as any,
+        { href: "/admin/don-premium", label: L("Quản lý đơn hàng"), icon: "receipt", badge: prePending },
       ],
     } as any,
     {
       group: "Telegram", icon: "send",
       children: [
-        { href: "/admin/telegram", label: L("Đơn Telegram"), icon: "send" } as any,
-        { href: "/admin/telegram/san-pham", label: L("Sản phẩm Telegram"), icon: "gem", adminOnly: true } as any,
+        { href: "/admin/telegram", label: L("Đơn Telegram"), icon: "receipt" } as any,
+        { href: "/admin/telegram/san-pham", label: L("Sản phẩm Telegram"), icon: "box", adminOnly: true } as any,
       ],
     } as any,
     // FIX7 E4: khu Steam trong admin (gương theo khu Telegram) — đơn hàng
@@ -73,8 +73,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     {
       group: "Steam", icon: "gamepad",
       children: [
-        { href: "/admin/steam", label: L("Đơn hàng Steam"), icon: "box" } as any,
-        { href: "/admin/steam/san-pham", label: L("Sản phẩm Steam"), icon: "gem", adminOnly: true } as any,
+        { href: "/admin/steam", label: L("Đơn hàng Steam"), icon: "receipt" } as any,
+        { href: "/admin/steam/san-pham", label: L("Sản phẩm Steam"), icon: "box", adminOnly: true } as any,
       ],
     } as any,
     // FIX10: khu Game Key trong admin (nhóm dropdown như Telegram/Steam) —
@@ -82,8 +82,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     {
       group: "Game Key", icon: "key",
       children: [
-        { href: "/admin/game-key", label: L("Đơn hàng Game Key"), icon: "box" } as any,
-        { href: "/admin/game-key/san-pham", label: L("Sản phẩm Game Key"), icon: "gem", adminOnly: true } as any,
+        { href: "/admin/game-key", label: L("Đơn hàng Game Key"), icon: "receipt" } as any,
+        { href: "/admin/game-key/san-pham", label: L("Sản phẩm Game Key"), icon: "box", adminOnly: true } as any,
       ],
     } as any,
     // Khu Gift Card trong admin (nhóm dropdown như Game Key) — đơn hàng
@@ -91,28 +91,28 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     {
       group: "Gift Card", icon: "gift",
       children: [
-        { href: "/admin/gift-card", label: L("Đơn hàng Gift Card"), icon: "box" } as any,
-        { href: "/admin/gift-card/san-pham", label: L("Sản phẩm Gift Card"), icon: "gem", adminOnly: true } as any,
+        { href: "/admin/gift-card", label: L("Đơn hàng Gift Card"), icon: "receipt" } as any,
+        { href: "/admin/gift-card/san-pham", label: L("Sản phẩm Gift Card"), icon: "box", adminOnly: true } as any,
       ],
     } as any,
     // Khu Top-Up trong admin (nhóm dropdown như các khu FZR khác) — đơn hàng
     // (STAFF xử lý được) + sản phẩm theo cấu trúc FZR topups (ADMIN): 1
     // category = 1 sản phẩm, fields[] của category sửa nhãn tại đó.
     {
-      group: "Top-Up", icon: "money",
+      group: "Top-Up", icon: "zap",
       children: [
-        { href: "/admin/top-up", label: L("Đơn hàng Top-Up"), icon: "box" } as any,
-        { href: "/admin/top-up/san-pham", label: L("Sản phẩm Top-Up"), icon: "gem", adminOnly: true } as any,
+        { href: "/admin/top-up", label: L("Đơn hàng Top-Up"), icon: "receipt" } as any,
+        { href: "/admin/top-up/san-pham", label: L("Sản phẩm Top-Up"), icon: "box", adminOnly: true } as any,
       ],
     } as any,
     // Khu Manual Services trong admin — đơn hàng (STAFF xử lý được) + sản
     // phẩm theo cấu trúc FZR manual-services (ADMIN): 1 category = 1 sản
     // phẩm, fields[] replenishment sửa nhãn tại trang sản phẩm.
     {
-      group: "Manual Services", icon: "layers",
+      group: "Manual Services", icon: "wrench",
       children: [
-        { href: "/admin/manual-services", label: L("Đơn hàng Manual Services"), icon: "box" } as any,
-        { href: "/admin/manual-services/san-pham", label: L("Sản phẩm Manual Services"), icon: "gem", adminOnly: true } as any,
+        { href: "/admin/manual-services", label: L("Đơn hàng Manual Services"), icon: "receipt" } as any,
+        { href: "/admin/manual-services/san-pham", label: L("Sản phẩm Manual Services"), icon: "box", adminOnly: true } as any,
       ],
     } as any,
     { href: "/admin/nguoi-dung", label: L("Người dùng"), icon: "users", adminOnly: true },
@@ -120,43 +120,43 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     {
       group: "Tài chính", icon: "wallet",
       children: [
-        { href: "/admin/nap-tien", label: L("Quản lý Nạp tiền"), icon: "wallet", badge: depPending, adminOnly: true } as any,
-        { href: "/admin/cau-hinh-nap-tien", label: L("Cấu hình nạp tiền"), icon: "gear", adminOnly: true } as any,
-        { href: "/admin/bien-dong", label: L("Biến động số dư"), icon: "money", adminOnly: true } as any,
+        { href: "/admin/nap-tien", label: L("Quản lý Nạp tiền"), icon: "inbox", badge: depPending, adminOnly: true } as any,
+        { href: "/admin/cau-hinh-nap-tien", label: L("Cấu hình nạp tiền"), icon: "sliders", adminOnly: true } as any,
+        { href: "/admin/bien-dong", label: L("Biến động số dư"), icon: "refresh", adminOnly: true } as any,
         { href: "/admin/ngan-hang", label: L("Ngân hàng"), icon: "landmark", adminOnly: true } as any,
-        { href: "/admin/tien-te", label: L("Quản lý tiền tệ"), icon: "money", adminOnly: true } as any,
+        { href: "/admin/tien-te", label: L("Quản lý tiền tệ"), icon: "percent", adminOnly: true } as any,
       ],
     } as any,
     {
       group: "Marketing", icon: "megaphone",
       children: [
-        { href: "/admin/ma-giam-gia", label: L("Mã giảm giá"), icon: "gift", adminOnly: true } as any,
-        { href: "/admin/khuyen-mai", label: L("Khuyến mãi"), icon: "percent", adminOnly: true } as any,
+        { href: "/admin/ma-giam-gia", label: L("Mã giảm giá"), icon: "code", adminOnly: true } as any,
+        { href: "/admin/khuyen-mai", label: L("Khuyến mãi"), icon: "tag", adminOnly: true } as any,
         { href: "/admin/email-marketing", label: L("Email Marketing"), icon: "mail", adminOnly: true } as any,
-        { href: "/admin/lien-he", label: L("Widget Liên hệ"), icon: "megaphone", adminOnly: true } as any,
+        { href: "/admin/lien-he", label: L("Widget Liên hệ"), icon: "phone", adminOnly: true } as any,
       ],
     } as any,
     {
       group: "Bài viết", icon: "file",
       children: [
-        { href: "/admin/bai-viet", label: L("Tất cả bài viết"), icon: "file", adminOnly: true } as any,
-        { href: "/admin/bai-viet/danh-muc", label: L("Danh mục"), icon: "list", adminOnly: true } as any,
+        { href: "/admin/bai-viet", label: L("Tất cả bài viết"), icon: "book", adminOnly: true } as any,
+        { href: "/admin/bai-viet/danh-muc", label: L("Danh mục"), icon: "layers", adminOnly: true } as any,
       ],
     } as any,
     {
-      group: "Hệ thống", icon: "gear",
+      group: "Hệ thống", icon: "monitor",
       children: [
-        { href: "/admin/mo-dun", label: L("Mô-đun"), icon: "layers", adminOnly: true } as any,
+        { href: "/admin/mo-dun", label: L("Mô-đun"), icon: "panels", adminOnly: true } as any,
         { href: "/admin/cau-hinh", label: L("Cài đặt"), icon: "gear", adminOnly: true } as any,
         { href: "/admin/ngon-ngu", label: L("Quản lý ngôn ngữ"), icon: "globe", adminOnly: true } as any,
         { href: "/admin/bao-cao", label: L("Báo cáo & Thông báo"), icon: "bell", adminOnly: true } as any,
         { href: "/admin/trung-tam-bao-mat", label: L("Trung tâm bảo mật"), icon: "shield", adminOnly: true } as any,
-        { href: "/admin/bao-mat", label: L("Bảo mật nâng cao"), icon: "shield", adminOnly: true } as any,
-        { href: "/admin/rui-ro", label: L("Phát hiện rủi ro"), icon: "shield", adminOnly: true } as any,
+        { href: "/admin/bao-mat", label: L("Bảo mật nâng cao"), icon: "lock", adminOnly: true } as any,
+        { href: "/admin/rui-ro", label: L("Phát hiện rủi ro"), icon: "fingerprint", adminOnly: true } as any,
         { href: "/admin/nhat-ky", label: L("Nhật ký API"), icon: "clock" } as any,
-        { href: "/admin/cap-nhat", label: L("Cập nhật hệ thống"), icon: "cpu", adminOnly: true } as any,
+        { href: "/admin/cap-nhat", label: L("Cập nhật hệ thống"), icon: "history", adminOnly: true } as any,
         { href: "/admin/he-thong", label: L("Hệ thống"), icon: "server", adminOnly: true } as any,
-        { href: "/admin/don-dep", label: L("Dọn dẹp hệ thống"), icon: "file", adminOnly: true } as any,
+        { href: "/admin/don-dep", label: L("Dọn dẹp hệ thống"), icon: "trash", adminOnly: true } as any,
       ],
     } as any,
   ];

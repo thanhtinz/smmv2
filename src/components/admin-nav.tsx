@@ -42,6 +42,11 @@ const ICON_COLORS: Record<string, string> = {
   chart: "text-cyan-300", shield: "text-red-400", panels: "text-indigo-300", ticket: "text-rose-400",
   clock: "text-slate-300", cpu: "text-emerald-300", key: "text-amber-300", gear: "text-slate-300",
   bell: "text-amber-400", globe: "text-cyan-300", gamepad: "text-sky-300",
+  share: "text-blue-400", zap: "text-yellow-300", wrench: "text-orange-400", receipt: "text-emerald-300",
+  code: "text-lime-300", link: "text-cyan-400", inbox: "text-teal-300", tag: "text-rose-300",
+  star: "text-amber-300", phone: "text-green-400", book: "text-orange-200", sliders: "text-indigo-300",
+  monitor: "text-slate-200", lock: "text-red-300", fingerprint: "text-purple-300", history: "text-slate-300",
+  trash: "text-rose-300", refresh: "text-cyan-300", db: "text-blue-300", send: "text-sky-400",
 };
 const GROUP_TILES: Record<string, string> = {
   wallet: "bg-gradient-to-br from-emerald-500 to-teal-600",

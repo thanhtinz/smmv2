@@ -158,6 +158,19 @@ export const I = {
   ban: <P d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM4.9 4.9l14.2 14.2" />,
   copy: <P d="M9 9h11a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />,
   history: <P d="M3 12a9 9 0 1 0 2.6-6.4L3 8M3 3v5h5M12 7v5l4 2" />,
+  // Bộ icon bổ sung cho đợt làm mới icon menu (2026-11-08): mỗi mục menu
+  // một icon riêng đúng nghĩa — share (mạng xã hội/SMM), zap (nạp nhanh
+  // Top-Up), wrench (dịch vụ thủ công), receipt (đơn hàng — glyph vai trò
+  // dùng chung cho mục Đơn hàng ở mọi khu), code (tài liệu API / mã),
+  // link (nhà cung cấp = kết nối), inbox (nạp tiền vào), tag (khuyến mãi).
+  share: <P d="M18 5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm12 4a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.6 10.6l6.8-4.2M8.6 13.4l6.8 4.2" />,
+  zap: <P d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />,
+  wrench: <P d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />,
+  receipt: <P d="M4 2v20l2-1.5L8 22l2-1.5L12 22l2-1.5L16 22l2-1.5L20 22V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5 4 2zM8.5 8h7M8.5 12h7" />,
+  code: <P d="m8 8-5 4 5 4M16 8l5 4-5 4M13.5 5l-3 14" />,
+  link: <P d="M10 14a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 5.4M14 10a5 5 0 0 0-7.07 0L4.1 12.83a5 5 0 0 0 7.07 7.07l1.33-1.3" />,
+  inbox: <P d="M22 12h-5.6l-2.1 3h-4.6L7.6 12H2M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z" />,
+  tag: <P d="M3 3h7.2L21 13.8a2 2 0 0 1 0 2.8l-4.4 4.4a2 2 0 0 1-2.8 0L3 10.2V3zM7.5 7.5h.01" />,
   chevron: <P d="m6 9 6 6 6-6" />,
   arrowRight: <P d="M5 12h14M13 6l6 6-6 6" />,
   x: <P d="M18 6 6 18M6 6l12 12" />,
