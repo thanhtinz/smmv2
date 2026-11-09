@@ -6,13 +6,12 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
+/* Tiền tệ hiển thị chỉ còn USD là ngoại tệ (lệnh Tín 2026-11-08 21:46 —
+ * EUR/CNY/THB/JPY/KRW đã bỏ khỏi lựa chọn hiển thị nên các dòng tỉ giá
+ * "chỉ quy đổi hiển thị" của chúng cũng bỏ khỏi trang này; tỉ giá nạp
+ * ngoại tệ qua cổng thanh toán nằm ở bảng FX trong Cấu hình nạp tiền). */
 const CURRENCIES = [
   { key: "usd_rate", code: "USD", name: "Đô la Mỹ", note: "Cũng là tỉ giá quy đổi khi khách nạp qua PayPal / Stripe" },
-  { key: "rate_eur", code: "EUR", name: "Euro", note: "Chỉ quy đổi hiển thị" },
-  { key: "rate_cny", code: "CNY", name: "Nhân dân tệ", note: "Chỉ quy đổi hiển thị" },
-  { key: "rate_thb", code: "THB", name: "Baht Thái", note: "Chỉ quy đổi hiển thị" },
-  { key: "rate_jpy", code: "JPY", name: "Yên Nhật", note: "Chỉ quy đổi hiển thị" },
-  { key: "rate_krw", code: "KRW", name: "Won Hàn", note: "Chỉ quy đổi hiển thị" },
 ] as const;
 
 /** Quản lý tiền tệ — tỉ giá quy đổi HIỂN THỊ cho khách chọn ngoại tệ ở nút Cài đặt.

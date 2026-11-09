@@ -1,13 +1,13 @@
-/* Từ điển giao diện 6 ngôn ngữ — khoá là câu tiếng Việt gốc hiển thị trên trang.
+/* Từ điển giao diện — khoá là câu tiếng Việt gốc hiển thị trên trang.
  *  Lớp hiển thị (DisplayEngine) dịch tại chỗ các nhãn/nút/tiêu đề khớp chính xác;
- *  nội dung dữ liệu (tên dịch vụ, mô tả sản phẩm, ghi chú) giữ nguyên như đã nhập. */
+ *  nội dung dữ liệu (tên dịch vụ, mô tả sản phẩm, ghi chú) giữ nguyên như đã nhập.
+ *  NGÔN NGỮ HIỂN THỊ CHỈ CÒN vi + en (lệnh Tín 2026-11-08 21:46): 4 ngôn ngữ
+ *  zh/th/ja/ko đã bỏ khỏi danh sách chọn — dữ liệu dịch của chúng trong DICT
+ *  giữ nguyên tại chỗ nhưng không còn đường nào chọn tới được (LANG_KEYS rút
+ *  theo LANGS nên cấu hình lưu cũ chứa mã đã bỏ sẽ tự rơi về mặc định). */
 export const LANGS = [
   { key: "en", name: "English" },
   { key: "vi", name: "Tiếng Việt" },
-  { key: "zh", name: "中文" },
-  { key: "th", name: "ไทย" },
-  { key: "ja", name: "日本語" },
-  { key: "ko", name: "한국어" },
 ] as const;
 export type LangKey = (typeof LANGS)[number]["key"];
 
@@ -3920,6 +3920,22 @@ export const DICT: Record<string, Tr> = {
   "Giảm giá flash sale tối đa (%)": e("Maximum flash sale discount (%)", "闪购最大折扣（%）", "ส่วนลดแฟลชเซลสูงสุด (%)", "フラッシュセールの最大割引率（%）", "플래시 세일 최대 할인율(%)"),
   "Đợt flash sale đặt % cao hơn mức này vẫn chỉ giảm tối đa mức này khi tính tiền.": e("A flash sale set above this level is still capped at this level when prices are calculated.", "闪购折扣即使设置为高于此值，计价时仍以此值为上限。", "แฟลชเซลที่ตั้งไว้สูงกว่าระดับนี้จะถูกจำกัดไว้ที่ระดับนี้เมื่อคำนวณราคา", "この水準より高く設定されたフラッシュセールでも、価格計算時はこの水準が上限となります。", "이 수준보다 높게 설정된 플래시 세일도 가격 계산 시 이 수준으로 제한됩니다."),
   "Sản phẩm Manual Services": e("Manual Services products", "手动服务产品", "สินค้า Manual Services", "Manual Servicesの商品", "Manual Services 상품"),
+  "Banner trang chủ": e("Homepage banners", "首页横幅", "แบนเนอร์หน้าแรก", "ホームページバナー", "홈페이지 배너"),
+  "Mỗi banner gắn một ngôn ngữ — khách chọn ngôn ngữ nào sẽ thấy banner của ngôn ngữ đó.": e("Each banner carries one language — visitors see the banners of the language they picked.", "每个横幅对应一种语言 — 访客看到其所选语言的横幅。", "แบนเนอร์แต่ละรายการมีหนึ่งภาษา — ผู้เข้าชมจะเห็นแบนเนอร์ของภาษาที่เลือก", "各バナーは1つの言語を持ちます — 訪問者は選択した言語のバナーを見ます。", "각 배너에는 하나의 언어가 지정됩니다 — 방문자는 선택한 언어의 배너를 봅니다."),
+  "Thêm banner mới": e("Add a new banner", "添加新横幅", "เพิ่มแบนเนอร์ใหม่", "新しいバナーを追加", "새 배너 추가"),
+  "Ảnh banner": e("Banner image", "横幅图片", "รูปแบนเนอร์", "バナー画像", "배너 이미지"),
+  "Dán link ảnh hoặc tải ảnh từ máy": e("Paste an image link or upload from your device", "粘贴图片链接或从设备上传", "วางลิงก์รูปหรืออัปโหลดจากเครื่อง", "画像リンクを貼るか端末からアップロード", "이미지 링크를 붙여넣거나 기기에서 업로드"),
+  "Link đích khi bấm vào banner": e("Destination link when the banner is clicked", "点击横幅时的目标链接", "ลิงก์ปลายทางเมื่อคลิกแบนเนอร์", "バナーをクリックしたときのリンク先", "배너 클릭 시 이동할 링크"),
+  "Để trống = bấm vào không dẫn đi đâu": e("Leave empty = clicking goes nowhere", "留空 = 点击不跳转", "เว้นว่าง = คลิกแล้วไม่ไปไหน", "空欄 = クリックしても移動しません", "비워 두면 클릭해도 이동하지 않습니다"),
+  "Ngôn ngữ banner": e("Banner language", "横幅语言", "ภาษาของแบนเนอร์", "バナーの言語", "배너 언어"),
+  "Chưa có banner nào": e("No banners yet", "暂无横幅", "ยังไม่มีแบนเนอร์", "バナーはまだありません", "아직 배너가 없습니다"),
+  "Khi chưa có banner, trang chủ dùng slide tự tạo từ danh mục sản phẩm.": e("With no banners, the homepage uses slides generated from product categories.", "没有横幅时，首页使用由产品分类自动生成的幻灯片。", "เมื่อไม่มีแบนเนอร์ หน้าแรกจะใช้สไลด์ที่สร้างจากหมวดหมู่สินค้า", "バナーがない場合、ホームページは商品カテゴリから生成されたスライドを使います。", "배너가 없으면 홈페이지는 상품 카테고리로 생성된 슬라이드를 사용합니다."),
+  "Đã thêm banner": e("Banner added", "横幅已添加", "เพิ่มแบนเนอร์แล้ว", "バナーを追加しました", "배너가 추가되었습니다"),
+  "Đã xoá banner": e("Banner deleted", "横幅已删除", "ลบแบนเนอร์แล้ว", "バナーを削除しました", "배너가 삭제되었습니다"),
+  "Chưa có ảnh banner": e("No banner image yet", "尚未提供横幅图片", "ยังไม่มีรูปแบนเนอร์", "バナー画像がありません", "배너 이미지가 없습니다"),
+  "Tải ảnh": e("Upload image", "上传图片", "อัปโหลดรูป", "画像をアップロード", "이미지 업로드"),
+  "Ảnh đã tải lên từ máy": e("Image uploaded from your device", "已从设备上传的图片", "รูปที่อัปโหลดจากเครื่อง", "端末からアップロードした画像", "기기에서 업로드한 이미지"),
+  "Danh sách banner": e("Banner list", "横幅列表", "รายการแบนเนอร์", "バナー一覧", "배너 목록"),
   "Mỗi dịch vụ thủ công là một sản phẩm theo Service ID của FazerCards; các gói là các offer của dịch vụ đó. Trường người mua chỉ có ở dịch vụ replenishment — sửa nhãn hiển thị tại đây, key gửi đơn giữ nguyên.": e("Each manual service is one product keyed by its FazerCards Service ID; the packages are that service's offers. Buyer fields exist only on replenishment services — edit the display labels here, the submitted keys stay unchanged.", "每个手动服务是按 FazerCards 服务 ID 对应的一个产品；套餐是该服务的 offer。买家字段仅存在于 replenishment 服务 — 在此处编辑显示标签，提交的 key 保持不变。", "บริการด้วยตนเองแต่ละรายการคือหนึ่งสินค้าตาม Service ID ของ FazerCards แพ็กเกจคือ offer ของบริการนั้น ช่องข้อมูลผู้ซื้อมีเฉพาะในบริการ replenishment — แก้ไขป้ายแสดงที่นี่ key ที่ส่งยังคงเดิม", "各手動サービスはFazerCardsのService IDに対応する1商品です。パッケージはそのサービスのofferです。購入者フィールドはreplenishmentサービスにのみ存在します — 表示ラベルはここで編集し、送信keyは変更されません。", "각 수동 서비스는 FazerCards Service ID 기준 하나의 상품이며, 패키지는 해당 서비스의 offer입니다. 구매자 필드는 replenishment 서비스에만 있으며 — 표시 라벨은 여기서 편집하고 제출 key는 그대로 유지됩니다."),
 
 };
@@ -4109,14 +4125,14 @@ export function trd(lang: string, text: string, ov?: Record<string, string>): st
   return out;
 }
 
+/* Tiền tệ HIỂN THỊ chỉ còn VND + USD (lệnh Tín 2026-11-08 21:46): các mã
+ * khác đã bỏ khỏi danh sách — cookie smmv2-cur lưu mã cũ sẽ rơi về VND ở
+ * getCur() (đối chiếu theo đúng danh sách này) và formatMoney cũng tự rơi
+ * về định dạng VNĐ khi không tra thấy mã. Tiền nạp crypto (USDT/USDC) là
+ * tài sản nạp, KHÔNG phải tiền tệ hiển thị — không nằm trong danh sách này. */
 export const CURRENCIES: { key: string; name: string; rate: number }[] = [
   { key: "VND", name: "VND ₫", rate: 1 },
   { key: "USD", name: "USD $", rate: 25000 },
-  { key: "EUR", name: "EUR €", rate: 27000 },
-  { key: "CNY", name: "CNY ¥", rate: 3450 },
-  { key: "THB", name: "THB ฿", rate: 720 },
-  { key: "JPY", name: "JPY ¥", rate: 160 },
-  { key: "KRW", name: "KRW ₩", rate: 17.5 },
 ];
 export type CurrencyKey = string;
 

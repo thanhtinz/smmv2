@@ -45,6 +45,10 @@ export function effectivePrefs(): Prefs {
     if (!stored) p.lang = cfg.defaultLang;
     else if (!cfg.enabled.includes(p.lang)) p.lang = cfg.defaultLang;
   }
+  // Tiền tệ hiển thị chỉ còn VND + USD (2026-11-08): lựa chọn cũ lưu trên
+  // máy khách (EUR/CNY/…) rơi về VND — phía server getCur() cũng đối chiếu
+  // cùng danh sách CURRENCIES nên hai phía không lệch nhau.
+  if (!CURRENCIES.some((c) => c.key === p.cur)) p.cur = "VND";
   return p;
 }
 export function applyPrefs(p: Prefs) {
