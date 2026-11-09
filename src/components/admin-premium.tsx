@@ -114,6 +114,7 @@ export type PremiumProductDTO = {
   id: number; categoryId: number; categoryName: string; name: string; slug: string; tagline: string | null; description: string | null;
   color: string; fulfillment: string; providerId: number | null; providerProductId: string | null; customFields: string | null;
   buyNote: string | null; imageUrl: string | null; images: string[]; usageGuide: string | null; warrantyInfo: string | null;
+  metaTitle: string | null; metaDescription: string | null;
   active: boolean; sort: number; orderCount: number; variants: PremiumVariantDTO[];
 };
 export type PremiumProviderOpt = { id: number; name: string };
@@ -125,6 +126,8 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
   const [slug, setSlug] = useState(p?.slug || "");
   const [slugTouched, setSlugTouched] = useState(!!p);
   const [fulfillment, setFulfillment] = useState(p?.fulfillment || "MANUAL");
+  const [metaTitle, setMetaTitle] = useState(p?.metaTitle || "");
+  const [metaDescription, setMetaDescription] = useState(p?.metaDescription || "");
   return (
     <Modal title={p ? t("Chỉnh sửa Sản phẩm Premium") : t("Thêm Sản phẩm Premium Mới")} onClose={onClose} wide>
       <form action={adminSaveProduct}>
@@ -187,6 +190,21 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
               <div>
                 <label className={lbl}>{t("Trường tuỳ chỉnh khách điền khi mua")}</label>
                 <PremiumFieldsEditor initial={parsePremiumFields(p?.customFields)} />
+              </div>
+            </div>
+          </details>
+          <details className="rounded-xl border border-slate-200 px-4 py-3" open={!!p && (!!p.metaTitle || !!p.metaDescription)}>
+            <summary className="cursor-pointer text-sm font-semibold text-slate-700">SEO</summary>
+            <div className="mt-3 space-y-4">
+              <div>
+                <label className={lbl}>{t("Tiêu đề SEO")} <span className="font-normal text-slate-400">({metaTitle.length}/255)</span></label>
+                <input name="metaTitle" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} maxLength={255} className={inp} placeholder={p?.name || ""} />
+                <p className="mt-1 text-xs text-slate-400">{t("Để trống = tự động dùng tên sản phẩm.")}</p>
+              </div>
+              <div>
+                <label className={lbl}>{t("Mô tả SEO")} <span className="font-normal text-slate-400">({metaDescription.length}/320)</span></label>
+                <textarea name="metaDescription" value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} maxLength={320} rows={3} className={inp} placeholder={p?.tagline || ""} />
+                <p className="mt-1 text-xs text-slate-400">{t("Để trống = tự động dùng mô tả ngắn của sản phẩm.")}</p>
               </div>
             </div>
           </details>

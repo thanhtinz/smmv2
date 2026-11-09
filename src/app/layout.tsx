@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getSettings } from "@/lib/settings";
+import { siteBaseUrl } from "@/lib/email-verify";
 import { getServerI18n } from "@/lib/lang-server";
 import { DisplayEngine } from "@/components/display";
 import { LangProvider } from "@/components/lang";
@@ -44,12 +45,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const dark = s?.default_mode === "dark";
   const headHtml = s?.custom_head_html;
   const bodyHtml = s?.custom_body_html;
+  // Dữ liệu có cấu trúc (SEO đợt 2026-11-08): Organization + WebSite toàn
+  // site từ chính cài đặt (tên/logo/URL) — không bịa số liệu.
+  const siteBase = (() => { try { return siteBaseUrl(); } catch { return ""; } })();
+  const orgLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: s?.site_name || "SMMv2",
+    ...(siteBase ? { url: siteBase + "/" } : {}),
+    ...(s?.logo_url ? { logo: s.logo_url.startsWith("http") ? s.logo_url : siteBase + s.logo_url } : {}),
+  };
+  const webLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: s?.site_name || "SMMv2",
+    ...(siteBase ? { url: siteBase + "/" } : {}),
+  };
   return (
     <html lang={i18n?.lang || "en"} data-accent={accent} className={dark ? "dark" : undefined} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: `window.__LANGCFG__=${langCfgJson};` }} />
         {s?.gsc_verification ? <meta name="google-site-verification" content={s.gsc_verification} /> : null}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd).replace(/</g, "\\u003c") }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webLd).replace(/</g, "\\u003c") }} />
         {s?.ga_id ? (
           <>
             <script async src={`https://www.googletagmanager.com/gtag/js?id=${s.ga_id}`} />

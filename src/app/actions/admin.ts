@@ -407,6 +407,8 @@ export async function adminSaveProduct(formData: FormData) {
     imageUrl: (() => { const first = formData.getAll("images").map((v) => String(v).trim()).filter(Boolean)[0]; return first ? first.slice(0, 500) : null; })(),
     usageGuide: String(formData.get("usageGuide") || "").trim() || null,
     warrantyInfo: String(formData.get("warrantyInfo") || "").trim() || null,
+    metaTitle: String(formData.get("metaTitle") || "").trim().slice(0, 255) || null,
+    metaDescription: String(formData.get("metaDescription") || "").trim().slice(0, 320) || null,
     active: formData.get("active") === "on",
     sort: parseInt(String(formData.get("sort") || "0")),
   };

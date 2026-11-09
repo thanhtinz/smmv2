@@ -18,7 +18,8 @@ import { PillStrip } from "@/components/pill-strip";
 import { RecordRecentView } from "@/components/recent";
 import { moduleOn } from "@/lib/modules";
 import { regularCatalogWhere } from "@/lib/order-scope";
-import { getActiveFlashSale, flashAppliesToProduct } from "@/lib/flash";
+import { getActiveFlashSale, flashAppliesToProduct, applyFlashAmount } from "@/lib/flash";
+import { siteBaseUrl } from "@/lib/email-verify";
 import { resolveDeliveryType, variantSoldOut, isQtyTracked } from "@/lib/variant-stock";
 import { FlashBanner } from "@/components/flash-banner";
 
@@ -323,11 +324,52 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   );
   const images = productImages(product.images, product.imageUrl);
   const homeHref = "/";
+  // Dữ liệu có cấu trúc (SEO đợt 2026-11-08) — CHỈ ở trang chi tiết công
+  // khai (/premium/<slug>): Product (giá = gói rẻ nhất sau giảm flash như
+  // giá đang hiển thị, còn hàng theo đúng logic hết hàng của gói, điểm
+  // đánh giá CHỈ khi sản phẩm thật có đánh giá) + BreadcrumbList khớp
+  // đúng breadcrumb đang hiển thị (Trang chủ -> Sản phẩm -> tên).
+  const seoLd = base === "/premium" ? (() => {
+    const sb = (() => { try { return siteBaseUrl(); } catch { return ""; } })();
+    const abs = (u: string) => (u.startsWith("http") ? u : sb + u);
+    const cheapest = product.variants.length ? Math.min(...product.variants.map((v) => v.price)) : 0;
+    const price = flashPct > 0 ? applyFlashAmount(cheapest, flashPct) : cheapest;
+    const anyInStock = product.variants.some((v) => !variantSoldOut(v, product.fulfillment));
+    const plain = (html: string | null) => (html || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const prod: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.name,
+      ...(plain(product.tagline || product.description) ? { description: plain(product.tagline || product.description).slice(0, 300) } : {}),
+      ...(images[0] ? { image: abs(images[0]) } : {}),
+      offers: {
+        "@type": "Offer",
+        ...(sb ? { url: `${sb}/premium/${product.slug}` } : {}),
+        priceCurrency: "VND",
+        price,
+        availability: anyInStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      },
+      ...(reviewAgg._count > 0 ? { aggregateRating: { "@type": "AggregateRating", ratingValue: Math.round(reviewAvg * 10) / 10, reviewCount: reviewAgg._count } } : {}),
+    };
+    const crumbs = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: L("Trang chủ"), item: sb + "/" },
+        { "@type": "ListItem", position: 2, name: L("Sản phẩm"), item: sb + "/premium" },
+        { "@type": "ListItem", position: 3, name: product.name, item: `${sb}/premium/${product.slug}` },
+      ],
+    };
+    return [prod, crumbs];
+  })() : null;
   const fulfillmentTag = product.fulfillment === "AUTO_STOCK" ? L("Giao ngay") : product.fulfillment === "API" ? L("Giao qua đối tác") : L("Nâng cấp chính chủ");
   const prices = product.variants.map((v) => v.price).filter((x) => x > 0);
 
   return (
     <>
+      {seoLd?.map((ld, i) => (
+        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, "\\u003c") }} />
+      ))}
       <RecordRecentView item={{ productId: product.id, slug: product.slug, name: product.name, price: prices.length ? Math.min(...prices) : 0, image: images[0] || null }} />
       <div className="rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-brand-500 px-6 py-6 text-white sm:px-8">
         <div className="text-[13px] font-medium text-white/75">
