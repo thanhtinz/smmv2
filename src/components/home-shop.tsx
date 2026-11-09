@@ -9,7 +9,7 @@ import { useLang } from "@/components/lang";
 import { I } from "@/components/ui";
 
 export type HomeCard = PremiumCardData & { categoryId: number };
-export type HomeSlide = { title: string; subtitle: string; href: string; cta: string; image: string | null; color: string };
+export type HomeSlide = { title: string; subtitle: string; href: string; cta: string; image: string | null; color: string; bare?: boolean };
 export type HomeCat = { id: number; name: string; color: string; image: string | null; count: number };
 
 const PAGE = 8;
@@ -84,7 +84,20 @@ export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
       <div className="relative h-[240px] sm:h-[300px] lg:h-[380px]">
         {slides.map((s, i) => (
           <div key={i} className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-            {s.image ? (
+            {s.bare ? (
+              /* Slide BANNER ADMIN: ảnh là toàn bộ nội dung (chữ đã nằm
+                 trong chính ảnh admin tải lên) — không chèn khối chữ của
+                 slide tự tạo; có link đích thì cả slide bấm được. */
+              s.href ? (
+                <Link href={s.href} className="absolute inset-0" aria-label="Banner">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.image || ""} alt="" className="h-full w-full object-cover" />
+                </Link>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={s.image || ""} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              )
+            ) : s.image ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={s.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -96,15 +109,20 @@ export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
                 <span className="absolute -right-2 top-1/2 -translate-y-1/2 select-none text-[150px] font-black leading-none text-white/15 sm:text-[220px]">{s.title.charAt(0).toUpperCase()}</span>
               </>
             )}
-            <div className="relative mx-auto flex h-full w-full max-w-7xl flex-col justify-center px-4">
-              <div className="max-w-xl px-12 sm:px-14">
-                <h1 className="text-[28px] font-black leading-tight text-white sm:text-4xl lg:text-5xl">{s.title}</h1>
-                {s.subtitle && <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-white/85 sm:text-base lg:text-lg">{s.subtitle}</p>}
-                <div className="mt-5 lg:mt-7">
-                  <Link href={s.href} className="inline-block rounded-full bg-white px-6 py-2.5 text-sm font-extrabold text-slate-900 shadow-lg transition hover:bg-slate-100 lg:px-7 lg:py-3 lg:text-[15px]">{s.cta}</Link>
+            {/* Khối chữ CHỈ dành cho slide tự tạo — slide banner (bare)
+                không render khối này: nó phủ h-full lên trên ảnh và sẽ
+                chặn mất click vào link của banner. */}
+            {!s.bare && (
+              <div className="relative mx-auto flex h-full w-full max-w-7xl flex-col justify-center px-4">
+                <div className="max-w-xl px-12 sm:px-14">
+                  <h1 className="text-[28px] font-black leading-tight text-white sm:text-4xl lg:text-5xl">{s.title}</h1>
+                  {s.subtitle && <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-white/85 sm:text-base lg:text-lg">{s.subtitle}</p>}
+                  <div className="mt-5 lg:mt-7">
+                    <Link href={s.href} className="inline-block rounded-full bg-white px-6 py-2.5 text-sm font-extrabold text-slate-900 shadow-lg transition hover:bg-slate-100 lg:px-7 lg:py-3 lg:text-[15px]">{s.cta}</Link>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         ))}
       </div>

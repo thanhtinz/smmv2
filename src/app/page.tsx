@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
  *  khách bật), không còn da đen riêng của storefront hay tàn dư landing nào. */
 export default async function HomePage() {
   const s = await getSettings();
-  const { L, Ld } = await getServerI18n();
+  const { L, Ld, lang } = await getServerI18n();
   const user = await getCurrentUser().catch(() => null);
   const premiumOff = s.module_premium === "0";
   // Dải icon lối tắt dưới hero (lệnh Tín 2026-11-08 21:08): ẩn/hiện từng ô
@@ -120,6 +120,16 @@ export default async function HomePage() {
           color: c.color,
         })),
     ];
+    // Banner admin (lệnh Tín 2026-11-08 21:46): khi admin đã tải banner lên
+    // thì hero chạy BANNER THẬT thay slide tự tạo — chỉ banner đúng ngôn ngữ
+    // khách đang chọn (lang đã resolve vi/en); ngôn ngữ đó chưa có banner
+    // thì tạm dùng bộ banner của ngôn ngữ còn lại để hero không bao giờ trống.
+    const bannerRows = await prisma.homeBanner.findMany({ where: { active: true }, orderBy: [{ sort: "asc" }, { id: "asc" }] });
+    if (bannerRows.length) {
+      const mine = bannerRows.filter((b) => b.lang === lang);
+      const chosen = mine.length ? mine : bannerRows;
+      slides = chosen.map((b) => ({ title: "", subtitle: "", href: b.href || "", cta: "", image: b.image, color: "#1d4ed8", bare: true }));
+    }
   }
 
   return (

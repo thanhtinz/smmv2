@@ -134,6 +134,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/khuyen-mai", label: L("Khuyến mãi"), icon: "tag", adminOnly: true } as any,
         { href: "/admin/email-marketing", label: L("Email Marketing"), icon: "mail", adminOnly: true } as any,
         { href: "/admin/lien-he", label: L("Widget Liên hệ"), icon: "phone", adminOnly: true } as any,
+        { href: "/admin/banner", label: L("Banner trang chủ"), icon: "panels", adminOnly: true } as any,
       ],
     } as any,
     {

@@ -568,6 +568,23 @@ model ContactWidget {
   updatedAt DateTime    @updatedAt
 }
 
+// Banner hero trang chủ do admin quản lý (lệnh Tín 2026-11-08 21:46): mỗi
+// banner gắn MỘT ngôn ngữ hiển thị ("vi" | "en") — khách chọn ngôn ngữ nào
+// thì hero chỉ chạy banner của ngôn ngữ đó; ngôn ngữ chưa có banner thì
+// tạm dùng bộ banner của ngôn ngữ còn lại. Chưa có banner nào thì trang
+// chủ giữ slide tự tạo từ danh mục như trước. image = URL hoặc data-URL
+// admin tải lên; href trống = bấm vào không dẫn đi đâu.
+model HomeBanner {
+  id        Int      @id @default(autoincrement())
+  image     String   @db.Text
+  href      String?  @db.VarChar(500)
+  lang      String   @default("vi") @db.VarChar(5)
+  active    Boolean  @default(true)
+  sort      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Setting {
   key   String @id @db.VarChar(80)
   value String @db.Text
