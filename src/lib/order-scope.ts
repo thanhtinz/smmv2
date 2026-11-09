@@ -11,7 +11,8 @@ export const STEAM_GROUPS = ["steam_topup", "steam_gift"];
 export const GAMEKEY_GROUPS = ["gamekeys"];
 export const GIFTCARD_GROUPS = ["giftcards"];
 export const TOPUP_GROUPS = ["topups"];
-export const DEDICATED_GROUPS = [...TELEGRAM_GROUPS, ...STEAM_GROUPS, ...GAMEKEY_GROUPS, ...GIFTCARD_GROUPS, ...TOPUP_GROUPS];
+export const MANUAL_GROUPS = ["manual"];
+export const DEDICATED_GROUPS = [...TELEGRAM_GROUPS, ...STEAM_GROUPS, ...GAMEKEY_GROUPS, ...GIFTCARD_GROUPS, ...TOPUP_GROUPS, ...MANUAL_GROUPS];
 
 /** Điều kiện "đơn Premium THƯỜNG": variant KHÔNG thuộc nhóm của khu riêng.
  *  Viết dạng AND/OR tường minh vì hai cái bẫy đã gặp:
@@ -44,5 +45,5 @@ export function regularPremiumWhere(userId?: number) {
  *  như ở tầng đơn): sản phẩm không còn variant thuộc các nhóm trên đang
  *  tồn tại thì là sản phẩm thường. */
 export function regularCatalogWhere() {
-  return { variants: { none: { providerGroup: { in: [...STEAM_GROUPS, ...TOPUP_GROUPS] } } } };
+  return { variants: { none: { providerGroup: { in: [...STEAM_GROUPS, ...TOPUP_GROUPS, ...MANUAL_GROUPS] } } } };
 }

@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { getTelegramProvider } from "@/lib/tg";
-import { ADMIN_VARIANT_MARK, steamAddProvider, gameKeyAddProvider, giftCardAddProvider, topupAddProvider } from "@/lib/families";
-import { FZR_LABELS, fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrGiftCardCards, fzrSteamGiftGames, fzrTelegramPremiumPlans, fzrTopups, fzrTopupOffers, normalizeTopupFields } from "@/lib/fzr";
+import { ADMIN_VARIANT_MARK, steamAddProvider, gameKeyAddProvider, giftCardAddProvider, topupAddProvider, manualAddProvider } from "@/lib/families";
+import { FZR_LABELS, fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrGiftCardCards, fzrSteamGiftGames, fzrTelegramPremiumPlans, fzrTopups, fzrTopupOffers, normalizeTopupFields, fzrManualServices, fzrManualOffers, normalizeManualFields } from "@/lib/fzr";
 import { syncFzrCatalog } from "@/lib/fzr-sync";
 import { fzrMarkupKey, fzrMarkupResolver } from "@/lib/fzr-markup";
 import { normalizePremiumFieldsJson, parsePremiumFields } from "@/lib/format";
@@ -508,6 +508,7 @@ async function pickerProvider(group: string): Promise<Provider | null> {
   if (group === "gamekeys") return gameKeyAddProvider();
   if (group === "giftcards") return giftCardAddProvider();
   if (group === "topups") return topupAddProvider();
+  if (group === "manual") return manualAddProvider();
   if (group === "steam_gift") return steamAddProvider();
   if (group === "telegram_premium") return getTelegramProvider();
   return null;
@@ -579,6 +580,21 @@ export async function fzrPickSearch(group: string, query: string, pageRaw?: numb
         const next = raw?.meta?.next_cursor;
         if (!raw?.meta?.has_more || !next) break;
         cursor = String(next);
+      }
+      return slicePage(matches);
+    }
+    if (group === "manual") {
+      // GET /manual-services trả items[] PHẲNG, không phân trang — kéo 1
+      // lần rồi lọc theo tên tại đây. extra = kind của category (dữ liệu
+      // thật phía NCC, hiển thị ở form thêm để admin biết loại giao).
+      const raw: any = await fzrManualServices(provider);
+      const matches: PickItem[] = [];
+      for (const c of asArr(raw?.items)) {
+        const id = c?.id;
+        if (id === undefined || id === null) continue;
+        const name = String(c?.name || id);
+        if (q && !name.toLowerCase().includes(q)) continue;
+        matches.push({ id: String(id), name, priceUsd: null, extra: String(c?.kind || "") });
       }
       return slicePage(matches);
     }
@@ -657,6 +673,18 @@ export async function fzrPickEditions(group: string, parentId: string): Promise<
         })),
       };
     }
+    if (group === "manual") {
+      const raw: any = await fzrManualOffers(provider, parentId);
+      return {
+        ok: true,
+        items: asArr(raw?.items).map((k) => ({
+          id: String(k?.id ?? ""),
+          name: String(k?.name || "Gói dịch vụ"),
+          priceUsd: k?.price_usd != null ? String(k.price_usd) : null,
+          extra: k?.delivery_minutes != null ? `Giao ~${k.delivery_minutes} phút` : "",
+        })),
+      };
+    }
     return { ok: false, error: "Nhóm này không có gói con" };
   } catch (e: any) {
     return { ok: false, error: `Không gọi được nhà cung cấp: ${String(e?.message || e).slice(0, 140)}` };
@@ -697,6 +725,15 @@ export async function fzrPickLookup(group: string, idRaw: string): Promise<PickR
     if (group === "topups") {
       const raw: any = await fzrTopupOffers(provider, id);
       if (raw && (raw.name || raw.offers)) return { ok: true, item: { id, name: String(raw.name || id), priceUsd: null, extra: "" } };
+      return notFound;
+    }
+    if (group === "manual") {
+      const raw: any = await fzrManualServices(provider);
+      for (const c of asArr(raw?.items)) {
+        if (String(c?.id) === id) {
+          return { ok: true, item: { id, name: String(c?.name || id), priceUsd: null, extra: String(c?.kind || "") } };
+        }
+      }
       return notFound;
     }
     if (group === "steam_gift") {
@@ -829,6 +866,151 @@ export async function famAddTopupOffer(fd: FormData) {
     },
   });
   back(rt(fd), true, `Đã thêm gói nạp ${name}`);
+}
+
+/* ================= KHU MANUAL SERVICES (FZR manual-services, theo OpenAPI) =================
+ * 1 category = 1 sản phẩm (providerProductId = manual_service_id), offer =
+ * variant (providerItemId = offer id). kind của category lưu ở providerKind;
+ * info của NCC lưu ở description (trang khách hiện trong thẻ NOTE + popover
+ * của chip file); delivery_minutes + note_product của offer lưu ở variant.
+ * fields[] CHỈ có khi kind = replenishment ({ code, name }) -> customFields
+ * kèm key = code, nhãn admin sửa được như Top-Up. */
+
+/** Nạp dữ liệu THẬT của một category manual từ nhà cung cấp cho form thêm
+ *  sản phẩm (fzr-picker ManualAddForm): fields[] (chỉ replenishment) + kind
+ *  + info + ảnh bìa. */
+export async function fzrPickManualFields(serviceIdRaw: string): Promise<{
+  ok: boolean;
+  fields?: { key: string; label: string; type: "text" | "select"; required: boolean; options?: string[] }[];
+  kind?: string;
+  info?: string;
+  name?: string;
+  imageUrl?: string;
+  error?: string;
+}> {
+  await requireAdmin();
+  const provider = await manualAddProvider();
+  if (!provider) return { ok: false, error: "Chưa có nhà cung cấp FZR đang bật cho khu này" };
+  const serviceId = serviceIdRaw.trim();
+  if (!serviceId) return { ok: false, error: "Chưa chọn dịch vụ" };
+  try {
+    const raw: any = await fzrManualOffers(provider, serviceId);
+    return {
+      ok: true,
+      fields: normalizeManualFields(raw?.fields).map((f) => ({ key: f.key, label: f.label, type: "text" as const, required: true })),
+      ...(raw?.category?.kind ? { kind: String(raw.category.kind) } : {}),
+      ...(raw?.info ? { info: String(raw.info) } : {}),
+      ...(raw?.category?.name ? { name: String(raw.category.name) } : {}),
+      ...(raw?.imageurl ? { imageUrl: String(raw.imageurl) } : {}),
+    };
+  } catch (e: any) {
+    return { ok: false, error: `Không gọi được nhà cung cấp: ${String(e?.message || e).slice(0, 140)}` };
+  }
+}
+
+/** Thêm DỊCH VỤ Manual từ picker: tạo sản phẩm (providerProductId =
+ *  manual_service_id, kind + info lấy từ nguồn) + offer đầu tiên (dấu
+ *  CUSTOM, kèm delivery_minutes/note_product nạp lại từ nguồn ở máy chủ)
+ *  + customFields từ form (key khoá cứng, nhãn admin đặt). */
+export async function famAddManualService(fd: FormData) {
+  await requireAdmin();
+  const serviceId = String(fd.get("serviceId") || "").trim();
+  const name = String(fd.get("name") || "").trim();
+  const imageUrl = String(fd.get("imageUrl") || "").trim();
+  const kind = String(fd.get("kind") || "").trim();
+  const info = String(fd.get("info") || "").trim();
+  const offerId = String(fd.get("offerId") || "").trim();
+  const offerName = String(fd.get("offerName") || "").trim() || name;
+  const price = money(fd.get("price"));
+  const fieldsRaw = String(fd.get("fieldsJson") || "").trim();
+  const provider = await manualAddProvider();
+  if (!provider) back(rt(fd), false, "Chưa có nhà cung cấp FZR đang bật");
+  if (!serviceId || !name || !offerId) back(rt(fd), false, "Service ID, tên dịch vụ và gói đầu tiên là bắt buộc");
+  const dup = await prisma.premiumProduct.findFirst({
+    where: { providerId: provider!.id, providerProductId: serviceId },
+    select: { id: true },
+  });
+  if (dup) back(rt(fd), false, `Service ID ${serviceId} đã có trong danh sách`);
+  // delivery_minutes + note_product của offer nạp lại từ NGUỒN ở máy chủ —
+  // form không mang hai giá trị này (tránh bị sửa tay thành dữ liệu giả).
+  let minutes: number | null = null;
+  let note: string | null = null;
+  try {
+    const raw: any = await fzrManualOffers(provider!, serviceId);
+    const offer = asArr(raw?.items).find((o) => String(o?.id) === offerId);
+    if (offer) {
+      minutes = typeof offer.delivery_minutes === "number" ? offer.delivery_minutes : null;
+      note = offer.note_product ? String(offer.note_product) : null;
+    }
+  } catch { /* không gọi được nguồn: vẫn thêm gói, hai trường để trống */ }
+  const slugify = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "manual";
+  const product = await prisma.premiumProduct.create({
+    data: {
+      categoryId: await categoryId("Dịch vụ thủ công", provider!.id),
+      name,
+      slug: `fzr-${provider!.id}-manual-${slugify(serviceId)}`.slice(0, 150),
+      description: info || null,
+      imageUrl: imageUrl || null,
+      fulfillment: "API",
+      providerId: provider!.id,
+      providerProductId: serviceId,
+      providerKind: kind || null,
+      customFields: fieldsRaw ? normalizePremiumFieldsJson(fieldsRaw) : null,
+    },
+  });
+  await prisma.premiumVariant.create({
+    data: {
+      productId: product.id, name: offerName, price, cost: 0, warrantyDays: 0,
+      providerId: provider!.id, providerGroup: "manual",
+      providerItemId: offerId,
+      deliveryType: ADMIN_VARIANT_MARK,
+      deliveryMinutes: minutes,
+      providerNote: note,
+    },
+  });
+  back(rt(fd), true, `Đã thêm dịch vụ ${name}`);
+}
+
+/** Thêm offer cho một dịch vụ Manual đã có — gói admin tự thêm mang dấu
+ *  CUSTOM; delivery_minutes/note_product nạp lại từ nguồn như trên. */
+export async function famAddManualOffer(fd: FormData) {
+  await requireAdmin();
+  const productId = parseInt(String(fd.get("productId") || "0"));
+  const offerId = String(fd.get("offerId") || "").trim();
+  const name = String(fd.get("name") || "").trim();
+  const price = money(fd.get("price"));
+  const product = productId ? await prisma.premiumProduct.findUnique({ where: { id: productId }, select: { id: true, providerId: true, providerProductId: true } }) : null;
+  if (!product) back(rt(fd), false, "Dịch vụ không hợp lệ");
+  if (!offerId || !name) back(rt(fd), false, "Offer ID và tên gói là bắt buộc");
+  const dup = await prisma.premiumVariant.findFirst({
+    where: { productId: product!.id, providerGroup: "manual", providerItemId: offerId },
+    select: { id: true },
+  });
+  if (dup) back(rt(fd), false, `Offer ID ${offerId} đã có trong dịch vụ này`);
+  let minutes: number | null = null;
+  let note: string | null = null;
+  const provider = product!.providerId ? await prisma.provider.findUnique({ where: { id: product!.providerId } }) : null;
+  if (provider && product!.providerProductId) {
+    try {
+      const raw: any = await fzrManualOffers(provider, product!.providerProductId);
+      const offer = asArr(raw?.items).find((o) => String(o?.id) === offerId);
+      if (offer) {
+        minutes = typeof offer.delivery_minutes === "number" ? offer.delivery_minutes : null;
+        note = offer.note_product ? String(offer.note_product) : null;
+      }
+    } catch { /* giữ trống khi không gọi được nguồn */ }
+  }
+  await prisma.premiumVariant.create({
+    data: {
+      productId: product!.id, name, price, cost: 0, warrantyDays: 0,
+      providerId: product!.providerId, providerGroup: "manual",
+      providerItemId: offerId,
+      deliveryType: ADMIN_VARIANT_MARK,
+      deliveryMinutes: minutes,
+      providerNote: note,
+    },
+  });
+  back(rt(fd), true, `Đã thêm gói ${name}`);
 }
 
 /** Lưu NHÃN của các trường tuỳ chỉnh phía nhà cung cấp trên một sản phẩm:

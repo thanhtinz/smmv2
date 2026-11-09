@@ -23,7 +23,7 @@ import type { Provider } from "@prisma/client";
  *    KHÔNG gọi offers theo từng game — giá chốt tại thời điểm mua (refreshFzrQuotePrice).
  */
 
-type SyncVariant = { itemId: string; name: string; usd: string | null; cycle?: number; stock?: number };
+type SyncVariant = { itemId: string; name: string; usd: string | null; cycle?: number; stock?: number; minutes?: number | null; note?: string };
 type SyncItem = {
   group: string;
   productKey: string;
@@ -33,6 +33,7 @@ type SyncItem = {
   image?: string;
   platform?: string;
   region?: string;
+  kind?: string;
   customFields?: PremiumCustomField[];
   variants: SyncVariant[];
 };
@@ -297,7 +298,13 @@ async function collectManual(provider: Provider): Promise<{ items: SyncItem[]; s
       const offerId = firstDefined(o?.id);
       const price = firstDefined(o?.price_usd, o?.price);
       if (offerId === undefined || price === undefined) { skipped++; continue; }
-      variants.push({ itemId: String(offerId), name: String(o?.name || o?.title || `Gói ${offerId}`), usd: String(price) });
+      variants.push({
+        itemId: String(offerId), name: String(o?.name || o?.title || `Gói ${offerId}`), usd: String(price),
+        // delivery_minutes + note_product của offer (tài liệu FZR) — dữ liệu
+        // thật của NCC, chỉ để HIỆN ở trang mua khu Manual Services.
+        minutes: typeof o?.delivery_minutes === "number" ? o.delivery_minutes : null,
+        ...(o?.note_product ? { note: String(o.note_product) } : {}),
+      });
     }
     if (!variants.length) { skipped++; continue; }
     const kind = String(offersRaw?.category?.kind || svc?.kind || "");
@@ -307,6 +314,7 @@ async function collectManual(provider: Provider): Promise<{ items: SyncItem[]; s
       productKey: String(serviceId),
       productName: String(svc?.name || svc?.title || `Dịch vụ ${serviceId}`),
       categoryName: "Dịch vụ thủ công",
+      ...(kind ? { kind } : {}),
       ...(info ? { description: String(info) } : {}),
       image: firstDefined(svc?.imageurl, offersRaw?.imageurl, svc?.image, svc?.imageUrl),
       customFields: kind === "replenishment" ? normalizeManualFields(offersRaw?.fields) : [],
@@ -489,6 +497,7 @@ export async function syncFzrCatalog(provider: Provider, opts: {
           ...(item.image ? { imageUrl: item.image } : {}),
           ...(item.platform ? { providerPlatform: item.platform } : {}),
           ...(item.region ? { providerRegion: item.region } : {}),
+          ...(item.kind ? { providerKind: item.kind } : {}),
           ...(fieldsJson ? { customFields: fieldsJson } : {}),
         },
       });
@@ -504,6 +513,7 @@ export async function syncFzrCatalog(provider: Provider, opts: {
           imageUrl: item.image || null,
           providerPlatform: item.platform || null,
           providerRegion: item.region || null,
+          providerKind: item.kind || null,
           fulfillment: "API",
           providerId: provider.id,
           providerProductId: item.productKey,
@@ -531,6 +541,8 @@ export async function syncFzrCatalog(provider: Provider, opts: {
             ...(provider.autoUpdatePrice && ev.deliveryType !== ADMIN_VARIANT_MARK ? { price, cost } : {}),
             ...(v.cycle ? { providerCycle: v.cycle } : {}),
             ...(v.stock !== undefined ? { providerStock: v.stock } : {}),
+            ...(v.minutes !== undefined ? { deliveryMinutes: v.minutes } : {}),
+            ...(v.note !== undefined ? { providerNote: v.note } : {}),
           },
         });
         seenVariantIds.add(ev.id);
@@ -541,6 +553,8 @@ export async function syncFzrCatalog(provider: Provider, opts: {
             providerId: provider.id, providerGroup: item.group, providerItemId: v.itemId,
             providerCycle: v.cycle ?? null,
             providerStock: v.stock ?? null,
+            deliveryMinutes: v.minutes ?? null,
+            providerNote: v.note ?? null,
           },
         });
         seenVariantIds.add(nv.id);

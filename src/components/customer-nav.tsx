@@ -78,6 +78,13 @@ export async function buildCustomerNav(
     { href: "/dashboard/top-up", label: L("Nạp game") },
     { href: "/dashboard/top-up/don-hang", label: L("Đơn hàng") },
   ];
+  // Manual Services (lệnh Tín 2026-11-08 18:58): dropdown riêng ngay sau
+  // Top-Up — nhóm FZR manual-services, khu cuối cùng của FZR có khu riêng;
+  // tách hẳn khỏi Premium như các khu khác.
+  const manualChildren = [
+    { href: "/dashboard/manual-services", label: L("Đặt dịch vụ") },
+    { href: "/dashboard/manual-services/don-hang", label: L("Đơn hàng") },
+  ];
   // (Đã bỏ phân đoạn nền tảng SMM riêng trong menu theo lệnh Tín 2026-11-07 20:33 —
   // khách đặt đơn qua mục Đặt đơn và tự chọn nền tảng/phân loại trong form.)
   const items: NavEntry[] = [
@@ -88,6 +95,7 @@ export async function buildCustomerNav(
     { label: "Game key", icon: I.key, children: gameKeyChildren },
     { label: "Gift Card", icon: I.gift, children: giftCardChildren },
     { label: "Top-Up", icon: I.money, children: topupChildren },
+    { label: "Manual Services", icon: I.layers, children: manualChildren },
     ...(smmChildren.length ? [{ label: L("Dịch vụ mạng xã hội"), icon: I.cart, children: smmChildren }] : []),
     ...(telegramOn ? [{ label: "Telegram Premium", icon: I.send, children: telegramChildren }] : []),
     ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),

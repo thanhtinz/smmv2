@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { I, Empty } from "@/components/ui";
 import { getServerI18n } from "@/lib/lang-server";
 import { GcFavFilterButton } from "@/components/gift-card";
+import { InfoChip } from "@/components/catalog-chips";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function GiftCardCatalogPage({ searchParams }: {
   const page = Math.min(pages, Math.max(1, parseInt(searchParams.page || "1") || 1));
   const cats = await prisma.premiumProduct.findMany({
     where, orderBy: { name: "asc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE,
-    select: { id: true, name: true, imageUrl: true, images: true },
+    select: { id: true, name: true, imageUrl: true, images: true, description: true },
   });
   const cover = (p: { imageUrl: string | null; images: string | null }): string | null => {
     if (p.imageUrl) return p.imageUrl;
@@ -100,7 +101,9 @@ export default async function GiftCardCatalogPage({ searchParams }: {
                     ) : (
                       <span className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-700 to-slate-900 text-white">
                         <span className="[&>svg]:h-12 [&>svg]:w-12">{I.gift}</span>
-                        <span className="absolute left-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-600 shadow [&>svg]:h-4 [&>svg]:w-4">{I.file}</span>
+                        {c.description?.trim() ? (
+                          <span className="absolute left-2.5 top-2.5"><InfoChip text={c.description} /></span>
+                        ) : null}
                       </span>
                     )}
                   </div>

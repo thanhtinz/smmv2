@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { I, Empty } from "@/components/ui";
 import { getServerI18n } from "@/lib/lang-server";
 import { GkFavFilterButton } from "@/components/game-key";
+import { InfoChip } from "@/components/catalog-chips";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function GameKeyCatalogPage({ searchParams }: {
   const page = Math.min(pages, Math.max(1, parseInt(searchParams.page || "1") || 1));
   const games = await prisma.premiumProduct.findMany({
     where, orderBy: { name: "asc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE,
-    select: { id: true, name: true, imageUrl: true, images: true, providerPlatform: true, providerRegion: true },
+    select: { id: true, name: true, imageUrl: true, images: true, providerPlatform: true, providerRegion: true, description: true },
   });
   const cover = (p: { imageUrl: string | null; images: string | null }): string | null => {
     if (p.imageUrl) return p.imageUrl;
@@ -129,6 +130,9 @@ export default async function GameKeyCatalogPage({ searchParams }: {
                     ) : (
                       <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-600 to-brand-800 text-white [&>svg]:h-12 [&>svg]:w-12">{I.gamepad}</span>
                     )}
+                    {g.description?.trim() ? (
+                      <span className="absolute left-2.5 top-2.5"><InfoChip text={g.description} /></span>
+                    ) : null}
                   </div>
                   <div className="p-3">
                     <div className="truncate text-sm font-bold text-slate-900" title={g.name}>{g.name}</div>

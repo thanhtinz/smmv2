@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  fzrPickSearch, fzrPickEditions, fzrPickLookup, fzrPickTopupFields,
+  fzrPickSearch, fzrPickEditions, fzrPickLookup, fzrPickTopupFields, fzrPickManualFields,
   famAddGameKey, famAddGameKeyEdition, famAddGiftCardCategory, famAddGiftCardDenomination,
   famAddGiftGame, famAddTelegramPlan, famAddTopupCategory, famAddTopupOffer,
+  famAddManualService, famAddManualOffer,
 } from "@/app/actions/admin-families";
 
 /** FIX11 TASK 3 — Picker chọn sản phẩm TỪ NGUỒN FZR cho các trang admin
@@ -428,6 +429,140 @@ export function TopupAddForm({ returnTo }: { returnTo: string }) {
           </div>
         </div>
       )}
+    </form>
+  );
+}
+
+/** Thêm DỊCH VỤ Manual Services: chọn category từ nguồn -> chọn offer đầu
+ *  từ nguồn -> kind + info + fields[] (chỉ replenishment) TỰ NẠP từ nhà
+ *  cung cấp vào form: kind/info chỉ đọc (dữ liệu NCC), KEY trường khoá
+ *  cứng, NHÃN trường sửa được. delivery_minutes/note_product của offer do
+ *  máy chủ nạp lại khi lưu — form không mang hai giá trị này. */
+export function ManualAddForm({ returnTo }: { returnTo: string }) {
+  const [picked, setPicked] = useState<PickItem | null>(null);
+  const [name, setName] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [kind, setKind] = useState("");
+  const [info, setInfo] = useState("");
+  const [fields, setFields] = useState<LoadedField[]>([]);
+  const [fieldsNote, setFieldsNote] = useState("");
+  const { editions, editionId, setEditionId, err } = useEditions("manual", picked?.id || null);
+  const edition = editions.find((e) => e.id === editionId);
+
+  useEffect(() => {
+    if (!picked) { setFields([]); setFieldsNote(""); setKind(""); setInfo(""); return; }
+    let live = true;
+    setFieldsNote("Đang tải dữ liệu dịch vụ từ nhà cung cấp…");
+    fzrPickManualFields(picked.id).then((r) => {
+      if (!live) return;
+      if (!r.ok) { setFields([]); setFieldsNote(r.error || "Không tải được dữ liệu dịch vụ"); return; }
+      const list = (r.fields || []) as LoadedField[];
+      setFields(list);
+      setKind(r.kind || picked.extra || "");
+      setInfo(r.info || "");
+      if (r.imageUrl) setImageUrl(r.imageUrl);
+      setFieldsNote(list.length
+        ? `${list.length} trường của nhà cung cấp đã được tải — sửa nhãn tuỳ ý, key giữ nguyên để gửi đơn không sai.`
+        : "Dịch vụ này không có trường tuỳ chỉnh nào phía nhà cung cấp (chỉ dịch vụ replenishment mới có).");
+    });
+    return () => { live = false; };
+  }, [picked]);
+
+  const pick = (it: PickItem) => { setPicked(it); setName(it.name); };
+  return (
+    <form action={famAddManualService} className="flex flex-wrap items-end gap-2 border-b border-slate-100 px-4 py-3.5">
+      <input type="hidden" name="returnTo" value={returnTo} />
+      <input type="hidden" name="serviceId" value={picked?.id || ""} />
+      <input type="hidden" name="offerId" value={edition?.id || ""} />
+      <input type="hidden" name="offerName" value={edition?.name || ""} />
+      <input type="hidden" name="kind" value={kind} />
+      <input type="hidden" name="info" value={info} />
+      <input type="hidden" name="fieldsJson" value={JSON.stringify(fields)} />
+      <div className="w-full">
+        <span className={lbl}>Chọn dịch vụ từ nguồn FazerCards</span>
+        <PickerBox group="manual" onPick={pick} picked={picked} />
+      </div>
+      <label className="block min-w-[180px] flex-1">
+        <span className={lbl}>Tên dịch vụ</span>
+        <input name="name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Tên hiển thị" className={`${inp} w-full`} />
+      </label>
+      <label className="block min-w-[180px] flex-1">
+        <span className={lbl}>Ảnh bìa (URL)</span>
+        <input name="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" className={`${inp} w-full`} />
+      </label>
+      <label className="block">
+        <span className={lbl}>Loại giao (kind của NCC)</span>
+        <input value={kind || "—"} readOnly className={`${inp} !w-40 bg-slate-50`} />
+      </label>
+      {editionSelect(editions, editionId, setEditionId)}
+      <label className="block">
+        <span className={lbl}>Giá bán (VNĐ)</span>
+        <input name="price" type="number" min={0} required placeholder="55000" className={`${inp} !w-32`} />
+      </label>
+      <button disabled={!picked || !edition} className="btn-primary btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm dịch vụ</button>
+      {err && <p className="w-full text-xs font-semibold text-rose-600">{err}</p>}
+      {info && (
+        <p className="w-full whitespace-pre-line rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-500">
+          <span className="font-bold text-slate-600">Info của nhà cung cấp</span> (lưu vào ghi chú sản phẩm, khách thấy ở trang mua): {info}
+        </p>
+      )}
+      {(fieldsNote || fields.length > 0) && (
+        <div className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3">
+          <div className="mb-2 text-xs font-bold text-slate-600">Trường tuỳ chỉnh của nhà cung cấp</div>
+          {fieldsNote && <p className="mb-2 text-xs text-slate-500">{fieldsNote}</p>}
+          <div className="space-y-2">
+            {fields.map((f, i) => (
+              <div key={f.key} className="flex flex-wrap items-center gap-2">
+                <span className="rounded-md bg-slate-800 px-2 py-1 font-mono text-[11px] font-semibold text-white" title="Key của nhà cung cấp — khoá cứng, không sửa được">{f.key}</span>
+                <span className="text-[11px] font-medium text-slate-400">Ô nhập 1 dòng · Bắt buộc</span>
+                <label className="block min-w-[200px] flex-1">
+                  <input
+                    value={f.label}
+                    onChange={(e) => setFields((prev) => prev.map((x, xi) => (xi === i ? { ...x, label: e.target.value } : x)))}
+                    placeholder="Nhãn hiển thị cho khách"
+                    className={`${inp} w-full`}
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </form>
+  );
+}
+
+/** Thêm offer từ nguồn cho MỘT dịch vụ Manual đã có. */
+export function ManualOfferForm({ productId, serviceId, existing, returnTo }: {
+  productId: number; serviceId: string | null; existing: string[]; returnTo: string;
+}) {
+  const { editions, editionId, setEditionId } = useEditions("manual", serviceId);
+  const avail = editions.filter((e) => !existing.includes(e.id));
+  const edition = avail.find((e) => e.id === editionId) || avail[0];
+  if (!serviceId) return null;
+  return (
+    <form action={famAddManualOffer} className="flex flex-wrap items-end gap-2 px-4 pb-3.5">
+      <input type="hidden" name="returnTo" value={returnTo} />
+      <input type="hidden" name="productId" value={productId} />
+      <input type="hidden" name="offerId" value={edition?.id || ""} />
+      <label className="block min-w-[220px] flex-1">
+        <span className={lbl}>Gói từ nguồn</span>
+        <select value={edition?.id || ""} onChange={(e) => setEditionId(e.target.value)} className={`${inp} w-full`} required>
+          {avail.length === 0 && <option value="">— Đã thêm hết các gói của dịch vụ —</option>}
+          {avail.map((e) => (
+            <option key={e.id} value={e.id}>{e.name}{e.priceUsd ? ` — $${e.priceUsd}` : ""}{e.extra ? ` (${e.extra})` : ""}</option>
+          ))}
+        </select>
+      </label>
+      <label className="block min-w-[160px] flex-1">
+        <span className={lbl}>Tên gói</span>
+        <input name="name" defaultValue={edition?.name || ""} key={edition?.id || "none"} required className={`${inp} w-full`} />
+      </label>
+      <label className="block">
+        <span className={lbl}>Giá bán (VNĐ)</span>
+        <input name="price" type="number" min={0} required placeholder="55000" className={`${inp} !w-32`} />
+      </label>
+      <button disabled={!edition} className="btn-ghost btn-sm !px-3.5 !py-2 disabled:opacity-50">Thêm gói</button>
     </form>
   );
 }

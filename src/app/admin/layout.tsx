@@ -105,6 +105,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/top-up/san-pham", label: L("Sản phẩm Top-Up"), icon: "gem", adminOnly: true } as any,
       ],
     } as any,
+    // Khu Manual Services trong admin — đơn hàng (STAFF xử lý được) + sản
+    // phẩm theo cấu trúc FZR manual-services (ADMIN): 1 category = 1 sản
+    // phẩm, fields[] replenishment sửa nhãn tại trang sản phẩm.
+    {
+      group: "Manual Services", icon: "layers",
+      children: [
+        { href: "/admin/manual-services", label: L("Đơn hàng Manual Services"), icon: "box" } as any,
+        { href: "/admin/manual-services/san-pham", label: L("Sản phẩm Manual Services"), icon: "gem", adminOnly: true } as any,
+      ],
+    } as any,
     { href: "/admin/nguoi-dung", label: L("Người dùng"), icon: "users", adminOnly: true },
     { href: "/admin/ticket", label: L("Ticket hỗ trợ"), icon: "ticket", badge: ticketOpen },
     {
