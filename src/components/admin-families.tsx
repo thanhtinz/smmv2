@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { I } from "./ui";
-import { famSaveVariant, famToggleVariant, famDeleteVariant, famSyncArea, famSaveAreaMarkup } from "@/app/actions/admin-families";
+import { famSaveVariant, famToggleVariant, famDeleteVariant, famSyncArea, famSaveAreaMarkup, famSyncProduct } from "@/app/actions/admin-families";
 import { ADMIN_VARIANT_MARK, type FamilyVariant } from "@/lib/families";
 import type { Provider } from "@prisma/client";
 
@@ -145,6 +145,38 @@ export function AreaSyncCard({ provider, groups, overrides, returnTo }: {
         </form>
       </div>
     </section>
+  );
+}
+
+/** Nút "Đồng bộ từ nguồn" RIÊNG cho 1 sản phẩm (lệnh chủ 2026-11-09):
+ *  chạy đúng đường đồng bộ của khu nhưng chỉ cho sản phẩm này (action
+ *  famSyncProduct -> syncFzrCatalog onlyProduct). Sản phẩm CHƯA gắn mã nhà
+ *  cung cấp (tạo tay thuần, bound=false) thì nút bị VÔ HIỆU kèm lý do ngay
+ *  bên cạnh — không bấm được thay vì bấm rồi mới lỗi. */
+export function ProductSyncButton({ productId, bound, returnTo, className = "mt-2" }: {
+  productId: number;
+  bound: boolean;
+  returnTo: string;
+  className?: string;
+}) {
+  if (!bound) {
+    return (
+      <div className={className}>
+        <button type="button" disabled title="Sản phẩm chưa gắn mã nhà cung cấp (tạo tay) — không có nguồn để đồng bộ" className="btn-ghost btn-row cursor-not-allowed !px-3.5 opacity-50">
+          <span className="text-slate-400">{I.refresh}</span> Đồng bộ từ nguồn
+        </button>
+        <span className="ml-2 text-[11px] text-slate-400">Chưa gắn mã NCC — không đồng bộ được</span>
+      </div>
+    );
+  }
+  return (
+    <form action={famSyncProduct} className={className}>
+      <input type="hidden" name="productId" value={productId} />
+      <input type="hidden" name="returnTo" value={returnTo} />
+      <button className="btn-ghost btn-row !px-3.5">
+        <span className="text-brand-600">{I.refresh}</span> Đồng bộ từ nguồn
+      </button>
+    </form>
   );
 }
 

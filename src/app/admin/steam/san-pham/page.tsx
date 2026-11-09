@@ -1,8 +1,8 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { VariantRow, fmtVnd, AreaSyncCard, AdminPager } from "@/components/admin-families";
+import { VariantRow, fmtVnd, AreaSyncCard, AdminPager, ProductSyncButton } from "@/components/admin-families";
 import { famAddTopupDenom, famSaveGiftProduct } from "@/app/actions/admin-families";
-import { SteamGiftAddForm } from "@/components/fzr-picker";
+import { SteamGiftAddForm, BulkAddPanel } from "@/components/fzr-picker";
 import { loadSteamFamilies } from "@/lib/families";
 import { getSettings, adminProductPageSize } from "@/lib/settings";
 import { fzrMarkupKey } from "@/lib/fzr-markup";
@@ -58,6 +58,11 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
           <span className="text-brand-600">{I.wallet}</span>
           <h2 className="text-[15px] font-bold text-slate-800">Gói Top-Up</h2>
           <span className="text-xs text-slate-400">Mệnh giá USD cố định — giá bán sửa ở đây là giá trang khách tính tiền</span>
+          {topup[0]?.product && (
+            <span className="ml-auto shrink-0">
+              <ProductSyncButton productId={topup[0].product.id} bound={!!topup[0].product.providerProductId} returnTo={RT} className="" />
+            </span>
+          )}
         </div>
         <form action={famAddTopupDenom} className="flex flex-wrap items-end gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3.5">
           <input type="hidden" name="returnTo" value={RT} />
@@ -93,6 +98,7 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
           <span className="text-xs text-slate-400">Mỗi game 1 sản phẩm theo App ID — giá bán chốt tươi theo offer rẻ nhất phía FZR tại lúc mua</span>
         </div>
         <SteamGiftAddForm returnTo={RT} />
+        <BulkAddPanel group="steam_gift" returnTo={RT} />
         <form method="get" className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
           <input type="hidden" name="tpage" value={topupPage} />
           <input name="gq" defaultValue={gq} placeholder="Tìm game gift theo tên..." className="inp min-w-[220px] flex-1 !py-2 text-[13px] sm:max-w-[400px]" />
@@ -124,6 +130,7 @@ export default async function AdminSteamProducts({ searchParams }: { searchParam
                   </label>
                   <button className="btn-primary btn-row !px-3.5">Lưu game</button>
                 </form>
+                <ProductSyncButton productId={product.id} bound={!!product.providerProductId} returnTo={RT} className="shrink-0" />
               </div>
               {variants.map((v) => (
                 <VariantRow key={v.id} v={v} returnTo={RT} meta={`App ID: ${v.providerItemId || "—"} · Giá hiển thị gần nhất: ${fmtVnd(v.price)}`} />

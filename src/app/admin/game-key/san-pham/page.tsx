@@ -1,8 +1,8 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { VariantRow, AreaSyncCard, AdminPager } from "@/components/admin-families";
+import { VariantRow, AreaSyncCard, AdminPager, ProductSyncButton } from "@/components/admin-families";
 import { famSaveGameKeyProduct } from "@/app/actions/admin-families";
-import { GameKeyAddForm, GameKeyEditionForm } from "@/components/fzr-picker";
+import { GameKeyAddForm, GameKeyEditionForm, BulkAddPanel } from "@/components/fzr-picker";
 import { loadGameKeyFamilies } from "@/lib/families";
 import { getSettings } from "@/lib/settings";
 import { fzrMarkupKey } from "@/lib/fzr-markup";
@@ -50,6 +50,7 @@ export default async function AdminGameKeyProducts({ searchParams }: { searchPar
           <span className="text-xs text-slate-400">Nền tảng / vùng / AppID lấy từ FazerCards khi đồng bộ, admin sửa tay được</span>
         </div>
         <GameKeyAddForm returnTo={RT} platformOptions={platformOptions} regionOptions={regionOptions} />
+        <BulkAddPanel group="gamekeys" returnTo={RT} />
         <form method="get" className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
           <input name="q" defaultValue={q} placeholder="Tìm game theo tên..." className="inp min-w-[220px] flex-1 !py-2 text-[13px] sm:max-w-[400px]" />
           <button className="btn-primary btn-sm h-[38px] !px-3.5">Tìm kiếm</button>
@@ -101,6 +102,7 @@ export default async function AdminGameKeyProducts({ searchParams }: { searchPar
                     {product.providerRegionRestricted === false && <span> · Key không giới hạn quốc gia</span>}
                     {!product.active && <span className="ml-1 font-bold text-rose-500">· Sản phẩm đang tắt</span>}
                   </div>
+                  <ProductSyncButton productId={product.id} bound={!!product.providerProductId} returnTo={RT} />
                 </div>
               </div>
               {variants.map((v) => (

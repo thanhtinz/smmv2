@@ -1,8 +1,8 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { VariantRow, fmtVnd, AreaSyncCard, AdminPager } from "@/components/admin-families";
+import { VariantRow, fmtVnd, AreaSyncCard, AdminPager, ProductSyncButton } from "@/components/admin-families";
 import { famAddStarPackage } from "@/app/actions/admin-families";
-import { TelegramPremiumAddForm } from "@/components/fzr-picker";
+import { TelegramPremiumAddForm, BulkAddPanel } from "@/components/fzr-picker";
 import { AdminFamilyTabs } from "@/components/admin-tabs";
 import { loadTelegramFamilies } from "@/lib/families";
 import { getSettings, adminProductPageSize } from "@/lib/settings";
@@ -48,6 +48,11 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
         <span className="text-amber-500">{I.star}</span>
         <h2 className="text-[15px] font-bold text-slate-800">Gói Stars</h2>
         <span className="text-xs text-slate-400">Mua sao Telegram theo số lượng — giá mỗi sao chốt tươi theo báo giá FZR tại lúc mua</span>
+        {(stars?.product ?? starsPackages[0]?.product) && (
+          <span className="ml-auto shrink-0">
+            <ProductSyncButton productId={(stars?.product ?? starsPackages[0]?.product)!.id} bound={!!(stars?.product ?? starsPackages[0]?.product)!.providerProductId} returnTo={rtStars} className="" />
+          </span>
+        )}
       </div>
       <form action={famAddStarPackage} className="flex flex-wrap items-end gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3.5">
         <input type="hidden" name="returnTo" value={rtStars} />
@@ -103,8 +108,14 @@ export default async function AdminTelegramProducts({ searchParams }: { searchPa
         <span className="text-brand-600">{I.gem}</span>
         <h2 className="text-[15px] font-bold text-slate-800">Gói Premium</h2>
         <span className="text-xs text-slate-400">Các gói theo tháng — giá bán sửa ở đây là giá trang khách tính tiền</span>
+        {premium[0]?.product && (
+          <span className="ml-auto shrink-0">
+            <ProductSyncButton productId={premium[0].product.id} bound={!!premium[0].product.providerProductId} returnTo={rtPremium} className="" />
+          </span>
+        )}
       </div>
       <TelegramPremiumAddForm returnTo={rtPremium} />
+      <BulkAddPanel group="telegram_premium" returnTo={rtPremium} />
       {premium.length ? (
         <>
           {premiumSlice.map((v) => (

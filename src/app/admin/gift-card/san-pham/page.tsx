@@ -1,8 +1,8 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { VariantRow, AreaSyncCard, AdminPager } from "@/components/admin-families";
+import { VariantRow, AreaSyncCard, AdminPager, ProductSyncButton } from "@/components/admin-families";
 import { famSaveGiftProduct } from "@/app/actions/admin-families";
-import { GiftCardAddForm, GiftCardDenomForm } from "@/components/fzr-picker";
+import { GiftCardAddForm, GiftCardDenomForm, BulkAddPanel } from "@/components/fzr-picker";
 import { loadGiftCardFamilies } from "@/lib/families";
 import { getSettings } from "@/lib/settings";
 import { fzrMarkupKey } from "@/lib/fzr-markup";
@@ -49,6 +49,7 @@ export default async function AdminGiftCardProducts({ searchParams }: { searchPa
           <span className="text-xs text-slate-400">Mệnh giá / tồn kho lấy từ dữ liệu FazerCards khi đồng bộ</span>
         </div>
         <GiftCardAddForm returnTo={RT} />
+        <BulkAddPanel group="giftcards" returnTo={RT} />
         <form method="get" className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
           <input name="q" defaultValue={q} placeholder="Tìm danh mục theo tên..." className="inp min-w-[220px] flex-1 !py-2 text-[13px] sm:max-w-[400px]" />
           <button className="btn-primary btn-sm h-[38px] !px-3.5">Tìm kiếm</button>
@@ -91,6 +92,7 @@ export default async function AdminGiftCardProducts({ searchParams }: { searchPa
                   {product.description ? (
                     <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-400">Ghi chú NCC: {product.description}</p>
                   ) : null}
+                  <ProductSyncButton productId={product.id} bound={!!product.providerProductId} returnTo={RT} />
                 </div>
               </div>
               {variants.map((v) => (

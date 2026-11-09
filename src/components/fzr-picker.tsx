@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   fzrPickSearch, fzrPickEditions, fzrPickLookup, fzrPickTopupFields, fzrPickManualFields,
+  fzrBulkSearch, famBulkAdd,
   famAddGameKey, famAddGameKeyEdition, famAddGiftCardCategory, famAddGiftCardDenomination,
   famAddGiftGame, famAddTelegramPlan, famAddTopupCategory, famAddTopupOffer,
   famAddManualService, famAddManualOffer,
@@ -647,5 +648,144 @@ export function TopupOfferForm({ productId, categoryId, existing, returnTo }: {
       </label>
       <button disabled={!edition} className="btn-ghost btn-row !px-3.5 disabled:opacity-50">Thêm gói nạp</button>
     </form>
+  );
+}
+
+type BulkItem = PickItem & { exists: boolean };
+
+/** THÊM HÀNG LOẠT TỪ NGUỒN (lệnh chủ 2026-11-09) — panel trên trang sản
+ *  phẩm các khu CÓ catalog liệt kê được phía NCC (Game Key, Gift Card,
+ *  Top-Up, Manual, Steam Gift, Telegram Premium). Tải catalog qua
+ *  fzrBulkSearch (cùng đường dữ liệu của picker + giá gói con rẻ nhất + cờ
+ *  "đã có"), mỗi hàng chọn bằng checkbox; ô % giá bán của LÔ điền sẵn markup
+ *  hiệu lực của khu và sửa được cho riêng đợt này — giá bán dự kiến ở từng
+ *  hàng tính lại NGAY khi % đổi (công thức nhà: ceil(USD × tỉ giá ×
+ *  (1 + %/100)), giá lưu thật do máy chủ tính nguyên tử khi xác nhận).
+ *  Xác nhận gửi form famBulkAdd: mục đã có bị bỏ qua, không tạo trùng. */
+export function BulkAddPanel({ group, returnTo }: { group: string; returnTo: string }) {
+  const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState<BulkItem[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [rate, setRate] = useState(0);
+  const [pct, setPct] = useState(30);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const search = async (toPage = 1) => {
+    setBusy(true); setError("");
+    const r = await fzrBulkSearch(group, q, toPage);
+    setBusy(false);
+    if (!r.ok) { setError(r.error || "Lỗi không rõ"); setItems(null); return; }
+    setItems((r.items || []) as BulkItem[]);
+    setPage(r.page || toPage);
+    setHasMore(!!r.hasMore);
+    if (r.exchangeRate) setRate(r.exchangeRate);
+    if (!loaded) { if (typeof r.markup === "number") setPct(r.markup); setLoaded(true); }
+  };
+  const toggleOpen = () => {
+    const next = !open;
+    setOpen(next);
+    if (next && items === null && !busy) search();
+  };
+  const sell = (usd: string | null): number | null => {
+    if (!usd || !rate) return null;
+    const v = (Number(usd) * rate * (100 + pct)) / 100;
+    return Number.isFinite(v) ? Math.ceil(v - 1e-9) : null;
+  };
+  const toggle = (id: string) => setSelected((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const pageSelectable = (items || []).filter((it) => !it.exists);
+  const allPageSelected = pageSelectable.length > 0 && pageSelectable.every((it) => selected.has(it.id));
+  const togglePage = () => setSelected((prev) => {
+    const next = new Set(prev);
+    if (allPageSelected) pageSelectable.forEach((it) => next.delete(it.id));
+    else pageSelectable.forEach((it) => next.add(it.id));
+    return next;
+  });
+
+  return (
+    <div className="mx-4 my-3 rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-brand-700">Thêm hàng loạt từ nguồn</span>
+        <span className="text-[11px] text-slate-400">Tạo nhiều sản phẩm cùng lúc từ catalog nhà cung cấp với % giá bán riêng cho lô này</span>
+        <button type="button" onClick={toggleOpen} className="btn-ghost btn-row ml-auto !px-3.5">{open ? "Đóng" : "Mở panel"}</button>
+      </div>
+      {open && (
+        <div className="mt-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="block min-w-[200px] flex-1">
+              <span className={lbl}>Tìm trong catalog nhà cung cấp</span>
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm theo tên..." className={`${inp} w-full`}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); search(); } }} />
+            </label>
+            <button type="button" onClick={() => search()} disabled={busy} className="btn-primary btn-row !px-3.5 disabled:opacity-50">{busy ? "Đang gọi..." : "Tìm"}</button>
+            <label className="block">
+              <span className={lbl}>% giá bán của lô này</span>
+              <input type="number" min={0} max={1000} value={pct} onChange={(e) => setPct(Math.max(0, Math.min(1000, parseInt(e.target.value || "0") || 0)))} className={`${inp} !w-28`} />
+            </label>
+            <span className="pb-2 text-[11px] text-slate-400">Giá bán = giá nguồn × tỉ giá{rate ? ` ${rate.toLocaleString("vi-VN")}đ` : ""} × (1 + %/100), làm tròn lên</span>
+          </div>
+          {error && <p className="mt-1.5 text-xs font-semibold text-rose-600">{error}</p>}
+          {items && (
+            items.length === 0
+              ? <p className="mt-2 text-xs text-slate-400">{page > 1 ? "Đã hết kết quả — quay lại trang trước." : "Không có mục nào khớp trong nhóm này."}</p>
+              : (
+                <div className="mt-2 max-h-72 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                  {items.map((it) => {
+                    const sellPrice = sell(it.priceUsd);
+                    return (
+                      <label key={it.id} className={`flex items-center gap-2.5 px-3 py-2 ${it.exists ? "opacity-55" : "cursor-pointer hover:bg-brand-50"}`}>
+                        <input type="checkbox" disabled={it.exists} checked={selected.has(it.id)} onChange={() => toggle(it.id)} className="h-4 w-4 shrink-0 accent-brand-600" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] font-bold text-slate-800">{it.name}</span>
+                          <span className="block text-[11px] text-slate-400">Mã NCC: {it.id}{it.extra ? ` · ${it.extra}` : ""}{it.extra2 ? ` · ${it.extra2}` : ""}</span>
+                        </span>
+                        {it.exists
+                          ? <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">Đã có</span>
+                          : it.priceUsd
+                            ? <span className="shrink-0 text-right">
+                                <span className="block text-[12px] font-bold text-slate-500">${it.priceUsd}</span>
+                                {sellPrice != null && <span className="block text-[11px] font-semibold text-brand-700">Bán ≈ {sellPrice.toLocaleString("vi-VN")}đ</span>}
+                              </span>
+                            : <span className="shrink-0 text-[11px] text-slate-400">Giá chốt khi mua</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              )
+          )}
+          {items && items.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <button type="button" onClick={togglePage} className="btn-ghost btn-sm !px-3 !py-1.5">{allPageSelected ? "Bỏ chọn trang này" : "Chọn tất cả trang này"}</button>
+              <span className="font-semibold text-slate-600">Đã chọn: {selected.size} mục</span>
+              {(page > 1 || hasMore) && (
+                <span className="ml-auto flex items-center gap-2">
+                  <span className="text-slate-400">Trang {page}{hasMore ? " (còn nữa)" : ""}</span>
+                  <button type="button" onClick={() => search(page - 1)} disabled={busy || page <= 1} className="btn-ghost btn-sm !px-3 !py-1.5 disabled:opacity-50">Trang trước</button>
+                  <button type="button" onClick={() => search(page + 1)} disabled={busy || !hasMore} className="btn-ghost btn-sm !px-3 !py-1.5 disabled:opacity-50">Trang sau</button>
+                </span>
+              )}
+            </div>
+          )}
+          <form action={famBulkAdd} className="mt-3 flex flex-wrap items-center gap-2 border-t border-brand-100 pt-3">
+            <input type="hidden" name="group" value={group} />
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <input type="hidden" name="ids" value={Array.from(selected).join(",")} />
+            <input type="hidden" name="percent" value={pct} />
+            <button disabled={selected.size === 0} className="btn-primary btn-row !px-3.5 disabled:opacity-50">
+              Thêm {selected.size} mục đã chọn với giá bán +{pct}%
+            </button>
+            <span className="text-[11px] text-slate-400">Mục đã có trong catalog sẽ bị bỏ qua, không tạo trùng. Đồng bộ khu sau này tính lại giá theo markup của khu như thường.</span>
+          </form>
+        </div>
+      )}
+    </div>
   );
 }

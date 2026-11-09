@@ -18,10 +18,10 @@ import type { PremiumVariant, Provider } from "@prisma/client";
 export const ADMIN_VARIANT_MARK = "CUSTOM";
 
 export type FamilyVariant = PremiumVariant & {
-  product: { id: number; name: string; slug: string; imageUrl: string | null; active: boolean };
+  product: { id: number; name: string; slug: string; imageUrl: string | null; active: boolean; providerId: number | null; providerProductId: string | null };
 };
 
-const PRODUCT_SELECT = { id: true, name: true, slug: true, imageUrl: true, active: true } as const;
+const PRODUCT_SELECT = { id: true, name: true, slug: true, imageUrl: true, active: true, providerId: true, providerProductId: true } as const;
 
 export async function loadTelegramFamilies(): Promise<{
   provider: Provider | null;

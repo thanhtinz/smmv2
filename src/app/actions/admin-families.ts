@@ -7,7 +7,7 @@ import { getTelegramProvider } from "@/lib/tg";
 import { ADMIN_VARIANT_MARK, steamAddProvider, gameKeyAddProvider, giftCardAddProvider, topupAddProvider, manualAddProvider } from "@/lib/families";
 import { FZR_LABELS, fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrGiftCardCards, fzrSteamGiftGames, fzrTelegramPremiumPlans, fzrTopups, fzrTopupOffers, normalizeTopupFields, fzrManualServices, fzrManualOffers, normalizeManualFields } from "@/lib/fzr";
 import { syncFzrCatalog, withProviderOverride } from "@/lib/fzr-sync";
-import { fzrMarkupKey, fzrMarkupResolver } from "@/lib/fzr-markup";
+import { fzrMarkupKey, fzrMarkupResolver, fzrMarkupFor } from "@/lib/fzr-markup";
 import { normalizePremiumFieldsJson, parsePremiumFields } from "@/lib/format";
 import { setSetting } from "@/lib/settings";
 import type { Provider } from "@prisma/client";
@@ -597,6 +597,249 @@ export async function famSyncArea(fd: FormData) {
       okFlag = false;
       msg = `Đồng bộ lỗi: ${String(e?.message || e).slice(0, 160)}`;
     }
+  }
+  back(rt(fd), okFlag, msg!);
+}
+
+const FZR_GROUPS_ALL = ["gamekeys", "giftcards", "topups", "manual", "telegram_stars", "telegram_premium", "steam_topup", "steam_gift"];
+
+/** Đồng bộ RIÊNG 1 sản phẩm từ nguồn (nút "Đồng bộ từ nguồn" ở từng thẻ sản
+ *  phẩm trên 6 trang khu FZR, lệnh chủ 2026-11-09): đi ĐÚNG đường
+ *  syncFzrCatalog ở chế độ onlyProduct — chỉ fetch item đó của NCC, áp dụng
+ *  y hệt đồng bộ cả khu cho sản phẩm đó (giá/tồn kho/thuộc tính của NCC được
+ *  làm mới; thuộc tính admin đặt tay trong providerOverride + gói CUSTOM giữ
+ *  nguyên; gói NCC không còn trả bị tắt trong phạm vi sản phẩm này). Sản
+ *  phẩm không có gắn kết NCC (tạo tay thuần) thì báo lỗi rõ ràng. */
+export async function famSyncProduct(fd: FormData) {
+  await requireAdmin();
+  const productId = parseInt(String(fd.get("productId") || "0"));
+  const product = productId ? await prisma.premiumProduct.findUnique({ where: { id: productId } }) : null;
+  let okFlag = true;
+  let msg: string;
+  if (!product || !product.providerId || !product.providerProductId) {
+    okFlag = false;
+    msg = "Sản phẩm chưa gắn với nhà cung cấp nên không đồng bộ từ nguồn được";
+  } else {
+    const provider = await prisma.provider.findUnique({ where: { id: product.providerId } });
+    if (!provider || provider.driver !== "FZR") {
+      okFlag = false;
+      msg = "Nhà cung cấp của sản phẩm không phải FZR";
+    } else {
+      const variant = await prisma.premiumVariant.findFirst({
+        where: { productId: product.id, providerGroup: { in: FZR_GROUPS_ALL } },
+        select: { providerGroup: true },
+      });
+      const group = variant?.providerGroup || null;
+      if (!group) {
+        okFlag = false;
+        msg = "Không xác định được nhóm nguồn của sản phẩm";
+      } else {
+        try {
+          const markupFor = await fzrMarkupResolver(provider);
+          const r = await syncFzrCatalog(provider, {
+            groups: [group], markupFor,
+            onlyProduct: { productId: product.id, group, productKey: product.providerProductId },
+          });
+          if (r.missing) {
+            okFlag = false;
+            msg = `Nhà cung cấp không còn trả "${product.name}" — đã tắt ${r.deactivated} gói của sản phẩm này`;
+          } else {
+            msg = `Đã đồng bộ "${product.name}" từ nguồn: cập nhật ${r.variants} gói, tắt ${r.deactivated} gói cũ`;
+          }
+        } catch (e: any) {
+          okFlag = false;
+          msg = `Đồng bộ lỗi: ${String(e?.message || e).slice(0, 160)}`;
+        }
+      }
+    }
+  }
+  back(rt(fd), okFlag, msg!);
+}
+
+/* ================= THÊM HÀNG LOẠT TỪ NGUỒN (lệnh chủ 2026-11-09) ======
+ * Panel "Thêm hàng loạt từ nguồn" trên trang sản phẩm từng khu có catalog
+ * liệt kê được phía NCC (Game Key, Gift Card, Top-Up, Manual, Steam Gift,
+ * Telegram Premium). Steam Top-Up (mệnh giá do web tự định) và Telegram
+ * Stars (gói sao do web tự định) KHÔNG có catalog để thêm hàng loạt.
+ * Tạo sản phẩm đi ĐÚNG đường syncFzrCatalog chế độ onlyProduct với markup
+ * của LÔ (markupFor = % admin nhập cho đợt này) — hình dạng tạo y hệt đồng
+ * bộ tạo, KHÔNG gắn dấu CUSTOM; các đợt đồng bộ khu sau đó tính lại giá
+ * theo markup của khu như sản phẩm đồng bộ thường. Mục đã có (trùng mã
+ * NCC) bị BỎ QUA, không tạo trùng, không ghi đè. */
+
+type BulkItem = PickItem & { exists: boolean };
+type BulkResult = { ok: boolean; items?: BulkItem[]; error?: string; hasMore?: boolean; page?: number; exchangeRate?: number; markup?: number };
+
+export async function fzrBulkSearch(group: string, query: string, pageRaw?: number): Promise<BulkResult> {
+  await requireAdmin();
+  const provider = await pickerProvider(group);
+  if (!provider) return { ok: false, error: "Chưa có nhà cung cấp FZR đang bật cho khu này" };
+  const page = Math.max(1, Math.floor(pageRaw || 1));
+  try {
+    const markup = await fzrMarkupFor(provider, group);
+    let items: PickItem[] = [];
+    let hasMore = false;
+    if (group === "steam_gift") {
+      // Cùng endpoint list của picker (gọi tối đa 5 trang NCC cho 1 trang
+      // hiển thị) nhưng lấy thêm GIÁ LIST của game (price/minPrice trong
+      // item list — collectSteamGifts của fzr-sync cũng đọc các trường này).
+      const q = query.trim().toLowerCase();
+      const need = page * PICK_PAGE_SIZE + 1;
+      const matches: PickItem[] = [];
+      for (let p = 1; p <= 5 && matches.length < need; p++) {
+        const raw: any = await fzrSteamGiftGames(provider, p, query || undefined);
+        const games = asArr(raw?.games || raw?.data?.games || raw?.data || raw?.items);
+        for (const g of games) {
+          const appid = g?.appid ?? g?.app_id ?? g?.id;
+          if (appid === undefined || appid === null) continue;
+          const name = String(g?.name || `App ${appid}`);
+          if (q && !name.toLowerCase().includes(q)) continue;
+          const price = g?.price ?? g?.minPrice ?? g?.lowestPrice;
+          matches.push({ id: String(appid), name, priceUsd: price != null ? String(price) : null, extra: `AppID ${appid}` });
+          if (matches.length >= need) break;
+        }
+        if (games.length < 100) break;
+      }
+      items = matches.slice((page - 1) * PICK_PAGE_SIZE, page * PICK_PAGE_SIZE);
+      hasMore = matches.length > page * PICK_PAGE_SIZE;
+    } else {
+      const r = await fzrPickSearch(group, query, page);
+      if (!r.ok) return { ok: false, error: r.error || "Không tải được catalog" };
+      items = r.items || [];
+      hasMore = !!r.hasMore;
+      // Giá ở tầng LIST của gamekeys/giftcards/topups/manual không có (giá
+      // nằm ở edition/offer) -> bổ sung giá RẺ NHẤT trong các gói con qua
+      // đúng endpoint chi tiết mà picker/sync dùng, để hàng trong panel có
+      // giá nguồn + giá bán dự kiến. telegram_premium đã có giá ở tầng list.
+      if (group !== "telegram_premium") {
+        for (const it of items) {
+          if (it.priceUsd != null) continue;
+          try {
+            const ed = await fzrPickEditions(group, it.id);
+            const prices = (ed.items || []).map((e) => Number(e.priceUsd)).filter((n) => Number.isFinite(n) && n > 0);
+            if (prices.length) it.priceUsd = String(Math.min(...prices));
+          } catch { /* không lấy được giá gói con -> để trống, tạo vẫn chạy qua đường sync */ }
+        }
+      }
+    }
+    // Đánh dấu mục ĐÃ CÓ trong catalog của web (trùng mã NCC) để panel hiển
+    // thị "Đã có" và bỏ qua khi xác nhận.
+    let existsSet = new Set<string>();
+    if (group === "telegram_premium") {
+      const prod = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "telegram-premium" }, select: { id: true } });
+      if (prod) {
+        const vs = await prisma.premiumVariant.findMany({ where: { productId: prod.id, providerGroup: "telegram_premium" }, select: { providerItemId: true } });
+        existsSet = new Set(vs.map((v) => v.providerItemId || ""));
+      }
+    } else if (items.length) {
+      const keys = items.map((it) => (group === "steam_gift" ? `app-${it.id}` : it.id));
+      const prods = await prisma.premiumProduct.findMany({ where: { providerId: provider.id, providerProductId: { in: keys } }, select: { providerProductId: true } });
+      existsSet = new Set(prods.map((p) => (group === "steam_gift" ? String(p.providerProductId).replace(/^app-/, "") : String(p.providerProductId))));
+    }
+    return {
+      ok: true,
+      items: items.map((it) => ({ ...it, exists: existsSet.has(it.id) })),
+      hasMore, page, exchangeRate: provider.exchangeRate, markup,
+    };
+  } catch (e: any) {
+    return { ok: false, error: `Không gọi được nhà cung cấp: ${String(e?.message || e).slice(0, 140)}` };
+  }
+}
+
+/** Xác nhận thêm hàng loạt: tạo từng mục đã chọn qua đường sync đơn lẻ với
+ *  markup của LÔ. Trả về trang kèm thông báo tổng kết: thêm N · bỏ qua M
+ *  (đã có) · lỗi K kèm lý do. */
+export async function famBulkAdd(fd: FormData) {
+  await requireAdmin();
+  const group = String(fd.get("group") || "");
+  const ids = Array.from(new Set(String(fd.get("ids") || "").split(",").map((s) => s.trim()).filter(Boolean)));
+  const pctRaw = parseInt(String(fd.get("percent") || ""));
+  const provider = FZR_GROUPS_ALL.includes(group) ? await pickerProvider(group) : null;
+  let okFlag = true;
+  let msg: string;
+  if (!provider || provider.driver !== "FZR") {
+    okFlag = false;
+    msg = "Chưa có nhà cung cấp FZR đang bật cho khu này";
+  } else if (!ids.length) {
+    okFlag = false;
+    msg = "Chưa chọn mục nào để thêm";
+  } else if (!Number.isInteger(pctRaw) || pctRaw < 0 || pctRaw > 1000) {
+    okFlag = false;
+    msg = "% giá bán của lô phải là số nguyên từ 0 đến 1000";
+  } else {
+    const pct = pctRaw;
+    const markupFor = () => pct;
+    let added = 0, skipped = 0;
+    const fails: string[] = [];
+    if (group === "steam_gift") {
+      // Cả lô gift trong 1 lần gọi list (rate-limit 1 request/3 phút của
+      // endpoint list) — lọc theo tập key đã chọn ở fzr-sync.
+      const keys = ids.map((id) => `app-${id}`);
+      const existing = await prisma.premiumProduct.findMany({ where: { providerId: provider.id, providerProductId: { in: keys } }, select: { providerProductId: true } });
+      skipped += existing.length;
+      const newKeys = keys.filter((k) => !existing.some((p) => p.providerProductId === k));
+      if (newKeys.length) {
+        try {
+          const r = await syncFzrCatalog(provider, {
+            groups: [group], markupFor,
+            onlyProduct: { productId: 0, group, productKey: newKeys[0] },
+            onlyProductKeys: newKeys,
+          });
+          added += r.created;
+          for (const k of r.missingKeys) fails.push(`${k.replace(/^app-/, "App ")}: nhà cung cấp không còn trả game này`);
+        } catch (e: any) {
+          fails.push(`Lỗi gọi nhà cung cấp: ${String(e?.message || e).slice(0, 120)}`);
+        }
+      }
+    } else if (group === "telegram_premium") {
+      // Telegram Premium là MỘT sản phẩm với các gói theo tháng: đã có sản
+      // phẩm thì mọi gói chọn đều tính là đã có; chưa có thì tạo sản phẩm
+      // qua đường sync đơn lẻ rồi tắt các gói tháng KHÔNG được chọn.
+      const existing = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "telegram-premium" }, select: { id: true } });
+      if (existing) {
+        skipped += ids.length;
+      } else {
+        try {
+          const r = await syncFzrCatalog(provider, {
+            groups: [group], markupFor,
+            onlyProduct: { productId: 0, group, productKey: "telegram-premium" },
+          });
+          if (r.created > 0) {
+            const np = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "telegram-premium" }, select: { id: true } });
+            if (np) {
+              await prisma.premiumVariant.updateMany({
+                where: { productId: np.id, providerGroup: "telegram_premium", providerItemId: { notIn: ids } },
+                data: { active: false },
+              });
+            }
+            added += ids.length;
+          } else {
+            fails.push("Telegram Premium: nhà cung cấp không trả gói nào để tạo");
+          }
+        } catch (e: any) {
+          fails.push(`Telegram Premium: ${String(e?.message || e).slice(0, 120)}`);
+        }
+      }
+    } else {
+      for (const id of ids) {
+        const existing = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: id }, select: { id: true } });
+        if (existing) { skipped++; continue; }
+        try {
+          const r = await syncFzrCatalog(provider, {
+            groups: [group], markupFor,
+            onlyProduct: { productId: 0, group, productKey: id },
+          });
+          if (r.missing) fails.push(`${id}: nhà cung cấp không còn trả mục này`);
+          else if (r.created > 0) added++;
+          else fails.push(`${id}: không tạo được sản phẩm từ nguồn`);
+        } catch (e: any) {
+          fails.push(`${id}: ${String(e?.message || e).slice(0, 100)}`);
+        }
+      }
+    }
+    msg = `Thêm hàng loạt xong: thêm mới ${added} · bỏ qua ${skipped} (đã có) · lỗi ${fails.length}` +
+      (fails.length ? ` — ${fails.slice(0, 3).join("; ")}${fails.length > 3 ? `; … +${fails.length - 3} lỗi nữa` : ""}` : "");
+    okFlag = fails.length === 0;
   }
   back(rt(fd), okFlag, msg!);
 }

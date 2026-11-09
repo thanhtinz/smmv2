@@ -1,8 +1,8 @@
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
-import { VariantRow, AreaSyncCard, AdminPager } from "@/components/admin-families";
+import { VariantRow, AreaSyncCard, AdminPager, ProductSyncButton } from "@/components/admin-families";
 import { famSaveGiftProduct, famSaveFieldLabels } from "@/app/actions/admin-families";
-import { ManualAddForm, ManualOfferForm } from "@/components/fzr-picker";
+import { ManualAddForm, ManualOfferForm, BulkAddPanel } from "@/components/fzr-picker";
 import { loadManualFamilies } from "@/lib/families";
 import { parsePremiumFields } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
@@ -51,6 +51,7 @@ export default async function AdminManualProducts({ searchParams }: { searchPara
           <span className="text-xs text-slate-400">Dịch vụ / gói / trường người mua lấy từ dữ liệu FazerCards khi đồng bộ</span>
         </div>
         <ManualAddForm returnTo={RT} />
+        <BulkAddPanel group="manual" returnTo={RT} />
         <form method="get" className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3">
           <input name="q" defaultValue={q} placeholder="Tìm dịch vụ theo tên..." className="inp min-w-[220px] flex-1 !py-2 text-[13px] sm:max-w-[400px]" />
           <button className="btn-primary btn-sm h-[38px] !px-3.5">Tìm kiếm</button>
@@ -96,6 +97,7 @@ export default async function AdminManualProducts({ searchParams }: { searchPara
                     {product.description ? (
                       <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-400">Info NCC: {product.description}</p>
                     ) : null}
+                    <ProductSyncButton productId={product.id} bound={!!product.providerProductId} returnTo={RT} />
                   </div>
                 </div>
                 {variants.map((v) => (
