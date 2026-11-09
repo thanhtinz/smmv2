@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { BackLink, Flash, Badge } from "@/components/ui";
 import { adminPremiumOrderAction } from "@/app/actions/admin";
+import { ManualChatPanel } from "@/components/manual-chat";
 import { PRE_STATUS, dt, dshort } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 
@@ -52,6 +53,7 @@ export default async function AdminPremiumOrderDetail({ params, searchParams }: 
             </div>
           )}
           {o.adminNote && <p className="mt-4 text-sm bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-amber-800">{o.adminNote}</p>}
+          {o.variant.providerGroup === "manual" && o.providerOrderId && <ManualChatPanel orderId={o.id} audience="admin" />}
         </div>
         <div className="lg:col-span-2 space-y-4">
           {o.providerOrderId && (

@@ -5,6 +5,7 @@ import { I, Flash, Badge, Empty, Stat } from "@/components/ui";
 import { PRE_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { historyPageSize } from "@/lib/settings";
+import { ManualChatPanel } from "@/components/manual-chat";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,7 @@ export default async function ManualHistoryPage({ searchParams }: {
                     <span className="text-xs text-slate-500">{L("Số lượng")}: {o.quantity}</span>
                     <span className="text-xs text-slate-400">{dt(o.createdAt)}</span>
                   </div>
+                  {o.providerOrderId ? <ManualChatPanel orderId={o.id} audience="customer" /> : null}
                   {o.deliveryData ? <details className="mt-2"><summary className="cursor-pointer text-xs font-bold text-brand-600">{L("Chi tiết giao")}</summary><div className="mt-1 break-all rounded-lg bg-slate-50 p-2 font-mono text-xs text-slate-600">{o.deliveryData}</div></details> : null}
                 </div>
               </div>

@@ -428,8 +428,33 @@ model PremiumOrder {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
+  manualChat ManualChatMessage[]
+
   @@index([userId, createdAt])
   @@index([status])
+}
+
+// Tin nhắn chat của đơn Manual Services với nhà cung cấp FZR (đợt
+// 2026-11-08): tài liệu FZR có đủ GET/POST /manual-services/orders/{id}/chat
+// nên chat chạy thật — tin khách/admin gửi được POST lên NCC, tin NCC trả
+// lời được GET về khi mở khung chat (webhook FZR không có sự kiện chat nên
+// không có đường đẩy tức thời). dedupeKey = hash(sender|created_at|body|
+// image) để đồng bộ lặp không nhân đôi tin; direction OUT = phía web gửi,
+// IN = phía NCC.
+model ManualChatMessage {
+  id         Int          @id @default(autoincrement())
+  orderId    Int
+  order      PremiumOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  direction  String       @db.VarChar(4)
+  senderRaw  String?      @db.VarChar(80)
+  body       String?      @db.Text
+  imageUrl   String?      @db.Text
+  providerTs String?      @db.VarChar(40)
+  dedupeKey  String       @db.VarChar(80)
+  createdAt  DateTime     @default(now())
+
+  @@unique([orderId, dedupeKey])
+  @@index([orderId])
 }
 
 enum DepositMethod {

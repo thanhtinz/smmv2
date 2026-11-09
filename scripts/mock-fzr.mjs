@@ -12,6 +12,7 @@ const PORT = 3998;
 const KEY = "fc_test_mock";
 export const log = [];
 const orders = new Map();
+const chatThreads = new Map(); // orderId phía NCC -> messages[] (chat manual)
 let seq = 0;
 let starsBehavior = "ok"; // ok | hang (giữ response quá timeout nhưng VẪN tạo đơn)
 
@@ -57,7 +58,19 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { ok: true });
   }
 
-  const body = req.method === "POST" ? await readBody(req) : {};
+  // POST chat manual là multipart/form-data — đọc raw rồi tách field body.
+  const body = req.method === "POST"
+    ? (path.includes("/manual-services/orders/") && path.endsWith("/chat")
+        ? await new Promise((resolve) => {
+            let d = "";
+            req.on("data", (c) => (d += c));
+            req.on("end", () => {
+              const m = d.match(/name="body"\r\n\r\n([\s\S]*?)\r\n--/);
+              resolve({ body: m ? m[1] : "" });
+            });
+          })
+        : await readBody(req))
+    : {};
   log.push({ method: req.method, path, query: Object.fromEntries(u.searchParams), body, idem: req.headers["idempotency-key"] || null });
 
   if (!path.startsWith("/api/v2/")) return send(res, 404, { ok: false, error: "not found", code: "NOT_FOUND" });
@@ -328,6 +341,21 @@ const server = http.createServer(async (req, res) => {
       price_usd: "2.50", deadline_at: new Date(Date.now() + 3600e3).toISOString(),
       chat_required: false, chat_status: "none",
     });
+  }
+  if (p.startsWith("/manual-services/orders/") && p.endsWith("/chat")) {
+    const oid = decodeURIComponent(p.split("/")[3]);
+    if (!chatThreads.has(oid)) {
+      chatThreads.set(oid, [
+        { sender: "provider", body: "Mock provider: đã nhận đơn, đang xử lý.", image_url: null, image_urls: [], created_at: "2026-11-08T01:00:00.000Z" },
+      ]);
+    }
+    const msgs = chatThreads.get(oid);
+    if (req.method === "GET") return send(res, 200, { ok: true, chat_frozen: false, chat_opened: true, chat_read_only: false, messages: msgs });
+    if (req.method === "POST") {
+      const msg = { sender: "reseller", body: body.body || "", image_url: null, image_urls: [], created_at: new Date().toISOString() };
+      msgs.push(msg);
+      return send(res, 200, { ok: true, message: msg });
+    }
   }
   if (p === "/telegram/stars/buy") {
     const o = newOrder("stars", { quantity: body.quantity, userId: body.userId }, { status: "completed" });
