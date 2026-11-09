@@ -83,6 +83,9 @@ async function main() {
     ok(gkV.price === sell(59.99) && gkV.cost === cost(59.99), `giá gk-1 bán ${gkV.price} / vốn ${gkV.cost} (kỳ vọng ${sell(59.99)}/${cost(59.99)})`);
     ok(gkV.providerGroup === "gamekeys" && gkV.providerId === provider.id && gkV.providerStock === 101, "linkage variant gamekeys đúng (group + tồn kho NCC 101)");
     ok(gk!.providerPlatform === "Steam" && gk!.providerRegion === "GLOBAL", `gamekeys sync lưu platform/region thật: ${gk!.providerPlatform}/${gk!.providerRegion}`);
+    const gk3 = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "gk-3" } });
+    ok(!!gk3?.providerRegionInfo && gk3.providerRegionInfo.includes("Vietnam") && gk3.providerRegionInfo.includes("Russia"), `gamekeys: chi tiết quốc gia (region-restriction) được kéo cho game bị giới hạn: ${(gk3?.providerRegionInfo || "").slice(0, 90)}`);
+    ok(!gk!.providerRegionInfo, "gamekeys: game KHÔNG giới hạn (gk-1) không tốn call region-restriction, providerRegionInfo trống");
     const tp = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "tp-1" }, include: { variants: true } });
     ok(!!tp && tp.variants.length === 2 && tp.variants[0].providerItemId === "tp-1-86" && tp.variants[0].price === sell(1.85), `topup: category = sản phẩm, offer = variant theo offer_id (${tp?.variants[0]?.providerItemId})`);
     const tpFields = parsePremiumFields(tp!.customFields);
@@ -102,7 +105,7 @@ async function main() {
     const stars = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "telegram-stars" }, include: { variants: true } });
     ok(stars?.variants[0]?.price === sell(0.015), `giá 1 sao = ${stars?.variants[0]?.price} (kỳ vọng ${sell(0.015)})`);
     const tgp = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "telegram-premium" }, include: { variants: true } });
-    ok(tgp?.variants.length === 3 && tgp.variants.find((v) => v.providerItemId === "12")?.price === sell(35.99), "telegram premium đủ 3 gói tháng, giá theo finalPrice");
+    ok(tgp?.variants.length === 3 && tgp.variants.find((v) => v.providerItemId === "12")?.price === sell(35.99), "telegram premium đủ 3 gói tháng, giá theo price_usd của tài liệu");
     const gcCat = await prisma.premiumProduct.findFirst({ where: { providerId: provider.id, providerProductId: "gcat-amazon-us" }, include: { variants: true } });
     ok(!!gcCat && (gcCat.description || "").includes("Region: US"), "giftcard category gcat-amazon-us thành sản phẩm, note NCC lưu ở description");
     const gcRefundChk = gcCat!.variants.find((v) => v.providerItemId === "gc-refund");
@@ -262,17 +265,33 @@ async function main() {
     ok(o7.status === "REFUNDED", "402 dứt khoát -> đơn REFUNDED ngay");
     ok((await demoNow()).balance === balBefore7, "402 -> khách được hoàn đủ ngay");
 
-    /* 8) Steam gift: báo giá lúc mua từ offers rẻ nhất 45.99 */
-    const o8: any = await buy(sg!.variants[0].id, 1, { "Tài khoản Steam nhận gift": "friend1" });
+    /* 8) Steam gift: báo giá lúc mua từ offers rẻ nhất 45.99 (offer sub 111
+     * region GLOBAL theo cấu trúc {sub_id, regions[]} của tài liệu) */
+    const o8: any = await buy(sg!.variants[0].id, 1, { "Tài khoản Steam nhận gift": "https://s.team/p/abcd-efgh" });
     ok(o8.total === sell(45.99), `steam gift chốt giá lúc mua = ${o8.total} (kỳ vọng ${sell(45.99)})`);
     ok(!!o8.providerOrderId, "steam gift tạo đơn phía FZR thành công");
+    const log8 = await mockLog();
+    const call8 = log8.filter((l) => l.path === "/api/v2/steam-gifts/order").pop();
+    ok(call8?.body?.invite_url === "https://s.team/p/abcd-efgh" && call8?.body?.sub_id === 111 && call8?.body?.app_id === 1245620 && call8?.body?.region === "GLOBAL", `steam gift order body đúng tài liệu: ${JSON.stringify(call8?.body)}`);
 
-    /* 9) Steam top-up: login + mệnh giá */
+    /* 9) Steam top-up: kiểm tra login (check-login {steamLogin}) rồi đặt
+     * đơn {steamLogin, currency, amount} theo tài liệu */
     const stV10 = st!.variants.find((v) => v.providerItemId === "10")!;
     const o9: any = await buy(stV10.id, 1, { "Steam login": "steamuser1" });
     const log9 = await mockLog();
+    const chk9 = log9.filter((l) => l.path === "/api/v2/steam-topup/check-login").pop();
+    ok(chk9?.body?.steamLogin === "steamuser1", `check-login body đúng tài liệu: ${JSON.stringify(chk9?.body)}`);
     const call9 = log9.filter((l) => l.path === "/api/v2/steam-topup/order").pop();
-    ok(call9?.body?.login === "steamuser1" && call9?.body?.currency === "USD" && call9?.body?.amount === "10", `steam topup body đúng: ${JSON.stringify(call9?.body)}`);
+    ok(call9?.body?.steamLogin === "steamuser1" && call9?.body?.currency === "USD" && call9?.body?.amount === "10", `steam topup body đúng: ${JSON.stringify(call9?.body)}`);
+
+    /* 9b) Steam top-up: login không nạp được (can_refill=false) -> từ chối
+     * dứt khoát + hoàn tiền, KHÔNG gọi order */
+    const balBefore9b = (await demoNow()).balance;
+    const o9b: any = await buy(stV10.id, 1, { "Steam login": "badlogin" });
+    ok(o9b.status === "REFUNDED", "check-login can_refill=false -> đơn REFUNDED");
+    ok((await demoNow()).balance === balBefore9b, "check-login chặn -> khách được hoàn đủ");
+    const log9b = await mockLog();
+    ok(log9b.filter((l) => l.path === "/api/v2/steam-topup/order").length === log9.filter((l) => l.path === "/api/v2/steam-topup/order").length, "check-login chặn -> không gọi steam-topup/order thêm");
 
     console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURES`);
 

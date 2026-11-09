@@ -6,9 +6,11 @@ import { fzrManualChatGet, fzrManualChatPost, type FzrChatMessage } from "@/lib/
 /* Chat đơn Manual Services <-> nhà cung cấp FZR (đợt 2026-11-08).
  * Nguồn sự thật hiển thị = bảng ManualChatMessage của web; mỗi lần mở
  * khung chat (hoặc bấm Làm mới) hệ thống GET thread từ NCC và hợp nhất
- * vào DB theo dedupeKey nên không nhân đôi. webhook FZR chỉ có sự kiện
- * đơn hàng — KHÔNG có sự kiện chat — nên tin NCC trả lời chỉ được kéo
- * về khi có người mở khung chat/bấm làm mới (đúng giới hạn tài liệu).
+ * vào DB theo dedupeKey nên không nhân đôi. Tài liệu webhook (đối chiếu
+ * lại 2026-11-09) CÓ hai sự kiện chat — manual_service.chat.message và
+ * manual_service.chat.waiting_reply — webhook route nhận sự kiện rồi gọi
+ * đúng syncManualChat ở đây để kéo tin về + báo khách, không chờ khách mở
+ * khung chat; đường mở khung chat vẫn giữ làm dự phòng khi webhook lỡ.
  * Phân chiều: tin do web POST lên được lưu OUT ngay lúc gửi (khớp
  * dedupeKey khi GET về); tin lạ phía NCC phân theo sender thô: chứa
  * provider/seller/support -> IN (phía NCC), chứa customer/reseller/
@@ -62,8 +64,10 @@ async function storedMessages(orderId: number): Promise<ChatMsgDTO[]> {
   }));
 }
 
-/** Kéo thread mới nhất từ NCC, hợp nhất vào DB, trả về để hiển thị. */
-export async function syncManualChat(orderId: number): Promise<{ flags: ChatFlags | null; messages: ChatMsgDTO[]; providerError?: string }> {
+/** Kéo thread mới nhất từ NCC, hợp nhất vào DB, trả về để hiển thị.
+ *  newIn = số tin ĐẾN (phía NCC) mới xuất hiện trong lần kéo này — webhook
+ *  chat dùng để quyết định có báo khách hay không. */
+export async function syncManualChat(orderId: number): Promise<{ flags: ChatFlags | null; messages: ChatMsgDTO[]; providerError?: string; newIn?: number }> {
   const order = await loadOrder(orderId);
   if (!order) throw new Error("Không tìm thấy đơn");
   if (order.variant.providerGroup !== "manual") throw new Error("Đơn này không thuộc khu Manual Services");
@@ -71,6 +75,7 @@ export async function syncManualChat(orderId: number): Promise<{ flags: ChatFlag
   if (!provider || !order.providerOrderId) {
     return { flags: null, messages: await storedMessages(orderId), providerError: "Đơn chưa có mã đơn phía nhà cung cấp hoặc nhà cung cấp chưa sẵn sàng — chưa mở được chat." };
   }
+  const beforeIds = new Set((await storedMessages(orderId)).map((m) => m.id));
   let thread;
   try {
     thread = await fzrManualChatGet(provider, order.providerOrderId);
@@ -94,9 +99,11 @@ export async function syncManualChat(orderId: number): Promise<{ flags: ChatFlag
       update: {}, // đã có (kể cả tin OUT do web gửi) -> giữ nguyên chiều đã lưu
     }).catch(() => {});
   }
+  const after = await storedMessages(orderId);
   return {
     flags: { frozen: thread.chat_frozen, opened: thread.chat_opened, readOnly: thread.chat_read_only },
-    messages: await storedMessages(orderId),
+    messages: after,
+    newIn: after.filter((m) => !beforeIds.has(m.id) && m.direction === "IN").length,
   };
 }
 

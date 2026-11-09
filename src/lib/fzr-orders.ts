@@ -2,7 +2,6 @@ import { prisma } from "./db";
 import { applyBalance, clawbackReferralCommission } from "./wallet";
 import { notifyUser } from "./notify";
 import { alertMother } from "./alerts";
-import { getSettings } from "./settings";
 import { awardPointsForPremiumOrder } from "./points";
 import { restoreVariantStock } from "./variant-stock";
 import {
@@ -10,8 +9,8 @@ import {
   fzrUsdToVnd, fzrUsdCostVnd, fzrOrderStatus, fzrOrderIdOf, extractFzrDelivery, fzrDeliveryOrRaw,
   fzrCreateGameKeyOrder, fzrCreateGiftCardOrder, fzrCreateTopupOrder, fzrValidateTopupId, fzrTopupValidations,
   fzrCreateManualOrder, fzrBuyTelegramStars, fzrBuyTelegramPremium,
-  fzrCreateSteamTopupOrder, fzrCreateSteamGiftOrder, fzrGetOrder,
-  fzrTelegramStarsQuote, fzrSteamGiftOffers,
+  fzrCreateSteamTopupOrder, fzrCreateSteamGiftOrder, fzrGetOrder, fzrCheckSteamLogin,
+  fzrTelegramStarsQuote, fzrSteamGiftOffers, cheapestSteamGiftOffer,
 } from "./fzr";
 import { parsePremiumFields } from "./format";
 import { fzrMarkupFor } from "./fzr-markup";
@@ -27,8 +26,13 @@ import type { PremiumOrder, PremiumVariant, Provider } from "@prisma/client";
  *    vào phía mình): đơn chắc chắn không được tạo -> huỷ + hoàn đủ qua claim
  *    nguyên tử (chỉ một đường hoàn được tiền).
  *  - Lỗi MƠ HỒ (timeout/mạng/5xx): GIỮ PENDING chờ admin xử lý tay — không retry
- *    tạo đơn (Telegram không có idempotency, retry = mua trùng), không tự hoàn
- *    (provider có thể đã nhận đơn và trừ số dư FZR của mình).
+ *    tạo đơn (Telegram buy không có idempotency trong tài liệu, retry = mua
+ *    trùng), không tự hoàn (provider có thể đã nhận đơn và trừ số dư FZR).
+ *
+ * Đối chiếu tài liệu 2026-11-09: hai endpoint mua Telegram chỉ nhận
+ * { telegram_username, ... } — KHÔNG có biến thể theo user ID số; đơn Steam
+ * gift phải gửi { invite_url, sub_id, app_id, region } lấy từ offers; Steam
+ * top-up kiểm tra login qua /steam-topup/check-login trước khi đặt.
  */
 
 /** Hoàn tiền toàn bộ cho khách qua claim trạng thái nguyên tử — dùng chung cho
@@ -78,21 +82,6 @@ function pickInput(inputs: Record<string, string>, label: string, loose?: string
 
 class LocalDefinitiveError extends Error {}
 
-/** Giữ đơn PENDING chờ admin xử lý tay — KHÔNG hoàn, KHÔNG gọi provider thêm:
- *  dùng khi không có đường giao tự động khả thi (vd đơn Telegram chỉ có username
- *  mà catalog không có offer top-up Telegram). Khác lỗi mơ hồ ở chỗ: chắc chắn
- *  CHƯA có khoản chi nào phía provider. */
-class HoldForManualError extends Error {}
-
-
-/** Telegram user ID số từ inputs (chỉ nhận khoá nhãn ID, tránh nhầm username). */
-function telegramUidOf(inputs: Record<string, string>): number {
-  const direct = inputs[FZR_LABELS.telegramId];
-  if (direct && /^\d+$/.test(direct.trim())) return parseInt(direct.trim());
-  const hit = Object.entries(inputs).find(([k, v]) => /telegram/i.test(k) && /id/i.test(k) && /^\d+$/.test(String(v).trim()));
-  return hit ? parseInt(String(hit[1]).trim()) : 0;
-}
-
 function telegramUsernameOf(inputs: Record<string, string>): string {
   const v = inputs["Tên người dùng Telegram"] || Object.entries(inputs).find(([k]) => /username|người dùng/i.test(k))?.[1] || "";
   return v.trim().replace(/^@/, "");
@@ -113,37 +102,6 @@ function keyedFieldsOf(customFieldsJson: string | null | undefined, inputs: Reco
   return out;
 }
 
-/**
- * Đường (b)/(c) cho đơn Telegram KHÔNG có user ID số (docs reseller: giao theo
- * username qua danh mục top-up "Telegram (V2)"):
- *  (b) sync đã tìm thấy offer top-up Telegram có trường username của CHÍNH
- *      provider này -> đặt qua luồng top-up chung, username vào đúng trường đó.
- *  (c) không có -> HoldForManualError: giữ PENDING + ghi chú admin xử lý tay,
- *      tuyệt đối không đoán mò đường giao (rủi ro tiền).
- */
-async function telegramViaTopupOrHold(
-  provider: Provider,
-  order: PremiumOrder,
-  inputs: Record<string, string>,
-  kind: "stars" | "premium",
-  months: number
-): Promise<{ orderId: string | null; raw: any }> {
-  const username = telegramUsernameOf(inputs);
-  if (!username) throw new LocalDefinitiveError("Thiếu username Telegram của khách");
-  const st = await getSettings();
-  const categoryId = (st.telegram_topup_category_id || "").trim();
-  const offerId = (st.telegram_topup_offer_id || "").trim();
-  const field = (st.telegram_topup_field || "").trim();
-  const sameProvider = String(st.telegram_topup_provider_id || "") === String(provider.id);
-  if (categoryId && offerId && field && sameProvider) {
-    // Body top-up theo OpenAPI mới: { category_id, offer_id, fields } — offer
-    // của category Telegram có giá cố định phía NCC nên không còn tham số
-    // amount như bản đấu nối cũ (kind/months không còn quyết định số tiền).
-    const raw = await fzrCreateTopupOrder(provider, { categoryId, offerId, fields: { [field]: username } }, String(order.id));
-    return { orderId: fzrOrderIdOf(raw), raw };
-  }
-  throw new HoldForManualError(`Đơn Telegram cho @${username} chỉ có username: chưa có đường giao tự động (khách không cấp Telegram ID số và catalog chưa có offer top-up Telegram) — xử lý tay`);
-}
 
 /** Gọi endpoint tạo đơn đúng nhóm sản phẩm. Trả {orderId, raw} của TỪNG đơn vị đã tạo. */
 async function createOne(
@@ -214,19 +172,32 @@ async function createOne(
       return { orderId: fzrOrderIdOf(raw), raw };
     }
     case "telegram_stars": {
-      const uid = telegramUidOf(inputs);
-      if (!uid) return telegramViaTopupOrHold(provider, order, inputs, "stars", 0);
-      // Báo giá tươi ngay trước khi mua CHỈ để đọc cờ balanceEnough (lệnh
-      // chủ 2026-11-08): NCC báo có thể không đủ số dư mà đơn vẫn chạy thì
-      // ghi chú cho admin đối soát — cờ này KHÔNG chặn đơn. Lỗi đọc cờ thì
-      // bỏ qua, không ảnh hưởng lượt mua.
+      // Theo OpenAPI: endpoint mua Stars CHỈ nhận { telegram_username,
+      // quantity } — không có đường mua theo user ID số. Username là trường
+      // bắt buộc của form; thiếu = lỗi dứt khoát phía mình -> hoàn tiền.
+      const username = telegramUsernameOf(inputs);
+      if (!username) throw new LocalDefinitiveError("Thiếu username Telegram của khách");
+      // Báo giá tươi ngay trước khi mua: kiểm tra quantity theo min/max tài
+      // liệu hoá (buy yêu cầu 50..100000; quote có min_amount/max_amount
+      // riêng) — ngoài khoảng = NCC chắc chắn từ chối nên chặn dứt khoát
+      // tại đây. Cờ balanceEnough (KHÔNG có trong tài liệu — đọc phòng thủ
+      // theo lệnh chủ 2026-11-08): nếu NCC trả kèm = false thì ghi chú
+      // admin đối soát, KHÔNG chặn đơn. Lỗi đọc báo giá thì bỏ qua.
       let note: string | undefined;
       try {
         const q = await fzrTelegramStarsQuote(provider);
+        const min = q.minAmount && q.minAmount > 0 ? q.minAmount : 50;
+        const max = q.maxAmount && q.maxAmount > 0 ? q.maxAmount : 100000;
+        if (order.quantity < min || order.quantity > max) {
+          throw new LocalDefinitiveError(`Số sao ${order.quantity} ngoài khoảng nhà cung cấp cho phép (${min}–${max})`);
+        }
         if (q.balanceEnough === false) note = "FZR: báo giá Stars báo balanceEnough=false (số dư tài khoản nhà cung cấp có thể không đủ) — cần đối soát đơn này";
-      } catch { /* đọc cờ là phụ */ }
-      // ĐÚNG 1 LẦN gọi — có Idempotency-Key, không retry kể cả khi timeout.
-      const raw = await fzrBuyTelegramStars(provider, order.quantity, uid, idem);
+      } catch (e) {
+        if (e instanceof LocalDefinitiveError) throw e;
+        /* đọc báo giá là phụ */
+      }
+      // ĐÚNG 1 LẦN gọi — kèm Idempotency-Key, không retry kể cả khi timeout.
+      const raw = await fzrBuyTelegramStars(provider, { username, quantity: order.quantity }, idem);
       return { orderId: fzrOrderIdOf(raw), raw, note };
     }
     case "telegram_premium": {
@@ -236,9 +207,10 @@ async function createOne(
       // vô nghĩa; số tháng NCC không hỗ trợ sẽ bị chính NCC từ chối dứt
       // khoát -> đường hoàn tiền như thường.
       if (!Number.isInteger(months) || months <= 0) throw new LocalDefinitiveError("Gói Telegram Premium sai số tháng phía FZR");
-      const uid = telegramUidOf(inputs);
-      if (!uid) return telegramViaTopupOrHold(provider, order, inputs, "premium", months);
-      const raw = await fzrBuyTelegramPremium(provider, uid, months, idem);
+      // Body theo OpenAPI: { telegram_username, months } — mua theo username.
+      const username = telegramUsernameOf(inputs);
+      if (!username) throw new LocalDefinitiveError("Thiếu username Telegram của khách");
+      const raw = await fzrBuyTelegramPremium(provider, { username, months }, idem);
       return { orderId: fzrOrderIdOf(raw), raw };
     }
     case "steam_topup": {
@@ -246,15 +218,37 @@ async function createOne(
       if (!login) throw new LocalDefinitiveError("Thiếu Steam login của khách");
       const amount = item; // mệnh giá USD đã chốt theo gói (vd "10")
       if (!amount || isNaN(Number(amount))) throw new LocalDefinitiveError("Gói nạp Steam thiếu mệnh giá USD");
-      const raw = await fzrCreateSteamTopupOrder(provider, { login, currency: "USD", amount }, idem);
-      return { orderId: fzrOrderIdOf(raw), raw };
+      // Kiểm tra login TRƯỚC khi đặt (POST /steam-topup/check-login theo tài
+      // liệu): can_refill=false = login không nạp được -> từ chối dứt khoát
+      // + hoàn tiền, không gọi order; unverified=true = vẫn nạp được nhưng
+      // ghi chú admin; lỗi dứt khoát của chính bước kiểm tra (400/422...)
+      // cũng là dứt khoát; lỗi mơ hồ (mạng/5xx) thì bỏ qua kiểm tra.
+      let note: string | undefined;
+      try {
+        const chk = await fzrCheckSteamLogin(provider, login);
+        if (!chk.canRefill) throw new LocalDefinitiveError("Steam login này không nạp được phía nhà cung cấp — khách kiểm tra lại login");
+        if (chk.unverified) note = "FZR: Steam login chưa từng được xác minh phía nhà cung cấp (unverified) — đơn vẫn được đặt, admin lưu ý đối soát";
+      } catch (e) {
+        if (e instanceof LocalDefinitiveError) throw e;
+        if (e instanceof FzrError && e.definitive) throw new LocalDefinitiveError(`Nhà cung cấp không kiểm tra được Steam login: ${e.message}`);
+      }
+      const raw = await fzrCreateSteamTopupOrder(provider, { steamLogin: login, currency: "USD", amount }, idem);
+      return { orderId: fzrOrderIdOf(raw), raw, note };
     }
     case "steam_gift": {
+      // Trường khách điền là LINK MỜI kết bạn Steam (invite_url theo tài
+      // liệu) — nhãn trường giữ nguyên theo ảnh mẫu của chủ site.
       const receiver = pickInput(inputs, FZR_LABELS.giftReceiver, "steam");
-      if (!receiver) throw new LocalDefinitiveError("Thiếu tài khoản Steam nhận gift của khách");
+      if (!receiver) throw new LocalDefinitiveError("Thiếu link mời Steam nhận gift của khách");
       const appid = parseInt(item);
       if (!appid) throw new LocalDefinitiveError("Gói gift Steam thiếu appid");
-      const raw = await fzrCreateSteamGiftOrder(provider, { appid, receiver }, idem);
+      // Body theo OpenAPI: { invite_url, sub_id, app_id, region } — sub_id +
+      // region PHẢI lấy từ offers tại thời điểm đặt; chọn cặp rẻ nhất (khớp
+      // giá đã báo cho khách ở refreshFzrQuotePrice). Hết offer = dứt khoát.
+      const offers = await fzrSteamGiftOffers(provider, appid);
+      const best = cheapestSteamGiftOffer(offers);
+      if (!best) throw new LocalDefinitiveError("Game này tạm thời chưa có offer bán phía nhà cung cấp");
+      const raw = await fzrCreateSteamGiftOrder(provider, { inviteUrl: receiver, subId: best.subId, appId: appid, region: best.region }, idem);
       return { orderId: fzrOrderIdOf(raw), raw };
     }
     default:
@@ -304,18 +298,6 @@ export async function executeFzrPremiumOrder(args: {
   if (succeeded === 0 && firstError) {
     const msg = String(firstError?.message || firstError);
     await prisma.apiLog.create({ data: { kind: "provider_out", ref: order.code, ok: false, detail: `FZR ${variant.providerGroup} create failed: ${msg}`.slice(0, 900) } }).catch(() => {});
-    if (firstError instanceof HoldForManualError) {
-      // Chưa chi đồng nào phía provider: giữ PENDING + ghi chú rõ cho admin xử lý tay.
-      await prisma.premiumOrder.update({
-        where: { id: order.id },
-        data: {
-          providerRaw: JSON.stringify({ fzrClaimAt: new Date().toISOString(), fzrHold: msg.slice(0, 500) }),
-          adminNote: [order.adminNote, `FZR: ${msg.slice(0, 300)}`].filter(Boolean).join(" · ").slice(0, 900),
-        },
-      });
-      await alertMother("fzr_hold", `Đơn Telegram chờ xử lý tay: ${order.code}`, msg).catch(() => {});
-      return (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
-    }
     const definitive = firstError instanceof LocalDefinitiveError || (firstError instanceof FzrError && firstError.definitive);
     if (definitive) {
       const fresh = (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
@@ -386,7 +368,7 @@ export async function applyFzrOrderStatus(
   order: PremiumOrder,
   statuses: string[],
   raws: any[],
-  opts: { fromWebhook?: boolean } = {}
+  opts: { fromWebhook?: boolean; allowRawDelivery?: boolean } = {}
 ): Promise<PremiumOrder> {
   const rawStored = raws.length === 1 ? raws[0] : raws;
   const current = (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
@@ -416,7 +398,9 @@ export async function applyFzrOrderStatus(
       where: { id: order.id },
       data: {
         status: "DELIVERED",
-        deliveryData: delivery || fzrDeliveryOrRaw(raws[0]) || current.deliveryData,
+        // allowRawDelivery=false (webhook không lấy được chi tiết đơn): KHÔNG
+        // đổ JSON thô của envelope webhook vào nội dung giao cho khách.
+        deliveryData: delivery || (opts.allowRawDelivery === false ? current.deliveryData : fzrDeliveryOrRaw(raws[0])) || current.deliveryData,
         providerRaw: JSON.stringify(rawStored),
         ...(partial
           ? { adminNote: [current.adminNote, "FZR: đơn giao MỘT PHẦN (partial) — đối soát phần còn lại bằng tay theo dữ liệu thô phía nhà cung cấp"].filter(Boolean).join(" · ").slice(0, 900) }
@@ -480,11 +464,10 @@ export async function refreshFzrQuotePrice(variant: PremiumVariant, provider: Pr
   if (variant.providerGroup === "steam_gift") {
     const appid = variant.providerItemId || "";
     const offers = await fzrSteamGiftOffers(provider, appid);
-    let best: string | null = null;
-    for (const o of offers) {
-      if (best === null || Number(o.price) < Number(best)) best = o.price;
-    }
-    if (best === null) throw new Error("Game này tạm thời chưa có offer bán phía nhà cung cấp");
+    // Giá theo tài liệu nằm ở offers[].regions[].price — lấy cặp rẻ nhất.
+    const bestOffer = cheapestSteamGiftOffer(offers);
+    if (!bestOffer) throw new Error("Game này tạm thời chưa có offer bán phía nhà cung cấp");
+    const best = bestOffer.price;
     const price = fzrUsdToVnd(best, provider.exchangeRate, await fzrMarkupFor(provider, "steam_gift"));
     const cost = fzrUsdCostVnd(best, provider.exchangeRate);
     if (price > 0 && (price !== variant.price || cost !== variant.cost)) {

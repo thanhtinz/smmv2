@@ -84,6 +84,23 @@ export async function adminTelegramTestAction() {
   }
 }
 
+/** Bắn sự kiện webhook.test thử nghiệm (POST /account/webhook/test theo
+ *  tài liệu FZR) từ nhà cung cấp đang phục vụ Telegram — FZR sẽ gửi thử tới
+ *  URL webhook đã đăng ký trong panel của họ; route nhận của web ghi lại ở
+ *  Nhật ký API (loại fzr_webhook). */
+export async function adminFzrWebhookTestAction() {
+  await requireAdmin();
+  const provider = await getTelegramProvider();
+  if (!provider) back("/admin/nha-cung-cap", "err", "Chưa có nhà cung cấp FazerCards nào đang bật");
+  try {
+    const { fzrWebhookTest } = await import("@/lib/fzr");
+    await fzrWebhookTest(provider!);
+    back("/admin/nha-cung-cap", "msg", "Đã yêu cầu FZR gửi sự kiện webhook.test — nếu URL webhook phía FZR trỏ đúng về web này, lượt gửi thử sẽ hiện ở Nhật ký API (loại fzr_webhook)");
+  } catch (e: any) {
+    back("/admin/nha-cung-cap", "err", `Gửi webhook test thất bại: ${String(e?.message || e).slice(0, 160)}`);
+  }
+}
+
 /** Admin kiểm tra trạng thái 1 đơn Telegram ngay (poll FZR theo yêu cầu). */
 export async function adminTelegramPollAction(formData: FormData) {
   await requireAdmin();

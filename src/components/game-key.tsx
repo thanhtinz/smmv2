@@ -53,6 +53,8 @@ export type GkGame = {
   id: number; name: string; image: string | null;
   platform: string | null; region: string | null;
   appid?: number | null; regionRestricted?: boolean | null;
+  // Chi tiết quốc gia từ GET /gamekeys/region-restriction (đồng bộ lưu sẵn)
+  regionAvailable?: string[]; regionUnavailable?: string[];
   editions: GkEdition[];
 };
 
@@ -173,6 +175,12 @@ export function GameKeyBuyForm({ game, balance }: { game: GkGame; balance: numbe
           </div>
           {!enough && !soldOut && <p className="mt-2.5 text-sm font-medium text-rose-600">{t("Số dư không đủ, vui lòng nạp thêm tiền")}</p>}
           {game.regionRestricted === true && <p className="mt-2.5 text-sm font-medium text-amber-600">{t("Key giới hạn quốc gia kích hoạt — kiểm tra kỹ vùng của key trước khi mua")}</p>}
+          {game.regionUnavailable && game.regionUnavailable.length > 0 && (
+            <p className="mt-1.5 text-sm text-slate-500">{t("Không kích hoạt được tại")}: <span className="font-semibold text-slate-700">{game.regionUnavailable.slice(0, 12).join(", ")}{game.regionUnavailable.length > 12 ? ` +${game.regionUnavailable.length - 12}` : ""}</span></p>
+          )}
+          {game.regionAvailable && game.regionAvailable.length > 0 && (
+            <p className="mt-1 text-sm text-slate-500">{t("Kích hoạt được tại")}: <span className="font-semibold text-slate-700">{game.regionAvailable.slice(0, 12).join(", ")}{game.regionAvailable.length > 12 ? ` +${game.regionAvailable.length - 12}` : ""}</span></p>
+          )}
           {(edition?.minQty != null || edition?.maxQty != null) && (
             <p className="mt-2 text-xs text-slate-400">{t("Số lượng mỗi đơn")}: {edition?.minQty != null ? `${t("tối thiểu")} ${edition.minQty}` : ""}{edition?.minQty != null && edition?.maxQty != null ? " · " : ""}{edition?.maxQty != null ? `${t("tối đa")} ${edition.maxQty}` : ""}</p>
           )}

@@ -100,7 +100,8 @@ async function call<T = any>(
   for (const [k, v] of Object.entries(opts.query || {})) {
     if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
   }
-  // 429 RATE_LIMITED: backoff theo Retry-After (tối đa 3 lần, 1s/2s/4s) — CHỈ
+  // 429 RATE_LIMITED: backoff theo Retry-After + jitter ±15% (đúng công thức
+  // cookbook FZR: chờ ÍT NHẤT Retry-After, cộng jitter; tối đa 3 lần) — CHỈ
   // retry khi an toàn: GET, hoặc POST có Idempotency-Key. Telegram buy nay
   // CÓ gửi khoá nhưng kèm noRetry=true nên vẫn không bao giờ bị gọi lại.
   const retryable = method === "GET" || (!!opts.idempotencyKey && !opts.noRetry);
@@ -124,7 +125,8 @@ async function call<T = any>(
     }
     if (res.status === 429 && retryable && attempt < 3) {
       const ra = Number(res.headers.get("retry-after"));
-      const waitMs = Number.isFinite(ra) && ra > 0 ? Math.min(ra * 1000, 15000) : [1000, 2000, 4000][attempt];
+      const base = Number.isFinite(ra) && ra > 0 ? Math.min(ra * 1000, 30000) : [1000, 2000, 4000][attempt];
+      const waitMs = Math.round(base * (1 + (Math.random() * 0.3 - 0.15))); // jitter ±15%
       await new Promise((r) => setTimeout(r, waitMs));
       continue;
     }
@@ -139,7 +141,11 @@ async function call<T = any>(
     throw new FzrError(`FZR trả dữ liệu không hợp lệ (HTTP ${res.status})`, res.status >= 500 ? 503 : res.status);
   }
   if (!res.ok || json?.ok === false) {
-    throw new FzrError(String(json?.error || json?.message || `FZR HTTP ${res.status}`), res.status, json?.code ? String(json.code) : undefined);
+    const base = String(json?.error || json?.message || `FZR HTTP ${res.status}`);
+    // Tài liệu: response 403 có thể mang blockReason (gói/tính năng bị khoá,
+    // IP bị chặn...) — nối vào message để ghi chú admin đọc được lý do thật.
+    const withBlock = json?.blockReason ? `${base} [blockReason: ${String(json.blockReason)}]` : base;
+    throw new FzrError(withBlock, res.status, json?.code ? String(json.code) : undefined);
   }
   return json as T;
 }
@@ -158,6 +164,29 @@ export async function fzrMe(provider: Provider): Promise<any> {
 export async function fzrGetOrder(provider: Provider, orderId: string): Promise<any> {
   const r = await call<any>(provider, "GET", `/api/v2/orders/${encodeURIComponent(orderId)}`);
   return r?.order ?? r;
+}
+
+/** Lịch sử biến động số dư tài khoản reseller (GET /transactions, phân trang
+ *  page/limit): items[] { id, type, status, amount, balanceBefore,
+ *  balanceAfter, note, createdAt } — hiện ở trang Nhà cung cấp (FZR). */
+export async function fzrTransactions(provider: Provider, limit = 8): Promise<any[]> {
+  const r = await call<any>(provider, "GET", "/api/v2/transactions", { query: { page: 1, limit } });
+  return Array.isArray(r?.items) ? r.items : Array.isArray(r?.transactions) ? r.transactions : [];
+}
+
+/** Trạng thái webhook phía tài khoản FZR (GET /account/webhook): { url,
+ *  secret, enabled, consecutive_failures, last_success_at, last_failure_at,
+ *  last_failure_reason, ... } — chỉ ĐỌC để hiện sức khoẻ webhook ở admin;
+ *  URL/secret vẫn do chủ site đặt trong panel FZR + form nhà cung cấp. */
+export async function fzrWebhookConfig(provider: Provider): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/account/webhook");
+}
+
+/** Bắn 1 sự kiện webhook.test thử nghiệm (POST /account/webhook/test) — dùng
+ *  nút kiểm tra ở trang Nhà cung cấp; FZR gửi thử tới URL đã đăng ký, không
+ *  retry. Trả raw để nơi gọi hiển thị kết quả. */
+export async function fzrWebhookTest(provider: Provider): Promise<any> {
+  return call<any>(provider, "POST", "/api/v2/account/webhook/test", { body: {} });
 }
 
 /* ---------------- Catalog ---------------- */
@@ -182,6 +211,17 @@ export async function fzrGameKeyKeys(provider: Provider, gameId: string): Promis
  *  GET /giftcards phân trang CURSOR (limit + cursor, include_ui=1 để có ảnh
  *  bìa), items[] phẳng: { category_id, name, note?, imageurl? } — tầng
  *  CATEGORY không có giá; mệnh giá nằm ở offers qua GET /giftcards/cards. */
+/** Chi tiết giới hạn quốc gia của 1 game (GET /gamekeys/region-restriction?
+ *  game_id=): { region_type, has_availability, available: [{code, name}],
+ *  unavailable: [{code, name}] } — đồng bộ chỉ gọi cho game có
+ *  region_restriction = true và lưu vào product.providerRegionInfo. */
+export async function fzrGameKeyRegionRestriction(provider: Provider, gameId: string): Promise<{ regionType: string | null; available: { code: string; name: string }[]; unavailable: { code: string; name: string }[] } | null> {
+  const r = await call<any>(provider, "GET", "/api/v2/gamekeys/region-restriction", { query: { game_id: gameId } });
+  if (!r || typeof r !== "object") return null;
+  const list = (v: any) => (Array.isArray(v) ? v.map((c: any) => ({ code: String(c?.code || ""), name: String(c?.name || c?.code || "") })).filter((c: any) => c.code) : []);
+  return { regionType: r?.region_type ? String(r.region_type) : null, available: list(r?.available), unavailable: list(r?.unavailable) };
+}
+
 export async function fzrGiftCards(provider: Provider, cursor?: string): Promise<any> {
   return call<any>(provider, "GET", "/api/v2/giftcards", { query: { limit: 100, include_ui: 1, ...(cursor ? { cursor } : {}) } });
 }
@@ -282,34 +322,83 @@ export async function fzrManualOffers(provider: Provider, manualServiceId: strin
 
 export async function fzrTelegramStarsQuote(provider: Provider): Promise<{ pricePerStar: string; price?: string; minAmount?: number; maxAmount?: number; currency: string; balanceEnough?: boolean }> {
   const r = await call<any>(provider, "GET", "/api/v2/telegram/stars");
-  // balanceEnough: cờ NCC báo số dư tài khoản reseller có đủ cho báo giá này
-  // không — phía thực thi đơn đọc để ghi chú admin khi = false (không chặn đơn).
+  // Theo OpenAPI (đọc lại 2026-11-09): { price_per_star (7dp), min_amount,
+  // max_amount, rates_updated_at } — snake_case. Đọc snake_case TRƯỚC; các
+  // tên camelCase cũ chỉ là fallback phòng thủ. LƯU Ý: tài liệu KHÔNG có
+  // trường balanceEnough — đọc phòng thủ nếu NCC trả thêm, không coi là
+  // hành vi đã tài liệu hoá.
   const be = (r as any)?.balanceEnough ?? (r as any)?.balance_enough;
-  return { pricePerStar: String(r?.pricePerStar ?? r?.price ?? "0"), price: r?.price, minAmount: r?.minAmount, maxAmount: r?.maxAmount, currency: String(r?.currency || "USD"), balanceEnough: typeof be === "boolean" ? be : undefined };
+  return {
+    pricePerStar: String(r?.price_per_star ?? r?.pricePerStar ?? r?.price ?? "0"),
+    price: r?.price,
+    minAmount: r?.min_amount ?? r?.minAmount,
+    maxAmount: r?.max_amount ?? r?.maxAmount,
+    currency: String(r?.currency || "USD"),
+    balanceEnough: typeof be === "boolean" ? be : undefined,
+  };
 }
 
 export async function fzrTelegramPremiumPlans(provider: Provider): Promise<{ durationMonths: number; price: string; finalPrice?: string }[]> {
   const r = await call<any>(provider, "GET", "/api/v2/telegram/premium");
   const plans = Array.isArray(r?.plans) ? r.plans : [];
-  return plans.map((p: any) => ({ durationMonths: Number(p?.durationMonths), price: String(p?.finalPrice ?? p?.price ?? "0"), finalPrice: p?.finalPrice }));
+  // Theo OpenAPI (đọc lại 2026-11-09): plans[] = { months, price_usd } +
+  // rates_updated_at ở top-level. durationMonths/finalPrice cũ là fallback.
+  return plans.map((p: any) => {
+    const price = String(p?.price_usd ?? p?.finalPrice ?? p?.price ?? "0");
+    return { durationMonths: Number(p?.months ?? p?.durationMonths), price, finalPrice: price };
+  });
 }
 
 export async function fzrSteamRates(provider: Provider): Promise<any> {
   return call<any>(provider, "GET", "/api/v2/steam-topup/rates");
 }
 
-/** Danh sách game Steam gift — RATE LIMIT 1 request / 3 phút / IP+key: CHỈ gọi khi admin bấm đồng bộ tay. */
-export async function fzrSteamGiftGames(provider: Provider, page: number, search?: string): Promise<any> {
-  return call<any>(provider, "GET", "/api/v2/steam-gifts/games", { query: { page, limit: 100, search } });
+/** Danh sách game Steam gift — RATE LIMIT 1 request / 3 phút / API key (tài
+ *  liệu OpenAPI): CHỈ gọi khi admin bấm đồng bộ tay. Endpoint CHỈ có tham số
+ *  `limit` (không page/search); item chỉ { name, appid }; meta có
+ *  { total, returned, truncated }; catalog làm mới mỗi 3 giờ phía NCC. */
+export async function fzrSteamGiftGames(provider: Provider, limit?: number): Promise<any> {
+  return call<any>(provider, "GET", "/api/v2/steam-gifts/games", { query: limit ? { limit } : {} });
 }
 
-export async function fzrSteamGiftOffers(provider: Provider, appid: string | number): Promise<{ price: string }[]> {
+export type FzrSteamGiftOffer = { subId: string; name: string; regions: { region: string; price: string }[] };
+
+/** Offers của 1 game Steam gift (GET /steam-gifts/games/{appid}): theo
+ *  OpenAPI offers[] = { sub_id, name, regions: [{ region, price }] } — giá
+ *  nằm THEO REGION trong từng offer, không có giá phẳng ở offer. Báo giá
+ *  của NCC được cache tối đa 24h phía NCC cho mỗi game. */
+export async function fzrSteamGiftOffers(provider: Provider, appid: string | number): Promise<FzrSteamGiftOffer[]> {
   const r = await call<any>(provider, "GET", `/api/v2/steam-gifts/games/${encodeURIComponent(String(appid))}`);
   const offers = Array.isArray(r?.offers) ? r.offers : [];
-  return offers.filter((o: any) => o?.price !== undefined).map((o: any) => ({ price: String(o.price) }));
+  return offers.map((o: any) => ({
+    subId: String(o?.sub_id ?? o?.subId ?? ""),
+    name: String(o?.name || ""),
+    regions: (Array.isArray(o?.regions) ? o.regions : [])
+      .filter((g: any) => g?.region && g?.price !== undefined && g?.price !== null)
+      .map((g: any) => ({ region: String(g.region), price: String(g.price) })),
+  })).filter((o: FzrSteamGiftOffer) => o.regions.length > 0);
 }
 
-/* ---------------- Tạo đơn (idemKey = mã/id đơn của mình; Telegram KHÔNG hỗ trợ) ---------------- */
+/** Offer rẻ nhất (theo từng cặp sub_id × region) — dùng cho báo giá lúc mua
+ *  và chọn đúng sub_id/region khi đặt đơn theo tài liệu. */
+export function cheapestSteamGiftOffer(offers: FzrSteamGiftOffer[]): { subId: string; name: string; region: string; price: string } | null {
+  let best: { subId: string; name: string; region: string; price: string } | null = null;
+  for (const o of offers) {
+    for (const g of o.regions) {
+      if (!best || parseDecimalScaled(g.price) < parseDecimalScaled(best.price)) {
+        best = { subId: o.subId, name: o.name, region: g.region, price: g.price };
+      }
+    }
+  }
+  return best;
+}
+
+/* ---------------- Tạo đơn (idemKey = mã/id đơn của mình) ----------------
+ * Theo tài liệu: Idempotency-Key được chấp nhận ở gamekeys, giftcards,
+ * topups, manual-services, steam-gifts, steam-topup (khoá theo tài khoản,
+ * giữ 7 ngày; dùng lại khoá cho LOẠI đơn khác -> 409). Hai endpoint mua
+ * Telegram KHÔNG nằm trong danh sách đó — web vẫn gửi kèm khoá theo lệnh
+ * chủ site 2026-11-08 nhưng luôn kèm noRetry nên không bao giờ gọi lại. */
 
 /** Đặt đơn Game Key — body theo OpenAPI: { game_id, key_id, quantity } (cả 3
  *  bắt buộc). key_id là id của EDITION đã chọn (variant.providerItemId). */
@@ -379,39 +468,56 @@ export async function fzrCreateManualOrder(
   return r?.order ?? r;
 }
 
-/** Telegram Stars: gọi ĐÚNG 1 LẦN, không retry (kèm Idempotency-Key theo
- *  tài liệu reseller + noRetry để call() không bao giờ tự gọi lại). */
-export async function fzrBuyTelegramStars(provider: Provider, quantity: number, userId: number, idemKey?: string): Promise<any> {
-  const r = await call<any>(provider, "POST", "/api/v2/telegram/stars/buy", { body: { quantity, userId }, idempotencyKey: idemKey, noRetry: true });
+/** Telegram Stars: gọi ĐÚNG 1 LẦN, không retry. Body theo OpenAPI:
+ *  { telegram_username, quantity } — username có thể kèm "@" ở đầu; quantity
+ *  phải trong 50..100000 (và trong min/max của báo giá). Endpoint này KHÔNG
+ *  có tham số Idempotency-Key trong tài liệu; web vẫn gửi kèm theo lệnh chủ
+ *  site 2026-11-08 + noRetry nên call() không bao giờ tự gọi lại. */
+export async function fzrBuyTelegramStars(provider: Provider, input: { username: string; quantity: number }, idemKey?: string): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/telegram/stars/buy", { body: { telegram_username: input.username, quantity: input.quantity }, idempotencyKey: idemKey, noRetry: true });
   return r?.order ?? r;
 }
 
-/** Telegram Premium: như Stars — 1 lần gọi, không retry, có Idempotency-Key. */
-export async function fzrBuyTelegramPremium(provider: Provider, userId: number, months: number, idemKey?: string): Promise<any> {
-  const r = await call<any>(provider, "POST", "/api/v2/telegram/premium/buy", { body: { userId, months }, idempotencyKey: idemKey, noRetry: true });
+/** Telegram Premium: như Stars — body theo OpenAPI { telegram_username,
+ *  months }; 1 lần gọi, không retry. */
+export async function fzrBuyTelegramPremium(provider: Provider, input: { username: string; months: number }, idemKey?: string): Promise<any> {
+  const r = await call<any>(provider, "POST", "/api/v2/telegram/premium/buy", { body: { telegram_username: input.username, months: input.months }, idempotencyKey: idemKey, noRetry: true });
   return r?.order ?? r;
 }
 
-export async function fzrCheckSteamLogin(provider: Provider, login: string): Promise<{ valid: boolean; region?: string }> {
-  const r = await call<any>(provider, "POST", "/api/v2/steam-topup/check-login", { body: { login } });
-  return { valid: !!r?.valid, region: r?.region };
+/** Kiểm tra login Steam trước khi nạp (POST /steam-topup/check-login) —
+ *  body theo OpenAPI: { steamLogin }; trả { can_refill, unverified }.
+ *  can_refill=false = login không nạp được (chặn đơn); unverified=true =
+ *  đăng nhập chưa từng được xác minh nhưng VẪN nạp được. */
+export async function fzrCheckSteamLogin(provider: Provider, steamLogin: string): Promise<{ canRefill: boolean; unverified: boolean }> {
+  const r = await call<any>(provider, "POST", "/api/v2/steam-topup/check-login", { body: { steamLogin } });
+  return { canRefill: !!r?.can_refill, unverified: !!r?.unverified };
 }
 
+/** Đặt đơn Steam top-up — body theo OpenAPI: { steamLogin, currency,
+ *  amount } (amount là chuỗi USD tối đa 2 số lẻ; số tiền bị tính theo USD
+ *  làm tròn LÊN cent tiếp theo phía NCC). */
 export async function fzrCreateSteamTopupOrder(
   provider: Provider,
-  input: { login: string; currency: string; amount: string },
+  input: { steamLogin: string; currency: string; amount: string },
   idemKey: string
 ): Promise<any> {
   const r = await call<any>(provider, "POST", "/api/v2/steam-topup/order", { body: input, idempotencyKey: idemKey });
   return r?.order ?? r;
 }
 
+/** Đặt đơn Steam gift — body theo OpenAPI: { invite_url, sub_id, app_id,
+ *  region } (cả 4 bắt buộc; invite_url là link mời kết bạn Steam của người
+ *  nhận, sub_id + region lấy từ offer đã chọn). Trả 201 khi tạo. */
 export async function fzrCreateSteamGiftOrder(
   provider: Provider,
-  input: { appid: number; region?: string; receiver: string },
+  input: { inviteUrl: string; subId: string; appId: number; region: string },
   idemKey: string
 ): Promise<any> {
-  const r = await call<any>(provider, "POST", "/api/v2/steam-gifts/order", { body: input, idempotencyKey: idemKey });
+  const r = await call<any>(provider, "POST", "/api/v2/steam-gifts/order", {
+    body: { invite_url: input.inviteUrl, sub_id: /^-?\d+$/.test(input.subId) ? Number(input.subId) : input.subId, app_id: input.appId, region: input.region },
+    idempotencyKey: idemKey,
+  });
   return r?.order ?? r;
 }
 

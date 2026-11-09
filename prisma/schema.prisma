@@ -283,6 +283,7 @@ model PremiumProduct {
   providerRegion   String?  @db.VarChar(60) // vùng phía NCC (FZR gamekeys: item.region, vd "GLOBAL"/"CIS") — như platform
   providerAppId    Int? // app id phía NCC (FZR gamekeys: item.appid khi include_ui=1) — chỉ để hiện (admin + chi tiết khách)
   providerRegionRestricted Boolean? // FZR gamekeys: item.region_restriction — key giới hạn quốc gia kích hoạt; null = NCC không báo
+  providerRegionInfo String?  @db.Text // JSON chi tiết quốc gia từ GET /gamekeys/region-restriction {regionType, available:[{code,name}], unavailable:[{code,name}]} — chỉ kéo khi region_restriction=true
   providerOverride String?  @db.Text // JSON mảng khoá thuộc tính ADMIN đã đặt tay (platform|region|appid|description|kind): đồng bộ FZR KHÔNG ghi đè các thuộc tính này nữa
   providerKind     String?  @db.VarChar(40) // kiểu thực hiện phía NCC (FZR manual-services: category.kind, vd "replenishment") — dữ liệu thật từ API, hiện ở chip loại giao trên thẻ + trang mua
   customFields String?  @db.Text // JSON: trường tuỳ chỉnh khách điền khi mua [{label,type,required,placeholder,options}]

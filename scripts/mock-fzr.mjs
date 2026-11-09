@@ -79,7 +79,7 @@ const server = http.createServer(async (req, res) => {
   const p = path.replace("/api/v2", "");
 
   if (p === "/balance") return send(res, 200, { ok: true, balance: "250.5000", currency: "USD" });
-  if (p === "/me") return send(res, 200, { ok: true, id: 42, email: "mock@fzr.cards" });
+  if (p === "/me") return send(res, 200, { ok: true, login: "mock-reseller", email: "mock@fzr.cards", plan: "silver", planExpiresAt: "2026-12-31T00:00:00Z", planAutoRenew: false, subscriptionActive: true, summary: { totalSpent: "120.5000", totalOrders: 17 }, createdAt: "2026-01-01T00:00:00Z", lastActiveAt: "2026-11-09T00:00:00Z" });
 
   /* ----- catalog ----- */
   // Game Keys theo OpenAPI thật (sửa 2026-11-08): danh sách phẳng + phân
@@ -134,6 +134,11 @@ const server = http.createServer(async (req, res) => {
     const gid = u.searchParams.get("game_id") || "";
     const game = GK_GAMES.find((g) => g.game_id === gid);
     if (!game) return send(res, 404, { ok: false, error: "Game not found", code: "NOT_FOUND" });
+    if (gid === "gk-3") return send(res, 200, {
+      ok: true, kind: "game_key", game_id: gid, region_type: "CIS", has_availability: true,
+      available: [{ code: "RU", name: "Russia" }, { code: "KZ", name: "Kazakhstan" }, { code: "UA", name: "Ukraine" }],
+      unavailable: [{ code: "US", name: "United States" }, { code: "VN", name: "Vietnam" }, { code: "DE", name: "Germany" }],
+    });
     return send(res, 200, {
       ok: true, kind: "game_key", game_id: gid, region_type: game.region, has_availability: true,
       available: [{ code: game.region, name: game.region }], unavailable: [],
@@ -276,24 +281,34 @@ const server = http.createServer(async (req, res) => {
     });
   }
   if (p === "/telegram/stars") {
-    return send(res, 200, { ok: true, pricePerStar: "0.0150000", price: "0.0150000", minAmount: 50, maxAmount: 10000, currency: "USD", balanceEnough: true });
+    return send(res, 200, { ok: true, price_per_star: "0.0150000", min_amount: 50, max_amount: 10000, rates_updated_at: "2026-11-09T00:00:00Z" });
   }
   if (p === "/telegram/premium") {
     return send(res, 200, {
       ok: true, plans: [
-        { durationMonths: 3, price: "12.99", finalPrice: "11.99" },
-        { durationMonths: 6, price: "23.99", finalPrice: "21.99" },
-        { durationMonths: 12, price: "39.99", finalPrice: "35.99" },
+        { months: 3, price_usd: "11.99" },
+        { months: 6, price_usd: "21.99" },
+        { months: 12, price_usd: "35.99" },
       ],
+      rates_updated_at: "2026-11-09T00:00:00Z",
     });
   }
-  if (p === "/steam-topup/rates") return send(res, 200, { ok: true, rates: { RUB: "90.50", UAH: "41.20", KZT: "470" }, rates_updated_at: "2026-11-07T00:00:00Z" });
+  if (p === "/steam-topup/rates") return send(res, 200, { ok: true, base: "USD", rates: { USD: 1, RUB: 79.5, UAH: 41.2, KZT: 470.3 }, updated_at: "2026-11-09T00:00:00Z" });
   if (p === "/steam-gifts/games") {
-    // KHÔNG kèm giá trong danh sách — giá phải lấy từ offers tại thời điểm mua
-    return send(res, 200, { ok: true, games: [{ appid: 1245620, name: "ELDEN RING", header_image: "https://example.com/er.jpg" }, { appid: 1086940, name: "Baldur's Gate 3" }] });
+    // Theo tài liệu: item chỉ {name, appid}; tham số duy nhất là limit (không
+    // page/search); KHÔNG kèm giá — giá nằm ở offers theo sub_id + region.
+    const all = [{ appid: 1245620, name: "ELDEN RING" }, { appid: 1086940, name: "Baldur's Gate 3" }];
+    const lim = Number(u.searchParams.get("limit")) || all.length;
+    const games = all.slice(0, lim);
+    return send(res, 200, { ok: true, games, meta: { total: all.length, returned: games.length, truncated: games.length < all.length } });
   }
-  if (p === "/steam-gifts/games/1245620") return send(res, 200, { ok: true, offers: [{ price: "45.99" }, { price: "47.50" }] });
-  if (p.startsWith("/steam-gifts/games/")) return send(res, 200, { ok: true, offers: [{ price: "39.99" }] });
+  if (p === "/steam-gifts/games/1245620") return send(res, 200, { ok: true, offers: [
+    { sub_id: 111, name: "Standard Edition", regions: [{ region: "GLOBAL", price: "45.99" }, { region: "CIS", price: "47.50" }] },
+    { sub_id: 222, name: "Deluxe Edition", regions: [{ region: "GLOBAL", price: "49.00" }] },
+  ] });
+  if (p.startsWith("/steam-gifts/games/")) return send(res, 200, { ok: true, offers: [
+    { sub_id: 333, name: "Standard Edition", regions: [{ region: "GLOBAL", price: "39.99" }] },
+  ] });
 
   /* ----- tạo đơn ----- */
   if (p === "/gamekeys/order") {
@@ -358,7 +373,9 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if (p === "/telegram/stars/buy") {
-    const o = newOrder("stars", { quantity: body.quantity, userId: body.userId }, { status: "completed" });
+    // Body theo tài liệu: { telegram_username, quantity } — thiếu username là 400.
+    if (!body.telegram_username) return send(res, 400, { ok: false, error: "telegram_username is required", code: "VALIDATION" });
+    const o = newOrder("stars", { quantity: body.quantity, telegram_username: body.telegram_username }, { status: "completed" });
     if (starsBehavior === "hang") {
       // Đã tạo đơn + trừ tiền phía FZR nhưng response về quá chậm -> phía mình timeout (mơ hồ)
       return setTimeout(() => send(res, 201, { ok: true, orderId: o.id, order: o }), 33000);
@@ -366,19 +383,40 @@ const server = http.createServer(async (req, res) => {
     return send(res, 201, { ok: true, orderId: o.id, order: o });
   }
   if (p === "/telegram/premium/buy") {
-    const o = newOrder("tgpremium", { userId: body.userId, months: body.months }, { status: "completed" });
+    if (!body.telegram_username) return send(res, 400, { ok: false, error: "telegram_username is required", code: "VALIDATION" });
+    const o = newOrder("tgpremium", { telegram_username: body.telegram_username, months: body.months }, { status: "completed" });
     return send(res, 201, { ok: true, orderId: o.id, order: o });
   }
   if (p === "/steam-topup/check-login") {
-    return send(res, 200, { ok: true, valid: body.login !== "badlogin", region: "CIS" });
+    // Body theo tài liệu: { steamLogin }; trả { can_refill, unverified }.
+    // "badlogin" = không nạp được; "ghostlogin" = nạp được nhưng chưa xác minh.
+    return send(res, 200, { ok: true, can_refill: body.steamLogin !== "badlogin", unverified: body.steamLogin === "ghostlogin" });
   }
   if (p === "/steam-topup/order") {
-    const o = newOrder("steamtopup", { login: body.login }, { status: "completed" });
+    if (!body.steamLogin) return send(res, 400, { ok: false, error: "steamLogin is required", code: "VALIDATION" });
+    const o = newOrder("steamtopup", { steamLogin: body.steamLogin }, { status: "completed" });
     return send(res, 201, { ok: true, order: o });
   }
   if (p === "/steam-gifts/order") {
-    const o = newOrder("steamgift", { appid: body.appid }, { status: "completed" });
+    if (!body.invite_url || body.sub_id === undefined || !body.app_id || !body.region) return send(res, 400, { ok: false, error: "invite_url, sub_id, app_id and region are required", code: "VALIDATION" });
+    const o = newOrder("steamgift", { app_id: body.app_id, sub_id: body.sub_id, region: body.region }, { status: "completed" });
     return send(res, 201, { ok: true, order: o });
+  }
+
+  /* ----- tài khoản: webhook + giao dịch (theo tài liệu) ----- */
+  if (p === "/account/webhook" && req.method === "GET") {
+    return send(res, 200, { ok: true, url: "https://smmv2.example/api/webhooks/fzr", secret: "whsec_mock", enabled: true, consecutive_failures: 0, last_success_at: "2026-11-09T00:00:00Z", last_failure_at: null, last_failure_reason: null, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-11-09T00:00:00Z" });
+  }
+  if (p === "/account/webhook/test" && req.method === "POST") {
+    return send(res, 200, { ok: true, sent: true });
+  }
+  if (p === "/transactions" && req.method === "GET") {
+    const lim = Number(u.searchParams.get("limit")) || 50;
+    const items = [
+      { id: "tx1002", type: "order", status: "completed", amount: "-11.99", balanceBefore: "262.49", balanceAfter: "250.50", note: "Telegram Premium 3 months", createdAt: "2026-11-09T01:00:00Z" },
+      { id: "tx1001", type: "deposit", status: "completed", amount: "100.00", balanceBefore: "162.49", balanceAfter: "262.49", note: "USDT top-up", createdAt: "2026-11-08T01:00:00Z" },
+    ].slice(0, lim);
+    return send(res, 200, { ok: true, items, total: items.length, page: 1 });
   }
 
   /* ----- tra đơn ----- */

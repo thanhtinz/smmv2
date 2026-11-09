@@ -21,7 +21,7 @@ export default async function GameKeyDetailPage({ params, searchParams }: {
   const product = await prisma.premiumProduct.findFirst({
     where: { id, active: true, panelId: null, variants: { some: { providerGroup: "gamekeys", active: true } } },
     select: {
-      id: true, name: true, imageUrl: true, images: true, providerPlatform: true, providerRegion: true, providerAppId: true, providerRegionRestricted: true,
+      id: true, name: true, imageUrl: true, images: true, providerPlatform: true, providerRegion: true, providerAppId: true, providerRegionRestricted: true, providerRegionInfo: true,
       variants: {
         where: { providerGroup: "gamekeys", active: true },
         select: { id: true, name: true, price: true, providerStock: true, minOrderQty: true, maxOrderQty: true },
@@ -43,6 +43,11 @@ export default async function GameKeyDetailPage({ params, searchParams }: {
     if (product.images) { try { const arr = JSON.parse(product.images); if (Array.isArray(arr) && arr[0]) return String(arr[0]); } catch { /* ảnh hỏng */ } }
     return null;
   })();
+  const regionInfo = (() => {
+    if (!product.providerRegionInfo) return null;
+    try { const j = JSON.parse(product.providerRegionInfo); return j && typeof j === "object" ? j : null; } catch { return null; }
+  })();
+  const countryNames = (v: any) => (Array.isArray(v) ? v.map((c: any) => String(c?.name || c?.code || "")).filter(Boolean) : []);
   const game: GkGame = {
     id: product.id,
     name: product.name,
@@ -51,6 +56,8 @@ export default async function GameKeyDetailPage({ params, searchParams }: {
     region: product.providerRegion,
     appid: product.providerAppId,
     regionRestricted: product.providerRegionRestricted,
+    regionAvailable: countryNames(regionInfo?.available),
+    regionUnavailable: countryNames(regionInfo?.unavailable),
     editions: product.variants.map((v) => ({ variantId: v.id, name: v.name, price: v.price, stock: v.providerStock, minQty: v.minOrderQty, maxQty: v.maxOrderQty })),
   };
 

@@ -32,6 +32,7 @@ export default async function AdminPremiumOrderDetail({ params, searchParams }: 
               [L("Hình thức gốc"), o.variant.product.fulfillment === "AUTO_STOCK" ? L("Kho tự động") : o.variant.product.fulfillment === "API" ? L("Đấu API — order_code phía nguồn:") + " " + (o.providerOrderId || L("chưa có")) : L("Thủ công")],
               [L("Số lượng"), String(o.quantity)],
               ...(o.providerRaw ? [[L("Trạng thái phía nhà cung cấp"), (() => { try { const r = JSON.parse(o.providerRaw!); const one = Array.isArray(r) ? r[0] : r; return String(one?.status || one?.state || "—"); } catch { return "—"; } })()]] as [string, string][] : []),
+              ...(o.providerRaw ? (() => { try { const r = JSON.parse(o.providerRaw!); const one = Array.isArray(r) ? r[0] : r; return one?.deadline_at ? [[L("Hạn xử lý phía nhà cung cấp"), dt(new Date(String(one.deadline_at)))]] as [string, string][] : []; } catch { return [] as [string, string][]; } })() : []),
               [L("Thu / Vốn / Lãi"), `${M(o.total)} / ${M(o.cost)} / ${M(o.total - o.cost)}`],
               [L("Thông tin khách cung cấp"), o.buyerInfo || "—"],
               [L("Bảo hành đến"), o.warrantyUntil ? dshort(o.warrantyUntil) : L("Không bảo hành")],

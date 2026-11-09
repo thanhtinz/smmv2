@@ -648,6 +648,26 @@ export async function famSyncProduct(fd: FormData) {
  * theo markup của khu như sản phẩm đồng bộ thường. Mục đã có (trùng mã
  * NCC) bị BỎ QUA, không tạo trùng, không ghi đè. */
 
+/** Danh sách game Steam gift: endpoint NCC CHỈ có tham số limit (không
+ *  page/search — đối chiếu OpenAPI 2026-11-09) và bị rate-limit 1 request /
+ *  3 phút, nên MỌI nhu cầu picker/bulk/tra mã đều dùng ĐÚNG 1 call rồi
+ *  lọc + phân trang tại chỗ. Item list chỉ { name, appid } — không có giá
+ *  (giá nằm ở offers, báo tại thời điểm mua). */
+async function steamGiftMatches(provider: any, query: string): Promise<PickItem[]> {
+  const raw: any = await fzrSteamGiftGames(provider);
+  const games = asArr(raw?.games || raw?.data?.games || raw?.data || raw?.items);
+  const q = query.trim().toLowerCase();
+  const matches: PickItem[] = [];
+  for (const g of games) {
+    const appid = g?.appid ?? g?.app_id ?? g?.id;
+    if (appid === undefined || appid === null) continue;
+    const name = String(g?.name || `App ${appid}`);
+    if (q && !name.toLowerCase().includes(q)) continue;
+    matches.push({ id: String(appid), name, priceUsd: null, extra: `AppID ${appid}` });
+  }
+  return matches;
+}
+
 type BulkItem = PickItem & { exists: boolean };
 type BulkResult = { ok: boolean; items?: BulkItem[]; error?: string; hasMore?: boolean; page?: number; exchangeRate?: number; markup?: number };
 
@@ -661,26 +681,7 @@ export async function fzrBulkSearch(group: string, query: string, pageRaw?: numb
     let items: PickItem[] = [];
     let hasMore = false;
     if (group === "steam_gift") {
-      // Cùng endpoint list của picker (gọi tối đa 5 trang NCC cho 1 trang
-      // hiển thị) nhưng lấy thêm GIÁ LIST của game (price/minPrice trong
-      // item list — collectSteamGifts của fzr-sync cũng đọc các trường này).
-      const q = query.trim().toLowerCase();
-      const need = page * PICK_PAGE_SIZE + 1;
-      const matches: PickItem[] = [];
-      for (let p = 1; p <= 5 && matches.length < need; p++) {
-        const raw: any = await fzrSteamGiftGames(provider, p, query || undefined);
-        const games = asArr(raw?.games || raw?.data?.games || raw?.data || raw?.items);
-        for (const g of games) {
-          const appid = g?.appid ?? g?.app_id ?? g?.id;
-          if (appid === undefined || appid === null) continue;
-          const name = String(g?.name || `App ${appid}`);
-          if (q && !name.toLowerCase().includes(q)) continue;
-          const price = g?.price ?? g?.minPrice ?? g?.lowestPrice;
-          matches.push({ id: String(appid), name, priceUsd: price != null ? String(price) : null, extra: `AppID ${appid}` });
-          if (matches.length >= need) break;
-        }
-        if (games.length < 100) break;
-      }
+      const matches = await steamGiftMatches(provider, query);
       items = matches.slice((page - 1) * PICK_PAGE_SIZE, page * PICK_PAGE_SIZE);
       hasMore = matches.length > page * PICK_PAGE_SIZE;
     } else {
@@ -931,21 +932,8 @@ export async function fzrPickSearch(group: string, query: string, pageRaw?: numb
       return slicePage(matches);
     }
     if (group === "steam_gift") {
-      const matches: PickItem[] = [];
-      for (let p = 1; p <= 5 && matches.length < need; p++) {
-        const raw: any = await fzrSteamGiftGames(provider, p, query || undefined);
-        const games = asArr(raw?.games || raw?.data?.games || raw?.data || raw?.items);
-        for (const g of games) {
-          const appid = g?.appid ?? g?.app_id ?? g?.id;
-          if (appid === undefined || appid === null) continue;
-          const name = String(g?.name || `App ${appid}`);
-          if (q && !name.toLowerCase().includes(q)) continue;
-          matches.push({ id: String(appid), name, priceUsd: null, extra: `AppID ${appid}` });
-          if (matches.length >= need) break;
-        }
-        if (games.length < 100) break; // trang NCC chưa đầy = đã hết catalog
-      }
-      return slicePage(matches);
+      const matches = await steamGiftMatches(provider, query);
+      return slicePage(matches.slice(0, need));
     }
     if (group === "telegram_premium") {
       const plans = await fzrTelegramPremiumPlans(provider);
@@ -1074,16 +1062,9 @@ export async function fzrPickLookup(group: string, idRaw: string): Promise<PickR
       return notFound;
     }
     if (group === "steam_gift") {
-      for (let page = 1; page <= 3; page++) {
-        const raw: any = await fzrSteamGiftGames(provider, page);
-        const games = asArr(raw?.games || raw?.data?.games || raw?.data || raw?.items);
-        for (const g of games) {
-          if (String(g?.appid ?? g?.app_id ?? g?.id) === id) {
-            return { ok: true, item: { id, name: String(g?.name || `App ${id}`), priceUsd: null, extra: `AppID ${id}` } };
-          }
-        }
-        if (!games.length) break;
-      }
+      const matches = await steamGiftMatches(provider, "");
+      const hit = matches.find((m) => m.id === id);
+      if (hit) return { ok: true, item: hit };
       return notFound;
     }
     if (group === "telegram_premium") {

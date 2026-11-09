@@ -4,7 +4,7 @@ import { ADMIN_VARIANT_MARK } from "./families";
 import { DEFAULT_STAR_PACKAGES } from "./tg";
 import {
   fzrGameKeys, fzrGameKeyKeys, fzrGiftCards, fzrGiftCardCards, fzrTopups, fzrTopupOffers, fzrManualServices, fzrManualOffers,
-  fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrSteamGiftGames,
+  fzrTelegramStarsQuote, fzrTelegramPremiumPlans, fzrSteamGiftGames, fzrGameKeyRegionRestriction,
   normalizeTopupFields, normalizeManualFields,
 } from "./fzr";
 import { parsePremiumFields, type PremiumCustomField } from "./format";
@@ -35,6 +35,7 @@ type SyncItem = {
   region?: string;
   appid?: number;
   regionRestricted?: boolean;
+  regionInfo?: string; // JSON chi tiết quốc gia (GET /gamekeys/region-restriction) — chỉ khi regionRestricted
   kind?: string;
   customFields?: PremiumCustomField[];
   variants: SyncVariant[];
@@ -148,6 +149,18 @@ function buildGameKeyItem(g: any, keysRaw: any): { item: SyncItem | null; skippe
   };
 }
 
+/** Kéo chi tiết quốc gia cho game bị giới hạn (GET /gamekeys/region-
+ *  restriction) — CHỈ gọi khi game có region_restriction=true để không tốn
+ *  thêm call cho mọi game; lỗi kéo thì bỏ qua (trang khách vẫn còn cảnh báo
+ *  chung theo cờ regionRestricted). */
+async function attachRegionInfo(provider: Provider, item: SyncItem): Promise<void> {
+  if (!item.regionRestricted) return;
+  try {
+    const info = await fzrGameKeyRegionRestriction(provider, item.productKey);
+    if (info) item.regionInfo = JSON.stringify(info);
+  } catch { /* không chặn đồng bộ */ }
+}
+
 async function collectGameKeys(provider: Provider): Promise<{ items: SyncItem[]; skipped: number }> {
   const rawGames: any[] = [];
   let cursor: string | undefined;
@@ -171,6 +184,7 @@ async function collectGameKeys(provider: Provider): Promise<{ items: SyncItem[];
     const built = buildGameKeyItem(g, keysRaw);
     skipped += built.skipped;
     if (!built.item) { skipped++; continue; }
+    await attachRegionInfo(provider, built.item);
     items.push(built.item);
   }
   return { items, skipped };
@@ -500,23 +514,28 @@ async function collectSynthetic(provider: Provider): Promise<SyncItem[]> {
  *  GIỮ NGUYÊN cap 100: OpenAPI của endpoint games chỉ có tham số `limit`,
  *  KHÔNG có offset/cursor/page để phân trang (đối chiếu 2026-11-08). */
 async function collectSteamGifts(provider: Provider): Promise<{ items: SyncItem[]; skipped: number }> {
-  const raw = await fzrSteamGiftGames(provider, 1);
+  // ĐÚNG 1 call list (endpoint chỉ có tham số limit; bỏ trống = toàn bộ
+  // catalog) — bản cũ lặp 5 "trang" bằng tham số page KHÔNG có trong tài
+  // liệu, vừa phí quota 1-request/3-phút vừa trùng dữ liệu.
+  const raw = await fzrSteamGiftGames(provider);
   const games: any[] = asArray(raw?.games || raw?.data?.games || raw?.data || raw?.items);
   const items: SyncItem[] = [];
   let skipped = 0;
-  for (const g of games) {
+  for (const g of games.slice(0, 100)) {
     const appid = firstDefined(g?.appid, g?.appId, g?.id);
     if (appid === undefined) { skipped++; continue; }
-    const price = firstDefined(g?.price, g?.minPrice, g?.lowestPrice);
     items.push({
       group: "steam_gift",
       productKey: `app-${appid}`,
       productName: String(g?.name || `Steam Game ${appid}`),
       categoryName: "Steam Gift Games",
-      image: firstDefined(g?.header_image, g?.image, g?.imageUrl, g?.capsule_image),
+      // Item list theo tài liệu CHỈ có {name, appid} — không ảnh, không giá.
+      // Ảnh bìa: ưu tiên trường ảnh nếu NCC trả kèm; không có thì suy từ CDN
+      // công khai của Steam theo appid (dữ liệu của Steam, KHÔNG phải FZR).
+      image: firstDefined(g?.header_image, g?.image, g?.imageUrl, g?.capsule_image) || `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`,
       customFields: [{ label: FZR_LABELS.giftReceiver, type: "text", required: true, placeholder: "Tài khoản Steam nhận gift" }],
-      // price không có trong danh sách -> usd null = báo giá tại thời điểm mua từ offers
-      variants: [{ itemId: String(appid), name: "Bản gift", usd: price !== undefined ? String(price) : null }],
+      // Giá không có trong danh sách -> usd null = báo giá tại thời điểm mua từ offers
+      variants: [{ itemId: String(appid), name: "Bản gift", usd: null }],
     });
   }
   return { items, skipped };
@@ -554,6 +573,7 @@ async function collectOneGameKey(provider: Provider, gameId: string): Promise<Si
     keysRaw
   );
   if (!built.item) return { items: [], skipped: built.skipped, missing: true };
+  await attachRegionInfo(provider, built.item);
   return { items: [built.item], skipped: built.skipped };
 }
 
@@ -691,24 +711,11 @@ export async function syncFzrCatalog(provider: Provider, opts: {
   if (want("gamekeys")) push(await collectGameKeys(provider));
   if (want("giftcards")) push(await collectGiftCards(provider));
   if (want("topups")) {
-    const topupsRes = await collectTopups(provider);
-    push(topupsRes);
-    // Ghi nhận đường giao Telegram theo username cho provider này (hoặc xoá nếu
-    // lần đồng bộ này không còn thấy) — luồng thực thi đơn Telegram đọc lại ở đây.
-    try {
-      const { setSetting } = await import("./settings");
-      if (topupsRes.tgTopup) {
-        await setSetting("telegram_topup_category_id", topupsRes.tgTopup.categoryId);
-        await setSetting("telegram_topup_offer_id", topupsRes.tgTopup.offerId);
-        await setSetting("telegram_topup_field", topupsRes.tgTopup.field);
-        await setSetting("telegram_topup_provider_id", String(provider.id));
-      } else if (String((await (await import("./settings")).getSettings()).telegram_topup_provider_id || "") === String(provider.id)) {
-        await setSetting("telegram_topup_category_id", "");
-        await setSetting("telegram_topup_offer_id", "");
-        await setSetting("telegram_topup_field", "");
-        await setSetting("telegram_topup_provider_id", "");
-      }
-    } catch { /* ghi nhận đường Telegram là phụ trợ — lỗi không chặn đồng bộ catalog */ }
+    push(await collectTopups(provider));
+    // LƯU Ý (đối chiếu tài liệu 2026-11-09): hai endpoint mua Telegram nhận
+    // thẳng telegram_username nên KHÔNG còn đường vòng qua offer top-up
+    // Telegram nữa — các setting telegram_topup_* cũ giữ nguyên trong DB ở
+    // trạng thái không dùng, đồng bộ không ghi/xoá chúng nữa.
   }
   if (want("manual")) push(await collectManual(provider));
   if (want("telegram_stars") || want("telegram_premium") || want("steam_topup")) {
@@ -764,6 +771,7 @@ export async function syncFzrCatalog(provider: Provider, opts: {
           ...(item.region && !ovr.has("region") ? { providerRegion: item.region } : {}),
           ...(item.appid && !ovr.has("appid") ? { providerAppId: item.appid } : {}),
           ...(item.regionRestricted !== undefined ? { providerRegionRestricted: item.regionRestricted } : {}),
+          ...(item.regionInfo !== undefined ? { providerRegionInfo: item.regionInfo } : {}),
           ...(item.kind && !ovr.has("kind") ? { providerKind: item.kind } : {}),
           ...(fieldsJson ? { customFields: fieldsJson } : {}),
         },
@@ -782,6 +790,7 @@ export async function syncFzrCatalog(provider: Provider, opts: {
           providerRegion: item.region || null,
           providerAppId: item.appid || null,
           providerRegionRestricted: item.regionRestricted ?? null,
+          providerRegionInfo: item.regionInfo || null,
           providerKind: item.kind || null,
           fulfillment: "API",
           providerId: provider.id,

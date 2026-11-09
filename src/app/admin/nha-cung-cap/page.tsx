@@ -6,8 +6,8 @@ import { dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { getSettings } from "@/lib/settings";
 import { getTelegramProvider } from "@/lib/tg";
-import { fzrBalance, fzrMe } from "@/lib/fzr";
-import { adminFzrAssignmentAction, adminTelegramTestAction } from "@/app/actions/telegram";
+import { fzrBalance, fzrMe, fzrTransactions, fzrWebhookConfig } from "@/lib/fzr";
+import { adminFzrAssignmentAction, adminTelegramTestAction, adminFzrWebhookTestAction } from "@/app/actions/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -36,9 +36,15 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
   const tgProvider = await getTelegramProvider().catch(() => null);
   let tgBalance = "";
   let tgPlan = "";
+  let fzrTx: any[] = [];
+  let fzrHook: any = null;
   if (tgProvider) {
     const bal = await fzrBalance(tgProvider).catch(() => null);
     if (bal) tgBalance = `${bal.balance} ${bal.currency}`;
+    // Sức khoẻ webhook + biến động số dư gần nhất phía tài khoản FZR (GET
+    // /account/webhook + GET /transactions theo tài liệu) — chỉ đọc.
+    fzrTx = await fzrTransactions(tgProvider, 6).catch(() => []);
+    fzrHook = await fzrWebhookConfig(tgProvider).catch(() => null);
     const me: any = await fzrMe(tgProvider).catch(() => null);
     if (me) tgPlan = String(me.plan || me.subscription?.plan || me.email || me.username || me.id || "");
   }
@@ -78,14 +84,37 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
                 <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Đang phục vụ Telegram")}</dt><dd className="font-semibold text-slate-800">{tgProvider.name}</dd></div>
                 <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Số dư FZR")}</dt><dd className="font-semibold text-slate-800">{tgBalance || L("Không đọc được")}</dd></div>
                 <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Tài khoản / gói FZR")}</dt><dd className="font-semibold text-slate-800">{tgPlan || "—"}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Đường giao Telegram")}</dt><dd className="font-semibold text-slate-800">{s.telegram_topup_offer_id && String(s.telegram_topup_provider_id) === String(tgProvider.id) ? L("Theo username (offer top-up Telegram)") : L("Theo Telegram ID số (API riêng)")}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Đường giao Telegram")}</dt><dd className="font-semibold text-slate-800">{L("Theo username (API Telegram)")}</dd></div>
                 <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Webhook FZR")}</dt><dd className="font-semibold text-slate-800">{s.fzr_webhook_secret ? L("Đã cấu hình secret") : L("Chưa cấu hình")}</dd></div>
-                <div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Webhook phía FZR")}</dt><dd className="font-semibold text-slate-800">{fzrHook ? (fzrHook.enabled ? `${L("Đang bật")}${Number(fzrHook.consecutive_failures) > 0 ? ` · ${L("lỗi liên tiếp")} ${fzrHook.consecutive_failures}` : ""}` : L("Đang tắt")) : L("Không đọc được")}</dd></div>
+                {fzrHook?.last_failure_reason ? (
+                  <div className="flex justify-between gap-3"><dt className="text-slate-500">{L("Lỗi webhook gần nhất")}</dt><dd className="max-w-[420px] text-right font-medium text-rose-600">{String(fzrHook.last_failure_reason).slice(0, 160)}</dd></div>
+                ) : null}
+                <div className="flex flex-wrap gap-2">
                   <form action={adminTelegramTestAction}>
                     <button className="btn-ghost btn-sm">{L("Kiểm tra kết nối")}</button>
                   </form>
+                  <form action={adminFzrWebhookTestAction}>
+                    <button className="btn-ghost btn-sm">{L("Gửi webhook test")}</button>
+                  </form>
                 </div>
               </dl>
+            )}
+            {tgProvider && fzrTx.length > 0 && (
+              <div className="mt-4 border-t border-slate-100 pt-4">
+                <h3 className="text-sm font-bold text-slate-800">{L("Biến động số dư FZR gần nhất")}</h3>
+                <ul className="mt-2 divide-y divide-slate-100 text-sm">
+                  {fzrTx.map((tx: any) => (
+                    <li key={String(tx.id)} className="flex items-center justify-between gap-3 py-2">
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-slate-700">{String(tx.note || tx.type || "—")}</span>
+                        <span className="block text-xs text-slate-400">{tx.createdAt ? dt(new Date(tx.createdAt)) : ""} · {L("Số dư sau")}: {String(tx.balanceAfter ?? "—")}</span>
+                      </span>
+                      <span className={`shrink-0 font-bold ${String(tx.amount || "").startsWith("-") ? "text-rose-600" : "text-emerald-600"}`}>{String(tx.amount ?? "—")}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </>
         )}

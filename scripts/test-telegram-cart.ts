@@ -2,7 +2,9 @@
  * Smoke B′ + D ở tầng logic thật (không qua HTTP):
  *  - B′: sync catalog từ mock FZR -> đặt đơn Stars + Premium bằng đúng hình
  *    dữ liệu của placeTelegramOrderAction (customData Telegram ID + username)
- *    -> kiểm mock nhận buy đúng, lịch sử (telegramOrderWhere) thấy cả hai.
+ *    -> kiểm mock nhận buy đúng BODY THEO TÀI LIỆU ({ telegram_username, ... }
+ *    — endpoint mua Telegram không có đường theo user ID số), lịch sử
+ *    (telegramOrderWhere) thấy cả hai.
  *  - D: checkout hỗn hợp ở tầng createPremiumOrder — 1 dòng AUTO_STOCK đủ hàng
  *    (thành công), 1 dòng AUTO_STOCK thiếu hàng (lỗi), ví chỉ bị trừ dòng thành
  *    công. (Bản thân checkoutCartAction chỉ là vòng lặp gọi hàm này.)
@@ -59,7 +61,7 @@ async function main() {
     });
     const log1 = await mockLog();
     const starBuy = log1.filter((x) => x.path.includes("/telegram/stars/buy"));
-    check("B′ đơn Stars gọi buy đúng body", starBuy.length === 1 && starBuy[0].body.quantity === 100 && starBuy[0].body.userId === 123456789, JSON.stringify(starBuy[0]?.body));
+    check("B′ đơn Stars gọi buy đúng body tài liệu", starBuy.length === 1 && starBuy[0].body.quantity === 100 && starBuy[0].body.telegram_username === "tin_test" && starBuy[0].body.userId === undefined, JSON.stringify(starBuy[0]?.body));
     check("B′ đơn Stars có providerOrderId", !!starsOrder.providerOrderId);
 
     // Đặt đơn Premium 3 tháng
@@ -70,39 +72,44 @@ async function main() {
     });
     const log2 = await mockLog();
     const premBuy = log2.filter((x) => x.path.includes("/telegram/premium/buy"));
-    check("B′ đơn Premium gọi buy đúng body", premBuy.length === 1 && premBuy[0].body.months === 3 && premBuy[0].body.userId === 123456789, JSON.stringify(premBuy[0]?.body));
+    check("B′ đơn Premium gọi buy đúng body tài liệu", premBuy.length === 1 && premBuy[0].body.months === 3 && premBuy[0].body.telegram_username === "tin_test" && premBuy[0].body.userId === undefined, JSON.stringify(premBuy[0]?.body));
 
     const hist = await prisma.premiumOrder.findMany({ where: { userId: demo.id, ...telegramOrderWhere() } });
     check("B′ lịch sử Telegram thấy cả 2 đơn", hist.some((o) => o.id === starsOrder.id) && hist.some((o) => o.id === premOrder.id), `${hist.length} đơn`);
 
 
-    // --- B′ đường kép: username-only đi offer top-up Telegram (đường b) ---
+    // --- B′ username-only: mua THẲNG bằng telegram_username (tài liệu
+    // 2026-11-09: endpoint mua chỉ nhận username, không còn đường vòng qua
+    // offer top-up Telegram, không còn giữ đơn chờ xử lý tay) ---
     const logBefore = await mockLog();
     const userOrder2: any = await createPremiumOrder({
       user: demo, variantId: stars!.id, quantity: 50,
       customData: { "Tên người dùng Telegram": "@tin_test" },
     });
     const logB = await mockLog();
+    const directBuys = logB.slice(logBefore.length).filter((x) => x.path.includes("/telegram/stars/buy"));
     const topupCalls = logB.slice(logBefore.length).filter((x) => x.path.includes("/topups/order"));
-    // Body topups theo OpenAPI (viết lại 2026-11-08): { category_id, offer_id,
-    // fields{username} } — thay khẳng định cũ { offerId, orderParams }.
-    check("B′ username-only: sync ghi nhận offer top-up Telegram", topupCalls.length === 1 && topupCalls[0].body.category_id === "tp-tg" && topupCalls[0].body.offer_id === "tp-tg-stars", JSON.stringify(topupCalls[0]?.body));
-    check("B′ username-only: username vào đúng trường offer", topupCalls[0]?.body?.fields?.username === "tin_test", JSON.stringify(topupCalls[0]?.body?.fields));
-    check("B′ username-only: đơn có providerOrderId (đi đường top-up)", !!userOrder2.providerOrderId);
+    check("B′ username-only: mua thẳng bằng telegram_username", directBuys.length === 1 && directBuys[0].body.telegram_username === "tin_test" && directBuys[0].body.quantity === 50, JSON.stringify(directBuys[0]?.body));
+    check("B′ username-only: KHÔNG đi đường vòng top-up", topupCalls.length === 0);
+    check("B′ username-only: đơn có providerOrderId", !!userOrder2.providerOrderId);
 
-    // --- B′ đường (c): không ID, không offer top-up -> giữ PENDING chờ tay ---
-    const { setSetting: setS } = await import("../src/lib/settings");
-    await setS("telegram_topup_offer_id", "");
+    // --- B′ số sao dưới min của báo giá (min_amount=50 theo tài liệu):
+    // createPremiumOrder chặn ngay theo báo giá tươi — lỗi rõ, KHÔNG tạo
+    // đơn, KHÔNG gọi buy, ví không đổi. (Tầng thực thi còn một chốt chặn
+    // tương tự cho trường hợp báo giá đổi giữa chừng.) ---
     const balBeforeHold = (await prisma.user.findUnique({ where: { id: demo.id } }))!.balance;
-    const holdOrder: any = await createPremiumOrder({
-      user: demo, variantId: stars!.id, quantity: 50,
-      customData: { "Tên người dùng Telegram": "@tin_test" },
-    });
+    let minErr = "";
+    try {
+      await createPremiumOrder({
+        user: demo, variantId: stars!.id, quantity: 10,
+        customData: { "Tên người dùng Telegram": "@tin_test" },
+      });
+    } catch (e: any) { minErr = String(e?.message || e); }
     const logC = await mockLog();
     const newBuys = logC.slice(logB.length).filter((x) => x.path.includes("/telegram/stars/buy") || x.path.includes("/telegram/premium/buy") || x.path.includes("/topups/order"));
-    check("B′ đường (c): đơn giữ PENDING chờ xử lý tay", holdOrder.status === "PENDING" && /xử lý tay/.test(holdOrder.adminNote || ""), holdOrder.adminNote || "");
-    check("B′ đường (c): KHÔNG gọi provider, KHÔNG hoàn tiền", newBuys.length === 0 && (await prisma.user.findUnique({ where: { id: demo.id } }))!.balance === balBeforeHold - holdOrder.total);
-    await setS("telegram_topup_offer_id", "tp-tg");
+    check("B′ dưới min sao: bị chặn bởi min_amount của báo giá", minErr.includes("Số sao tối thiểu là 50"), minErr);
+    check("B′ dưới min sao: KHÔNG gọi provider, ví không đổi", newBuys.length === 0 && (await prisma.user.findUnique({ where: { id: demo.id } }))!.balance === balBeforeHold);
+    const holdOrder = { id: 0 }; // giữ biến cho khối dọn dẹp phía dưới
 
     // --- D: checkout hỗn hợp ở tầng createPremiumOrder ---
     // (AUTO_STOCK thiếu kho thì đơn PENDING chờ giao tay theo máy cũ — dòng lỗi
