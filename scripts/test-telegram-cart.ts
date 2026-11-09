@@ -84,8 +84,10 @@ async function main() {
     });
     const logB = await mockLog();
     const topupCalls = logB.slice(logBefore.length).filter((x) => x.path.includes("/topups/order"));
-    check("B′ username-only: sync ghi nhận offer top-up Telegram", topupCalls.length === 1 && topupCalls[0].body.offerId === "tp-tg", JSON.stringify(topupCalls[0]?.body));
-    check("B′ username-only: username vào đúng trường offer", topupCalls[0]?.body?.orderParams?.username === "tin_test", JSON.stringify(topupCalls[0]?.body?.orderParams));
+    // Body topups theo OpenAPI (viết lại 2026-11-08): { category_id, offer_id,
+    // fields{username} } — thay khẳng định cũ { offerId, orderParams }.
+    check("B′ username-only: sync ghi nhận offer top-up Telegram", topupCalls.length === 1 && topupCalls[0].body.category_id === "tp-tg" && topupCalls[0].body.offer_id === "tp-tg-stars", JSON.stringify(topupCalls[0]?.body));
+    check("B′ username-only: username vào đúng trường offer", topupCalls[0]?.body?.fields?.username === "tin_test", JSON.stringify(topupCalls[0]?.body?.fields));
     check("B′ username-only: đơn có providerOrderId (đi đường top-up)", !!userOrder2.providerOrderId);
 
     // --- B′ đường (c): không ID, không offer top-up -> giữ PENDING chờ tay ---

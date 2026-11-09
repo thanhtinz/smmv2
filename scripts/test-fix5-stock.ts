@@ -58,13 +58,15 @@ async function main() {
       create: { id: 999002, name: "Mock FZR WS9", apiUrl: MOCK, apiKey: "fc_test_mock", driver: "FZR", kind: "PREMIUM", currency: "USD", exchangeRate: 25000, markupPercent: 20 },
     });
     const cat = await prisma.premiumCategory.findFirst({ select: { id: true } });
+    // Hợp đồng gamekeys sau đợt viết lại theo OpenAPI: game_id nằm ở SẢN PHẨM
+    // (providerProductId), providerItemId của variant = key_id của edition.
     const product = await prisma.premiumProduct.create({
-      data: { name: "WS9 API Game Key", slug: "ws9-api-game-key", categoryId: cat!.id, fulfillment: "API", providerId: provider.id, color: "#0ea5e9" },
+      data: { name: "WS9 API Game Key", slug: "ws9-api-game-key", categoryId: cat!.id, fulfillment: "API", providerId: provider.id, providerProductId: "gk-1", color: "#0ea5e9" },
     });
     const mkVariant = async (itemId: string, stockQty: number) => prisma.premiumVariant.create({
       data: { productId: product.id, name: `Key ${itemId}`, price: 30000, cost: 25000, providerId: provider.id, providerGroup: "gamekeys", providerItemId: itemId, stockQty },
     });
-    const vOk = await mkVariant("gk-1", 1);
+    const vOk = await mkVariant("gk-1-std", 1);
     const logBefore = (await mockLog()).filter((l: any) => String(l.path || "").includes("gamekeys/order")).length;
     const oApi = await createPremiumOrder({ user: demo, variantId: vOk.id, quantity: 1, buyerInfo: "demo@example.com" });
     const vApiNow = await prisma.premiumVariant.findUnique({ where: { id: vOk.id }, select: { stockQty: true } });

@@ -46,9 +46,16 @@ async function main() {
     await prisma.user.update({ where: { id: demo.id }, data: { balance: 50000000 } });
     const freshDemo = async () => (await prisma.user.findUnique({ where: { id: demo.id } })) as any;
 
-    const manualV = await prisma.premiumVariant.findFirst({ where: { providerId: PROVIDER_ID, providerGroup: "manual" }, orderBy: { price: "asc" } });
+    // Chọn variant manual KHÔNG có trường bắt buộc (dịch vụ standard) — test
+    // này kiểm webhook trạng thái, không kiểm fields. Sau đợt viết lại theo
+    // OpenAPI, variant rẻ nhất là dịch vụ replenishment (có Player ID/Server
+    // bắt buộc) nên không chọn theo giá nữa. Cách mua mô phỏng đúng luồng web
+    // (placeManualAction): buyerInfo = danh tính tài khoản khi không có fields.
+    const manualCands = await prisma.premiumVariant.findMany({ where: { providerId: PROVIDER_ID, providerGroup: "manual" }, include: { product: { select: { customFields: true } } }, orderBy: { price: "asc" } });
+    const { parsePremiumFields } = await import("../src/lib/format");
+    const manualV = manualCands.find((v: any) => !parsePremiumFields(v.product.customFields).some((f: any) => f.required));
     check("có variant manual để tạo đơn PENDING", !!manualV);
-    const buyManual = async () => createPremiumOrder({ user: await freshDemo(), variantId: manualV!.id, quantity: 1, customData: { "Thông tin bổ sung": "@whuser" } }) as any;
+    const buyManual = async () => { const u: any = await freshDemo(); return createPremiumOrder({ user: u, variantId: manualV!.id, quantity: 1, buyerInfo: u.email || u.username }) as any; };
 
     // 1) completed + cards -> DELIVERED, nội dung từ order.cards
     const oA: any = await buyManual();

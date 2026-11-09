@@ -63,7 +63,10 @@ async function main() {
     const gkList = await api({ action: "products", group: "gamekeys" });
     ok(Array.isArray(gkList) && gkList.length === 1 && gkList[0].group === "gamekeys", "products?group=gamekeys trả đúng 1 nhóm gamekeys");
     const gkProduct = gkList[0].products.find((p: any) => p.name);
-    const gkVariant = await prisma.premiumVariant.findFirst({ where: { providerId: PROVIDER_ID, providerGroup: "gamekeys", providerItemId: "gk-1" } });
+    // Mapping sau đợt viết lại gamekeys theo OpenAPI: game_id nằm ở SẢN PHẨM
+    // (providerProductId = "gk-1"), providerItemId của variant = key_id của
+    // edition ("gk-1-std") — khẳng định cũ tra providerItemId "gk-1" đã lỗi thời.
+    const gkVariant = await prisma.premiumVariant.findFirst({ where: { providerId: PROVIDER_ID, providerGroup: "gamekeys", product: { providerProductId: "gk-1" } } });
     const gkEntry = gkList[0].products.flatMap((p: any) => p.variants).find((v: any) => v.variant === gkVariant!.id);
     ok(!!gkEntry && gkEntry.stock === "in_stock" && gkEntry.price === gkVariant!.price, `variant gamekey trong catalog: price=${gkEntry?.price} stock=${gkEntry?.stock}`);
     const all = await api({ action: "products" });
