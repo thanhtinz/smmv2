@@ -5,6 +5,7 @@ import { moduleOn } from "@/lib/modules";
 import { PageHead, Flash, Badge, Empty, Stat, I } from "@/components/ui";
 import { createTicketAction } from "@/app/actions/user";
 import { TicketAttachInput } from "@/components/ticket-attach";
+import { CreateTicketButton, TicketFormReveal } from "@/components/ticket-create";
 import { RichText } from "@/components/rich-text";
 import { getFloatingContacts, type FloatingContact } from "@/lib/contact";
 import { dt, num } from "@/lib/format";
@@ -32,7 +33,11 @@ function contactDisplay(c: FloatingContact): string {
  *  "gộp cái câu hỏi đó vào cái ticket luôn cho gọn"): trên cùng là mục Câu hỏi
  *  thường gặp (accordion đọc từ Bài viết danh mục slug "faq", admin sửa ở
  *  Admin → Bài viết) + cột phụ thẻ tạo ticket và kênh liên hệ admin cấu hình;
- *  dưới là danh sách ticket của khách và form tạo ticket như cũ. Route
+ *  dưới là danh sách ticket của khách. Tạo ticket chỉ còn MỘT điểm vào duy
+ *  nhất (lệnh Tín 19:40 cùng ngày — bỏ nút trùng ở đầu trang và form hiện
+ *  sẵn ở cuối trang vì dư thừa): nút "Tạo ticket hỗ trợ" ở cột phụ, bấm là
+ *  form tạo mở ra tại vị trí neo #tao-ticket ở cuối trang (mở trang kèm neo
+ *  hoặc tham số điền trước từ chi tiết đơn cũng tự mở form). Route
  *  /dashboard/faq cũ redirect về đây kèm neo #faq. */
 export default async function TicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string; st?: string; q?: string; subject?: string; category?: string; body?: string } }) {
   const user = (await getCurrentUser())!;
@@ -66,7 +71,6 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
         <PageHead title={L("Hỗ trợ")} desc={L("Câu hỏi thường gặp, kênh liên hệ và ticket hỗ trợ của bạn")} />
         <div className="flex gap-2 pt-1">
           <Link href="/dashboard/ticket" className="btn-ghost">{L("Làm mới")}</Link>
-          <a href="#tao-ticket" className="btn-primary">{L("+ Tạo ticket mới")}</a>
         </div>
       </div>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
@@ -99,7 +103,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
             <div className="card p-5">
               <div className="font-bold text-slate-900">{L("Chưa tìm thấy câu trả lời?")}</div>
               <p className="mt-1 text-sm text-slate-500">{L("Gửi ticket để đội hỗ trợ trả lời trực tiếp cho bạn.")}</p>
-              <a href="#tao-ticket" className="btn-primary mt-4 w-full justify-center">{L("Tạo ticket hỗ trợ")}</a>
+              <CreateTicketButton className="btn-primary mt-4 w-full justify-center">{L("Tạo ticket hỗ trợ")}</CreateTicketButton>
             </div>
             {contacts.length > 0 && (
               <div className="card p-5">
@@ -172,7 +176,8 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
         </div>
       )}
 
-      <form id="tao-ticket" action={createTicketAction} className="card mt-6 scroll-mt-24 space-y-4 p-6">
+      <TicketFormReveal defaultOpen={Boolean(searchParams.subject || searchParams.category || searchParams.body)}>
+      <form action={createTicketAction} className="card mt-6 space-y-4 p-6">
         <div className="font-bold text-slate-900">{L("Tạo ticket hỗ trợ")}</div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -196,6 +201,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
         <TicketAttachInput />
         <button className="btn-primary">{L("Gửi yêu cầu")}</button>
       </form>
+      </TicketFormReveal>
     </div>
   );
 }
