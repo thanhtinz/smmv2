@@ -5,7 +5,6 @@ import { moduleOn } from "@/lib/modules";
 import { PageHead, Flash, Badge, Empty, Stat, I } from "@/components/ui";
 import { createTicketAction } from "@/app/actions/user";
 import { TicketAttachInput } from "@/components/ticket-attach";
-import { CreateTicketButton, TicketFormReveal } from "@/components/ticket-create";
 import { RichText } from "@/components/rich-text";
 import { getFloatingContacts, type FloatingContact } from "@/lib/contact";
 import { dt, num } from "@/lib/format";
@@ -32,13 +31,14 @@ function contactDisplay(c: FloatingContact): string {
 /** Hỗ trợ — MỘT trang duy nhất (gộp FAQ vào đây theo lệnh Tín 2026-11-09 19:12
  *  "gộp cái câu hỏi đó vào cái ticket luôn cho gọn"): trên cùng là mục Câu hỏi
  *  thường gặp (accordion đọc từ Bài viết danh mục slug "faq", admin sửa ở
- *  Admin → Bài viết) + cột phụ thẻ tạo ticket và kênh liên hệ admin cấu hình;
- *  dưới là danh sách ticket của khách. Tạo ticket chỉ còn MỘT điểm vào duy
- *  nhất (lệnh Tín 19:40 cùng ngày — bỏ nút trùng ở đầu trang và form hiện
- *  sẵn ở cuối trang vì dư thừa): nút "Tạo ticket hỗ trợ" ở cột phụ, bấm là
- *  form tạo mở ra tại vị trí neo #tao-ticket ở cuối trang (mở trang kèm neo
- *  hoặc tham số điền trước từ chi tiết đơn cũng tự mở form). Route
- *  /dashboard/faq cũ redirect về đây kèm neo #faq. */
+ *  Admin → Bài viết) + cột liên hệ admin cấu hình; dưới là danh sách ticket
+ *  của khách. FORM tạo ticket nằm LUÔN trong cột phụ ở đầu trang, hiện sẵn
+ *  (lệnh Tín 20:28 cùng ngày — "đưa cái form lên đó luôn đi chứ tự nhiên bấm
+ *  nút rồi nhảy xuống đó": bỏ hẳn nút bấm mở form + cú nhảy cuộn của bản
+ *  19:40). Neo #tao-ticket trỏ thẳng vào thẻ form này; link điền trước
+ *  subject/category/body từ chi tiết đơn (Báo lỗi đơn / Yêu cầu hoàn tiền)
+ *  mở trang là thấy form đã điền sẵn ở cột phụ. Route /dashboard/faq cũ
+ *  redirect về đây kèm neo #faq. */
 export default async function TicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string; st?: string; q?: string; subject?: string; category?: string; body?: string } }) {
   const user = (await getCurrentUser())!;
   const { L, Ld } = await getServerI18n();
@@ -75,14 +75,20 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
       </div>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
-      {/* MỤC FAQ — accordion + cột phụ (thẻ tạo ticket, kênh liên hệ). Cột phụ
-          320px như trang FAQ cũ đã cân bằng; danh sách ticket full-width ngay
-          dưới nên hai cột kết thúc không cần ngang tuyệt đối với phần dưới. */}
+      {/* MỤC FAQ + FORM TẠO TICKET — lưới 2 cột trên PC: accordion ở cột rộng
+          (hàng 1), FORM tạo ticket nằm luôn ở cột phụ 320px (hiện sẵn không
+          nút bấm — neo #tao-ticket trỏ vào thẻ form), thẻ kênh liên hệ ở
+          hàng 2 dưới accordion. Form TRẢI 2 HÀNG của lưới: nếu không, chiều
+          cao hàng 1 bị form (cao hơn accordion) đội lên và thẻ liên hệ bị
+          đẩy xuống dưới đáy form, sinh khoảng chết dưới accordion (đo thật
+          lệch 206px); trải hàng thì cột trái xếp theo chiều cao thật của
+          nó và hai cột kết thúc gần ngang nhau. Mobile xếp dọc theo đúng
+          thứ tự DOM: FAQ → form → liên hệ. */}
       <section id="faq" className="scroll-mt-24">
         <h2 className="text-base font-bold text-slate-900">{L("Câu hỏi thường gặp")}</h2>
         <p className="mb-4 mt-0.5 text-sm text-slate-500">{L("Những câu hỏi khách hàng hay gặp nhất")}</p>
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="min-w-0">
+          <div className="min-w-0 lg:col-start-1 lg:row-start-1">
             {faqPosts.length === 0 ? <Empty text={L("Chưa có câu hỏi nào")} /> : (
               <div className="space-y-3">
                 {faqPosts.map((p, i) => (
@@ -99,34 +105,54 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
               </div>
             )}
           </div>
-          <aside className="space-y-6">
-            <div className="card p-5">
-              <div className="font-bold text-slate-900">{L("Chưa tìm thấy câu trả lời?")}</div>
-              <p className="mt-1 text-sm text-slate-500">{L("Gửi ticket để đội hỗ trợ trả lời trực tiếp cho bạn.")}</p>
-              <CreateTicketButton className="btn-primary mt-4 w-full justify-center">{L("Tạo ticket hỗ trợ")}</CreateTicketButton>
-            </div>
-            {contacts.length > 0 && (
-              <div className="card p-5">
-                <div className="font-bold text-slate-900">{L("Kênh liên hệ khác")}</div>
-                <div className="mt-2">
-                  {contacts.map((ct) => (
-                    <a key={ct.name} href={ct.href} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-slate-50">
-                      {ct.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={ct.image} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
-                      ) : (
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black text-white" style={{ background: ct.bg }}>{ct.name.charAt(0).toUpperCase()}</span>
-                      )}
-                      <span className="min-w-0">
-                        <span className="block text-sm font-bold text-slate-800">{ct.name}</span>
-                        <span className="block truncate text-xs text-slate-500">{contactDisplay(ct)}</span>
-                      </span>
-                    </a>
-                  ))}
-                </div>
+          <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-2">
+            <form id="tao-ticket" action={createTicketAction} className="card scroll-mt-24 space-y-4 p-5">
+              <div>
+                <div className="font-bold text-slate-900">{L("Tạo ticket hỗ trợ")}</div>
+                <p className="mt-1 text-sm text-slate-500">{L("Gửi ticket để đội hỗ trợ trả lời trực tiếp cho bạn.")}</p>
               </div>
-            )}
+              <div>
+                <label className="lbl">{L("Chủ đề")}</label>
+                <select className="inp" name="category" defaultValue={searchParams.category || "other"}>
+                  <option value="smm">{L("Đơn SMM")}</option>
+                  <option value="premium">{L("Đơn Premium / bảo hành")}</option>
+                  <option value="deposit">{L("Nạp tiền")}</option>
+                  <option value="other">{L("Khác")}</option>
+                </select>
+              </div>
+              <div>
+                <label className="lbl">{L("Tiêu đề")}</label>
+                <input className="inp" name="subject" required placeholder={L("Tóm tắt ngắn gọn vấn đề cần hỗ trợ")} defaultValue={searchParams.subject || ""} />
+              </div>
+              <div>
+                <label className="lbl">{L("Mô tả chi tiết")}</label>
+                <textarea className="inp" name="body" rows={6} required placeholder={L("Mô tả chi tiết vấn đề bạn gặp phải, kèm mã đơn nếu có...")} defaultValue={searchParams.body || ""} />
+              </div>
+              <TicketAttachInput />
+              <button className="btn-primary w-full justify-center">{L("Gửi yêu cầu")}</button>
+            </form>
           </aside>
+          {contacts.length > 0 && (
+            <div className="card p-5 lg:col-start-1 lg:row-start-2">
+              <div className="font-bold text-slate-900">{L("Kênh liên hệ khác")}</div>
+              <div className="mt-2 grid gap-1 sm:grid-cols-2 lg:grid-cols-4">
+                {contacts.map((ct) => (
+                  <a key={ct.name} href={ct.href} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-slate-50">
+                    {ct.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={ct.image} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black text-white" style={{ background: ct.bg }}>{ct.name.charAt(0).toUpperCase()}</span>
+                    )}
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold text-slate-800">{ct.name}</span>
+                      <span className="block truncate text-xs text-slate-500">{contactDisplay(ct)}</span>
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -176,32 +202,6 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
         </div>
       )}
 
-      <TicketFormReveal defaultOpen={Boolean(searchParams.subject || searchParams.category || searchParams.body)}>
-      <form action={createTicketAction} className="card mt-6 space-y-4 p-6">
-        <div className="font-bold text-slate-900">{L("Tạo ticket hỗ trợ")}</div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="lbl">{L("Chủ đề")}</label>
-            <select className="inp" name="category" defaultValue={searchParams.category || "other"}>
-              <option value="smm">{L("Đơn SMM")}</option>
-              <option value="premium">{L("Đơn Premium / bảo hành")}</option>
-              <option value="deposit">{L("Nạp tiền")}</option>
-              <option value="other">{L("Khác")}</option>
-            </select>
-          </div>
-          <div>
-            <label className="lbl">{L("Tiêu đề")}</label>
-            <input className="inp" name="subject" required placeholder={L("Tóm tắt ngắn gọn vấn đề cần hỗ trợ")} defaultValue={searchParams.subject || ""} />
-          </div>
-        </div>
-        <div>
-          <label className="lbl">{L("Mô tả chi tiết")}</label>
-          <textarea className="inp" name="body" rows={5} required placeholder={L("Mô tả chi tiết vấn đề bạn gặp phải, kèm mã đơn nếu có...")} defaultValue={searchParams.body || ""} />
-        </div>
-        <TicketAttachInput />
-        <button className="btn-primary">{L("Gửi yêu cầu")}</button>
-      </form>
-      </TicketFormReveal>
     </div>
   );
 }
