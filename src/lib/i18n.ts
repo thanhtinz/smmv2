@@ -1298,6 +1298,8 @@ export const DICT: Record<string, Tr> = {
   "Thông báo hỗ trợ (ticket)": e("Support (ticket) notifications", "支持（工单）通知", "แจ้งเตือนการสนับสนุน (ตั๋ว)", "サポート（チケット）通知", "지원(티켓) 알림"),
   "Thông báo hệ thống": e("System notifications", "系统通知", "แจ้งเตือนระบบ", "システム通知", "시스템 알림"),
   "Chưa tìm thấy câu trả lời?": e("Still no answer?", "还没找到答案？", "ยังไม่พบคำตอบ?", "答えが見つかりませんか？", "아직 답을 못 찾으셨나요?"),
+  "Ticket của bạn": e("Your tickets", "您的工单", "ตั๋วของคุณ", "あなたのチケット", "내 티켓"),
+  "Câu hỏi thường gặp, kênh liên hệ và ticket hỗ trợ của bạn": e("Frequently asked questions, contact channels and your support tickets", "常见问题、联系渠道和您的支持工单", "คำถามที่พบบ่อย ช่องทางการติดต่อ และตั๋วสนับสนุนของคุณ", "よくある質問、連絡チャネル、あなたのサポートチケット", "자주 묻는 질문, 연락 채널 및 지원 티켓"),
   "Kênh liên hệ khác": e("Other contact channels", "其他联系渠道", "ช่องทางการติดต่ออื่นๆ", "その他の連絡チャネル", "기타 연락 채널"),
   "Hỗ trợ khác": e("Other support", "其他支持", "การสนับสนุนอื่นๆ", "その他のサポート", "기타 지원"),
   "Báo lỗi đơn": e("Report order issue", "报告订单问题", "รายงานปัญหาคำสั่งซื้อ", "注文の問題を報告", "주문 문제 신고"),

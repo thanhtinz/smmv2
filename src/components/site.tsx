@@ -88,7 +88,7 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
         <div>
           <div className={headCls}><span className="h-4 w-1 rounded-full bg-brand-500" />{L("Hỗ trợ")}</div>
           <ul className="space-y-1.5">
-            <li><Link href="/dashboard/faq" className={linkCls}>{L("Câu hỏi thường gặp")}</Link></li>
+            <li><Link href="/dashboard/ticket#faq" className={linkCls}>{L("Câu hỏi thường gặp")}</Link></li>
             <li><Link href="/dashboard/ticket" className={linkCls}>{L("Gửi ticket hỗ trợ")}</Link></li>
             <li><Link href="/dashboard/nap-tien" className={linkCls}>{L("Nạp tiền")}</Link></li>
             <li><Link href="/dashboard/api-docs" className={linkCls}>{L("Tài liệu API")}</Link></li>

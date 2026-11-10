@@ -5,6 +5,8 @@ import { moduleOn } from "@/lib/modules";
 import { PageHead, Flash, Badge, Empty, Stat, I } from "@/components/ui";
 import { createTicketAction } from "@/app/actions/user";
 import { TicketAttachInput } from "@/components/ticket-attach";
+import { RichText } from "@/components/rich-text";
+import { getFloatingContacts, type FloatingContact } from "@/lib/contact";
 import { dt, num } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 
@@ -16,20 +18,39 @@ const T_STATUS: Record<string, { label: string; cls: string }> = {
 };
 const T_CAT: Record<string, string> = { smm: "Đơn SMM", premium: "Đơn Premium / bảo hành", deposit: "Nạp tiền", other: "Khác" };
 
-/** Hỗ trợ — bố cục theo panel mẫu: thẻ thống kê, nút lọc theo trạng thái (có số lượng),
- *  tìm kiếm, bảng ticket và form tạo ở cuối trang. */
+/** Giá trị hiển thị của một kênh liên hệ, suy từ link đã chuẩn hoá
+ *  (cùng cách suy của footer): tel: → số điện thoại; t.me → @tên; còn lại bỏ phần miền. */
+function contactDisplay(c: FloatingContact): string {
+  const h = c.href || "";
+  if (h.startsWith("tel:")) return h.slice(4);
+  const m = h.match(/^https?:\/\/(?:www\.)?([^/]+)\/(.+)$/);
+  if (m) return m[1].includes("t.me") ? `@${m[2]}` : m[2];
+  return h;
+}
+
+/** Hỗ trợ — MỘT trang duy nhất (gộp FAQ vào đây theo lệnh Tín 2026-11-09 19:12
+ *  "gộp cái câu hỏi đó vào cái ticket luôn cho gọn"): trên cùng là mục Câu hỏi
+ *  thường gặp (accordion đọc từ Bài viết danh mục slug "faq", admin sửa ở
+ *  Admin → Bài viết) + cột phụ thẻ tạo ticket và kênh liên hệ admin cấu hình;
+ *  dưới là danh sách ticket của khách và form tạo ticket như cũ. Route
+ *  /dashboard/faq cũ redirect về đây kèm neo #faq. */
 export default async function TicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string; st?: string; q?: string; subject?: string; category?: string; body?: string } }) {
   const user = (await getCurrentUser())!;
   const { L, Ld } = await getServerI18n();
   if (!(await moduleOn("tickets"))) { const { redirect } = await import("next/navigation"); redirect("/"); }
   const st = searchParams.st && T_STATUS[searchParams.st] ? searchParams.st : "";
   const q = (searchParams.q || "").trim();
-  const [counts, tickets] = await Promise.all([
+  const faqCat = await prisma.postCategory.findUnique({ where: { slug: "faq" } });
+  const [counts, tickets, faqPosts, contacts] = await Promise.all([
     prisma.ticket.groupBy({ by: ["status"], where: { userId: user.id }, _count: true }),
     prisma.ticket.findMany({
       where: { userId: user.id, ...(st ? { status: st as any } : {}), ...(q ? { subject: { contains: q, mode: "insensitive" } } : {}) },
       orderBy: { updatedAt: "desc" }, take: 30, include: { _count: { select: { messages: true } } },
     }),
+    faqCat
+      ? prisma.post.findMany({ where: { published: true, categoryId: faqCat.id, panelId: null }, orderBy: [{ pinned: "desc" }, { id: "asc" }], take: 100 })
+      : Promise.resolve([]),
+    getFloatingContacts().catch(() => [] as FloatingContact[]),
   ]);
   const c = (k: string) => counts.find((x) => x.status === k)?._count || 0;
   const total = counts.reduce((a, x) => a + x._count, 0);
@@ -42,7 +63,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHead title={L("Hỗ trợ")} desc={L("Quản lý ticket hỗ trợ của bạn")} />
+        <PageHead title={L("Hỗ trợ")} desc={L("Câu hỏi thường gặp, kênh liên hệ và ticket hỗ trợ của bạn")} />
         <div className="flex gap-2 pt-1">
           <Link href="/dashboard/ticket" className="btn-ghost">{L("Làm mới")}</Link>
           <a href="#tao-ticket" className="btn-primary">{L("+ Tạo ticket mới")}</a>
@@ -50,6 +71,63 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
       </div>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
+      {/* MỤC FAQ — accordion + cột phụ (thẻ tạo ticket, kênh liên hệ). Cột phụ
+          320px như trang FAQ cũ đã cân bằng; danh sách ticket full-width ngay
+          dưới nên hai cột kết thúc không cần ngang tuyệt đối với phần dưới. */}
+      <section id="faq" className="scroll-mt-24">
+        <h2 className="text-base font-bold text-slate-900">{L("Câu hỏi thường gặp")}</h2>
+        <p className="mb-4 mt-0.5 text-sm text-slate-500">{L("Những câu hỏi khách hàng hay gặp nhất")}</p>
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="min-w-0">
+            {faqPosts.length === 0 ? <Empty text={L("Chưa có câu hỏi nào")} /> : (
+              <div className="space-y-3">
+                {faqPosts.map((p, i) => (
+                  <details key={p.id} open={i === 0} className="card group overflow-hidden">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
+                      <span className="text-[15px] font-bold leading-snug text-slate-900">{p.title}</span>
+                      <span className="shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180">{I.chevron}</span>
+                    </summary>
+                    <div className="border-t border-slate-100 px-5 py-4 text-sm leading-relaxed text-slate-600">
+                      <RichText value={p.content} />
+                    </div>
+                  </details>
+                ))}
+              </div>
+            )}
+          </div>
+          <aside className="space-y-6">
+            <div className="card p-5">
+              <div className="font-bold text-slate-900">{L("Chưa tìm thấy câu trả lời?")}</div>
+              <p className="mt-1 text-sm text-slate-500">{L("Gửi ticket để đội hỗ trợ trả lời trực tiếp cho bạn.")}</p>
+              <a href="#tao-ticket" className="btn-primary mt-4 w-full justify-center">{L("Tạo ticket hỗ trợ")}</a>
+            </div>
+            {contacts.length > 0 && (
+              <div className="card p-5">
+                <div className="font-bold text-slate-900">{L("Kênh liên hệ khác")}</div>
+                <div className="mt-2">
+                  {contacts.map((ct) => (
+                    <a key={ct.name} href={ct.href} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-slate-50">
+                      {ct.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={ct.image} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black text-white" style={{ background: ct.bg }}>{ct.name.charAt(0).toUpperCase()}</span>
+                      )}
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold text-slate-800">{ct.name}</span>
+                        <span className="block truncate text-xs text-slate-500">{contactDisplay(ct)}</span>
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </aside>
+        </div>
+      </section>
+
+      {/* DANH SÁCH TICKET — giữ nguyên hành vi cũ (thống kê, lọc, tìm, bảng). */}
+      <h2 className="mb-4 mt-10 text-base font-bold text-slate-900">{L("Ticket của bạn")}</h2>
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <Stat label={L("Tổng số ticket")} value={num(total)} icon={I.ticket} />
         <Stat label={L("Chờ phản hồi")} value={num(c("OPEN"))} icon={I.clock} />

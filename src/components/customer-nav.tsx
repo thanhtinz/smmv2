@@ -45,7 +45,8 @@ export async function buildCustomerNav(
   ];
   const supportChildren = [
     ...(ticketsOn ? [{ href: "/dashboard/ticket", label: L("Hỗ trợ / Ticket"), badge: openTickets }] : []),
-    { href: "/dashboard/faq", label: L("Hỏi đáp thường gặp") },
+    // FAQ đã gộp vào trang Hỗ trợ / Ticket (lệnh Tín 2026-11-09 19:12) — menu
+    // chỉ còn một cửa duy nhất; /dashboard/faq redirect về /dashboard/ticket#faq.
     { href: "/dashboard/thong-bao", label: L("Thông báo"), badge: unreadNoti },
     ...(s.module_blog !== "0" ? [{ href: "/dashboard/bai-viet", label: L("Bài viết") }] : []),
   ];

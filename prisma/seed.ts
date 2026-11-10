@@ -199,7 +199,7 @@ async function main() {
   }
 
 
-  // FAQ mẫu (danh mục slug "faq") — admin sửa/thêm qua Bài viết; trang khách /dashboard/faq đọc từ đây
+  // FAQ mẫu (danh mục slug "faq") — admin sửa/thêm qua Bài viết; mục Câu hỏi thường gặp trong trang /dashboard/ticket đọc từ đây
   const faqCat = await prisma.postCategory.upsert({
     where: { slug: "faq" },
     create: { name: "Hỏi đáp thường gặp", slug: "faq", description: "Câu hỏi thường gặp của khách hàng" },
