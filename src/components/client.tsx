@@ -831,8 +831,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
               vạch brand ở mép trái + radio đầy; gói hết hàng mờ + nhãn pill
               "Hết hàng" và bị khoá chọn. Tên gói hiện TRỌN (không cắt). */}
           <section className="card overflow-hidden">
-            <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white [&>svg]:h-4 [&>svg]:w-4">{I.box}</span>
+            <div className="flex items-center border-b border-slate-100 px-5 py-4">
               <h2 className="text-base font-extrabold text-slate-900">{t("Chọn gói sản phẩm")}</h2>
             </div>
             <div className="divide-y divide-slate-100">
@@ -845,12 +844,6 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
                     <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${x.soldOut ? "border-slate-200" : selected ? "border-brand-600" : "border-slate-300"}`}>
                       {selected && !x.soldOut && <span className="h-2.5 w-2.5 rounded-full bg-brand-600" />}
                     </span>
-                    {productImage ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={productImage} alt="" className={`h-10 w-10 shrink-0 rounded-lg object-cover ${x.soldOut ? "opacity-50" : ""}`} />
-                    ) : (
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-black text-white ${x.soldOut ? "opacity-50" : ""}`} style={{ background: productColor || "#3178fc" }}>{slug.charAt(0).toUpperCase()}</span>
-                    )}
                     <span className="min-w-0 flex-1">
                       <span className={`block break-words text-[15px] font-bold ${x.soldOut ? "text-slate-400" : "text-slate-900"}`}>{x.name}</span>
                       <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">

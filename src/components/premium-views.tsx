@@ -446,8 +446,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
                   như bản đã đăng nhập ở client.tsx): thẻ có hàng tiêu đề,
                   các gói là hàng ngăn bằng đường kẻ; hết hàng mờ + pill. */}
               <section className="card overflow-hidden">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white [&>svg]:h-4 [&>svg]:w-4">{I.box}</span>
+                <div className="flex items-center border-b border-slate-100 px-5 py-4">
                   <h2 className="text-base font-extrabold text-slate-900">{L("Chọn gói sản phẩm")}</h2>
                 </div>
                 <div className="divide-y divide-slate-100">
