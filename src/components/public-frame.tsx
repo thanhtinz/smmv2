@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { LEVEL_NAME } from "@/lib/format";
 import { AppTopBar } from "@/components/topbar";
 import SeasonalDecor from "@/components/seasonal-decor";
-import { SEASONAL_ACCENT, parseSeasonalTheme } from "@/lib/seasonal";
+import { parseSeasonalTheme } from "@/lib/seasonal";
 import { buildCustomerNav } from "@/components/customer-nav";
 import { SiteFooter } from "@/components/site";
 import { I } from "@/components/ui";
@@ -47,7 +47,6 @@ export async function PublicFrame({ children, skipSetupGate }: { children: React
       {s.announcement_bar ? (
         <div
           className="bg-brand-600 px-4 py-2 text-center text-xs font-medium text-white sm:text-sm"
-          style={decorTheme ? { background: SEASONAL_ACCENT[decorTheme].strip } : undefined}
         >{s.announcement_bar}</div>
       ) : null}
       <AppTopBar
