@@ -3480,6 +3480,9 @@ export const DICT: Record<string, Tr> = {
   // Bổ sung đợt mega-batch — nạp USDT qua BoltUtil (E)
   "Crypto · cộng tự động": e("Crypto · auto credit", "加密货币 · 自动入账", "คริปโต · เติมอัตโนมัติ", "暗号資産・自動反映", "암호화폐 · 자동 충전"),
   "Số tiền nạp (VNĐ)": e("Deposit amount (VND)", "充值金额（VND）", "จำนวนเงินที่เติม (VND)", "入金額（VND）", "충전 금액(VND)"),
+  "Số tiền nạp": e("Deposit amount", "充值金额", "จำนวนเงินที่เติม", "入金額", "충전 금액"),
+  "Số tiền nạp tối thiểu là": e("The minimum deposit is", "最低充值金额为", "ยอดเติมขั้นต่ำคือ", "最低入金額は", "최소 충전 금액은"),
+  "Tổng cộng vào ví": e("Total credited to wallet", "总计入账到钱包", "ยอดรวมเข้ากระเป๋าเงิน", "ウォレットへの合計反映額", "지갑 총 입금액"),
   "Nhập số tiền muốn nạp — hệ thống tạo phiên thanh toán USDT qua BoltUtil, tiền cộng tự động khi giao dịch được xác nhận. Tỉ giá: ": e("Enter the amount to add — the system creates a USDT payment session via BoltUtil and credits you automatically once the transaction is confirmed. Rate: ", "输入要充值的金额——系统将通过 BoltUtil 创建 USDT 支付会话，交易确认后自动入账。汇率：", "กรอกจำนวนเงินที่ต้องการเติม — ระบบจะสร้างเซสชันชำระ USDT ผ่าน BoltUtil และเติมเงินอัตโนมัติเมื่อธุรกรรมได้รับการยืนยัน อัตราแลกเปลี่ยน: ", "入金额を入力してください。システムがBoltUtil経由でUSDT支払いセッションを作成し、取引が確認されると自動で反映されます。レート：", "충전할 금액을 입력하세요. 시스템이 BoltUtil을 통해 USDT 결제 세션을 만들며, 거래가 확인되면 자동으로 충전됩니다. 환율: "),
   "Tương đương ≈": e("Equivalent ≈", "约等于 ≈", "เทียบเท่า ≈", "相当 ≈", "상당 ≈"),
   "Số USDT cần chuyển": e("USDT to send", "需转出的 USDT", "USDT ที่ต้องโอน", "送金するUSDT", "보낼 USDT"),

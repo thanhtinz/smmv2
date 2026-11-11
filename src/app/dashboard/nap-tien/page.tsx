@@ -37,13 +37,15 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
       <PageHead title={L("Nạp tiền")} desc={L("Chọn phương thức nạp bên dưới. QR ngân hàng (ngân hàng & MoMo) cộng tự động khi đúng nội dung; PayPal/Stripe cộng tự động theo tỉ giá ngay khi thanh toán thành công.")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       {/* Bố cục (lệnh Tín 2026-11-10): bỏ hẳn thẻ Số dư hiện tại (đã có sẵn ở
-          topbar) và thẻ form Khai báo nạp vì dư thừa. Khu nạp là 2 THẺ TÁCH
-          HẲN (20:49): thẻ trái chứa lưới phương thức 2×2, thẻ phải là panel
-          của phương thức đang chọn — panel ngân hàng là một khối hợp nhất QR
-          ở trên, nội dung chuyển khoản ngay bên dưới. Thẻ thưởng nạp và lịch
-          sử nạp full-width ở dưới cùng. */}
+          topbar) và form Khai báo nạp (bỏ hẳn theo lệnh 21:00). Khu nạp là 2
+          THẺ TÁCH HẲN (20:49): thẻ trái chứa lưới phương thức 2×2, thẻ phải
+          là panel của phương thức đang chọn. Riêng QR ngân hàng là luồng 2
+          bước (21:00): nhập số tiền ở thẻ trái + bấm Nạp tiền thì thẻ panel
+          mới hiện, QR sinh kèm đúng số tiền đó. Thẻ thưởng nạp và lịch sử
+          nạp full-width ở dưới cùng. */}
       <div>
         <DepositCard
+          tiers={effTiers}
           banks={sepayOn ? banksProp : []}
           bank={sepayOn && s.bank_account ? { name: s.bank_name, account: s.bank_account, holder: s.bank_holder, qr: vietQrUrl(s.bank_name, s.bank_account, 0, content, s.bank_holder), content, min: parseInt(s.deposit_min || "10000", 10) || 10000 } : null}
           momo={sepayOn && s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}

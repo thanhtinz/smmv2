@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { CopyBtn } from "@/components/client";
-import { createDepositAction, startPaypalCheckoutAction, startStripeCheckoutAction, createBoltDepositAction } from "@/app/actions/user";
+import { startPaypalCheckoutAction, startStripeCheckoutAction, createBoltDepositAction } from "@/app/actions/user";
 import { useLang } from "@/components/lang";
 
 /** Thẻ Nạp tiền hợp nhất: chọn 1 phương thức — SePay (ngân hàng + MoMo chung 1 cổng đối soát) / PayPal / Stripe.
@@ -12,8 +12,19 @@ type IntlInfo = { rate: number; paypal: boolean; stripe: boolean; minUsd?: numbe
 type BoltPending = { code: string; checkoutUrl: string | null; paymentAddress: string | null; cryptoAmount: string | null; network: string; expiresAt: string | null; status: string };
 type UsdtInfo = { rate: number; minUsd: number; defaultNetwork: string; networks: string[]; pending: BoltPending | null };
 type MethodKey = "sepay" | "paypal" | "stripe" | "usdt";
+type BonusTier = { from: number; percent: number };
 
-export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo | null; banks?: BankInfo[]; momo: MomoInfo | null; intl: IntlInfo | null; usdt?: UsdtInfo | null }) {
+/** URL VietQR kèm số tiền: giữ NGUYÊN mẫu URL server đã sinh (chỉ thay/điền
+ *  tham số amount) — URL không có amount (vietqrUrl) thì thêm amount vào cuối,
+ *  URL đã có amount=0 (vietQrUrl) thì thay đúng con số đó. QR do admin tự tải
+ *  lên (không phải vietqr.io) giữ nguyên, không gắn tham số lạ. */
+function qrWithAmount(qr: string, amount: number): string {
+  if (!qr || amount <= 0 || !qr.includes("vietqr.io")) return qr;
+  if (/[?&]amount=/.test(qr)) return qr.replace(/([?&]amount=)[^&]*/, `$1${amount}`);
+  return `${qr}${qr.includes("?") ? "&" : "?"}amount=${amount}`;
+}
+
+export function DepositCard({ bank, banks, momo, intl, usdt, tiers }: { bank: BankInfo | null; banks?: BankInfo[]; momo: MomoInfo | null; intl: IntlInfo | null; usdt?: UsdtInfo | null; tiers?: BonusTier[] }) {
   const { t, td, m } = useLang();
   const bankList: BankInfo[] = banks && banks.length ? banks : bank ? [bank] : [];
   const [bankIdx, setBankIdx] = useState(0);
@@ -25,6 +36,28 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
     ...(usdt ? [{ key: "usdt" as const, brand: <span className="text-[#26A17B]">USDT</span>, desc: t("Crypto · cộng tự động") }] : []),
   ];
   const [method, setMethod] = useState<MethodKey>(methods[0]?.key || "sepay");
+  // Luồng 2 bước của QR ngân hàng (lệnh Tín 2026-11-10 21:00): nhập số tiền ở
+  // thẻ trái + bấm "Nạp tiền" thì thẻ panel bên phải MỚI hiện (QR sinh kèm số
+  // tiền). Chuyển sang phương thức khác là bước ngân hàng reset — quay lại
+  // phải nhập/bấm lại.
+  const [bankAmount, setBankAmount] = useState("");
+  const [bankConfirmed, setBankConfirmed] = useState<number | null>(null);
+  const [bankErr, setBankErr] = useState("");
+  const selectMethod = (k: MethodKey) => {
+    setMethod(k);
+    if (k !== "sepay") { setBankConfirmed(null); setBankErr(""); }
+  };
+  const confirmBank = () => {
+    const amt = parseInt(bankAmount, 10) || 0;
+    const min = curBank?.min || 10000;
+    if (!amt || amt < min) { setBankErr(`${t("Số tiền nạp tối thiểu là")} ${m(min)}`); setBankConfirmed(null); return; }
+    setBankErr("");
+    setBankConfirmed(amt);
+  };
+  // Thưởng theo mốc — cùng công thức calcBonus phía server: lấy % cao nhất
+  // trong các mốc đạt, bonus = floor(số tiền × % / 100).
+  const bonusPct = bankConfirmed ? (tiers || []).reduce((p, tr) => (bankConfirmed >= tr.from && tr.percent > p ? tr.percent : p), 0) : 0;
+  const bonusAmt = bankConfirmed ? Math.floor((bankConfirmed * bonusPct) / 100) : 0;
   const [usd, setUsd] = useState("10");
   const [vndUsdt, setVndUsdt] = useState("250000");
   const rate = intl?.rate || usdt?.rate || 25000;
@@ -45,7 +78,11 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
           trên, thông tin chuyển khoản ngay bên dưới) — hai thẻ rời nhau,
           nền trang lọt ở giữa, không còn chung một thẻ bao. Tiêu đề "Nạp
           tiền" đưa ra ngoài làm tiêu đề mục. Mobile: hai thẻ xếp dọc, thẻ
-          phương thức ở trên, thẻ panel ở dưới. */}
+          phương thức ở trên, thẻ panel ở dưới.
+          Riêng QR ngân hàng là luồng 2 BƯỚC (lệnh Tín 21:00): ô nhập số tiền
+          + nút Nạp tiền nằm trong thẻ trái; CHƯA bấm nút (hoặc số tiền chưa
+          hợp lệ) thì cột phải KHÔNG có thẻ panel; bấm hợp lệ mới hiện thẻ
+          panel với QR kèm đúng số tiền vừa nhập. */}
       <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start">
         <div className="card p-6" data-col="methods">
           <label className="lbl">{t("Phương thức thanh toán")}</label>
@@ -53,7 +90,7 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
             {methods.map((m) => {
               const active = method === m.key;
               return (
-                <button key={m.key} type="button" onClick={() => setMethod(m.key)}
+                <button key={m.key} type="button" onClick={() => selectMethod(m.key)}
                   className={`text-left border rounded-2xl p-3.5 transition ${active ? "border-brand-600 bg-brand-50 ring-1 ring-brand-600" : "border-slate-200 hover:border-slate-300"}`}>
                   <span className="flex items-center justify-between gap-2">
                     <span className="font-extrabold">{m.brand}</span>
@@ -66,7 +103,21 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
               );
             })}
           </div>
+          {method === "sepay" && curBank && (
+            <div className="mt-5 border-t border-dashed pt-5">
+              <label className="lbl">{t("Số tiền nạp")}</label>
+              <input
+                className="inp" type="text" inputMode="numeric" name="bankAmount" placeholder="500.000"
+                value={bankAmount ? Number(bankAmount).toLocaleString("vi-VN") : ""}
+                onChange={(e) => { setBankAmount(e.target.value.replace(/\D/g, "").slice(0, 13)); if (bankErr) setBankErr(""); }}
+              />
+              <div className="text-xs text-slate-400 mt-1.5">{t("Nạp tối thiểu")}: {m(curBank.min)}</div>
+              {bankErr && <p className="text-sm text-rose-600 mt-2">{bankErr}</p>}
+              <button type="button" className="btn-primary w-full mt-4" onClick={confirmBank}>{t("Nạp tiền")}</button>
+            </div>
+          )}
         </div>
+        {(method !== "sepay" || !curBank || bankConfirmed !== null) && (
         <div className="card p-6 min-w-0" data-col="panel">
 
       {method === "sepay" && (
@@ -86,13 +137,16 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
             {curBank && (
               <div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={curBank.qr} alt={t("VietQR nạp tiền")} className="mx-auto w-[200px] h-[200px] rounded-2xl border border-slate-200 object-contain bg-white" />
+                <img src={qrWithAmount(curBank.qr, bankConfirmed || 0)} alt={t("VietQR nạp tiền")} className="mx-auto w-[200px] h-[200px] rounded-2xl border border-slate-200 object-contain bg-white" />
                 <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3 text-sm">
                   <Row k={t("Ngân hàng")} v={curBank.name} />
                   <Row k={t("Số tài khoản")} v={curBank.account} copy />
                   <Row k={t("Chủ tài khoản")} v={curBank.holder} />
                   <Row k={t("Nội dung CK (bắt buộc đúng)")} v={curBank.content} copy strong />
                   <Row k={t("Nạp tối thiểu")} v={m(curBank.min)} />
+                  {bankConfirmed !== null && <Row k={t("Số tiền nạp")} v={m(bankConfirmed)} strong />}
+                  {bankConfirmed !== null && bonusPct > 0 && <Row k={`${t("Thưởng nạp")} (+${bonusPct}%)`} v={`+${m(bonusAmt)}`} />}
+                  {bankConfirmed !== null && bonusPct > 0 && <Row k={t("Tổng cộng vào ví")} v={m(bankConfirmed + bonusAmt)} strong />}
                 </dl>
               </div>
             )}
@@ -152,32 +206,8 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
         </div>
       )}
 
-      {/* Form KHAI BÁO NẠP — khôi phục nguyên trạng trước đợt bố cục 2026-11-10
-          (lệnh Tín 20:50 "sao mất cái nhập số tiền nạp rồi"): form này từng nằm
-          trong thẻ nạp sau các panel (258a4fa), bị dời ra cột phụ ở fbd1f3c rồi
-          bị gỡ hẳn ở 6777853. Nay đưa lại vào thẻ panel, đúng vị trí sau panel
-          ngân hàng, chỉ hiện khi đang chọn QR ngân hàng; ô "Số tiền đã chuyển"
-          (name="amount") gửi về createDepositAction như cũ — nó chưa bao giờ
-          lái số tiền vào QR (QR luôn sinh ở server với số tiền 0). */}
-      {method === "sepay" && (
-        <form action={createDepositAction} className="mt-6 border-t border-dashed pt-5 space-y-3">
-          <div className="font-semibold text-slate-800 text-sm">{t("Đã chuyển khoản? Khai báo để đối soát nhanh hơn")}</div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="lbl">{t("Số tiền đã chuyển")}</label>
-              <input className="inp" name="amount" type="number" required min={curBank?.min || 10000} placeholder="500000" />
-            </div>
-            <div>
-              <label className="lbl">{t("Kênh")}</label>
-              <select className="inp" name="method" defaultValue="BANK"><option value="BANK">{t("Ngân hàng")}</option><option value="MOMO">MoMo</option><option value="CARD">{t("Thẻ cào")}</option><option value="USDT">USDT</option></select>
-            </div>
-          </div>
-          <button className="btn-dark w-full">{t("Gửi khai báo nạp")}</button>
-          <p className="text-xs text-slate-400">{t("Hệ thống cộng tự động khi chuyển khoản đúng nội dung. Khai báo này giúp admin cộng tay nhanh nếu giao dịch bị lệch nội dung.")}</p>
-        </form>
-      )}
-
         </div>
+        )}
       </div>
     </div>
   );
