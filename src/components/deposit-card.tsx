@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { CopyBtn } from "@/components/client";
-import { createDepositAction, startPaypalCheckoutAction, startStripeCheckoutAction, createBoltDepositAction } from "@/app/actions/user";
+import { startPaypalCheckoutAction, startStripeCheckoutAction, createBoltDepositAction } from "@/app/actions/user";
 import { useLang } from "@/components/lang";
 
 /** Thẻ Nạp tiền hợp nhất: chọn 1 phương thức — SePay (ngân hàng + MoMo chung 1 cổng đối soát) / PayPal / Stripe.
@@ -13,7 +13,7 @@ type BoltPending = { code: string; checkoutUrl: string | null; paymentAddress: s
 type UsdtInfo = { rate: number; minUsd: number; defaultNetwork: string; networks: string[]; pending: BoltPending | null };
 type MethodKey = "sepay" | "paypal" | "stripe" | "usdt";
 
-export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: BankInfo | null; banks?: BankInfo[]; momo: MomoInfo | null; tiers: { from: number; percent: number }[]; intl: IntlInfo | null; usdt?: UsdtInfo | null }) {
+export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo | null; banks?: BankInfo[]; momo: MomoInfo | null; intl: IntlInfo | null; usdt?: UsdtInfo | null }) {
   const { t, td, m } = useLang();
   const bankList: BankInfo[] = banks && banks.length ? banks : bank ? [bank] : [];
   const [bankIdx, setBankIdx] = useState(0);
@@ -135,30 +135,6 @@ export function DepositCard({ bank, banks, momo, tiers, intl, usdt }: { bank: Ba
         </div>
       )}
 
-      {!isIntl && !isUsdt && tiers.length > 0 && (
-        <div className="mt-6 bg-brand-50 border border-brand-100 rounded-2xl p-4 text-sm">
-          <div className="font-semibold text-brand-800 mb-1.5">{t("Thưởng nạp hiện tại")}</div>
-          {tiers.map((tier) => <div key={tier.from} className="text-brand-700">{t("Nạp từ ")}{m(tier.from)}: <b>{`+${tier.percent}%`}</b></div>)}
-        </div>
-      )}
-
-      {method === "sepay" && (
-        <form action={createDepositAction} className="mt-6 border-t border-dashed pt-5 space-y-3">
-          <div className="font-semibold text-slate-800 text-sm">{t("Đã chuyển khoản? Khai báo để đối soát nhanh hơn")}</div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="lbl">{t("Số tiền đã chuyển")}</label>
-              <input className="inp" name="amount" type="number" required min={curBank?.min || 10000} placeholder="500000" />
-            </div>
-            <div>
-              <label className="lbl">{t("Kênh")}</label>
-              <select className="inp" name="method" defaultValue="BANK"><option value="BANK">{t("Ngân hàng")}</option><option value="MOMO">MoMo</option><option value="CARD">{t("Thẻ cào")}</option><option value="USDT">USDT</option></select>
-            </div>
-          </div>
-          <button className="btn-dark w-full">{t("Gửi khai báo nạp")}</button>
-          <p className="text-xs text-slate-400">{t("Hệ thống cộng tự động khi chuyển khoản đúng nội dung. Khai báo này giúp admin cộng tay nhanh nếu giao dịch bị lệch nội dung.")}</p>
-        </form>
-      )}
     </div>
   );
 }
