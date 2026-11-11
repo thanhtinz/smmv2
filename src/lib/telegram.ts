@@ -1,7 +1,8 @@
 import { getSettings } from "./settings";
 import { decryptSecret } from "./secret-box";
 
-/** Báo tin cho admin qua Telegram khi có sự kiện quan trọng (nạp thành công, ticket mới...). Best-effort, không bao giờ chặn luồng chính. */
+/** Báo tin cho admin qua Telegram khi có sự kiện quan trọng (nạp thành công, ticket mới...). Best-effort, không bao giờ chặn luồng chính.
+ *  Text cắt ở 4096 ký tự — giới hạn cứng của Bot API sendMessage. */
 export async function notifyTelegram(text: string) {
   try {
     const s = await getSettings();
@@ -9,7 +10,7 @@ export async function notifyTelegram(text: string) {
     await fetch(`https://api.telegram.org/bot${s.telegram_bot_token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: s.telegram_chat_id, text }),
+      body: JSON.stringify({ chat_id: s.telegram_chat_id, text: text.slice(0, 4096) }),
       signal: AbortSignal.timeout(5000),
     });
   } catch {
@@ -40,7 +41,7 @@ export async function notifyServiceBot(botId: string | null | undefined, text: s
     await fetch(`https://api.telegram.org/bot${bot.token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: bot.chatId, text }),
+      body: JSON.stringify({ chat_id: bot.chatId, text: text.slice(0, 4096) }),
       signal: AbortSignal.timeout(5000),
     });
   } catch {

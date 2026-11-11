@@ -34,9 +34,13 @@ export async function aiChat(system: string, user: string, cfg?: AiConfig | null
 
   if (provider === "gemini") {
     const base = (c.baseUrl || "https://generativelanguage.googleapis.com/v1beta").replace(/\/$/, "");
-    const r = await fetch(`${base}/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
+    // Tài liệu Gemini API: gửi key qua header x-goog-api-key (cách được
+    // khuyến nghị) thay cho tham số ?key= trên URL — key không lọt vào
+    // URL/log. Body systemInstruction/contents/generationConfig và cách
+    // đọc candidates[].content.parts[].text giữ đúng hợp đồng REST.
+    const r = await fetch(`${base}/models/${model}:generateContent`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: "user", parts: [{ text: user }] }],
