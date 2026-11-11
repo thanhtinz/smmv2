@@ -97,6 +97,13 @@ async function main() {
   ok(landed.url.includes("/setup"), `GET / (DB rỗng) -> /setup ${landed.url}`);
   ok(landed.hasForm && ["siteName", "username", "email", "password", "confirmPassword"].every((f) => landed.fields.includes(f)), `form setup đủ 5 trường ${JSON.stringify(landed.fields)}`);
   ok(landed.title.includes("Thiết lập lần đầu") || landed.title.includes("First-time setup"), `tiêu đề trang: "${landed.title}" (khách mới mặc định EN theo luật 2026-11-04)`);
+  /* Trang setup ĐỘC LẬP (lệnh Tín 2026-11-11 09:13): không header/footer của
+     site, không dải thông báo, không trang trí mùa, không nút liên hệ nổi. */
+  const chrome_ = await evaluate(`({ header: !!document.querySelector('header'), footer: !!document.querySelector('footer'), decor: !!document.querySelector('[data-seasonal-garland],[data-seasonal-particles],[data-seasonal-prop],[data-seasonal-wash]'), navLinks: [...document.querySelectorAll('a')].some(a => /\\/login|\\/register/.test(a.getAttribute('href') || '')) })`);
+  ok(!chrome_.header, "trang setup KHÔNG có header của site");
+  ok(!chrome_.footer, "trang setup KHÔNG có footer của site");
+  ok(!chrome_.decor, "trang setup KHÔNG có trang trí mùa lễ hội");
+  ok(!chrome_.navLinks, "trang setup KHÔNG có link điều hướng của khung site (đăng nhập/đăng ký)");
   await shot("2026-11-11-setup-desktop");
   await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   await navigate(`${BASE}/setup`, 3000);
