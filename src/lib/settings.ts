@@ -55,7 +55,8 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   maintenance: "0",
   announcement_bar: "",
   // Trang trí mùa lễ hội (Tín duyệt thiết kế 2026-11-11): "1" = bật trang trí
-  // toàn site theo seasonal_theme (tet | noel | halloween | trungthu).
+  // toàn site theo seasonal_theme — 9 theme trong lib/seasonal (tet | noel |
+  // halloween | trungthu | phucsinh | blackfriday | valentine | nammoi | quockhanh).
   seasonal_decor_enabled: "0",
   seasonal_theme: "tet",
   sys_announce_enabled: "1",

@@ -12,7 +12,7 @@ import { parseSeasonalTheme, type SeasonalTheme } from "@/lib/seasonal";
 
 export const dynamic = "force-dynamic";
 
-/* ---- Trang trí mùa lễ hội: 4 chủ đề + bản xem trước mini (mẫu hạt rơi,
+/* ---- Trang trí mùa lễ hội: 9 chủ đề + bản xem trước mini (mẫu hạt rơi,
  * dùng đúng hình/màu hạt thật trong components/seasonal-decor — trang trí
  * chỉ còn hiệu ứng hạt rơi, không vòng treo/vật phẩm). ---- */
 const SEASONAL_OPTIONS: Array<{ theme: SeasonalTheme; name: string; desc: string }> = [
@@ -20,13 +20,22 @@ const SEASONAL_OPTIONS: Array<{ theme: SeasonalTheme; name: string; desc: string
   { theme: "noel", name: "Giáng sinh", desc: "Tuyết rơi" },
   { theme: "halloween", name: "Halloween", desc: "Lá thu rơi và dơi bay" },
   { theme: "trungthu", name: "Trung thu", desc: "Sao sáng và đốm lồng đèn trôi" },
+  { theme: "phucsinh", name: "Lễ Phục sinh", desc: "Trứng pastel và cánh hoa xuân rơi" },
+  { theme: "blackfriday", name: "Black Friday", desc: "Thẻ giảm giá và giấy màu rơi" },
+  { theme: "valentine", name: "Lễ Tình nhân", desc: "Trái tim hồng đỏ rơi" },
+  { theme: "nammoi", name: "Năm mới", desc: "Giấy màu và tia lửa vàng rơi" },
+  { theme: "quockhanh", name: "Quốc khánh", desc: "Sao vàng và giấy màu đỏ vàng rơi" },
 ];
 
 /** Ô xem trước: nền tối nhẹ rải các hạt đúng hình/màu của hiệu ứng thật —
  *  mai vàng + cánh đào (Tết), bông tuyết (Noel), lá cam + dơi (Halloween),
- *  sao + đốm sáng (Trung thu). */
+ *  sao + đốm sáng (Trung thu), trứng pastel (Phục sinh), thẻ giá (Black
+ *  Friday), trái tim (Valentine), giấy màu + tia lửa (Năm mới), sao vàng
+ *  + giấy màu đỏ vàng (Quốc khánh). */
 function SeasonalPreview({ theme }: { theme: SeasonalTheme }) {
-  const bg = theme === "tet" ? "#FFF7ED" : theme === "noel" ? "#EFF6FF" : theme === "halloween" ? "#1F2937" : "#1E1B4B";
+  const bg = theme === "tet" ? "#FFF7ED" : theme === "noel" ? "#EFF6FF" : theme === "halloween" ? "#1F2937"
+    : theme === "phucsinh" ? "#F0FDF4" : theme === "blackfriday" ? "#111827" : theme === "valentine" ? "#FFF1F2"
+    : theme === "nammoi" ? "#172554" : theme === "quockhanh" ? "#7F1D1D" : "#1E1B4B";
   return (
     <svg viewBox="0 0 132 46" className="block h-11 w-full" aria-hidden>
       <rect x="0" y="0" width="132" height="46" rx="4" fill={bg} />
@@ -74,6 +83,62 @@ function SeasonalPreview({ theme }: { theme: SeasonalTheme }) {
               <circle cx={x as number} cy={y as number} r="6.5" fill={c as string} opacity="0.28" />
               <circle cx={x as number} cy={y as number} r="2.6" fill={c as string} opacity="0.9" />
             </g>
+          ))}
+        </g>
+      )}
+      {theme === "phucsinh" && (
+        <g>
+          {[[24, 18, "#FBCFE8", "#F472B6"], [62, 26, "#A7F3D0", "#34D399"], [100, 16, "#DDD6FE", "#8B5CF6"]].map(([x, y, b, d], i) => (
+            <g key={i} transform={`translate(${x},${y}) rotate(${i * 14 - 10})`}>
+              <path d="M0,-7 C3.2,-7 5.4,-2.8 5.4,0.6 C5.4,4.4 3.2,7 0,7 C-3.2,7 -5.4,4.4 -5.4,0.6 C-5.4,-2.8 -3.2,-7 0,-7 Z" fill={b as string} />
+              {i === 0 && <g fill={d as string}><circle cx="-2" cy="-2" r="1.1" /><circle cx="2.2" cy="0.6" r="1.1" /><circle cx="-1.4" cy="3.4" r="1.1" /></g>}
+              {i === 1 && <g fill={d as string}><rect x="-5.4" y="-2.6" width="10.8" height="1.8" /><rect x="-5.4" y="1.6" width="10.8" height="1.8" /></g>}
+              {i === 2 && <path d="M-5,0.4 L-2.5,-1.4 L0,0.4 L2.5,-1.4 L5,0.4" stroke={d as string} strokeWidth="1.4" fill="none" />}
+            </g>
+          ))}
+          {[[42, 12], [84, 34], [118, 32]].map(([x, y], i) => (
+            <path key={i} transform={`translate(${x},${y}) rotate(${i * 41})`} d="M0,-4.6 C3,-1.6 2.4,3 0,5.2 C-2.4,3 -3,-1.6 0,-4.6 Z" fill={["#F8BBD0", "#FFFFFF", "#FCE4EC"][i]} />
+          ))}
+        </g>
+      )}
+      {theme === "blackfriday" && (
+        <g>
+          {[[34, 20, "#DC2626"], [92, 26, "#111827"]].map(([x, y, c], i) => (
+            <g key={i} transform={`translate(${x},${y}) rotate(${i === 0 ? -14 : 12})`}>
+              <path d="M-13,-6.4 L2,-6.4 L13,0 L2,6.4 L-13,6.4 Z" fill={c as string} stroke="#374151" strokeWidth="0.7" />
+              <circle cx="-8" cy="0" r="1.7" fill="#F9FAFB" />
+              <text x="2.5" y="0.5" textAnchor="middle" dominantBaseline="middle" fontSize="9" fontWeight="700" fill="#FFFFFF">%</text>
+            </g>
+          ))}
+          {[[12, 34, "#F59E0B", 20], [58, 10, "#DC2626", -30], [70, 36, "#FACC15", 45], [116, 10, "#F59E0B", 10], [120, 38, "#DC2626", 60]].map(([x, y, c, r], i) => (
+            <rect key={i} x={-4.4} y={-2.4} width="8.8" height="4.8" transform={`translate(${x},${y}) rotate(${r})`} fill={c as string} />
+          ))}
+        </g>
+      )}
+      {theme === "valentine" && (
+        <g>
+          {[[22, 16, "#F43F5E", 1], [52, 30, "#EC4899", 0.78], [82, 14, "#FB7185", 0.9], [110, 28, "#E11D48", 0.84], [38, 36, "#F9A8D4", 0.6], [98, 38, "#F472B6", 0.62]].map(([x, y, c, k], i) => (
+            <path key={i} transform={`translate(${x},${y}) scale(${k})`} d="M0,6.4 C-0.8,5.2 -7.4,1.6 -7.4,-2.4 C-7.4,-5.4 -5.2,-7 -3,-7 C-1.2,-7 0,-5.8 0,-4.4 C0,-5.8 1.2,-7 3,-7 C5.2,-7 7.4,-5.4 7.4,-2.4 C7.4,1.6 0.8,5.2 0,6.4 Z" fill={c as string} />
+          ))}
+        </g>
+      )}
+      {theme === "nammoi" && (
+        <g>
+          {[[16, 12, "#EF4444", 24], [38, 30, "#F59E0B", -32], [60, 14, "#10B981", 52], [84, 32, "#3B82F6", 12], [106, 12, "#A855F7", -18], [122, 30, "#EC4899", 38], [28, 38, "#FACC15", 66]].map(([x, y, c, r], i) => (
+            <rect key={i} x={-4.6} y={-2.5} width="9.2" height="5" transform={`translate(${x},${y}) rotate(${r})`} fill={c as string} />
+          ))}
+          {[[48, 36], [96, 22], [118, 38]].map(([x, y], i) => (
+            <path key={i} transform={`translate(${x},${y})`} d="M0,-4.6 C0.6,-1.2 1.2,-0.6 4.6,0 C1.2,0.6 0.6,1.2 0,4.6 C-0.6,1.2 -1.2,0.6 -4.6,0 C-1.2,-0.6 -0.6,-1.2 0,-4.6 Z" fill="#FDE047" />
+          ))}
+        </g>
+      )}
+      {theme === "quockhanh" && (
+        <g>
+          {[[26, 16, 6.4], [66, 28, 5.2], [104, 14, 6], [46, 36, 4.4], [118, 34, 4.6]].map(([x, y, s], i) => (
+            <path key={i} transform={`translate(${x},${y}) rotate(${i * 18 - 12})`} d={`M0,${-(s as number)} L${(s as number) * 0.24},${-(s as number) * 0.32} L${(s as number) * 0.95},${-(s as number) * 0.31} L${(s as number) * 0.38},${(s as number) * 0.12} L${(s as number) * 0.59},${(s as number) * 0.81} L0,${(s as number) * 0.42} L${-(s as number) * 0.59},${(s as number) * 0.81} L${-(s as number) * 0.38},${(s as number) * 0.12} L${-(s as number) * 0.95},${-(s as number) * 0.31} L${-(s as number) * 0.24},${-(s as number) * 0.32} Z`} fill={["#FACC15", "#F59E0B", "#FDE047", "#FACC15", "#F59E0B"][i]} />
+          ))}
+          {[[14, 36, "#DC2626", 30], [84, 10, "#F59E0B", -24], [96, 38, "#DC2626", 48]].map(([x, y, c, r], i) => (
+            <rect key={i} x={-4.2} y={-2.3} width="8.4" height="4.6" transform={`translate(${x},${y}) rotate(${r})`} fill={c as string} />
           ))}
         </g>
       )}
@@ -193,7 +258,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           </div>
           <div>
             <label className="lbl">{L("Chủ đề trang trí")}</label>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
               {SEASONAL_OPTIONS.map((o) => (
                 <label key={o.theme} className="cursor-pointer">
                   <input type="radio" name="seasonal_theme" value={o.theme} defaultChecked={seasonalTheme === o.theme} className="peer sr-only" />

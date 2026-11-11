@@ -4034,6 +4034,16 @@ export const DICT: Record<string, Tr> = {
   "Lá thu rơi và dơi bay": e("Falling autumn leaves and flying bats", "飘落的秋叶与飞舞的蝙蝠", "ใบไม้ร่วงและค้างคาวบิน", "舞い落ちる紅葉と飛ぶコウモリ", "떨어지는 가을 잎과 나는 박쥐"),
   "Trung thu": e("Mid-Autumn Festival", "中秋节", "เทศกาลไหว้พระจันทร์", "中秋節", "추석(중추절)"),
   "Sao sáng và đốm lồng đèn trôi": e("Twinkling stars and drifting lantern glows", "闪烁的星星与漂浮的灯笼光点", "ดาวระยิบและแสงโคมลอย", "瞬く星と漂う提灯の光", "반짝이는 별과 떠다니는 등롱 빛"),
+  "Lễ Phục sinh": e("Easter", "复活节", "เทศกาลอีสเตอร์", "イースター", "부활절"),
+  "Trứng pastel và cánh hoa xuân rơi": e("Falling pastel eggs and spring petals", "飘落的粉彩蛋与春日花瓣", "ไข่พาสเทลและกลีบดอกไม้ฤดูใบไม้ผลิโปรยปราย", "舞い落ちるパステルの卵と春の花びら", "떨어지는 파스텔 달걀과 봄 꽃잎"),
+  "Black Friday": e("Black Friday", "黑色星期五", "แบล็กฟรายเดย์", "ブラックフライデー", "블랙프라이데이"),
+  "Thẻ giảm giá và giấy màu rơi": e("Falling sale tags and confetti", "飘落的促销价签与彩纸", "ป้ายลดราคาและกระดาษสีโปรยปราย", "舞い落ちるセールタグと紙吹雪", "떨어지는 세일 태그와 색종이"),
+  "Lễ Tình nhân": e("Valentine's Day", "情人节", "วันวาเลนไทน์", "バレンタインデー", "밸런타인데이"),
+  "Trái tim hồng đỏ rơi": e("Falling pink and red hearts", "飘落的粉红爱心", "หัวใจสีชมพูแดงโปรยปราย", "舞い落ちるピンクと赤のハート", "떨어지는 분홍·빨강 하트"),
+  "Năm mới": e("New Year", "新年", "ปีใหม่", "新年", "새해"),
+  "Giấy màu và tia lửa vàng rơi": e("Falling confetti and gold sparkles", "飘落的彩纸与金色火花", "กระดาษสีและประกายทองโปรยปราย", "舞い落ちる紙吹雪と金のきらめき", "떨어지는 색종이와 금빛 반짝임"),
+  "Quốc khánh": e("National Day", "国庆节", "วันชาติ", "建国記念日", "국경일"),
+  "Sao vàng và giấy màu đỏ vàng rơi": e("Falling gold stars and red-gold confetti", "飘落的金色星星与红金彩纸", "ดาวทองและกระดาษสีแดงทองโปรยปราย", "舞い落ちる金の星と赤金の紙吹雪", "떨어지는 금별과 빨강·금빛 색종이"),
 
 };
 
