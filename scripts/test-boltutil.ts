@@ -8,7 +8,6 @@
  * Cần server :3000 chạy bản build mới.  npx tsx scripts/test-boltutil.ts
  */
 import { spawn, type ChildProcess } from "node:child_process";
-import { createHmac } from "node:crypto";
 import { SignJWT } from "jose";
 import { prisma } from "../src/lib/db";
 import { getSettings, setSetting } from "../src/lib/settings";
@@ -50,7 +49,7 @@ async function makeDeposit(userId: number, amountVnd: number, rate: number) {
 async function main() {
   const mock: ChildProcess = spawn("node", ["scripts/mock-boltutil.mjs"], { stdio: "ignore" });
   try {
-    for (let i = 0; i < 40; i++) { try { const r = await fetch(`${MOCK}/api/v1/ping`, { headers: { "X-Bolt-Key": "bolt_test_key", "X-Bolt-Timestamp": String(Date.now()), "X-Bolt-Signature": createHmac("sha256", SECRET).update(`${Date.now()}.`).digest("hex") } }); if (r.ok) break; } catch { /* chờ */ } await new Promise((r) => setTimeout(r, 250)); }
+    for (let i = 0; i < 40; i++) { try { const r = await fetch(`${MOCK}/__log`); if (r.ok) break; } catch { /* chờ */ } await new Promise((r) => setTimeout(r, 250)); }
 
     const prev = await getSettings();
     const demo: any = await prisma.user.findUnique({ where: { username: "demo" } });

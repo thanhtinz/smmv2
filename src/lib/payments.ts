@@ -115,13 +115,18 @@ export async function creditExternalDeposit(externalId: string, paidUsdCents?: n
 }
 
 /* ============================== STRIPE (REST, không cần SDK) ============================== */
-export async function stripeCreateCheckout(secretKey: string, p: { amountCents: number; depositCode: string; successUrl: string; cancelUrl: string }) {
+export async function stripeCreateCheckout(secretKey: string, p: { amountCents: number; depositCode: string; successUrl: string; cancelUrl: string; expiresAtSec?: number }) {
   const body = new URLSearchParams();
   body.set("mode", "payment");
   body.set("success_url", p.successUrl);
   body.set("cancel_url", p.cancelUrl);
   body.set("client_reference_id", p.depositCode);
   body.set("metadata[deposit_code]", p.depositCode);
+  // Tài liệu Stripe: Checkout Session mặc định hết hạn sau 24 giờ; expires_at
+  // (giây Unix) chỉ nhận từ 30 phút đến 24 giờ kể từ lúc tạo. Luồng nạp ví
+  // KHÔNG truyền -> giữ mặc định 24 giờ của Stripe (không có hạn phiên nội bộ
+  // cho phiên nạp); luồng mua giỏ truyền hạn phiên nội bộ đã kẹp vào khoảng này.
+  if (p.expiresAtSec) body.set("expires_at", String(p.expiresAtSec));
   body.set("line_items[0][quantity]", "1");
   body.set("line_items[0][price_data][currency]", "usd");
   body.set("line_items[0][price_data][unit_amount]", String(p.amountCents));
@@ -177,7 +182,10 @@ export async function paypalAccessToken(clientId: string, secret: string, mode: 
 export async function paypalCreateOrder(token: string, mode: string, p: { amountUsd: string; depositCode: string; returnUrl: string; cancelUrl: string }) {
   const r = await fetch(`${ppBase(mode)}/v2/checkout/orders`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    // PayPal-Request-Id: header idempotency theo tài liệu Orders v2 — gửi
+    // lại cùng một lần tạo đơn (retry) không sinh đơn trùng; giá trị = mã
+    // phiên của web, ổn định cho mọi lần thử của cùng phiên đó.
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "PayPal-Request-Id": p.depositCode },
     body: JSON.stringify({
       intent: "CAPTURE",
       purchase_units: [{ reference_id: p.depositCode, custom_id: p.depositCode, amount: { currency_code: "USD", value: p.amountUsd } }],
@@ -216,7 +224,12 @@ export async function paypalCaptureFlow(token: string, mode: string, orderId: st
   if (order.status !== "APPROVED") return { status: String(order.status || "UNKNOWN"), cents: null };
   const r = await fetch(`${ppBase(mode)}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    // PayPal-Request-Id cho capture: dùng chính order id — retry capture
+    // của cùng một đơn được PayPal khử trùng thay vì capture hai lần.
+    // Tài liệu: sau khi khách duyệt, capture phải nằm trong cửa sổ mặc
+    // định 3 giờ (quá hạn PayPal tự huỷ đơn + hoàn tiền, lỗi ORDER_EXPIRED);
+    // luồng của web capture ngay khi khách quay về nên luôn trong cửa sổ.
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "PayPal-Request-Id": orderId },
   });
   const j: any = await r.json().catch(() => null);
   if (!r.ok) throw new Error(j?.message || `PayPal capture HTTP ${r.status}`);

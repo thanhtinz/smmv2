@@ -6,10 +6,14 @@ import { getSettings, calcBonus, bonusTiersFor } from "./settings";
 /**
  * Cổng BoltUtil (boltutil.com) — thay cơ chế nạp USDT thủ công (2026-11-07).
  * Không giữ tiền: USDT về thẳng ví nhận của shop (cấu hình trong dashboard
- * BoltUtil). Mọi yêu cầu/webhook ký HMAC-SHA256 bằng WEBHOOK SECRET trên
- * chuỗi "<timestamp_ms>.<raw body>" (thân rỗng -> "<timestamp>.").
- * Webhook của họ KHÔNG tự gửi lại — polling trạng thái trong cron là xương
- * sống độ tin cậy, webhook chỉ là đường tăng tốc.
+ * BoltUtil). Hợp đồng theo tài liệu chính thức (OpenAPI 2.1.0 tại
+ * github.com/changye0413/boltutil + boltutil.com/docs): CHỈ có hai path
+ * POST /api/v1/order/create và POST /api/v1/order/status. Mọi yêu cầu ký
+ * HMAC-SHA256 bằng WEBHOOK SECRET trên chuỗi "<timestamp_ms>.<raw body>"
+ * (thân rỗng -> "<timestamp>."). Envelope { code, message, timestamp,
+ * data }: thành công phải gồm CẢ HTTP 2xx VÀ code === 200. Webhook phẳng
+ * ký bằng header riêng X-Bolt-Webhook-Timestamp / X-Bolt-Webhook-Signature
+ * (cùng công thức), có eventId để dedupe và BoltUtil có gửi lại khi lỗi.
  */
 
 export type BoltConfig = {
@@ -25,7 +29,21 @@ export type BoltConfig = {
   paymentMethod: string;
 };
 
-export const BOLT_NETWORKS = ["TRON", "BSC", "ETHEREUM", "SOLANA", "ARBITRUM", "BASE"] as const;
+/** Mã mạng nội bộ của web (giữ nguyên cho dữ liệu đã lưu + UI). */
+export const BOLT_NETWORKS = ["TRON", "BSC", "ETHEREUM", "POLYGON", "SOLANA", "BASE"] as const;
+
+/**
+ * Ánh xạ sang mã mạng trong tài liệu BoltUtil: TRC20, ERC20, BEP20,
+ * POLYGON, SOLANA, BASE (tài liệu KHÔNG hỗ trợ Arbitrum). Ánh xạ chỉ diễn
+ * ra ở biên API — dữ liệu lưu trữ + giao diện vẫn dùng mã nội bộ.
+ */
+const BOLT_API_NETWORK: Record<string, string> = {
+  TRON: "TRC20", ETHEREUM: "ERC20", BSC: "BEP20",
+  POLYGON: "POLYGON", SOLANA: "SOLANA", BASE: "BASE",
+};
+export function boltApiNetwork(internal: string): string {
+  return BOLT_API_NETWORK[String(internal || "").toUpperCase()] || "TRC20";
+}
 
 /** Các mạng BoltUtil đang được phép hiển thị cho khách (setting boltutil_networks). */
 export function boltEnabledNetworks(s: Record<string, string>): string[] {
@@ -43,7 +61,8 @@ export async function getBoltConfig(): Promise<BoltConfig> {
     webhookSecret: s.boltutil_webhook_secret || "",
     apiUrl: (s.boltutil_api_url || "https://api.boltutil.com").replace(/\/+$/, ""),
     defaultNetwork: BOLT_NETWORKS.includes((s.boltutil_default_network || "TRON") as any) ? s.boltutil_default_network : "TRON",
-    expiresMinutes: Math.min(60, Math.max(5, exp)),
+    // Tài liệu: expiredMinutes là số nguyên 15–60 (mặc định 30; gói free cố định 30).
+    expiresMinutes: Math.min(60, Math.max(15, exp)),
     paymentMethod: s.boltutil_payment_method === "WALLET" ? "WALLET" : "MANUAL_TRANSFER",
   };
 }
@@ -86,11 +105,28 @@ async function boltFetch<T = any>(cfg: BoltConfig, method: "GET" | "POST", path:
   let json: any = null;
   try { json = JSON.parse(text); } catch { /* giữ null */ }
   if (!res.ok) throw new BoltError(String(json?.message || json?.error || `BoltUtil HTTP ${res.status}`), res.status);
-  return (json ?? {}) as T;
+  // Tài liệu: HTTP 200 vẫn có thể mang lỗi nghiệp vụ — chỉ thành công khi
+  // envelope code === 200; payload thật nằm trong trường "data".
+  if (json && typeof json.code === "number" && json.code !== 200) {
+    throw new BoltError(String(json.message || `BoltUtil code ${json.code}`), json.code);
+  }
+  return ((json && typeof json === "object" && "data" in json) ? json.data : (json ?? {})) as T;
 }
 
+/**
+ * Kiểm tra kết nối (nút Kiểm tra ở trang cấu hình). Tài liệu KHÔNG có
+ * endpoint ping — dùng chính POST /api/v1/order/status với một mã dò cố
+ * định: 404 (không thấy đơn) nghĩa là key + chữ ký đã được chấp nhận;
+ * 401 mới là sai thông tin xác thực.
+ */
 export async function boltPing(cfg: BoltConfig): Promise<any> {
-  return boltFetch(cfg, "GET", "/api/v1/ping");
+  try {
+    await boltFetch(cfg, "POST", "/api/v1/order/status", { externalOrderId: "SMMV2PING000001" });
+    return { ok: true, detail: "BoltUtil phản hồi (đơn dò tồn tại)" };
+  } catch (e: any) {
+    if (e instanceof BoltError && e.httpStatus === 404) return { ok: true, detail: "Kết nối + chữ ký hợp lệ (đơn dò không tồn tại — đúng như kỳ vọng)" };
+    throw e;
+  }
 }
 
 export type BoltOrderCreated = {
@@ -103,24 +139,41 @@ export type BoltOrderCreated = {
   expiresAt?: string;
 };
 
-export async function boltCreateOrder(cfg: BoltConfig, input: { externalOrderId: string; amountUsd: number; network: string }): Promise<BoltOrderCreated> {
-  return boltFetch<BoltOrderCreated>(cfg, "POST", "/api/v1/orders", {
-    externalOrderId: input.externalOrderId,
+/**
+ * Tạo đơn theo tài liệu: POST /api/v1/order/create. amount là số USDT
+ * (tối thiểu 1, tối đa 6 chữ số thập phân); externalOrderId 6–64 ký tự
+ * [A-Za-z0-9_-], trùng mã -> HTTP 400 (phải hỏi lại đơn gốc, không tạo
+ * mã mới). notifyUrl phải là HTTPS công khai. Số phải trả CHÍNH XÁC lấy
+ * từ payment.amount của phản hồi (BoltUtil có thể cộng một lệch thập
+ * phân nhỏ để đối soát) — không tự làm tròn/cắt.
+ */
+export async function boltCreateOrder(cfg: BoltConfig, input: { externalOrderId: string; amountUsd: number; network: string; returnPath?: string }): Promise<BoltOrderCreated> {
+  const { siteOrigin } = await import("./payments");
+  // Ngoài request scope (script kiểm thử) headers() không dùng được -> địa chỉ dự phòng.
+  const origin = await siteOrigin().catch(() => (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, ""));
+  const data: any = await boltFetch(cfg, "POST", "/api/v1/order/create", {
     amount: input.amountUsd,
-    amountCurrency: "USD",
-    network: input.network,
+    externalOrderId: input.externalOrderId,
+    network: boltApiNetwork(input.network),
     currency: "USDT",
-    expiresMinutes: cfg.expiresMinutes,
-    paymentMethod: cfg.paymentMethod,
+    notifyUrl: `${origin}/api/webhooks/boltutil`,
+    returnUrl: `${origin}${input.returnPath || "/dashboard/nap-tien"}`,
+    expiredMinutes: cfg.expiresMinutes,
+    orderDesc: `SMMv2 ${input.externalOrderId}`,
   });
+  return {
+    orderId: String(data?.orderToken || ""),
+    checkoutUrl: data?.checkoutUrl || undefined,
+    paymentAddress: data?.payment?.address || undefined,
+    cryptoAmount: data?.payment?.amount != null ? String(data.payment.amount) : undefined,
+    status: data?.status || "PENDING",
+    expiresAt: data?.time?.expireTimestamp ? new Date(Number(data.time.expireTimestamp)).toISOString() : undefined,
+  };
 }
 
+/** Hỏi trạng thái: POST /api/v1/order/status { externalOrderId } — trả trạng thái ĐÃ LƯU phía BoltUtil. */
 export async function boltGetStatus(cfg: BoltConfig, externalOrderId: string): Promise<any> {
-  return boltFetch(cfg, "GET", `/api/v1/orders/${encodeURIComponent(externalOrderId)}/status`);
-}
-
-export async function boltResendWebhook(cfg: BoltConfig, externalOrderId: string): Promise<any> {
-  return boltFetch(cfg, "POST", "/api/v1/webhooks/resend", { externalOrderId });
+  return boltFetch(cfg, "POST", "/api/v1/order/status", { externalOrderId });
 }
 
 /* ---------------- Đối soát + cộng tiền ---------------- */
@@ -138,9 +191,11 @@ async function saveBoltData(depositId: number, patch: Record<string, unknown>) {
 /**
  * Cộng tiền cho 1 yêu cầu nạp BoltUtil từ payload trạng thái (webhook hoặc poll
  * dùng CHUNG hàm này). Chỉ hành động ở CONFIRMED/COMPLETED; cộng đúng 1 lần nhờ
- * claim nguyên tử PENDING -> APPROVED. Số VND cộng từ SỐ THỰC NHẬN
- * (actualReceivedAmount, rồi merchantNetAmount, rồi paidAmount) × tỉ giá ĐÃ
- * CHỤP trên yêu cầu lúc tạo — không đọc lại setting lúc đối soát. Thưởng nạp
+ * claim nguyên tử PENDING -> APPROVED. Số VND cộng từ SỐ THỰC NHẬN theo tài
+ * liệu (paidAmount trên webhook/trạng thái; merchantNetAmount = số ròng sau
+ * phí trên phản hồi trạng thái) × tỉ giá ĐÃ CHỤP trên yêu cầu lúc tạo — không
+ * đọc lại setting lúc đối soát. Trường actualReceivedAmount KHÔNG có trong
+ * tài liệu hiện hành — chỉ giữ làm dự phòng cuối cho dữ liệu cũ. Thưởng nạp
  * tính trên số VND thực cộng như nạp USDT thủ công trước đây.
  */
 export async function settleBoltutilDeposit(depositId: number, payload: any): Promise<{ ok: boolean; reason: string }> {
@@ -165,7 +220,7 @@ export async function settleBoltutilDeposit(depositId: number, payload: any): Pr
   if (dep.status !== "PENDING") return { ok: false, reason: "not_pending" };
 
   const rate = Number(data.rateVndPerUsd) || 0;
-  const actualUsd = [payload?.actualReceivedAmount, payload?.merchantNetAmount, payload?.paidAmount]
+  const actualUsd = [payload?.paidAmount, payload?.merchantNetAmount, payload?.actualReceivedAmount]
     .map((x) => (x === undefined || x === null || x === "" ? NaN : Number(x)))
     .find((x) => Number.isFinite(x) && x > 0);
   const expectedUsd = dep.usdCents != null ? dep.usdCents / 100 : NaN;
@@ -191,7 +246,8 @@ export async function settleBoltutilDeposit(depositId: number, payload: any): Pr
   });
   await saveBoltData(dep.id, {
     boltStatus: status,
-    paidTxHash: payload?.paidTxHash || data.paidTxHash || null,
+    // Tài liệu đặt tên trường là txHash (webhook + trạng thái); paidTxHash chỉ là dự phòng dữ liệu cũ.
+    paidTxHash: payload?.txHash || payload?.paidTxHash || data.paidTxHash || null,
     settlementType: payload?.settlementType || data.settlementType || null,
     actualReceivedAmount: actualUsd ?? data.actualReceivedAmount ?? null,
     creditedVnd,

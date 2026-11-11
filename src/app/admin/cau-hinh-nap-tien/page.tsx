@@ -146,10 +146,10 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
             <div>
               <label className="lbl">{L("Mạng mặc định")}</label>
               <select className="inp" name="boltutil_default_network" defaultValue={s.boltutil_default_network || "TRON"}>
-                {["TRON", "BSC", "ETHEREUM", "SOLANA", "ARBITRUM", "BASE"].map((n) => <option key={n} value={n}>{n}</option>)}
+                {["TRON", "BSC", "ETHEREUM", "POLYGON", "SOLANA", "BASE"].map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
-            <div><label className="lbl">{L("Phiên hết hạn sau (phút)")}</label><input className="inp" name="boltutil_expires_minutes" type="number" min={5} max={60} defaultValue={s.boltutil_expires_minutes || "30"} /></div>
+            <div><label className="lbl">{L("Phiên hết hạn sau (phút)")}</label><input className="inp" name="boltutil_expires_minutes" type="number" min={15} max={60} defaultValue={s.boltutil_expires_minutes || "30"} /><p className="mt-1 text-xs text-slate-400">{L("Theo tài liệu BoltUtil: expiredMinutes chỉ nhận 15–60 phút (gói miễn phí cố định 30).")}</p></div>
           </div>
           <div>
             <label className="lbl">{L("Các mạng cho phép nạp")}</label>
@@ -159,7 +159,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
                 { code: "TRON", name: "Tron" },
                 { code: "ETHEREUM", name: "Ethereum" },
                 { code: "BSC", name: "BNB Chain" },
-                { code: "ARBITRUM", name: "Arbitrum" },
+                { code: "POLYGON", name: "Polygon" },
                 { code: "BASE", name: "Base" },
                 { code: "SOLANA", name: "Solana" },
               ] as const).map((n) => {

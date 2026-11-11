@@ -17,6 +17,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
   const ev: any = JSON.parse(raw || "{}");
+  // Tài liệu Stripe: khi phiên hết hạn, status chuyển "expired" và sự kiện
+  // checkout.session.expired được gửi — đóng phiên PENDING tương ứng ở phía
+  // web (nạp ví: REJECTED; mua giỏ: EXPIRED) thay vì treo chờ vô hạn.
+  if (ev?.type === "checkout.session.expired") {
+    const sess = ev.data?.object;
+    if (sess?.id) {
+      const { prisma } = await import("@/lib/db");
+      const dep = await prisma.deposit.findUnique({ where: { externalId: sess.id } });
+      if (dep && dep.status === "PENDING") {
+        const { failDeposit } = await import("@/lib/payments");
+        await failDeposit(dep.id, "Stripe: phiên thanh toán đã hết hạn");
+      } else if (!dep) {
+        await prisma.purchasePayment.updateMany({ where: { providerRef: sess.id, status: "PENDING" }, data: { status: "EXPIRED" } });
+      }
+    }
+    return NextResponse.json({ received: true });
+  }
   if (ev?.type === "checkout.session.completed" || ev?.type === "checkout.session.async_payment_succeeded") {
     const sess = ev.data?.object;
     if (sess?.id && sess.payment_status === "paid") {

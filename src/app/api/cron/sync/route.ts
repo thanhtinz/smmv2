@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
   }
   result.fzrPolled = fzrPolled;
 
-  // BoltUtil: webhook của họ KHÔNG tự gửi lại — poll là xương sống độ tin cậy.
+  // BoltUtil: poll là đường dự phòng khi webhook trễ/mất (webhook có gửi lại nhưng không đảm bảo tức thời).
   // Đối soát tối đa 30 yêu cầu nạp USDT-BoltUtil đang PENDING trong 24 giờ qua;
   // gặp 429 thì dừng phần còn lại tới lượt sau.
   try {
@@ -151,7 +151,7 @@ export async function GET(req: NextRequest) {
   } catch { /* lỗi poll BoltUtil không chặn các job khác */ }
 
   // Thanh toán trực tiếp mua giỏ: quét phiên quá hạn + hỏi lại BoltUtil cho
-  // phiên đang chờ (webhook BoltUtil không tự gửi lại — poll là đường chính).
+  // phiên đang chờ (poll là đường dự phòng khi webhook trễ/mất).
   try {
     const { expireStalePurchases, settleBoltPurchase } = await import("@/lib/purchase");
     const stale = await prisma.purchasePayment.findMany({ where: { status: "PENDING", method: "BOLTUTIL" }, take: 10, orderBy: { id: "asc" }, select: { id: true, code: true } });

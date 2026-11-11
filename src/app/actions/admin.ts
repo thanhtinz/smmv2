@@ -590,8 +590,10 @@ async function recordGatewayTest(method: "sepay" | "boltutil" | "paypal" | "stri
   await setSetting(`gateway_test_${method}`, JSON.stringify({ at: new Date().toISOString(), ok, detail: detail.slice(0, 250) }));
 }
 
-/** Kiểm tra kết nối BoltUtil (GET /api/v1/ping) — nút nằm TRONG thẻ BoltUtil,
- *  ưu tiên API key/secret admin vừa gõ trong form (chưa lưu) như các cổng khác. */
+/** Kiểm tra kết nối BoltUtil — tài liệu không có endpoint ping nên boltPing
+ *  dò bằng POST /api/v1/order/status (404 = xác thực hợp lệ). Nút nằm TRONG
+ *  thẻ BoltUtil, ưu tiên API key/secret admin vừa gõ trong form (chưa lưu)
+ *  như các cổng khác. */
 export async function adminBoltPingAction(formData?: FormData) {
   await requireAdmin();
   const s = await getSettings();

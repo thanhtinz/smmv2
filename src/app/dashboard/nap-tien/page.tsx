@@ -53,7 +53,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
             rate: usdtDepositRate(s).rate,
             minUsd: parseFloat(s.usdt_min || "") || 5,
             defaultNetwork: s.boltutil_default_network || "TRON",
-            networks: String(s.boltutil_networks || "TRON").split(",").map((x: string) => x.trim().toUpperCase()).filter((x: string) => ["TRON", "BSC", "ETHEREUM", "SOLANA", "ARBITRUM", "BASE"].includes(x)),
+            networks: String(s.boltutil_networks || "TRON").split(",").map((x: string) => x.trim().toUpperCase()).filter((x: string) => ["TRON", "BSC", "ETHEREUM", "POLYGON", "SOLANA", "BASE"].includes(x)),
             pending: (() => {
               const pd = deposits.find((d) => d.method === "USDT" && d.status === "PENDING" && (d.externalId || "").startsWith("bolt:"));
               if (!pd) return null;

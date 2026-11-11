@@ -118,7 +118,7 @@ export async function createPurchasePayment(input: {
       const minUsd = parseFloat(s.usdt_min || "") || 5;
       if (usd < minUsd) throw new Error(`Tổng đơn chưa đạt tối thiểu ${minUsd} USD của cổng USDT`);
       const network = cfg.defaultNetwork;
-      const order = await boltCreateOrder(cfg, { externalOrderId: code, amountUsd: usd, network });
+      const order = await boltCreateOrder(cfg, { externalOrderId: code, amountUsd: usd, network, returnPath: "/gio-hang" });
       // Hạn phiên = hạn cấu hình của web, hoặc hạn cổng trả về nếu sớm hơn.
       const boltExpiry = order.expiresAt ? new Date(order.expiresAt) : null;
       await prisma.purchasePayment.update({ where: { id: pp.id }, data: { providerRef: `bolt:${code}`, expiresAt: boltExpiry && boltExpiry < expiresAt ? boltExpiry : expiresAt } });
@@ -136,10 +136,20 @@ export async function createPurchasePayment(input: {
       const usdCents = Math.round((total / cfg.rate) * 100);
       if (usdCents < Math.round(cfg.minUsd * 100)) throw new Error(`Tổng đơn chưa đạt tối thiểu ${cfg.minUsd} USD của Stripe`);
       const origin = await siteOrigin();
+      // Hạn phiên Stripe phải khớp hạn phiên nội bộ (expiresAt ở trên):
+      // tài liệu Stripe chỉ nhận expires_at trong khoảng 30 phút – 24 giờ
+      // kể từ lúc tạo, nên kẹp hạn nội bộ vào khoảng đó (+60 giây đệm cho
+      // độ trễ đường truyền ở biên dưới). Hạn nội bộ vẫn là mốc đóng phiên
+      // có hiệu lực phía web.
+      const stripeExpiresAtSec = Math.min(
+        Math.floor(Date.now() / 1000) + 24 * 3600,
+        Math.max(Math.floor(expiresAt.getTime() / 1000), Math.floor(Date.now() / 1000) + 31 * 60),
+      );
       const sess = await stripeCreateCheckout(cfg.stripe.secretKey, {
         amountCents: usdCents, depositCode: code,
         successUrl: `${origin}/api/payments/purchase/stripe/return?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${origin}/gio-hang`,
+        expiresAtSec: stripeExpiresAtSec,
       });
       await prisma.purchasePayment.update({ where: { id: pp.id }, data: { providerRef: sess.id } });
       await savePurchaseData(pp.id, { checkoutUrl: sess.url, usdCents });
@@ -264,7 +274,7 @@ export async function settleBoltPurchase(ppId: number, payload: any): Promise<{ 
     return { ok: false, reason: "not_final" };
   }
   const rate = Number(data.rateVndPerUsd) || 0;
-  const actualUsd = [payload?.actualReceivedAmount, payload?.merchantNetAmount, payload?.paidAmount]
+  const actualUsd = [payload?.paidAmount, payload?.merchantNetAmount, payload?.actualReceivedAmount]
     .map((x: any) => (x === undefined || x === null || x === "" ? NaN : Number(x)))
     .find((x: number) => Number.isFinite(x) && x > 0);
   const paidVnd = actualUsd !== undefined && rate > 0 ? Math.round(actualUsd * rate) : pp.amount;

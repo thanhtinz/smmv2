@@ -5,11 +5,14 @@ import { getBoltConfig, boltVerifySignature, settleBoltutilDeposit, parseBoltDat
 export const dynamic = "force-dynamic";
 
 /**
- * Webhook BoltUtil: POST JSON kèm X-Bolt-Timestamp + X-Bolt-Signature
- * (HMAC-SHA256 bằng webhook secret trên "<ts>.<raw body>", lệch tối đa 5 phút).
- * Chữ ký sai -> 401 + ghi mẫu, không đổi trạng thái. Hợp lệ -> đối soát qua
- * settleBoltutilDeposit (claim nguyên tử nên webhook giao trùng cũng chỉ cộng
- * 1 lần). BoltUtil KHÔNG tự gửi lại webhook — cron poll là đường dự phòng.
+ * Webhook BoltUtil: POST JSON phẳng kèm header theo tài liệu
+ * X-Bolt-Webhook-Timestamp + X-Bolt-Webhook-Signature (HMAC-SHA256 bằng
+ * webhook secret trên "<ts>.<raw body>", lệch tối đa 5 phút; vẫn chấp nhận
+ * cặp header X-Bolt-Timestamp/X-Bolt-Signature kiểu request để tương
+ * thích). Payload có eventId — dedupe bền vững bằng WebhookReceipt
+ * (ref "bolt:<eventId>") TRƯỚC khi xử lý; cộng tiền vẫn qua
+ * settleBoltutilDeposit với claim nguyên tử nên trùng lặp ở mọi lớp đều
+ * chỉ cộng 1 lần. Mọi HTTP 2xx được BoltUtil coi là đã nhận.
  * URL cấu hình phía BoltUtil: https://smmv2-zeta.vercel.app/api/webhooks/boltutil
  */
 const CAP = 64 * 1024;
@@ -17,8 +20,8 @@ const CAP = 64 * 1024;
 export async function POST(req: NextRequest) {
   const raw = await req.text().catch(() => "");
   const cfg = await getBoltConfig().catch(() => null);
-  const ts = req.headers.get("x-bolt-timestamp") || "";
-  const sig = req.headers.get("x-bolt-signature") || "";
+  const ts = req.headers.get("x-bolt-webhook-timestamp") || req.headers.get("x-bolt-timestamp") || "";
+  const sig = req.headers.get("x-bolt-webhook-signature") || req.headers.get("x-bolt-signature") || "";
   const valid = !!cfg && boltVerifySignature(cfg.webhookSecret, ts, raw, sig);
 
   let payload: any = null;
@@ -36,6 +39,17 @@ export async function POST(req: NextRequest) {
   if (!valid) {
     await log(false, false, !cfg?.webhookSecret ? "chưa cấu hình boltutil_webhook_secret" : "chữ ký sai/hết hạn");
     return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
+  }
+
+  // Dedupe theo eventId (tài liệu: lưu bền vững + dedupe theo eventId).
+  const eventId = String(payload?.eventId || "");
+  if (eventId) {
+    try {
+      await prisma.webhookReceipt.create({ data: { ref: `bolt:${eventId}`.slice(0, 120) } });
+    } catch {
+      await log(true, false, `eventId trùng ${eventId} — bỏ qua`);
+      return NextResponse.json({ ok: true, duplicate: true });
+    }
   }
 
   let processed = false;
