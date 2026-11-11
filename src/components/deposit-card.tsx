@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { CopyBtn } from "@/components/client";
-import { startPaypalCheckoutAction, startStripeCheckoutAction, createBoltDepositAction } from "@/app/actions/user";
+import { createDepositAction, startPaypalCheckoutAction, startStripeCheckoutAction, createBoltDepositAction } from "@/app/actions/user";
 import { useLang } from "@/components/lang";
 
 /** Thẻ Nạp tiền hợp nhất: chọn 1 phương thức — SePay (ngân hàng + MoMo chung 1 cổng đối soát) / PayPal / Stripe.
@@ -37,17 +37,19 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
   }
 
   return (
-    <div className="card p-6">
+    <div>
       <h2 className="font-bold text-slate-900 mb-4">{t("Nạp tiền")}</h2>
-      {/* Bố cục 2 cột (lệnh Tín 2026-11-10 20:33, chỉnh 20:41): cột TRÁI là
-          danh sách phương thức dạng lưới 2×2 (2 cái trên, 2 cái dưới), cột
-          PHẢI tách hẳn là panel của phương thức đang chọn (ngân hàng: QR ở
-          trên, thông tin chuyển khoản ngay bên dưới). Mobile: lưới 2×2 ở
-          trên, panel ở dưới. */}
-      <div className="lg:grid lg:grid-cols-[380px_minmax(0,1fr)] lg:gap-8 lg:items-start">
-        <div data-col="methods">
+      {/* Bố cục 2 THẺ TÁCH HẲN (lệnh Tín 2026-11-10 20:49): cột TRÁI là thẻ
+          riêng chứa lưới phương thức 2×2 (2 cái trên, 2 cái dưới), cột PHẢI
+          là thẻ riêng của panel phương thức đang chọn (ngân hàng: QR ở
+          trên, thông tin chuyển khoản ngay bên dưới) — hai thẻ rời nhau,
+          nền trang lọt ở giữa, không còn chung một thẻ bao. Tiêu đề "Nạp
+          tiền" đưa ra ngoài làm tiêu đề mục. Mobile: hai thẻ xếp dọc, thẻ
+          phương thức ở trên, thẻ panel ở dưới. */}
+      <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start">
+        <div className="card p-6" data-col="methods">
           <label className="lbl">{t("Phương thức thanh toán")}</label>
-          <div className="grid grid-cols-2 gap-3 mb-6 lg:mb-0">
+          <div className="grid grid-cols-2 gap-3">
             {methods.map((m) => {
               const active = method === m.key;
               return (
@@ -65,7 +67,7 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
             })}
           </div>
         </div>
-        <div data-col="panel" className="min-w-0">
+        <div className="card p-6 min-w-0" data-col="panel">
 
       {method === "sepay" && (
         <div>
@@ -148,6 +150,31 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
             </form>
           )}
         </div>
+      )}
+
+      {/* Form KHAI BÁO NẠP — khôi phục nguyên trạng trước đợt bố cục 2026-11-10
+          (lệnh Tín 20:50 "sao mất cái nhập số tiền nạp rồi"): form này từng nằm
+          trong thẻ nạp sau các panel (258a4fa), bị dời ra cột phụ ở fbd1f3c rồi
+          bị gỡ hẳn ở 6777853. Nay đưa lại vào thẻ panel, đúng vị trí sau panel
+          ngân hàng, chỉ hiện khi đang chọn QR ngân hàng; ô "Số tiền đã chuyển"
+          (name="amount") gửi về createDepositAction như cũ — nó chưa bao giờ
+          lái số tiền vào QR (QR luôn sinh ở server với số tiền 0). */}
+      {method === "sepay" && (
+        <form action={createDepositAction} className="mt-6 border-t border-dashed pt-5 space-y-3">
+          <div className="font-semibold text-slate-800 text-sm">{t("Đã chuyển khoản? Khai báo để đối soát nhanh hơn")}</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="lbl">{t("Số tiền đã chuyển")}</label>
+              <input className="inp" name="amount" type="number" required min={curBank?.min || 10000} placeholder="500000" />
+            </div>
+            <div>
+              <label className="lbl">{t("Kênh")}</label>
+              <select className="inp" name="method" defaultValue="BANK"><option value="BANK">{t("Ngân hàng")}</option><option value="MOMO">MoMo</option><option value="CARD">{t("Thẻ cào")}</option><option value="USDT">USDT</option></select>
+            </div>
+          </div>
+          <button className="btn-dark w-full">{t("Gửi khai báo nạp")}</button>
+          <p className="text-xs text-slate-400">{t("Hệ thống cộng tự động khi chuyển khoản đúng nội dung. Khai báo này giúp admin cộng tay nhanh nếu giao dịch bị lệch nội dung.")}</p>
+        </form>
       )}
 
         </div>

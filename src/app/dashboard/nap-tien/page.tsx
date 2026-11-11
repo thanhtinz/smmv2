@@ -37,8 +37,8 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
       <PageHead title={L("Nạp tiền")} desc={L("Chọn phương thức nạp bên dưới. QR ngân hàng (ngân hàng & MoMo) cộng tự động khi đúng nội dung; PayPal/Stripe cộng tự động theo tỉ giá ngay khi thanh toán thành công.")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       {/* Bố cục (lệnh Tín 2026-11-10): bỏ hẳn thẻ Số dư hiện tại (đã có sẵn ở
-          topbar) và thẻ form Khai báo nạp vì dư thừa. Trong thẻ nạp chia 2 cột
-          (20:33): cột trái là danh sách phương thức xếp dọc, cột phải là panel
+          topbar) và thẻ form Khai báo nạp vì dư thừa. Khu nạp là 2 THẺ TÁCH
+          HẲN (20:49): thẻ trái chứa lưới phương thức 2×2, thẻ phải là panel
           của phương thức đang chọn — panel ngân hàng là một khối hợp nhất QR
           ở trên, nội dung chuyển khoản ngay bên dưới. Thẻ thưởng nạp và lịch
           sử nạp full-width ở dưới cùng. */}
