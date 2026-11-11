@@ -5,8 +5,6 @@ import { usdtDepositRate } from "@/lib/rates";
 import { vietqrUrl } from "@/lib/vietqr";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { DepositCard } from "@/components/deposit-card";
-import { CopyBtn } from "@/components/client";
-import { createDepositAction } from "@/app/actions/user";
 import { num, DEP_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 
@@ -38,13 +36,12 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
     <div>
       <PageHead title={L("Nạp tiền")} desc={L("Chọn phương thức nạp bên dưới. QR ngân hàng (ngân hàng & MoMo) cộng tự động khi đúng nội dung; PayPal/Stripe cộng tự động theo tỉ giá ngay khi thanh toán thành công.")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
-      {/* Bố cục PC cân bằng (lệnh Tín 2026-11-10): trước đây thẻ nạp 1.112px đứng
-          cạnh thẻ lịch sử 195px để lại khoảng chết ~900px. Nay: cột trái là thẻ
-          nạp; cột phụ chứa thẻ số dư (trước là footer của thẻ lịch sử) + form
-          khai báo nạp + thẻ thưởng nạp (hai khối trước nằm trong thẻ nạp) —
-          hai cột kết thúc gần ngang nhau. Lịch sử nạp thành mục full-width ở
-          dưới nên số dòng lịch sử không phá cân bằng hai cột nữa. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
+      {/* Bố cục (lệnh Tín 2026-11-10): bỏ hẳn thẻ Số dư hiện tại (đã có sẵn ở
+          topbar) và thẻ form Khai báo nạp ở cột phụ vì dư thừa — trang quay về
+          MỘT cột: thẻ nạp full-width (panel ngân hàng là một khối hợp nhất QR
+          ở trên, nội dung chuyển khoản ngay bên dưới), thẻ thưởng nạp thành
+          dải full-width, lịch sử nạp full-width ở dưới cùng. */}
+      <div>
         <DepositCard
           banks={sepayOn ? banksProp : []}
           bank={sepayOn && s.bank_account ? { name: s.bank_name, account: s.bank_account, holder: s.bank_holder, qr: vietQrUrl(s.bank_name, s.bank_account, 0, content, s.bank_holder), content, min: parseInt(s.deposit_min || "10000", 10) || 10000 } : null}
@@ -65,45 +62,14 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
             })(),
           } : null}
         />
-        <aside className="space-y-6">
-          <div className="card p-5">
-            <div className="text-sm text-slate-500">{L("Số dư hiện tại")}</div>
-            <div className="mt-1 text-3xl font-extrabold text-emerald-700">{M(user.balance)}</div>
-            <dl className="mt-4 space-y-2.5 border-t border-slate-100 pt-4 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-slate-500">{L("Tổng đã nạp:")}</dt>
-                <dd className="font-semibold text-slate-800">{M(user.totalDeposited)}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-slate-500">{L("Đã chi tiêu:")}</dt>
-                <dd className="font-semibold text-slate-800">{M(user.totalSpent)}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-slate-500">{L("Nội dung chuyển khoản")}</dt>
-                <dd className="flex items-center gap-2 font-extrabold text-brand-700">{content}<CopyBtn text={content} label={L("Chép")} /></dd>
-              </div>
-            </dl>
-          </div>
-          <form action={createDepositAction} className="card p-5 space-y-3">
-            <div className="font-semibold text-slate-800">{L("Đã chuyển khoản? Khai báo để đối soát nhanh hơn")}</div>
-            <div>
-              <label className="lbl">{L("Số tiền đã chuyển")}</label>
-              <input className="inp" name="amount" type="number" required min={minDep} placeholder="500000" />
-            </div>
-            <div>
-              <label className="lbl">{L("Kênh")}</label>
-              <select className="inp" name="method" defaultValue="BANK"><option value="BANK">{L("Ngân hàng")}</option><option value="MOMO">MoMo</option><option value="CARD">{L("Thẻ cào")}</option><option value="USDT">USDT</option></select>
-            </div>
-            <button className="btn-dark w-full">{L("Gửi khai báo nạp")}</button>
-            <p className="text-xs text-slate-400">{L("Hệ thống cộng tự động khi chuyển khoản đúng nội dung. Khai báo này giúp admin cộng tay nhanh nếu giao dịch bị lệch nội dung.")}</p>
-          </form>
-          {effTiers.length > 0 && (
-            <div className="card border-brand-100 bg-brand-50 p-5 text-sm">
-              <div className="mb-1.5 font-semibold text-brand-800">{L("Thưởng nạp hiện tại")}</div>
+        {effTiers.length > 0 && (
+          <div className="card mt-6 border-brand-100 bg-brand-50 p-5 text-sm">
+            <div className="mb-1.5 font-semibold text-brand-800">{L("Thưởng nạp hiện tại")}</div>
+            <div className="flex flex-wrap gap-x-8 gap-y-1">
               {effTiers.map((tier) => <div key={tier.from} className="text-brand-700">{L("Nạp từ ")}{M(tier.from)}: <b>{`+${tier.percent}%`}</b></div>)}
             </div>
-          )}
-        </aside>
+          </div>
+        )}
       </div>
       <div className="card mt-6 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 font-bold text-slate-900">{L("Lịch sử nạp")}</div>

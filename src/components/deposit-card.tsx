@@ -40,7 +40,7 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
     <div className="card p-6">
       <h2 className="font-bold text-slate-900 mb-4">{t("Nạp tiền")}</h2>
       <label className="lbl">{t("Phương thức thanh toán")}</label>
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {methods.map((m) => {
           const active = method === m.key;
           return (
@@ -67,30 +67,36 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
               ))}
             </div>
           )}
-          {curBank && (
-            <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={curBank.qr} alt={t("VietQR nạp tiền")} className="w-[200px] h-[200px] rounded-2xl border border-slate-200 object-contain bg-white" />
-              <dl className="space-y-3 text-sm">
-                <Row k={t("Ngân hàng")} v={curBank.name} />
-                <Row k={t("Số tài khoản")} v={curBank.account} copy />
-                <Row k={t("Chủ tài khoản")} v={curBank.holder} />
-                <Row k={t("Nội dung CK (bắt buộc đúng)")} v={curBank.content} copy strong />
-                <Row k={t("Nạp tối thiểu")} v={m(curBank.min)} />
-              </dl>
-            </div>
-          )}
-          {momo && (
-            <div className={curBank ? "mt-6 border-t border-dashed pt-5" : ""}>
-              <h3 className="font-bold text-slate-900 mb-3">{t("Ví MoMo")}</h3>
-              <dl className="space-y-3 text-sm">
-                <Row k={t("Số MoMo")} v={momo.phone} copy />
-                <Row k={t("Tên")} v={momo.name} />
-                <Row k={t("Nội dung")} v={momo.content} copy strong />
-              </dl>
-            </div>
-          )}
-          <p className="text-xs text-slate-400 mt-4">{t("Ngân hàng và MoMo đều được cộng tự động — chuyển đúng nội dung là tiền cộng ngay.")}</p>
+          {/* Khối chuyển khoản HỢP NHẤT (lệnh Tín 2026-11-10): QR ở trên, toàn bộ
+              nội dung chuyển khoản (ngân hàng + MoMo) ngay bên dưới trong cùng
+              một khối — không còn cảnh QR một nơi, thông tin một nẻo, và nội
+              dung CK không lặp lại ở thẻ số dư nữa (thẻ đó đã bỏ hẳn). */}
+          <div className="mx-auto w-full max-w-3xl">
+            {curBank && (
+              <div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={curBank.qr} alt={t("VietQR nạp tiền")} className="mx-auto w-[200px] h-[200px] rounded-2xl border border-slate-200 object-contain bg-white" />
+                <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3 text-sm">
+                  <Row k={t("Ngân hàng")} v={curBank.name} />
+                  <Row k={t("Số tài khoản")} v={curBank.account} copy />
+                  <Row k={t("Chủ tài khoản")} v={curBank.holder} />
+                  <Row k={t("Nội dung CK (bắt buộc đúng)")} v={curBank.content} copy strong />
+                  <Row k={t("Nạp tối thiểu")} v={m(curBank.min)} />
+                </dl>
+              </div>
+            )}
+            {momo && (
+              <div className={curBank ? "mt-7" : ""}>
+                <h3 className="font-bold text-slate-900 mb-3">{t("Ví MoMo")}</h3>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3 text-sm">
+                  <Row k={t("Số MoMo")} v={momo.phone} copy />
+                  <Row k={t("Tên")} v={momo.name} />
+                  <Row k={t("Nội dung")} v={momo.content} copy strong />
+                </dl>
+              </div>
+            )}
+            <p className="text-xs text-slate-400 mt-5">{t("Ngân hàng và MoMo đều được cộng tự động — chuyển đúng nội dung là tiền cộng ngay.")}</p>
+          </div>
         </div>
       )}
 
