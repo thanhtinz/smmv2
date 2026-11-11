@@ -3488,6 +3488,16 @@ export const DICT: Record<string, Tr> = {
   "Số tiền nạp": e("Deposit amount", "充值金额", "จำนวนเงินที่เติม", "入金額", "충전 금액"),
   "Số tiền nạp tối thiểu là": e("The minimum deposit is", "最低充值金额为", "ยอดเติมขั้นต่ำคือ", "最低入金額は", "최소 충전 금액은"),
   "Tổng cộng vào ví": e("Total credited to wallet", "总计入账到钱包", "ยอดรวมเข้ากระเป๋าเงิน", "ウォレットへの合計反映額", "지갑 총 입금액"),
+  // Khối thông tin dưới QR ngân hàng theo ảnh mẫu của Tín (2026-11-10 21:32) +
+  // đếm ngược 15 phút theo mẫu tài liệu SePay (trang "Tạo trang QR thanh toán").
+  "Thành phần thanh toán": e("Payment details", "付款明细", "รายละเอียดการชำระเงิน", "支払い明細", "결제 상세"),
+  "Chủ sở hữu": e("Account owner", "账户所有人", "เจ้าของบัญชี", "口座所有者", "계정 소유자"),
+  "Số tiền yêu cầu": e("Requested amount", "请求金额", "จำนวนเงินที่ขอ", "請求金額", "요청 금액"),
+  "Thực nhận": e("You receive", "实际到账", "ยอดที่ได้รับจริง", "実際の受取額", "실수령액"),
+  "Mã QR đã hết hạn": e("QR code expired", "二维码已过期", "QR หมดอายุแล้ว", "QRコードの有効期限切れ", "QR 코드가 만료되었습니다"),
+  "Đơn hàng đã hết hạn": e("Order expired", "订单已过期", "คำสั่งซื้อหมดอายุแล้ว", "注文の有効期限切れ", "주문이 만료되었습니다"),
+  "Thanh toán thành công": e("Payment successful", "付款成功", "ชำระเงินสำเร็จ", "支払いが完了しました", "결제가 완료되었습니다"),
+  "Tự động cộng tiền sau 1-3 phút. Nếu quá thời gian quy định hãy liên hệ CSKH.": e("Your balance is topped up automatically within 1-3 minutes. If it takes longer than that, please contact customer support.", "余额将在 1-3 分钟内自动入账。如超过规定时间，请联系客服。", "ยอดเงินจะถูกเติมอัตโนมัติภายใน 1-3 นาที หากเกินเวลาที่กำหนด โปรดติดต่อฝ่ายบริการลูกค้า", "残高は1〜3分以内に自動で反映されます。規定の時間を過ぎても反映されない場合は、カスタマーサポートへご連絡ください。", "잔액은 1-3분 이내에 자동으로 충전됩니다. 정해진 시간이 지나도 충전되지 않으면 고객센터로 문의해 주세요."),
   "Nhập số tiền muốn nạp — hệ thống tạo phiên thanh toán USDT qua BoltUtil, tiền cộng tự động khi giao dịch được xác nhận. Tỉ giá: ": e("Enter the amount to add — the system creates a USDT payment session via BoltUtil and credits you automatically once the transaction is confirmed. Rate: ", "输入要充值的金额——系统将通过 BoltUtil 创建 USDT 支付会话，交易确认后自动入账。汇率：", "กรอกจำนวนเงินที่ต้องการเติม — ระบบจะสร้างเซสชันชำระ USDT ผ่าน BoltUtil และเติมเงินอัตโนมัติเมื่อธุรกรรมได้รับการยืนยัน อัตราแลกเปลี่ยน: ", "入金额を入力してください。システムがBoltUtil経由でUSDT支払いセッションを作成し、取引が確認されると自動で反映されます。レート：", "충전할 금액을 입력하세요. 시스템이 BoltUtil을 통해 USDT 결제 세션을 만들며, 거래가 확인되면 자동으로 충전됩니다. 환율: "),
   "Tương đương ≈": e("Equivalent ≈", "约等于 ≈", "เทียบเท่า ≈", "相当 ≈", "상당 ≈"),
   "Số USDT cần chuyển": e("USDT to send", "需转出的 USDT", "USDT ที่ต้องโอน", "送金するUSDT", "보낼 USDT"),

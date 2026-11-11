@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CopyBtn } from "@/components/client";
+import { I } from "@/components/ui";
 import { startPaypalCheckoutAction, startStripeCheckoutAction, createBoltDepositAction } from "@/app/actions/user";
 import { useLang } from "@/components/lang";
 
@@ -23,6 +24,17 @@ function qrWithAmount(qr: string, amount: number): string {
   if (/[?&]amount=/.test(qr)) return qr.replace(/([?&]amount=)[^&]*/, `$1${amount}`);
   return `${qr}${qr.includes("?") ? "&" : "?"}amount=${amount}`;
 }
+
+/** Thời hạn hiệu lực của mã QR nạp ngân hàng: 15 PHÚT cố định theo tài liệu
+ *  chính thức của SePay — trang "Tạo trang QR thanh toán"
+ *  (https://developer.sepay.vn/vi/sepay-webhooks/tao-qr-va-form-thanh-toan),
+ *  mẫu tham chiếu của SePay đặt `const deadline = Date.now() + 15 * 60_000`.
+ *  Đây là giá trị theo tài liệu nhà cung cấp (lệnh Tín 2026-11-10 21:34 "thời
+ *  gian phải theo tài liệu sepay") — KHÔNG phải cấu hình nghiệp vụ nên không
+ *  đưa vào setting admin. Hết giờ chỉ đổi HIỂN THỊ (QR mờ + trạng thái hết
+ *  hạn): webhook SePay vẫn cộng tiền theo nội dung CK bất cứ khi nào tiền về,
+ *  đồng hồ này không chặn cộng tiền. */
+const QR_DEADLINE_MS = 15 * 60_000;
 
 export function DepositCard({ bank, banks, intl, usdt, tiers }: { bank: BankInfo | null; banks?: BankInfo[]; intl: IntlInfo | null; usdt?: UsdtInfo | null; tiers?: BonusTier[] }) {
   const { t, td, m } = useLang();
@@ -53,11 +65,58 @@ export function DepositCard({ bank, banks, intl, usdt, tiers }: { bank: BankInfo
     if (!amt || amt < min) { setBankErr(`${t("Số tiền nạp tối thiểu là")} ${m(min)}`); setBankConfirmed(null); return; }
     setBankErr("");
     setBankConfirmed(amt);
+    // Mỗi lần bấm hợp lệ (kể cả bấm lại cùng số tiền) là một cửa sổ QR mới:
+    // tăng cycle để effect đếm ngược/polling chạy lại từ đầu.
+    setQrCycle((c) => c + 1);
   };
   // Thưởng theo mốc — cùng công thức calcBonus phía server: lấy % cao nhất
   // trong các mốc đạt, bonus = floor(số tiền × % / 100).
-  const bonusPct = bankConfirmed ? (tiers || []).reduce((p, tr) => (bankConfirmed >= tr.from && tr.percent > p ? tr.percent : p), 0) : 0;
-  const bonusAmt = bankConfirmed ? Math.floor((bankConfirmed * bonusPct) / 100) : 0;
+  const bonusAmt = bankConfirmed ? Math.floor((bankConfirmed * (tiers || []).reduce((p, tr) => (bankConfirmed >= tr.from && tr.percent > p ? tr.percent : p), 0)) / 100) : 0;
+  // Đếm ngược + trạng thái thanh toán của QR ngân hàng (mẫu tài liệu SePay):
+  // qrLeft = giây còn lại trong cửa sổ 15 phút; qrPaid = polling phát hiện
+  // deposit BANK đúng số tiền đã về sau khi panel hiện.
+  const [qrCycle, setQrCycle] = useState(0);
+  const [qrLeft, setQrLeft] = useState<number | null>(null);
+  const [qrPaid, setQrPaid] = useState(false);
+  const qrBaseRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (method !== "sepay" || bankConfirmed === null || !curBank) {
+      setQrLeft(null); setQrPaid(false); qrBaseRef.current = null;
+      return;
+    }
+    let stopped = false;
+    setQrPaid(false);
+    qrBaseRef.current = null;
+    const deadline = Date.now() + QR_DEADLINE_MS;
+    const tick = () => setQrLeft(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+    tick();
+    const iv = setInterval(tick, 500);
+    // Polling trạng thái mỗi 3 GIÂY (đúng nhịp mẫu SePay): lấy mốc deposit
+    // khớp mới nhất trước, sau đó chỉ "đã trả" khi có deposit khớp id lớn hơn
+    // mốc. Ngừng hỏi khi đã trả hoặc khi cửa sổ hết hạn.
+    let pollIv: ReturnType<typeof setInterval> | undefined;
+    (async () => {
+      try {
+        const r = await fetch(`/api/deposits/bank-status?amount=${bankConfirmed}`);
+        const j = await r.json();
+        if (!stopped && j && j.ok) qrBaseRef.current = typeof j.latestId === "number" ? j.latestId : 0;
+      } catch { if (!stopped) qrBaseRef.current = 0; }
+      if (stopped) return;
+      pollIv = setInterval(async () => {
+        if (Date.now() >= deadline) { if (pollIv) clearInterval(pollIv); return; }
+        try {
+          const r = await fetch(`/api/deposits/bank-status?amount=${bankConfirmed}&afterId=${qrBaseRef.current ?? 0}`);
+          const j = await r.json();
+          if (!stopped && j && j.ok && j.paid) { setQrPaid(true); if (pollIv) clearInterval(pollIv); }
+        } catch { /* lỗi mạng thoáng qua — chu kỳ 3 giây sau thử lại */ }
+      }, 3000);
+    })();
+    return () => { stopped = true; clearInterval(iv); if (pollIv) clearInterval(pollIv); };
+    // bankIdx trong deps: đổi ngân hàng = QR khác -> cửa sổ đếm ngược mới.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [method, bankConfirmed, qrCycle, bankIdx]);
+  const qrExpired = qrLeft !== null && qrLeft <= 0 && !qrPaid;
+  const qrMmSs = qrLeft !== null ? `${String(Math.floor(qrLeft / 60)).padStart(2, "0")}:${String(qrLeft % 60).padStart(2, "0")}` : "15:00";
   const [usd, setUsd] = useState("10");
   const [vndUsdt, setVndUsdt] = useState("250000");
   const rate = intl?.rate || usdt?.rate || 25000;
@@ -129,28 +188,72 @@ export function DepositCard({ bank, banks, intl, usdt, tiers }: { bank: BankInfo
               ))}
             </div>
           )}
-          {/* Khối chuyển khoản HỢP NHẤT (lệnh Tín 2026-11-10): QR ở trên, toàn bộ
-              nội dung chuyển khoản ngân hàng ngay bên dưới trong cùng một khối
-              — không còn cảnh QR một nơi, thông tin một nẻo, và nội dung CK
-              không lặp lại ở thẻ số dư nữa (thẻ đó đã bỏ hẳn). */}
+          {/* Panel QR ngân hàng (lệnh Tín 2026-11-10 21:32 theo ảnh mẫu + 21:34
+              theo tài liệu SePay): QR ở trên kèm đếm ngược 15 phút và dòng
+              trạng thái đúng mẫu doc ("Đang chờ thanh toán · mm:ss" / "Đơn
+              hàng đã hết hạn" / "Thanh toán thành công" — trạng thái lấy từ
+              polling 3 giây/lần). Dưới QR CHỈ còn khối "Thành phần thanh
+              toán" của ảnh mẫu: Ngân hàng / Số tài khoản / Chủ sở hữu / Nội
+              dung — gạch ngang — Số tiền yêu cầu / Thưởng nạp / Thực nhận —
+              hộp ghi chú cộng tiền tự động 1-3 phút. Hàng "Nạp tối thiểu" và
+              câu ghi chú cuối cũ đã bỏ (tối thiểu đã chặn ở ô nhập bên trái);
+              các nút dưới ảnh mẫu (Tải hoá đơn / Mở ngân hàng / Tôi đã
+              chuyển khoản) KHÔNG làm — "Tôi đã chuyển khoản" là khai báo,
+              Tín đã cấm. */}
           <div className="mx-auto w-full max-w-3xl">
-            {curBank && (
+            {curBank && bankConfirmed !== null && (
               <div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qrWithAmount(curBank.qr, bankConfirmed || 0)} alt={t("VietQR nạp tiền")} className="mx-auto w-[200px] h-[200px] rounded-2xl border border-slate-200 object-contain bg-white" />
-                <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3 text-sm">
-                  <Row k={t("Ngân hàng")} v={curBank.name} />
-                  <Row k={t("Số tài khoản")} v={curBank.account} copy />
-                  <Row k={t("Chủ tài khoản")} v={curBank.holder} />
-                  <Row k={t("Nội dung CK (bắt buộc đúng)")} v={curBank.content} copy strong />
-                  <Row k={t("Nạp tối thiểu")} v={m(curBank.min)} />
-                  {bankConfirmed !== null && <Row k={t("Số tiền nạp")} v={m(bankConfirmed)} strong />}
-                  {bankConfirmed !== null && bonusPct > 0 && <Row k={`${t("Thưởng nạp")} (+${bonusPct}%)`} v={`+${m(bonusAmt)}`} />}
-                  {bankConfirmed !== null && bonusPct > 0 && <Row k={t("Tổng cộng vào ví")} v={m(bankConfirmed + bonusAmt)} strong />}
-                </dl>
+                <div className="relative mx-auto h-[200px] w-[200px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={qrWithAmount(curBank.qr, bankConfirmed)} alt={t("VietQR nạp tiền")} className="h-[200px] w-[200px] rounded-2xl border border-slate-200 object-contain bg-white" />
+                  {qrExpired && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 rounded-2xl bg-white/90 px-3 text-center">
+                      <span className="text-sm font-bold text-rose-600">{t("Mã QR đã hết hạn")}</span>
+                      <button type="button" className="btn-primary !px-4 !py-2 text-sm" onClick={() => setQrCycle((c) => c + 1)}>{t("Tạo mã mới")}</button>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 text-center">
+                  {qrPaid ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3.5 py-1.5 text-[13px] font-bold text-emerald-800">
+                      <span className="[&>svg]:h-4 [&>svg]:w-4">{I.check}</span>{t("Thanh toán thành công")}
+                    </span>
+                  ) : qrExpired ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3.5 py-1.5 text-[13px] font-bold text-rose-700">
+                      <span className="[&>svg]:h-4 [&>svg]:w-4">{I.clock}</span>{t("Đơn hàng đã hết hạn")}
+                    </span>
+                  ) : (
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-bold ${qrLeft !== null && qrLeft <= 60 ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-800"}`}>
+                      <span className="[&>svg]:h-4 [&>svg]:w-4">{I.clock}</span>{t("Đang chờ thanh toán")} · {qrMmSs}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-7" data-payinfo="1">
+                  <div className="flex items-center gap-2 text-[13px] font-bold uppercase tracking-wider text-slate-400">
+                    <span className="[&>svg]:h-[18px] [&>svg]:w-[18px]">{I.wallet}</span>{t("Thành phần thanh toán")}
+                  </div>
+                  <div className="mt-4 space-y-3.5 text-sm">
+                    <PayRow k={t("Ngân hàng")} v={curBank.name} cls="font-bold text-slate-900" />
+                    <PayRow k={t("Số tài khoản")} v={curBank.account} copy cls="font-bold text-brand-600" />
+                    <PayRow k={t("Chủ sở hữu")} v={curBank.holder} cls="font-bold text-slate-900" />
+                    <PayRow k={t("Nội dung")} v={curBank.content} copy cls="font-extrabold text-rose-600" />
+                  </div>
+                  <div className="my-5 border-t border-slate-200" />
+                  <div className="space-y-3.5 text-sm">
+                    <PayRow k={t("Số tiền yêu cầu")} v={m(bankConfirmed)} cls="font-semibold text-slate-800" />
+                    <PayRow k={t("Thưởng nạp")} v={`+${m(bonusAmt)}`} cls={bonusAmt > 0 ? "font-semibold text-emerald-600" : "font-semibold text-slate-500"} />
+                    <div className="flex items-center justify-between gap-3 pt-1" data-payrow="1">
+                      <span className="text-[15px] font-bold text-slate-900">{t("Thực nhận")}</span>
+                      <span className="text-[22px] font-extrabold leading-none text-brand-600">+{m(bankConfirmed + bonusAmt)}</span>
+                    </div>
+                  </div>
+                  <div className="mt-6 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5">
+                    <span className="mt-0.5 shrink-0 text-slate-400 [&>svg]:h-5 [&>svg]:w-5">{I.info}</span>
+                    <p className="text-sm leading-relaxed text-slate-600">{t("Tự động cộng tiền sau 1-3 phút. Nếu quá thời gian quy định hãy liên hệ CSKH.")}</p>
+                  </div>
+                </div>
               </div>
             )}
-            <p className="text-xs text-slate-400 mt-5">{t("Chuyển đúng nội dung là tiền cộng tự động qua SePay.")}</p>
           </div>
         </div>
       )}
@@ -199,6 +302,18 @@ export function DepositCard({ bank, banks, intl, usdt, tiers }: { bank: BankInfo
         </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Một hàng của khối "Thành phần thanh toán" dưới QR ngân hàng: nhãn trái,
+ *  giá trị phải (kiểu chữ/màu truyền qua cls), nút chép tuỳ chọn. */
+function PayRow({ k, v, copy, cls }: { k: string; v: string; copy?: boolean; cls?: string }) {
+  const { t } = useLang();
+  return (
+    <div className="flex items-center justify-between gap-3" data-payrow="1">
+      <span className="shrink-0 text-slate-500">{k}</span>
+      <span className={`flex items-center gap-2 text-right ${cls || "font-semibold text-slate-800"}`}>{v}{copy && <CopyBtn text={v} label={t("Chép")} />}</span>
     </div>
   );
 }
