@@ -49,6 +49,10 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   deposit_bonus_tiers: JSON.stringify([{ from: 1000000, percent: 2 }, { from: 5000000, percent: 5 }]), // mốc thưởng mặc định — nguồn duy nhất (seed không ghi nữa)
   maintenance: "0",
   announcement_bar: "",
+  // Trang trí mùa lễ hội (Tín duyệt thiết kế 2026-11-11): "1" = bật trang trí
+  // toàn site theo seasonal_theme (tet | noel | halloween | trungthu).
+  seasonal_decor_enabled: "0",
+  seasonal_theme: "tet",
   sys_announce_enabled: "1",
   sys_announce_content: "",
   // Landing + thương hiệu mở rộng + SEO (Cài đặt → Landing Page / Chung)

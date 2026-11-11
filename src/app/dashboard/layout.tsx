@@ -10,6 +10,8 @@ import { LEVEL_NAME } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { LangProvider } from "@/components/lang";
 import { prisma } from "@/lib/db";
+import SeasonalDecor from "@/components/seasonal-decor";
+import { parseSeasonalTheme } from "@/lib/seasonal";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -36,10 +38,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // (logo_menu_url) → logo nhỏ web mẹ (logo_url) → ô chữ viết tắt mặc định.
   // Header vẫn dùng logo nhỏ như cũ.
   const drawerLogoUrl = s.logo_menu_url || s.logo_url || null;
+  // Trang trí mùa lễ hội: cùng nguồn settings + cùng component với khung công khai.
+  const decorTheme = s.seasonal_decor_enabled === "1" ? parseSeasonalTheme(s.seasonal_theme) : null;
   return (
     <LangProvider lang={i18n.lang} ov={i18n.cfg.overrides[i18n.lang]} cur={i18n.cur} rates={i18n.rates}>
     <div className="min-h-screen">
       <AppTopBar user={{ username: user.username, balance: user.balance, role: user.role, levelLabel: LEVEL_NAME[user.level] }} siteName={s.site_name} logoText={s.site_logo_text || "S"} drawerLogoUrl={drawerLogoUrl} items={items} menuFooter={menuFooter} L={L} M={M} />
+      {decorTheme ? <SeasonalDecor theme={decorTheme} /> : null}
       <div className="max-w-[1400px] mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[248px_1fr] gap-6 items-start">
         <aside className="hidden lg:block lg:sticky lg:top-24 lg:bg-white lg:rounded-2xl lg:border lg:border-slate-200/60 lg:shadow-soft lg:p-3">
           <SideNav items={items} footer={menuFooter} />

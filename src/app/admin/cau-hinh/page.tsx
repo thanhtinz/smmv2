@@ -8,8 +8,98 @@ import { BonusTiersEditor, TelegramBotsEditor, ToolKeyField } from "@/components
 import { RichTextEditor } from "@/components/rich-editor";
 import { ImageUpload } from "@/components/image-upload";
 import { getServerI18n } from "@/lib/lang-server";
+import { parseSeasonalTheme, type SeasonalTheme } from "@/lib/seasonal";
 
 export const dynamic = "force-dynamic";
+
+/* ---- Trang trí mùa lễ hội: 4 chủ đề + bản xem trước mini (vòng treo thu nhỏ,
+ * dùng đúng hoạ tiết/màu của vòng thật trong components/seasonal-decor). ---- */
+const SEASONAL_OPTIONS: Array<{ theme: SeasonalTheme; name: string; desc: string }> = [
+  { theme: "tet", name: "Tết Nguyên Đán", desc: "Đèn lồng đỏ vàng, hoa mai và lì xì" },
+  { theme: "noel", name: "Giáng sinh", desc: "Tuyết rơi, dây đèn màu và người tuyết" },
+  { theme: "halloween", name: "Halloween", desc: "Lá thu, bí ngô phát sáng và dơi" },
+  { theme: "trungthu", name: "Trung thu", desc: "Đèn lồng lụa, sao sáng và thỏ ngọc" },
+];
+
+function SeasonalPreview({ theme }: { theme: SeasonalTheme }) {
+  const stringStroke = theme === "noel" ? "#14532D" : theme === "halloween" ? "#3B0764" : theme === "tet" ? "#7F1D1D" : "#92400E";
+  return (
+    <svg viewBox="0 0 132 46" className="block h-11 w-full" aria-hidden>
+      <path d="M0,5 Q33,14 66,6 T132,5" fill="none" stroke={stringStroke} strokeWidth="1.6" />
+      {theme === "tet" && [24, 66, 108].map((x, i) => (
+        <g key={x}>
+          <line x1={x} y1="8" x2={x} y2="11" stroke={stringStroke} strokeWidth="1.2" />
+          <ellipse cx={x} cy={22} rx="8" ry="10" fill={i === 1 ? "#F59E0B" : "#DC2626"} fillOpacity="0.92" />
+          <line x1={x - 3.4} y1="13" x2={x - 3.4} y2="31" stroke="rgba(255,255,255,0.55)" strokeWidth="1" />
+          <line x1={x + 3.4} y1="13" x2={x + 3.4} y2="31" stroke="rgba(255,255,255,0.55)" strokeWidth="1" />
+          <rect x={x - 4} y="10.6" width="8" height="2.8" rx="1" fill="#F59E0B" />
+          <line x1={x - 2} y1="32" x2={x - 2} y2="37" stroke={i === 1 ? "#F59E0B" : "#DC2626"} strokeWidth="1.2" />
+          <line x1={x} y1="32" x2={x} y2="38.5" stroke={i === 1 ? "#F59E0B" : "#DC2626"} strokeWidth="1.2" />
+          <line x1={x + 2} y1="32" x2={x + 2} y2="37" stroke={i === 1 ? "#F59E0B" : "#DC2626"} strokeWidth="1.2" />
+        </g>
+      ))}
+      {theme === "noel" && [18, 42, 66, 90, 114].map((x, i) => {
+        const c = ["#EF4444", "#22C55E", "#F59E0B", "#3B82F6", "#EC4899"][i];
+        return (
+          <g key={x}>
+            <line x1={x} y1="7" x2={x} y2="10" stroke={stringStroke} strokeWidth="1.2" />
+            <rect x={x - 2.2} y="9.6" width="4.4" height="3.6" rx="1" fill="#854D0E" />
+            <circle cx={x} cy="19" r="8.5" fill={c} opacity="0.22" />
+            <circle cx={x} cy="19" r="5" fill={c} />
+            <circle cx={x - 1.6} cy="17.2" r="1.5" fill="rgba(255,255,255,0.75)" />
+          </g>
+        );
+      })}
+      {theme === "halloween" && (
+        <g>
+          <g>
+            <line x1="30" y1="8" x2="30" y2="12" stroke={stringStroke} strokeWidth="1.2" />
+            <rect x="27.6" y="11" width="4.8" height="4" rx="1" fill="#3F6212" />
+            <ellipse cx="30" cy="24" rx="11" ry="9.5" fill="#EA580C" />
+            <path d="M30,15 v18 M23,17 v14 M37,17 v14" stroke="#C2410C" strokeWidth="1.1" fill="none" />
+            <path d="M25.5,21 l3.4,0 -1.7,3 Z M34.5,21 l-3.4,0 1.7,3 Z" fill="#451A03" />
+            <path d="M25,28 q2.5,2.4 5,0 q2.5,2.4 5,0 l0,2.2 q-5,2.6 -10,0 Z" fill="#451A03" />
+          </g>
+          <path d="M66,14 c-2,-3.4 -6,-4.4 -9,-2.6 c1,1 1.4,2 1.4,3.2 c2.4,-1.4 5,-1.2 7.6,0.8 c2.6,-2 5.2,-2.2 7.6,-0.8 c0,-1.2 0.4,-2.2 1.4,-3.2 c-3,-1.8 -7,-0.8 -9,2.6 Z" fill="#1F2937" />
+          <circle cx="63.8" cy="14.6" r="0.9" fill="#F8FAFC" /><circle cx="68.2" cy="14.6" r="0.9" fill="#F8FAFC" />
+          <g>
+            <line x1="102" y1="8" x2="102" y2="14" stroke={stringStroke} strokeWidth="1.2" />
+            <rect x="100" y="13" width="4" height="3.2" rx="1" fill="#3F6212" />
+            <ellipse cx="102" cy="25" rx="8" ry="7" fill="#F97316" />
+            <path d="M98.6,22 l2.6,0 -1.3,2.4 Z M105.4,22 l-2.6,0 1.3,2.4 Z" fill="#451A03" />
+          </g>
+        </g>
+      )}
+      {theme === "trungthu" && (
+        <g>
+          {[24, 108].map((x, i) => {
+            const c = i === 0 ? "#F59E0B" : "#FACC15";
+            return (
+              <g key={x}>
+                <line x1={x} y1="8" x2={x} y2="11" stroke={stringStroke} strokeWidth="1.2" />
+                <ellipse cx={x} cy={22} rx="8" ry="10" fill={c} fillOpacity="0.92" />
+                <line x1={x - 3.4} y1="13" x2={x - 3.4} y2="31" stroke="rgba(255,255,255,0.55)" strokeWidth="1" />
+                <line x1={x + 3.4} y1="13" x2={x + 3.4} y2="31" stroke="rgba(255,255,255,0.55)" strokeWidth="1" />
+                <rect x={x - 4} y="10.6" width="8" height="2.8" rx="1" fill="#B45309" />
+                <line x1={x} y1="32" x2={x} y2="38" stroke={c} strokeWidth="1.2" />
+              </g>
+            );
+          })}
+          <g>
+            <line x1="52" y1="7" x2="52" y2="11" stroke={stringStroke} strokeWidth="1.2" />
+            <ellipse cx="52" cy="22" rx="8" ry="10" fill="#EC4899" fillOpacity="0.92" />
+            <rect x="48" y="10.6" width="8" height="2.8" rx="1" fill="#B45309" />
+            <line x1="52" y1="32" x2="52" y2="38" stroke="#EC4899" strokeWidth="1.2" />
+          </g>
+          <rect x="-7" y="-7" width="14" height="14" rx="2" transform="translate(80,22) rotate(45)" fill="#38BDF8" fillOpacity="0.9" />
+          <path d="M73,22 h14 M80,15 v14" stroke="rgba(255,255,255,0.65)" strokeWidth="1.1" />
+          <line x1="80" y1="6" x2="80" y2="12" stroke={stringStroke} strokeWidth="1.2" />
+          <line x1="80" y1="32" x2="80" y2="38" stroke="#38BDF8" strokeWidth="1.2" />
+        </g>
+      )}
+    </svg>
+  );
+}
 
 /** Trang Cài đặt admin — dựng theo bố cục panel mẫu: các tab gạch chân cuộn ngang
  *  (Chung → Thanh toán → Email → Telegram → Thông báo → Google → Khuyến mãi →
@@ -20,6 +110,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();
+  const seasonalTheme = parseSeasonalTheme(s.seasonal_theme) || "tet";
   const base = process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn";
   const cronUrl = `${base}/api/cron/sync?secret=${s.cron_secret || "<CRON_SECRET>"}&services=1`;
   const webhookUrl = `${base}/api/webhooks/sepay`;
@@ -109,6 +200,32 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
             <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-slate-600">{s.meta_description || L("Chưa có mô tả SEO — điền ở thẻ SEO & Meta Tags phía trên để kết quả tìm kiếm hiển thị đẹp hơn.")}</p>
           </div>
           <p className="text-xs text-slate-400">{L("Bản xem trước theo giá trị đang lưu hiện tại.")}</p>
+        </section>
+        <section className="card p-6 space-y-4">
+          <div className="font-bold text-slate-900">{L("Trang trí mùa lễ hội")}</div>
+          <p className="text-xs leading-relaxed text-slate-400">{L("Đến mùa lễ, bật công tắc này là toàn bộ trang khách (trang chủ và khu vực sau khi đăng nhập) được trang trí theo chủ đề đã chọn: hạt rơi, vòng treo dưới thanh điều hướng và vật phẩm đặc trưng ở góc trang. Tắt là gỡ sạch hoàn toàn. Khu vực quản trị không hiển thị trang trí.")}</p>
+          <div>
+            <label className="lbl">{L("Bật trang trí mùa lễ hội")}</label>
+            <select className="inp" name="seasonal_decor_enabled" defaultValue={s.seasonal_decor_enabled === "1" ? "1" : "0"}>
+              <option value="0">{L("Tắt")}</option>
+              <option value="1">{L("Bật")}</option>
+            </select>
+          </div>
+          <div>
+            <label className="lbl">{L("Chủ đề trang trí")}</label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {SEASONAL_OPTIONS.map((o) => (
+                <label key={o.theme} className="cursor-pointer">
+                  <input type="radio" name="seasonal_theme" value={o.theme} defaultChecked={seasonalTheme === o.theme} className="peer sr-only" />
+                  <div className="rounded-xl border border-slate-200 p-3 transition hover:border-slate-300 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:ring-1 peer-checked:ring-brand-500">
+                    <SeasonalPreview theme={o.theme} />
+                    <div className="mt-2 text-sm font-semibold text-slate-800">{L(o.name)}</div>
+                    <div className="text-xs text-slate-400">{L(o.desc)}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
         </section>
               </div>
     </div>

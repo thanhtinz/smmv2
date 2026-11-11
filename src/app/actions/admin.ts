@@ -834,6 +834,7 @@ export async function adminSaveSettings(formData: FormData) {
     "catalog_page_size", "history_page_size", "admin_product_page_size", "admin_list_page_size",
     "watermark_enabled", "watermark_text", "watermark_opacity",
     "password_reset_ttl_minutes", "email_verify_ttl_hours", "flash_max_percent",
+    "seasonal_decor_enabled", "seasonal_theme",
   ];
   const savedKeys: string[] = [];
   for (const k of keys) {

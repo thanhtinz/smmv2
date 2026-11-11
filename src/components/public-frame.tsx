@@ -4,6 +4,8 @@ import { getServerI18n } from "@/lib/lang-server";
 import { getCurrentUser } from "@/lib/auth";
 import { LEVEL_NAME } from "@/lib/format";
 import { AppTopBar } from "@/components/topbar";
+import SeasonalDecor from "@/components/seasonal-decor";
+import { SEASONAL_ACCENT, parseSeasonalTheme } from "@/lib/seasonal";
 import { buildCustomerNav } from "@/components/customer-nav";
 import { SiteFooter } from "@/components/site";
 import { I } from "@/components/ui";
@@ -35,10 +37,14 @@ export async function PublicFrame({ children }: { children: ReactNode }) {
       { href: "/register", label: L("Đăng ký"), icon: I.plus },
     ];
   }
+  const decorTheme = s.seasonal_decor_enabled === "1" ? parseSeasonalTheme(s.seasonal_theme) : null;
   return (
     <div className="flex min-h-screen flex-col">
       {s.announcement_bar ? (
-        <div className="bg-brand-600 px-4 py-2 text-center text-xs font-medium text-white sm:text-sm">{s.announcement_bar}</div>
+        <div
+          className="bg-brand-600 px-4 py-2 text-center text-xs font-medium text-white sm:text-sm"
+          style={decorTheme ? { background: SEASONAL_ACCENT[decorTheme].strip } : undefined}
+        >{s.announcement_bar}</div>
       ) : null}
       <AppTopBar
         user={user ? { username: user.username, balance: user.balance, role: user.role, levelLabel: LEVEL_NAME[user.level] } : null}
@@ -50,6 +56,7 @@ export async function PublicFrame({ children }: { children: ReactNode }) {
         L={L}
         M={M}
       />
+      {decorTheme ? <SeasonalDecor theme={decorTheme} /> : null}
       {children}
       <SiteFooter />
     </div>
