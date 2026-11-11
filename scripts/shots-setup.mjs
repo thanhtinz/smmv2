@@ -10,7 +10,12 @@
  *  buộc 2FA thì vào thẳng /admin); (4) /setup sau đó tự khoá; (5) phát lại
  *  nguyên request tạo admin -> bị từ chối, vẫn 1 user; (6) đăng ký khách
  *  thường + đăng nhập lại bằng tài khoản admin vừa tạo đều chạy.
- *  Ảnh: 2026-11-11-setup-{desktop,mobile}.png */
+ *  Ảnh: 2026-11-11-setup-trang-{desktop,mobile}.png (tên MỚI duy nhất — không
+ *  ghi đè ảnh cũ vì client chat cache theo tên file, lệnh Tín 2026-11-11).
+ *  Kiểm thêm (chỉnh 2026-11-11 09:28 — không nhận diện mẫu): seed-prod KHÔNG
+ *  trồng dòng site_name; ô tên website render TRỐNG; thẻ KHÔNG có ô logo/chữ
+ *  cái; gửi tên website trống (bỏ qua chặn required phía trình duyệt) -> bị
+ *  action từ chối, vẫn 0 user, vẫn chưa có dòng site_name. */
 import { spawn } from "node:child_process";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
@@ -92,11 +97,16 @@ async function main() {
   await send("Network.setCookie", { name: "smmv2-lang", value: "vi", url: BASE + "/", path: "/" });
 
   /* ---- 1. Trang chủ trên DB rỗng tự về /setup, form đủ trường ---- */
+  // seed-prod KHÔNG được trồng sẵn tên website: chưa setup thì DB chưa có
+  // dòng site_name nào — form setup là nơi ghi đầu tiên của tên site.
+  ok((await prisma.setting.findUnique({ where: { key: "site_name" } })) === null, "điều kiện đầu: seed-prod KHÔNG trồng dòng site_name");
   await navigate(`${BASE}/`, 3500);
-  const landed = await evaluate(`({ url: location.href, hasForm: !!document.querySelector('input[name="siteName"]'), fields: [...document.querySelectorAll('form input')].map(i => i.name), title: document.querySelector('h1')?.innerText || '' })`);
+  const landed = await evaluate(`({ url: location.href, hasForm: !!document.querySelector('input[name="siteName"]'), fields: [...document.querySelectorAll('form input')].map(i => i.name), title: document.querySelector('h1')?.innerText || '', nameValue: document.querySelector('input[name="siteName"]')?.value ?? null, logoImg: !!document.querySelector('main img'), logoTile: !!document.querySelector('[class~="h-12"][class~="w-12"]') })`);
   ok(landed.url.includes("/setup"), `GET / (DB rỗng) -> /setup ${landed.url}`);
   ok(landed.hasForm && ["siteName", "username", "email", "password", "confirmPassword"].every((f) => landed.fields.includes(f)), `form setup đủ 5 trường ${JSON.stringify(landed.fields)}`);
   ok(landed.title.includes("Thiết lập lần đầu") || landed.title.includes("First-time setup"), `tiêu đề trang: "${landed.title}" (khách mới mặc định EN theo luật 2026-11-04)`);
+  ok(landed.nameValue === "", `ô tên website mở ra TRỐNG (không điền sẵn tên mẫu) — value="${landed.nameValue}"`);
+  ok(!landed.logoImg && !landed.logoTile, "thẻ setup KHÔNG có ô logo/chữ cái (không ảnh logo, không ô h-12 w-12)");
   /* Trang setup ĐỘC LẬP (lệnh Tín 2026-11-11 09:13): không header/footer của
      site, không dải thông báo, không trang trí mùa, không nút liên hệ nổi. */
   const chrome_ = await evaluate(`({ header: !!document.querySelector('header'), footer: !!document.querySelector('footer'), decor: !!document.querySelector('[data-seasonal-garland],[data-seasonal-particles],[data-seasonal-prop],[data-seasonal-wash]'), navLinks: [...document.querySelectorAll('a')].some(a => /\\/login|\\/register/.test(a.getAttribute('href') || '')) })`);
@@ -104,10 +114,10 @@ async function main() {
   ok(!chrome_.footer, "trang setup KHÔNG có footer của site");
   ok(!chrome_.decor, "trang setup KHÔNG có trang trí mùa lễ hội");
   ok(!chrome_.navLinks, "trang setup KHÔNG có link điều hướng của khung site (đăng nhập/đăng ký)");
-  await shot("2026-11-11-setup-desktop");
+  await shot("2026-11-11-setup-trang-desktop");
   await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   await navigate(`${BASE}/setup`, 3000);
-  await shot("2026-11-11-setup-mobile");
+  await shot("2026-11-11-setup-trang-mobile");
   await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await navigate(`${BASE}/setup`, 2500);
 
@@ -117,6 +127,19 @@ async function main() {
   const errUrl = await evaluate(`location.href`);
   ok(errUrl.includes("/setup") && errUrl.includes("err=") && decodeURIComponent(errUrl).includes("không khớp"), `mật khẩu nhập lại sai -> về /setup kèm lỗi khớp mật khẩu`);
   ok((await prisma.user.count()) === 0, "sau lần gửi lỗi: vẫn 0 user");
+
+  /* ---- 2b. Tên website TRỐNG -> action từ chối (bỏ qua lớp required của
+     trình duyệt bằng noValidate để kiểm đúng chốt phía server). Phải XOÁ rõ
+     ô siteName trước: sau lần gửi lỗi ở bước 2, trang render lại giữ nguyên
+     giá trị đã gõ trong DOM (input không kiểm soát) nên không xoá là form
+     vẫn mang tên cũ. ---- */
+  await evaluate(`(() => { const f = document.querySelector('form'); if (f) f.noValidate = true; return true; })()`);
+  await fillAndSubmit(`set('siteName',''); set('username','boss'); set('email','boss@example.com'); set('password','Setup@123'); set('confirmPassword','Setup@123');`);
+  await sleep(2500);
+  const noNameUrl = await evaluate(`location.href`);
+  ok(noNameUrl.includes("/setup") && noNameUrl.includes("err=") && decodeURIComponent(noNameUrl).includes("không được để trống"), `tên website trống -> bị từ chối kèm lỗi: ${decodeURIComponent(noNameUrl).slice(0, 120)}`);
+  ok((await prisma.user.count()) === 0, "sau lần gửi thiếu tên: vẫn 0 user");
+  ok((await prisma.setting.findUnique({ where: { key: "site_name" } })) === null, "sau lần gửi thiếu tên: vẫn chưa có dòng site_name");
 
   /* ---- 3. Gửi đúng -> tạo admin, ghi cấu hình, có phiên, vào khu quản trị ---- */
   netEvents.length = 0;
