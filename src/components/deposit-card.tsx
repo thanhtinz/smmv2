@@ -4,10 +4,10 @@ import { CopyBtn } from "@/components/client";
 import { startPaypalCheckoutAction, startStripeCheckoutAction, createBoltDepositAction } from "@/app/actions/user";
 import { useLang } from "@/components/lang";
 
-/** Thẻ Nạp tiền hợp nhất: chọn 1 phương thức — SePay (ngân hàng + MoMo chung 1 cổng đối soát) / PayPal / Stripe.
+/** Thẻ Nạp tiền hợp nhất: chọn 1 phương thức — QR ngân hàng (tự động qua SePay,
+ *  CHỈ ngân hàng; MoMo đã bỏ hẳn theo lệnh Tín 2026-11-10 21:12) / PayPal / Stripe / USDT.
  *  Nội dung dưới đổi theo phương thức đang chọn. */
 type BankInfo = { name: string; account: string; holder: string; qr: string; content: string; min: number };
-type MomoInfo = { phone: string; name: string; content: string };
 type IntlInfo = { rate: number; paypal: boolean; stripe: boolean; minUsd?: number };
 type BoltPending = { code: string; checkoutUrl: string | null; paymentAddress: string | null; cryptoAmount: string | null; network: string; expiresAt: string | null; status: string };
 type UsdtInfo = { rate: number; minUsd: number; defaultNetwork: string; networks: string[]; pending: BoltPending | null };
@@ -24,13 +24,13 @@ function qrWithAmount(qr: string, amount: number): string {
   return `${qr}${qr.includes("?") ? "&" : "?"}amount=${amount}`;
 }
 
-export function DepositCard({ bank, banks, momo, intl, usdt, tiers }: { bank: BankInfo | null; banks?: BankInfo[]; momo: MomoInfo | null; intl: IntlInfo | null; usdt?: UsdtInfo | null; tiers?: BonusTier[] }) {
+export function DepositCard({ bank, banks, intl, usdt, tiers }: { bank: BankInfo | null; banks?: BankInfo[]; intl: IntlInfo | null; usdt?: UsdtInfo | null; tiers?: BonusTier[] }) {
   const { t, td, m } = useLang();
   const bankList: BankInfo[] = banks && banks.length ? banks : bank ? [bank] : [];
   const [bankIdx, setBankIdx] = useState(0);
   const curBank: BankInfo | null = bankList[Math.min(bankIdx, Math.max(0, bankList.length - 1))] || null;
   const methods: { key: MethodKey; brand: React.ReactNode; desc: string }[] = [
-    ...(curBank || momo ? [{ key: "sepay" as const, brand: <span className="text-slate-800">{t("QR ngân hàng")}</span>, desc: t("Ngân hàng & MoMo · cộng tự động") }] : []),
+    ...(curBank ? [{ key: "sepay" as const, brand: <span className="text-slate-800">{t("QR ngân hàng")}</span>, desc: t("Ngân hàng · cộng tự động") }] : []),
     ...(intl?.paypal ? [{ key: "paypal" as const, brand: <><span className="text-[#003087] dark:text-[#7aa7ff]">Pay</span><span className="text-[#0079C1] dark:text-[#4db2ff]">Pal</span></>, desc: t("Trả USD · cộng theo tỉ giá") }] : []),
     ...(intl?.stripe ? [{ key: "stripe" as const, brand: <span className="text-[#635BFF]">Stripe</span>, desc: t("Thẻ Visa / Mastercard") }] : []),
     ...(usdt ? [{ key: "usdt" as const, brand: <span className="text-[#26A17B]">USDT</span>, desc: t("Crypto · cộng tự động") }] : []),
@@ -130,9 +130,9 @@ export function DepositCard({ bank, banks, momo, intl, usdt, tiers }: { bank: Ba
             </div>
           )}
           {/* Khối chuyển khoản HỢP NHẤT (lệnh Tín 2026-11-10): QR ở trên, toàn bộ
-              nội dung chuyển khoản (ngân hàng + MoMo) ngay bên dưới trong cùng
-              một khối — không còn cảnh QR một nơi, thông tin một nẻo, và nội
-              dung CK không lặp lại ở thẻ số dư nữa (thẻ đó đã bỏ hẳn). */}
+              nội dung chuyển khoản ngân hàng ngay bên dưới trong cùng một khối
+              — không còn cảnh QR một nơi, thông tin một nẻo, và nội dung CK
+              không lặp lại ở thẻ số dư nữa (thẻ đó đã bỏ hẳn). */}
           <div className="mx-auto w-full max-w-3xl">
             {curBank && (
               <div>
@@ -150,17 +150,7 @@ export function DepositCard({ bank, banks, momo, intl, usdt, tiers }: { bank: Ba
                 </dl>
               </div>
             )}
-            {momo && (
-              <div className={curBank ? "mt-7" : ""}>
-                <h3 className="font-bold text-slate-900 mb-3">{t("Ví MoMo")}</h3>
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3 text-sm">
-                  <Row k={t("Số MoMo")} v={momo.phone} copy />
-                  <Row k={t("Tên")} v={momo.name} />
-                  <Row k={t("Nội dung")} v={momo.content} copy strong />
-                </dl>
-              </div>
-            )}
-            <p className="text-xs text-slate-400 mt-5">{t("Ngân hàng và MoMo đều được cộng tự động — chuyển đúng nội dung là tiền cộng ngay.")}</p>
+            <p className="text-xs text-slate-400 mt-5">{t("Chuyển đúng nội dung là tiền cộng tự động qua SePay.")}</p>
           </div>
         </div>
       )}

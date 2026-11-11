@@ -66,7 +66,7 @@ function PurposeTicks({ walletKey, walletOn, directKey, directOn, walletDesc, di
 
 const fmtRate = (v: number) => (v > 0 ? v.toLocaleString("vi-VN") : "—");
 
-/** Cấu hình các phương thức nạp tiền của web mẹ: SePay (ngân hàng/MoMo), USDT, PayPal, Stripe. */
+/** Cấu hình các phương thức nạp tiền của web mẹ: SePay (chỉ ngân hàng — MoMo đã bỏ hẳn 2026-11-10), USDT, PayPal, Stripe. */
 export default async function AdminMethodConfig({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
@@ -96,7 +96,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
             <div className="font-bold text-slate-900">{L("QR ngân hàng (SePay)")}</div>
             {s.sepay_secret ? <Badge cls="bg-emerald-100 text-emerald-800">{L("Đã có secret")}</Badge> : <Badge cls="bg-rose-100 text-rose-700">{L("Chưa có secret")}</Badge>}
           </div>
-          <p className="text-sm text-slate-500">{L("Ngân hàng và MoMo dùng chung kênh này — khách chuyển đúng nội dung là tiền cộng tự động.")}</p>
+          <p className="text-sm text-slate-500">{L("Khách chuyển khoản đúng nội dung là tiền cộng tự động qua kênh này.")}</p>
           <div>
             <label className="lbl">{L("Webhook URL (dán vào SePay)")}</label>
             <div className="flex items-center gap-2">
@@ -111,7 +111,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
           <PurposeTicks
             walletKey="sepay_enabled" walletOn={s.sepay_enabled !== "0"}
             directKey="direct_sepay_enabled" directOn={s.direct_sepay_enabled === "1"}
-            walletDesc={L("Hiện QR ngân hàng & MoMo ở trang nạp tiền.")}
+            walletDesc={L("Hiện QR ngân hàng ở trang nạp tiền.")}
             directDesc={L("Khách mua giỏ hàng trả thẳng bằng QR này (nội dung chứa mã phiên mua), không qua ví.")}
             L={L}
           />

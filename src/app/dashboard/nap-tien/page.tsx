@@ -34,7 +34,7 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
   const sepayOn = s.sepay_enabled !== "0";
   return (
     <div>
-      <PageHead title={L("Nạp tiền")} desc={L("Chọn phương thức nạp bên dưới. QR ngân hàng (ngân hàng & MoMo) cộng tự động khi đúng nội dung; PayPal/Stripe cộng tự động theo tỉ giá ngay khi thanh toán thành công.")} />
+      <PageHead title={L("Nạp tiền")} desc={L("Chọn phương thức nạp bên dưới. QR ngân hàng cộng tự động khi đúng nội dung; PayPal/Stripe cộng tự động theo tỉ giá ngay khi thanh toán thành công.")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       {/* Bố cục (lệnh Tín 2026-11-10): bỏ hẳn thẻ Số dư hiện tại (đã có sẵn ở
           topbar) và form Khai báo nạp (bỏ hẳn theo lệnh 21:00). Khu nạp là 2
@@ -48,7 +48,6 @@ export default async function DepositPage({ searchParams }: { searchParams: { ms
           tiers={effTiers}
           banks={sepayOn ? banksProp : []}
           bank={sepayOn && s.bank_account ? { name: s.bank_name, account: s.bank_account, holder: s.bank_holder, qr: vietQrUrl(s.bank_name, s.bank_account, 0, content, s.bank_holder), content, min: parseInt(s.deposit_min || "10000", 10) || 10000 } : null}
-          momo={sepayOn && s.momo_phone ? { phone: s.momo_phone, name: s.momo_name, content } : null}
           intl={paypalOn || stripeOn ? { rate: intlCfg.depositRate, paypal: paypalOn, stripe: stripeOn, minUsd: intlCfg.minUsd || 5 } : null}
           usdt={s.boltutil_enabled === "1" && s.boltutil_api_key ? {
             rate: usdtDepositRate(s).rate,

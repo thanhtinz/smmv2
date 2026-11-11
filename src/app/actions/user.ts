@@ -185,9 +185,10 @@ export async function createDepositAction(formData: FormData) {
   await riskBlock(user, "/dashboard/nap-tien");
   const amount = parseInt(String(formData.get("amount") || "0"));
   const method = String(formData.get("method") || "BANK") as any;
-  // Chỉ BANK/MOMO là nạp tay chờ duyệt — cổng tự động (Stripe/PayPal/USDT) có
-  // action riêng; nhận method lạ từ form là tạo yêu cầu nạp giả gây nhiễu hàng duyệt.
-  if (!["BANK", "MOMO"].includes(method)) back("/dashboard/nap-tien", "err", "Phương thức nạp không hợp lệ");
+  // Chỉ BANK là nạp tay chờ duyệt (MoMo đã bỏ hẳn 2026-11-10) — cổng tự động
+  // (Stripe/PayPal/USDT) có action riêng; nhận method lạ từ form là tạo yêu
+  // cầu nạp giả gây nhiễu hàng duyệt.
+  if (method !== "BANK") back("/dashboard/nap-tien", "err", "Phương thức nạp không hợp lệ");
   const settings = await getSettings();
   if (settings.sepay_enabled === "0") back("/dashboard/nap-tien", "err", "Phương thức nạp QR ngân hàng hiện đang tắt");
   const min = parseInt(settings.deposit_min);

@@ -124,8 +124,6 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <div><label className="lbl">{L("Số tài khoản")}</label><input className="inp" name="bank_account" defaultValue={s.bank_account} /></div>
           <div><label className="lbl">{L("Chủ tài khoản")}</label><input className="inp" name="bank_holder" defaultValue={s.bank_holder} /></div>
           <div><label className="lbl">{L("Chi nhánh")}</label><input className="inp" name="bank_branch" defaultValue={s.bank_branch} /></div>
-          <div><label className="lbl">{L("Số MoMo")}</label><input className="inp" name="momo_phone" defaultValue={s.momo_phone} /></div>
-          <div><label className="lbl">{L("Tên MoMo")}</label><input className="inp" name="momo_name" defaultValue={s.momo_name} /></div>
         </div>
         <p className="text-xs text-slate-400">{L("Nếu đã thêm ngân hàng ở mục")} <b>{L("Ngân hàng")}</b> {L("thì trang Nạp tiền ưu tiên danh sách đó; phần này là dự phòng khi chưa có ngân hàng nào.")}</p>
       </section>
