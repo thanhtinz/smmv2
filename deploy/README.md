@@ -24,19 +24,22 @@ database và tài khoản riêng, sinh khoá bí mật vào `/opt/smmv2/.env`, c
 viện, đồng bộ database + nạp dữ liệu khởi tạo, build, đăng ký dịch vụ tự chạy
 lại khi VPS khởi động lại, mở tường lửa, cài cron:
 
-- Đồng bộ đơn với nhà cung cấp + gia hạn website con: mỗi 10 phút.
+- Đồng bộ đơn với nhà cung cấp: mỗi 10 phút.
 - Sao lưu database: 03:30 hằng ngày vào `/var/backups/smmv2` (giữ 7 bản).
 
 ## Sau khi cài xong
 
-1. Mở `https://tenmien.com/login`, đăng nhập **admin / Admin@123** và **đổi
-   mật khẩu ngay**.
-2. Vào **Admin → Cấu hình** nhập các thông số thật: nameserver con
-   (child_ns1/child_ns2), khoá SePay, Stripe/PayPal, tỉ giá... (mọi cấu hình
-   nghiệp vụ đều nằm trong admin, không nằm trong code).
-3. Khách tạo website con chỉ cần trỏ bản ghi A của domain của họ về IP VPS —
-   HTTPS được cấp tự động (máy chủ hỏi hệ thống qua `/api/tls-ask` trước khi
-   cấp, domain lạ không thuộc hệ thống sẽ bị từ chối).
+1. Mở `https://tenmien.com/login`, đăng nhập tài khoản **admin** với **mật
+   khẩu ngẫu nhiên script in ra cuối quá trình cài** (cũng lưu ở
+   `/root/smmv2-admin-password.txt` trên VPS) và **đổi mật khẩu ngay**.
+   (`Admin@123` chỉ là mật khẩu mẫu khi chạy seed thủ công không qua
+   install.sh — bản cài VPS không dùng mật khẩu đó.)
+2. Vào **Admin → Cấu hình** nhập các thông số thật: khoá SePay,
+   Stripe/PayPal, tỉ giá... (mọi cấu hình nghiệp vụ đều nằm trong admin,
+   không nằm trong code).
+3. Vào **Admin → Nhà cung cấp** tự gắn khoá API thật của các nhà cung cấp
+   (FZR...) — key thật chỉ gắn ở bản dựng trên VPS này, không gắn vào bản
+   demo Vercel và không gửi qua chat.
 
 ## Vận hành
 

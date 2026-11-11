@@ -1,5 +1,5 @@
 [Unit]
-Description=SMMv2 (Next.js) — web mẹ + các website con
+Description=SMMv2 (Next.js) — website SMM + Premium
 After=network.target postgresql.service
 Wants=postgresql.service
 

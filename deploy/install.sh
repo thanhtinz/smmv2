@@ -12,8 +12,8 @@
 #    GITHUB_TOKEN  token GitHub nếu repo là private và máy chưa clone sẵn
 #    REPO          mặc định https://github.com/thanhtinz/smmv2.git
 #
-#  Script làm hết: swap, Node 20, PostgreSQL, Caddy (HTTPS tự động cho cả
-#  domain của website con), systemd, cron đồng bộ đơn + sao lưu hằng ngày.
+#  Script làm hết: swap, Node 20, PostgreSQL, Caddy (HTTPS tự động),
+#  systemd, cron đồng bộ đơn + sao lưu hằng ngày.
 # ============================================================
 set -euo pipefail
 
@@ -145,7 +145,7 @@ systemctl enable smmv2
 systemctl restart smmv2
 
 # ---------- 10. Caddy ----------
-step "Cấu hình Caddy cho $DOMAIN + domain website con"
+step "Cấu hình Caddy cho $DOMAIN"
 sed "s|__DOMAIN__|$DOMAIN|g" "$APP_DIR/deploy/Caddyfile" > /etc/caddy/Caddyfile
 caddy validate --config /etc/caddy/Caddyfile || true
 systemctl enable caddy
@@ -178,10 +178,10 @@ echo "            (mật khẩu ngẫu nhiên, cũng lưu ở /root/smmv2-admin-
 echo
 echo "  VIỆC CẦN LÀM NGAY:"
 echo "   1) Đăng nhập admin và ĐỔI MẬT KHẨU trên ngay."
-echo "   2) Vào Admin → Cấu hình: nhập NS con (child_ns1/child_ns2), khoá"
-echo "      thanh toán (SePay/Stripe/PayPal...), tỉ giá — như bản demo."
-echo "   3) Khách tạo website con chỉ cần trỏ bản ghi A của domain về IP"
-echo "      VPS này là có HTTPS tự động, không cần làm gì thêm."
+echo "   2) Vào Admin → Cấu hình: nhập khoá thanh toán (SePay/Stripe/"
+echo "      PayPal...), tỉ giá — như bản demo."
+echo "   3) Vào Admin → Nhà cung cấp: tự gắn khoá API thật của các nhà"
+echo "      cung cấp (FZR...) — key chỉ gắn ở bản thật này, không gửi qua chat."
 echo
 echo "  Lệnh hay dùng:"
 echo "   - Cập nhật bản mới:  sudo bash $APP_DIR/deploy/update.sh"
