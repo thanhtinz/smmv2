@@ -9,9 +9,9 @@ import { PublicFrame } from "@/components/public-frame";
  * chuyển đổi đăng nhập/đăng ký.
  * Hệ 5 kiểu auth cũ (classic/glass/minimal/app/split + auth_style) đã bỏ hẳn.
  */
-export function AuthShell(props: { children: React.ReactNode; switchCard?: React.ReactNode }) {
+export function AuthShell(props: { children: React.ReactNode; switchCard?: React.ReactNode; skipSetupGate?: boolean }) {
   return (
-    <PublicFrame>
+    <PublicFrame skipSetupGate={props.skipSetupGate}>
       <main className="flex flex-1 items-start justify-center px-4 py-10 sm:py-14">
         <div className="w-full max-w-[600px]">
           {props.children}

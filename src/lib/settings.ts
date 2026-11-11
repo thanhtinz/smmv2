@@ -2,6 +2,11 @@ import { prisma } from "./db";
 import { encryptSecret, decryptSecret, isSecretSettingKey } from "./secret-box";
 
 export const DEFAULT_SETTINGS: Record<string, string> = {
+  // Thiết lập lần đầu (lệnh Tín 2026-11-11): "1" = đã tạo tài khoản quản trị
+  // đầu tiên qua trang /setup. Bản cài mới KHÔNG có tài khoản mẫu/mặc định nào;
+  // chừng nào users còn trống và cờ này chưa bật thì mọi trang khách bị dẫn về
+  // /setup. Cờ chỉ lật một lần (xem lib/setup.ts).
+  setup_completed: "",
   site_name: "SMMv2",
   site_tagline: "SMM Panel & Tài khoản Premium — tự động 24/7",
   site_logo_text: "S",

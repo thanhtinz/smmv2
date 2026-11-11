@@ -29,11 +29,13 @@ lại khi VPS khởi động lại, mở tường lửa, cài cron:
 
 ## Sau khi cài xong
 
-1. Mở `https://tenmien.com/login`, đăng nhập tài khoản **admin** với **mật
-   khẩu ngẫu nhiên script in ra cuối quá trình cài** (cũng lưu ở
-   `/root/smmv2-admin-password.txt` trên VPS) và **đổi mật khẩu ngay**.
-   (`Admin@123` chỉ là mật khẩu mẫu khi chạy seed thủ công không qua
-   install.sh — bản cài VPS không dùng mật khẩu đó.)
+1. Mở `https://tenmien.com` — website tự dẫn tới **trang thiết lập lần đầu**
+   (`/setup`). Tại đó bạn đặt tên website và **tạo tài khoản quản trị đầu
+   tiên** (tên đăng nhập + email + mật khẩu do bạn tự chọn), xong được đăng
+   nhập thẳng vào khu quản trị. Bản cài **không tạo sẵn tài khoản mẫu hay
+   mật khẩu mặc định nào**; trang /setup tự khoá ngay khi tài khoản đầu
+   tiên tồn tại. Sau đó nên vào Hồ sơ → Bảo mật bật 2FA cho tài khoản
+   quản trị.
 2. Vào **Admin → Cấu hình** nhập các thông số thật: khoá SePay,
    Stripe/PayPal, tỉ giá... (mọi cấu hình nghiệp vụ đều nằm trong admin,
    không nằm trong code).

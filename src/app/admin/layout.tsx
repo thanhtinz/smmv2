@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, enforceAdminSecurity } from "@/lib/auth";
+import { guardSetupDone } from "@/lib/setup";
 import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { DisplaySettings } from "@/components/display";
@@ -13,6 +14,7 @@ import { vnd } from "@/lib/format";
 import { regularPremiumWhere } from "@/lib/order-scope";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  await guardSetupDone();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "ADMIN" && user.role !== "STAFF") redirect("/");

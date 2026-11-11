@@ -161,6 +161,15 @@ export const DICT: Record<string, Tr> = {
   // Đăng nhập / đăng ký
   "Đăng nhập tài khoản": e("Log in to your account", "登录您的账户", "เข้าสู่บัญชีของคุณ", "アカウントにログイン", "계정에 로그인"),
   "Đăng ký tài khoản": e("Create an account", "注册账户", "สร้างบัญชี", "アカウントを作成", "계정 만들기"),
+  // Thiết lập lần đầu (/setup — tạo tài khoản quản trị đầu tiên, lệnh Tín 2026-11-11)
+  "Thiết lập lần đầu": e("First-time setup", "首次设置", "ตั้งค่าครั้งแรก", "初回セットアップ", "최초 설정"),
+  "Tạo tài khoản quản trị đầu tiên để bắt đầu sử dụng website": e("Create the first administrator account to start using the website", "创建第一个管理员账户以开始使用网站", "สร้างบัญชีผู้ดูแลระบบแรกเพื่อเริ่มใช้งานเว็บไซต์", "ウェブサイトを使い始めるために最初の管理者アカウントを作成してください", "웹사이트 사용을 시작하려면 첫 번째 관리자 계정을 만드세요"),
+  "Tạo tài khoản quản trị": e("Create administrator account", "创建管理员账户", "สร้างบัญชีผู้ดูแลระบบ", "管理者アカウントを作成", "관리자 계정 만들기"),
+  "Tên website không được để trống": e("Website name must not be empty", "网站名称不能为空", "ชื่อเว็บไซต์ต้องไม่ว่างเปล่า", "ウェブサイト名は必須です", "웹사이트 이름은 비워둘 수 없습니다"),
+  "Tên website quá dài (tối đa 80 ký tự)": e("Website name is too long (max 80 characters)", "网站名称太长（最多80个字符）", "ชื่อเว็บไซต์ยาวเกินไป (สูงสุด 80 ตัวอักษร)", "ウェブサイト名が長すぎます（最大80文字）", "웹사이트 이름이 너무 깁니다 (최대 80자)"),
+  "Hệ thống đã được thiết lập, trang này không còn khả dụng": e("The system is already set up, this page is no longer available", "系统已完成设置，此页面不再可用", "ระบบได้รับการตั้งค่าแล้ว หน้านี้ไม่สามารถใช้งานได้อีก", "システムはすでに設定済みのため、このページは利用できません", "시스템이 이미 설정되어 이 페이지를 더 이상 사용할 수 없습니다"),
+  "Tên đăng nhập 4-30 ký tự, chỉ gồm chữ thường, số, dấu . và _": e("Username must be 4-30 characters: lowercase letters, digits, . and _ only", "用户名为4-30个字符，仅限小写字母、数字、. 和 _", "ชื่อผู้ใช้ต้องมี 4-30 ตัวอักษร เฉพาะตัวพิมพ์เล็ก ตัวเลข . และ _", "ユーザー名は4〜30文字で、英小文字・数字・.・_ のみ使用できます", "사용자 이름은 4-30자이며 소문자, 숫자, ., _ 만 사용할 수 있습니다"),
+  "Email không hợp lệ": e("Invalid email address", "邮箱地址无效", "อีเมลไม่ถูกต้อง", "メールアドレスが無効です", "이메일 주소가 올바르지 않습니다"),
   "Tên đăng nhập": e("Username", "用户名", "ชื่อผู้ใช้", "ユーザー名", "사용자 이름"),
   "Mật khẩu": e("Password", "密码", "รหัสผ่าน", "パスワード", "비밀번호"),
   "Họ tên": e("Full name", "姓名", "ชื่อ-นามสกุล", "氏名", "이름"),

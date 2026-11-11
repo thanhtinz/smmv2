@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { getSettings } from "@/lib/settings";
+import { guardSetupDone } from "@/lib/setup";
 import { getServerI18n } from "@/lib/lang-server";
 import { getCurrentUser } from "@/lib/auth";
 import { LEVEL_NAME } from "@/lib/format";
@@ -18,7 +19,10 @@ import type { NavEntry } from "@/components/nav";
  *  giống hệt dashboard (buildCustomerNav). Chưa đăng nhập: ngăn kéo gồm các
  *  mục công khai Trang chủ / Premium / Đăng nhập / Đăng ký. Thanh thông báo
  *  (announcement_bar) giữ nguyên như các header công khai trước vẫn hiện. */
-export async function PublicFrame({ children }: { children: ReactNode }) {
+export async function PublicFrame({ children, skipSetupGate }: { children: ReactNode; skipSetupGate?: boolean }) {
+  // Cổng thiết lập lần đầu: chưa có tài khoản nào thì mọi trang khách về /setup
+  // (chính trang /setup truyền skipSetupGate để khỏi vòng lặp).
+  if (!skipSetupGate) await guardSetupDone();
   const s = await getSettings();
   const { L, M } = await getServerI18n();
   const user = await getCurrentUser().catch(() => null);

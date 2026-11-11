@@ -126,14 +126,11 @@ CRON_SECRET="$(grep -E '^CRON_SECRET=' "$APP_DIR/.env" | cut -d'"' -f2)"
 # ---------- 8. Cài thư viện + dựng cấu trúc DB + build ----------
 step "npm install (tải thư viện — vài phút)"
 sudo -u "$APP_USER" -H bash -c "cd $APP_DIR && npm install --no-audit --no-fund"
-step "Đồng bộ database + nạp dữ liệu khởi tạo"
-ADMIN_PW_FILE=/root/smmv2-admin-password.txt
-if [ ! -f "$ADMIN_PW_FILE" ]; then
-  openssl rand -base64 12 | tr -d '/+=' | head -c 14 > "$ADMIN_PW_FILE"
-  chmod 600 "$ADMIN_PW_FILE"
-fi
-ADMIN_PASSWORD="$(cat "$ADMIN_PW_FILE")"
-sudo -u "$APP_USER" -H bash -c "cd $APP_DIR && npx prisma db push && ADMIN_PASSWORD='$ADMIN_PASSWORD' SEED_DEMO=0 npm run db:seed"
+step "Đồng bộ database + nạp cấu hình khởi tạo"
+# KHÔNG tạo bất kỳ tài khoản nào (không admin mặc định, không demo): seed
+# production chỉ ghi cấu hình mặc định. Tài khoản quản trị đầu tiên do chủ
+# site tự tạo ở trang /setup trong lần mở website đầu tiên.
+sudo -u "$APP_USER" -H bash -c "cd $APP_DIR && npx prisma db push && npm run db:seed:prod"
 step "Build ứng dụng"
 sudo -u "$APP_USER" -H bash -c "cd $APP_DIR && npm run build"
 
@@ -172,12 +169,12 @@ echo
 echo "============================================================"
 systemctl is-active smmv2 >/dev/null && echo "  Ứng dụng: ĐANG CHẠY" || echo "  Ứng dụng: CHƯA CHẠY — xem log: journalctl -u smmv2 -n 50"
 echo "  Website:  https://$DOMAIN"
-echo "  Admin:    https://$DOMAIN/login"
-echo "            Tài khoản: admin — Mật khẩu: $ADMIN_PASSWORD"
-echo "            (mật khẩu ngẫu nhiên, cũng lưu ở /root/smmv2-admin-password.txt)"
+echo "  Mở website lần đầu sẽ hiện trang THIẾT LẬP LẦN ĐẦU (/setup):"
+echo "  đặt tên website và tạo tài khoản quản trị đầu tiên tại đó."
+echo "  (Bản cài không tạo sẵn tài khoản mẫu/mặc định nào.)"
 echo
 echo "  VIỆC CẦN LÀM NGAY:"
-echo "   1) Đăng nhập admin và ĐỔI MẬT KHẨU trên ngay."
+echo "   1) Hoàn tất trang thiết lập lần đầu, rồi vào Hồ sơ → Bảo mật bật 2FA cho tài khoản quản trị."
 echo "   2) Vào Admin → Cấu hình: nhập khoá thanh toán (SePay/Stripe/"
 echo "      PayPal...), tỉ giá — như bản demo."
 echo "   3) Vào Admin → Nhà cung cấp: tự gắn khoá API thật của các nhà"

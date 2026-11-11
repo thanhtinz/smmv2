@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { guardSetupDone } from "@/lib/setup";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { SideNav } from "@/components/nav";
@@ -14,6 +15,7 @@ import SeasonalDecor from "@/components/seasonal-decor";
 import { parseSeasonalTheme } from "@/lib/seasonal";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  await guardSetupDone();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const s = await getSettings();
