@@ -39,14 +39,15 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
   return (
     <div className="card p-6">
       <h2 className="font-bold text-slate-900 mb-4">{t("Nạp tiền")}</h2>
-      {/* Bố cục 2 cột (lệnh Tín 2026-11-10 20:33): cột TRÁI là danh sách
-          phương thức xếp dọc, cột PHẢI là panel của phương thức đang chọn
-          (ngân hàng: QR ở trên, thông tin chuyển khoản ngay bên dưới).
-          Mobile xếp dọc một cột: chọn phương thức trước, panel ở dưới. */}
-      <div className="lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-8 lg:items-start">
+      {/* Bố cục 2 cột (lệnh Tín 2026-11-10 20:33, chỉnh 20:41): cột TRÁI là
+          danh sách phương thức dạng lưới 2×2 (2 cái trên, 2 cái dưới), cột
+          PHẢI tách hẳn là panel của phương thức đang chọn (ngân hàng: QR ở
+          trên, thông tin chuyển khoản ngay bên dưới). Mobile: lưới 2×2 ở
+          trên, panel ở dưới. */}
+      <div className="lg:grid lg:grid-cols-[380px_minmax(0,1fr)] lg:gap-8 lg:items-start">
         <div data-col="methods">
           <label className="lbl">{t("Phương thức thanh toán")}</label>
-          <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 mb-6 lg:mb-0">
+          <div className="grid grid-cols-2 gap-3 mb-6 lg:mb-0">
             {methods.map((m) => {
               const active = method === m.key;
               return (
