@@ -39,24 +39,32 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
   return (
     <div className="card p-6">
       <h2 className="font-bold text-slate-900 mb-4">{t("Nạp tiền")}</h2>
-      <label className="lbl">{t("Phương thức thanh toán")}</label>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {methods.map((m) => {
-          const active = method === m.key;
-          return (
-            <button key={m.key} type="button" onClick={() => setMethod(m.key)}
-              className={`text-left border rounded-2xl p-3.5 transition ${active ? "border-brand-600 bg-brand-50 ring-1 ring-brand-600" : "border-slate-200 hover:border-slate-300"}`}>
-              <span className="flex items-center justify-between gap-2">
-                <span className="font-extrabold">{m.brand}</span>
-                <span className={`w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center ${active ? "border-brand-600" : "border-slate-300"}`}>
-                  {active && <span className="w-2.5 h-2.5 rounded-full bg-brand-600" />}
-                </span>
-              </span>
-              <span className="block text-xs text-slate-400 mt-1">{m.desc}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Bố cục 2 cột (lệnh Tín 2026-11-10 20:33): cột TRÁI là danh sách
+          phương thức xếp dọc, cột PHẢI là panel của phương thức đang chọn
+          (ngân hàng: QR ở trên, thông tin chuyển khoản ngay bên dưới).
+          Mobile xếp dọc một cột: chọn phương thức trước, panel ở dưới. */}
+      <div className="lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-8 lg:items-start">
+        <div data-col="methods">
+          <label className="lbl">{t("Phương thức thanh toán")}</label>
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 mb-6 lg:mb-0">
+            {methods.map((m) => {
+              const active = method === m.key;
+              return (
+                <button key={m.key} type="button" onClick={() => setMethod(m.key)}
+                  className={`text-left border rounded-2xl p-3.5 transition ${active ? "border-brand-600 bg-brand-50 ring-1 ring-brand-600" : "border-slate-200 hover:border-slate-300"}`}>
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="font-extrabold">{m.brand}</span>
+                    <span className={`w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center ${active ? "border-brand-600" : "border-slate-300"}`}>
+                      {active && <span className="w-2.5 h-2.5 rounded-full bg-brand-600" />}
+                    </span>
+                  </span>
+                  <span className="block text-xs text-slate-400 mt-1">{m.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div data-col="panel" className="min-w-0">
 
       {method === "sepay" && (
         <div>
@@ -141,6 +149,8 @@ export function DepositCard({ bank, banks, momo, intl, usdt }: { bank: BankInfo 
         </div>
       )}
 
+        </div>
+      </div>
     </div>
   );
 }
