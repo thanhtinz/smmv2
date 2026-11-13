@@ -105,18 +105,33 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
           {contact ? t("Liên hệ") : `${t("Từ")} ${m(flashPrice(item.minPrice))}`}
         </div>
         <div aria-hidden={!(item.flashPct > 0 && !contact)} className={`mt-0.5 h-4 whitespace-nowrap text-xs font-medium leading-4 text-slate-400 line-through ${item.flashPct > 0 && !contact ? "" : "invisible"}`}>{`${t("Từ")} ${m(item.minPrice)}`}</div>
-        <div className="mt-2 flex min-h-4 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-          {item.reviewCount > 0 && <span className="inline-flex items-center gap-1.5"><Stars value={item.rating} className="h-3.5 w-3.5" /><b className="text-slate-700">{item.rating.toFixed(1)}</b>({item.reviewCount})</span>}
-          {item.sold > 0 && <span>{t("Đã bán ")}{item.sold.toLocaleString("vi-VN")}</span>}
-        </div>
-        <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-          {/* CTA thẻ = "Xem sản phẩm" + mũi tên (lệnh Tín 2026-11-08 00:55):
-              thẻ chỉ điều hướng sang trang chi tiết, mua ở đó (luật WS2). */}
-          {contact ? (
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-1.5 text-[13px] font-bold text-white">{t("Xem sản phẩm")}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span></span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-brand-700">{t("Xem sản phẩm")}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span></span>
-          )}
+        {/* Dòng sao + đã bán GHIM NGAY TRÊN hàng nút Xem (lệnh Tín 2026-11-12,
+            đúng ảnh mẫu "★ 4.0 (2) · Đã bán 43"): 1 sao amber + điểm trung bình
+            1 số lẻ + (số đánh giá) — CHỈ hiện khi có đánh giá thật (reviewCount
+            > 0, không bịa 0.0); "Đã bán N" LUÔN hiện với số đơn thật (kể cả 0).
+            Hàng cố định h-4 + nowrap trong khối đáy mt-auto cùng CTA -> thẻ
+            cùng hàng giữ cao đều tuyệt đối, dòng không bao giờ quấn 2 hàng. */}
+        <div className="mt-auto pt-3">
+          <div className="flex h-4 items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs leading-4 text-slate-500">
+            {item.reviewCount > 0 && (
+              <span className="inline-flex shrink-0 items-center gap-1">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="#f59e0b"><path d="M12 3.5l2.55 5.37 5.9.72-4.34 4.06 1.1 5.83L12 16.9l-5.21 2.58 1.1-5.83L3.55 9.59l5.9-.72L12 3.5z" /></svg>
+                <b className="font-bold text-amber-500">{item.rating.toFixed(1)}</b>
+                <span>({item.reviewCount})</span>
+              </span>
+            )}
+            {item.reviewCount > 0 && <span aria-hidden="true" className="shrink-0">·</span>}
+            <span className="truncate">{t("Đã bán ")}{item.sold.toLocaleString("vi-VN")}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2 pt-2.5">
+            {/* CTA thẻ = "Xem sản phẩm" + mũi tên (lệnh Tín 2026-11-08 00:55):
+                thẻ chỉ điều hướng sang trang chi tiết, mua ở đó (luật WS2). */}
+            {contact ? (
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-1.5 text-[13px] font-bold text-white">{t("Xem sản phẩm")}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span></span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-brand-700">{t("Xem sản phẩm")}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.arrowRight}</span></span>
+            )}
+          </div>
         </div>
       </div>
     </Link>
