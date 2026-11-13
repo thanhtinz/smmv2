@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { PremiumCard, type PremiumCardData } from "@/components/premium-card";
 import { HomeGiftSection, type HomeGift } from "@/components/home-gifts";
+import { HomeTopupSection, type HomeTopup } from "@/components/home-topups";
 import { PillStrip } from "@/components/pill-strip";
 import { useRecentItems } from "@/components/recent";
 import { useLang } from "@/components/lang";
@@ -195,7 +196,7 @@ function RailSection({ icon, title, subtitle, href, items }: { icon: React.React
 
 /** Thân trang chủ cửa hàng: slider → khối danh mục → nổi bật → bán chạy →
  *  đã xem gần đây, đúng thứ tự khối của shopkey; khung header/footer giữ nguyên. */
-export function HomeShop({ slides, cats, all, best, gifts, hero = true }: { slides: HomeSlide[]; cats: HomeCat[]; all: HomeCard[]; best: HomeCard[]; gifts: HomeGift[]; hero?: boolean }) {
+export function HomeShop({ slides, cats, all, best, gifts, topups, hero = true }: { slides: HomeSlide[]; cats: HomeCat[]; all: HomeCard[]; best: HomeCard[]; gifts: HomeGift[]; topups: HomeTopup[]; hero?: boolean }) {
   const { t } = useLang();
   const [shown, setShown] = useState(PAGE);
   // Lưới nổi bật trang chủ luôn là các sản phẩm mới nhất của TOÀN catalog —
@@ -242,6 +243,11 @@ export function HomeShop({ slides, cats, all, best, gifts, hero = true }: { slid
           </PillStrip>
         </section>
       )}
+
+      {/* Mục Top-Up Game riêng — NGAY DƯỚI khối Danh mục, TRÊN Sản phẩm
+          nổi bật (lệnh Tín 2026-11-12 21:01): game nạp thuộc khu Top-Up,
+          không thuộc catalog Premium. Không có game thì component tự ẩn. */}
+      <HomeTopupSection items={topups} />
 
       <section id="home-featured" className="mt-10 scroll-mt-28">
         <SectionHead icon={I.star} title={t("Sản phẩm nổi bật")} subtitle={t("Sản phẩm Premium mới nhất trên cửa hàng.")} href="/premium" />

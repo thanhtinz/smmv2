@@ -10,6 +10,7 @@ import { HomeStripRow, type StripTile } from "@/components/home-strip";
 import { HomeFlashSale } from "@/components/home-flash";
 import { getActiveFlashSale } from "@/lib/flash";
 import { type HomeGift } from "@/components/home-gifts";
+import { type HomeTopup } from "@/components/home-topups";
 import { regularCatalogWhere } from "@/lib/order-scope";
 import { productImages } from "@/lib/format";
 
@@ -52,6 +53,7 @@ export default async function HomePage() {
   let best: HomeCard[] = [];
   let slides: HomeSlide[] = [];
   let gifts: HomeGift[] = [];
+  let topups: HomeTopup[] = [];
   let flash: { name: string; percent: number; endsAt: string; items: HomeCard[] } | null = null;
 
   if (!premiumOff) {
@@ -92,6 +94,49 @@ export default async function HomePage() {
         rating: giftReviewMap.get(p.id)?.avg || 0,
         reviewCount: giftReviewMap.get(p.id)?.count || 0,
       }));
+    // Mục Top-Up Game riêng (lệnh Tín 2026-11-12 21:01): pool = sản phẩm
+    // nhóm topups đang bán (đúng điều kiện nhận diện của trang danh sách
+    // Top-Up), sắp BÁN CHẠY NHẤT trước, tối đa 50 game. Số "Đã bán" và
+    // điểm đánh giá gộp bằng ĐÚNG định nghĩa của buildCardData (đơn
+    // PremiumOrder khác CANCELED gộp theo variant; review gộp theo
+    // product) — 2 truy vấn groupBy cho cả pool, không N+1 — để số trên
+    // ô game khớp tuyệt đối số trên thẻ sản phẩm của cùng game đó.
+    const topupRows = await prisma.premiumProduct.findMany({
+      where: { active: true, panelId: null, variants: { some: { providerGroup: "topups", active: true } } },
+      select: {
+        id: true, name: true, images: true, imageUrl: true, color: true,
+        variants: { where: { providerGroup: "topups", active: true }, select: { id: true } },
+      },
+    });
+    if (topupRows.length) {
+      const variantProduct = new Map<number, number>();
+      for (const p of topupRows) for (const v of p.variants) variantProduct.set(v.id, p.id);
+      const vids = Array.from(variantProduct.keys());
+      const [soldRows, reviewRows] = await Promise.all([
+        vids.length
+          ? prisma.premiumOrder.groupBy({ by: ["variantId"], where: { variantId: { in: vids }, status: { not: "CANCELED" } }, _count: true })
+          : Promise.resolve([] as { variantId: number; _count: number }[]),
+        prisma.premiumReview.groupBy({ by: ["productId"], where: { productId: { in: topupRows.map((p) => p.id) } }, _avg: { rating: true }, _count: true }),
+      ]);
+      const soldMap = new Map<number, number>();
+      for (const r of soldRows) {
+        const pid = variantProduct.get(r.variantId);
+        if (pid) soldMap.set(pid, (soldMap.get(pid) || 0) + (typeof r._count === "number" ? r._count : 0));
+      }
+      const reviewMap = new Map(reviewRows.map((r) => [r.productId, { avg: r._avg.rating || 0, count: typeof r._count === "number" ? r._count : 0 }]));
+      topups = topupRows
+        .map((p) => ({
+          productId: p.id,
+          name: p.name,
+          image: productImages(p.images, p.imageUrl)[0] || null,
+          color: p.color,
+          sold: soldMap.get(p.id) || 0,
+          rating: reviewMap.get(p.id)?.avg || 0,
+          reviewCount: reviewMap.get(p.id)?.count || 0,
+        }))
+        .sort((a, b) => b.sold - a.sold || b.productId - a.productId)
+        .slice(0, 50);
+    }
     const cards = await premiumCardsFor(products as any);
     all = (products as any[]).map((p, i) => ({ ...cards[i], categoryId: p.categoryId }));
     // Khung Flash Sale trang chủ (lệnh Tín 2026-11-12): chỉ dựng khi có đợt
@@ -155,7 +200,7 @@ export default async function HomePage() {
             <p className="mt-2 text-sm text-slate-500">{L("Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau.")}</p>
           </div>
         </main>
-      ) : all.length === 0 && gifts.length === 0 ? (
+      ) : all.length === 0 && gifts.length === 0 && topups.length === 0 ? (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
           <HomeStripRow tiles={stripTiles} />
           <div className="card mt-10 p-8 text-center">
@@ -182,7 +227,7 @@ export default async function HomePage() {
                 (trong HomeShop) — không có đợt chạy thì flash = null, trang
                 không thêm một dòng DOM nào (lệnh Tín 2026-11-12). */}
             {flash && <HomeFlashSale name={flash.name} percent={flash.percent} endsAt={flash.endsAt} items={flash.items} />}
-            <HomeShop slides={slides} cats={cats} all={all} best={best} gifts={gifts} hero={false} />
+            <HomeShop slides={slides} cats={cats} all={all} best={best} gifts={gifts} topups={topups} hero={false} />
           </main>
         </>
       )}
