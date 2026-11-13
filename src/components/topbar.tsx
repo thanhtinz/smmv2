@@ -16,16 +16,16 @@ export type TopBarUser = { username: string; balance: number; role: string; leve
  *  giỏ hàng, Cài đặt hiển thị, chip cấp bậc, chip số dư, tên khách, Admin Panel
  *  (chỉ ADMIN), Đăng xuất. Bản khách chưa đăng nhập: giỏ + Cài đặt + nút
  *  Đăng nhập / Đăng ký theo đúng style nút của thanh này; ngăn kéo mobile
- *  dùng chung MobileSideNav (mục do nơi gọi truyền vào). */
-export function AppTopBar({ user, siteName, logoText, logoUrl, mobileLogoUrl, drawerLogoUrl, items, menuFooter, L, M }: {
+ *  dùng chung MobileSideNav (mục do nơi gọi truyền vào). Logo header ở MỌI
+ *  khổ = bản NGANG duy nhất (lệnh Tín 2026-11-13 đợt 118: bỏ hẳn icon vuông
+ *  + tên chữ ở desktop như đã bỏ ở mobile đợt 117 — logo ngang đã chứa tên). */
+export function AppTopBar({ user, siteName, logoText, wideLogoUrl, drawerLogoUrl, items, menuFooter, L, M }: {
   user: TopBarUser | null;
   siteName: string;
   logoText: string;
-  /** Logo nhỏ desktop (admin tự tải → logo BNT Shop gói sẵn, lib/brand). */
-  logoUrl: string;
-  /** Logo NGANG duy nhất cho header mobile (lệnh Tín 2026-11-13: bỏ ô icon
-   *  vuông khỏi header mobile — chỉ một logo, co theo chiều cao header). */
-  mobileLogoUrl: string;
+  /** Logo NGANG duy nhất cho header mọi khổ (admin tự tải → logo BNT Shop
+   *  gói sẵn bản ngang, lib/brand). Co theo khung linh hoạt, không tràn. */
+  wideLogoUrl: string;
   drawerLogoUrl: string | null;
   items: NavEntry[];
   menuFooter?: ReactNode;
@@ -36,16 +36,13 @@ export function AppTopBar({ user, siteName, logoText, logoUrl, mobileLogoUrl, dr
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
       <div className="max-w-[1400px] mx-auto px-3 sm:px-4 h-16 flex items-center gap-2 sm:gap-4">
         <MobileSideNav items={items} siteName={siteName} footer={menuFooter} logoUrl={drawerLogoUrl} logoText={logoText} />
-        {/* Mobile: CHỈ một logo ngang — không ô icon vuông, không tên chữ. */}
-        <Link href="/" className="flex min-w-0 shrink items-center sm:hidden" aria-label={siteName}>
+        {/* Mọi khổ: CHỈ một logo ngang — không ô icon vuông, không tên chữ
+            (logo ngang đã chứa tên). h-8 mobile / h-10 desktop theo chiều
+            cao header h-16; khung min-w-0 + max-w-full cho logo tự co ở
+            khổ trung gian, không đè cụm phải. */}
+        <Link href="/" className="flex min-w-0 shrink items-center" aria-label={siteName}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={mobileLogoUrl} alt={siteName} className="h-8 w-auto max-w-full object-contain object-left" />
-        </Link>
-        {/* Desktop: icon vuông + tên website như thiết kế đã duyệt. */}
-        <Link href="/" className="hidden items-center gap-2.5 sm:flex">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logoUrl} alt={siteName} className="h-10 w-10 shrink-0 rounded-xl bg-white object-contain ring-1 ring-slate-200/70" />
-          <span className="font-extrabold text-slate-900">{siteName}</span>
+          <img src={wideLogoUrl} alt={siteName} className="h-8 w-auto max-w-full object-contain object-left sm:h-10" />
         </Link>
         <div className="ml-auto flex items-center gap-1 sm:gap-2.5">
           <HeaderSearch placeholder={L("Tìm sản phẩm...")} searchLabel={L("Tìm kiếm")} closeLabel={L("Đóng")} />

@@ -13,12 +13,14 @@ export const BRAND_FAVICON_URL = "/brand/favicon.png"; // sinh từ bản icon 5
 export const BRAND_APPLE_ICON_URL = "/brand/apple-icon.png"; // sinh từ bản icon 180×180
 export const BRAND_ICON_192_URL = "/brand/icon-192.png"; // sinh từ bản icon 192×192 (manifest)
 
-/** Logo nhỏ cho header/sidebar (chỗ hẹp, đi kèm tên chữ): admin → gói sẵn icon. */
+/** Logo nhỏ VUÔNG cho sidebar admin (chỗ hẹp, đi kèm tên chữ): admin → gói sẵn icon.
+ *  Header khách KHÔNG còn dùng bản vuông này (đợt 118 — chỉ logo ngang). */
 export function headerLogoUrl(logoUrl?: string | null): string {
   return logoUrl && logoUrl.trim() ? logoUrl : BRAND_ICON_URL;
 }
 
-/** Logo NGANG duy nhất cho header mobile + đầu ngăn kéo: menu → logo nhỏ → gói sẵn bản ngang. */
+/** Logo NGANG duy nhất cho header khách MỌI khổ (đợt 118) + đầu ngăn kéo:
+ *  menu → logo nhỏ → gói sẵn bản ngang. */
 export function wideLogoUrl(logoMenuUrl?: string | null, logoUrl?: string | null): string {
   if (logoMenuUrl && logoMenuUrl.trim()) return logoMenuUrl;
   if (logoUrl && logoUrl.trim()) return logoUrl;
