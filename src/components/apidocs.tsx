@@ -88,7 +88,7 @@ export async function ApiDocsView({ apiKey }: { apiKey?: string | null }) {
       <div className="mb-8">
         <div className="flex items-center gap-2.5">
           <h1 className="text-[26px] font-black tracking-tight text-slate-900">{L("Tài liệu API")}</h1>
-          <span className="rounded-md bg-slate-900 text-white text-[11px] font-black px-2 py-1">V2</span>
+          <span className="rounded-md bg-brand-600 text-white text-[11px] font-black px-2 py-1">V2</span>
         </div>
         <p className="text-slate-500 mt-1.5">{L("Tài liệu hướng dẫn tích hợp API V2: dịch vụ Social và mua sản phẩm Premium tự động dành cho đại lý")}</p>
       </div>

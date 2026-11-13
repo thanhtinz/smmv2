@@ -1221,7 +1221,7 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
     <div className="grid md:grid-cols-[220px_1fr] gap-4 items-start">
       <div className="card p-2 flex md:flex-col gap-1 overflow-x-auto min-w-0 max-w-full">
         {actions.map((a) => (
-          <button key={a.id} type="button" onClick={() => setActive(a.id)} className={`text-left whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${a.id === cur.id ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{a.label}</button>
+          <button key={a.id} type="button" onClick={() => setActive(a.id)} className={`text-left whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${a.id === cur.id ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{a.label}</button>
         ))}
       </div>
       <div className="card p-5 min-w-0">
@@ -1237,7 +1237,7 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
           </table>
         </div>
         {cur.note && (
-          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-800">
+          <div className="mt-5 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-[13px] leading-relaxed text-brand-900">
             <span className="font-bold">{t("Lưu ý")}: </span>{cur.note}
           </div>
         )}
@@ -1247,7 +1247,7 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
               <div className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("Ví dụ curl")}</div>
               <CopyBtn text={cur.curl} label="Sao chép" />
             </div>
-            <pre className="bg-slate-950 text-slate-100 rounded-2xl p-4 text-xs sm:text-[13px] overflow-x-auto">{cur.curl}</pre>
+            <pre className="bg-slate-900 text-slate-100 rounded-2xl p-4 text-xs sm:text-[13px] overflow-x-auto">{cur.curl}</pre>
           </>
         )}
         <div className="flex items-center justify-between mt-6 mb-2">
@@ -1255,7 +1255,7 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
           <CopyBtn text={cur.response} label="Sao chép" />
         </div>
         <div className="text-xs font-mono text-slate-400 mb-1">response.json</div>
-        <pre className="bg-slate-950 text-slate-100 rounded-2xl p-4 text-xs sm:text-[13px] overflow-x-auto">{cur.response}</pre>
+        <pre className="bg-slate-900 text-slate-100 rounded-2xl p-4 text-xs sm:text-[13px] overflow-x-auto">{cur.response}</pre>
       </div>
     </div>
   );
@@ -1293,7 +1293,7 @@ export function ApiDocTabs({ tabs, children }: { tabs: { id: string; label: stri
             aria-selected={active === tb.id}
             aria-controls={`apidoc-panel-${tb.id}`}
             onClick={() => select(tb.id)}
-            className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${active === tb.id ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+            className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${active === tb.id ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
           >
             {tb.label}
           </button>
