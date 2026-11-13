@@ -81,6 +81,11 @@ export default async function HomePage() {
   let all: HomeCard[] = [];
   let best: HomeCard[] = [];
   let slides: HomeSlide[] = [];
+  // Cờ slides hiện tại CÓ PHẢI banner admin thật không (đợt 125): nhánh
+  // catalog trống ở dưới dùng cờ này để vẫn dựng hero khi admin đã tải
+  // banner — trước đây nhánh trống nuốt luôn hero nên banner không hiện
+  // dù đang bật (Tín báo 2026-11-13).
+  let hasAdminBanners = false;
   let gifts: HomeGift[] = [];
   let topups: HomeTopup[] = [];
   let flash: { name: string; percent: number; endsAt: string; items: HomeCard[] } | null = null;
@@ -212,6 +217,7 @@ export default async function HomePage() {
     // thì tạm dùng bộ banner của ngôn ngữ còn lại để hero không bao giờ trống.
     const bannerRows = await prisma.homeBanner.findMany({ where: { active: true }, orderBy: [{ sort: "asc" }, { id: "asc" }] });
     if (bannerRows.length) {
+      hasAdminBanners = true;
       const mine = bannerRows.filter((b) => b.lang === lang);
       const chosen = mine.length ? mine : bannerRows;
       slides = chosen.map((b) => ({ title: "", subtitle: "", href: b.href || "", cta: "", image: b.image, color: "#1d4ed8", bare: true }));
@@ -230,12 +236,24 @@ export default async function HomePage() {
           </div>
         </main>
       ) : all.length === 0 && gifts.length === 0 && topups.length === 0 ? (
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
-          <HomeStripRow tiles={stripTiles} />
-          <div className="card mt-10 p-8 text-center">
-            <p className="text-sm text-slate-500">{L("Chưa có sản phẩm nào phù hợp.")}</p>
-          </div>
-        </main>
+        <>
+          {/* Catalog trống NHƯNG admin đã tải banner: vẫn dựng hero y hệt
+              nhánh đầy đủ phía trên thẻ trống (đợt 125 — trước đây nhánh
+              này không render HeroSlider nên banner bị nuốt dù đang bật).
+              Chưa có banner admin thì không thêm dòng DOM nào, nhánh trống
+              giữ nguyên 100% như cũ. */}
+          {hasAdminBanners && (
+            <div className="mt-10 sm:mt-12">
+              <HeroSlider slides={slides} />
+            </div>
+          )}
+          <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-4 pt-5 sm:pt-6">
+            <HomeStripRow tiles={stripTiles} />
+            <div className="card mt-10 p-8 text-center">
+              <p className="text-sm text-slate-500">{L("Chưa có sản phẩm nào phù hợp.")}</p>
+            </div>
+          </main>
+        </>
       ) : (
         <>
           {/* Hero FULL-BLEED: render ngoài <main> để tràn hết bề ngang
