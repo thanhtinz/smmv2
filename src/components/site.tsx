@@ -15,8 +15,10 @@ export type FooterBrand = {
   hotline?: string | null;
 };
 
-/** Footer dùng chung cho mọi trang công khai. */
-export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
+/** Footer dùng chung cho mọi trang công khai. `widgets={false}` = chỉ vẽ thẻ
+ *  <footer>, bỏ nút nổi liên hệ + LiveChat đi kèm — dùng ở layout dashboard,
+ *  nơi layout đã tự render LiveChat riêng (tránh trùng widget). */
+export async function SiteFooter({ brand, widgets = true }: { brand?: FooterBrand; widgets?: boolean } = {}) {
   const { L, Ld } = await getServerI18n();
   const s = await getSettings();
   const merged = brand
@@ -47,8 +49,8 @@ export async function SiteFooter({ brand }: { brand?: FooterBrand } = {}) {
   const linkCls = "inline-block py-1 transition hover:text-brand-600";
   return (
     <>
-    {contacts.length > 0 && <FloatingSupport items={contacts} />}
-    {merged.livechat_enabled !== "0" && <LiveChat />}
+    {widgets && contacts.length > 0 && <FloatingSupport items={contacts} />}
+    {widgets && merged.livechat_enabled !== "0" && <LiveChat />}
     <footer className="bg-white border-t border-slate-200 text-slate-500 mt-20">
       {/* Thiết kế lại 2026-11-09 theo cấu trúc footer shopkey (lệnh Tín):
           cột thương hiệu (logo + mô tả + vòng tròn kênh liên hệ) · hai cột

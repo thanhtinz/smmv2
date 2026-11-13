@@ -6,6 +6,7 @@ import { SideNav } from "@/components/nav";
 import { AppTopBar } from "@/components/topbar";
 import { buildCustomerNav } from "@/components/customer-nav";
 import { LiveChat } from "@/components/livechat";
+import { SiteFooter } from "@/components/site";
 import { TermsGate, HomeModal } from "@/components/gates";
 import { LEVEL_NAME } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
@@ -51,7 +52,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <aside className="hidden lg:block lg:sticky lg:top-24 lg:bg-white lg:rounded-2xl lg:border lg:border-slate-200/60 lg:shadow-soft lg:p-3">
           <SideNav items={items} footer={menuFooter} />
         </aside>
-        <main className="min-w-0">{children}</main>
+        <main className="min-w-0">
+          {children}
+          {/* Footer dùng chung với trang công khai (lệnh Tín 2026-11-12: dashboard
+              mất footer) — nằm cuối cột nội dung, widgets tắt vì layout đã có
+              LiveChat riêng ở dưới. */}
+          <SiteFooter widgets={false} />
+        </main>
       </div>
       {s.livechat_enabled !== "0" && <LiveChat />}
       {termsGate}
