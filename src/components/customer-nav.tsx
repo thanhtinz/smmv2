@@ -18,20 +18,14 @@ export async function buildCustomerNav(
 ): Promise<{ items: NavEntry[]; menuFooter: ReactNode }> {
   const openTickets = await prisma.ticket.count({ where: { userId: user.id, status: "ANSWERED" } });
   const unreadNoti = await prisma.notification.count({ where: { userId: user.id, read: false } });
-  const smmOn = s.module_smm !== "0";
   const premiumOn = s.module_premium !== "0";
   const affiliateOn = s.module_affiliate !== "0";
-  const bulkOn = s.module_bulk !== "0";
   const ticketsOn = s.module_tickets !== "0";
   const apiOn = s.module_api !== "0";
   const telegramOn = s.telegram_enabled !== "0";
-  // Menu gom nhóm dropdown cho gọn: nhóm nào đang chứa trang hiện tại thì tự mở
-  const smmChildren = [
-    ...(smmOn ? [{ href: "/dashboard/dat-hang", label: L("Đặt đơn") }] : []),
-    ...(smmOn && bulkOn ? [{ href: "/dashboard/dat-hang-loat", label: L("Đặt hàng loạt") }] : []),
-    { href: "/dashboard/don-hang", label: L("Đơn hàng") },
-    ...(smmOn ? [{ href: "/dashboard/dich-vu", label: L("Bảng giá") }] : []),
-  ];
+  // Menu gom nhóm dropdown cho gọn: nhóm nào đang chứa trang hiện tại thì tự mở.
+  // Nhóm "Dịch vụ mạng xã hội" (SMM) ĐÃ GỠ (lệnh Tín 2026-11-12 — web tách
+  // thành Digital Shop thuần, SMM làm web riêng).
   // Premium KHÔNG còn là nhóm dropdown (lệnh Tín 2026-11-07 23:36): nó là mặt
   // hàng chính nên thành 2 mục phẳng ngay sau Trang chủ — "Tất cả sản phẩm"
   // trỏ về mặt tiền cửa hàng /premium, "Đơn Premium của tôi" giữ lịch sử mua.
@@ -103,7 +97,6 @@ export async function buildCustomerNav(
     { label: "Gift Card", icon: I.gift, children: giftCardChildren },
     { label: "Top-Up", icon: I.zap, children: topupChildren },
     { label: "Manual Services", icon: I.wrench, children: manualChildren },
-    ...(smmChildren.length ? [{ label: L("Dịch vụ mạng xã hội"), icon: I.share, children: smmChildren }] : []),
     ...(telegramOn ? [{ label: "Telegram Premium", icon: I.send, children: telegramChildren }] : []),
     ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),
     ...(apiOn ? [{ href: "/dashboard/api-docs", label: L("Tài liệu API"), icon: I.code }] : []),

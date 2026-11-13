@@ -13,7 +13,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [
     { url: `${base}/`, lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: `${base}/premium`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
-    { url: `${base}/dich-vu`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
   ];
   try {
     const posts = await prisma.post.findMany({ where: { published: true, panelId: null }, select: { slug: true, updatedAt: true }, take: 500 });

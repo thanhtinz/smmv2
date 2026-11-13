@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => null);
   const { L } = await getServerI18n().catch(() => ({ L: (t: string) => t }));
   return {
-    title: `${s?.site_name || "SMMv2"} — ${L("SMM Panel & Tài khoản Premium")}`,
+    title: `${s?.site_name || "BNT Shop"} — ${L("Tài khoản Premium & Sản phẩm số")}`,
     description: L(s?.meta_description || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt"),
     keywords: s?.meta_keywords ? s.meta_keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
     openGraph: { title: s?.site_name || "SMMv2", description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, type: "website", images: s?.og_image_url ? [s.og_image_url] : ["/icon.svg"] },

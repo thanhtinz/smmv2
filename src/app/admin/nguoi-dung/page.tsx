@@ -15,7 +15,7 @@ export default async function AdminUsers({ searchParams }: { searchParams: { q?:
   const where: any = { ...(searchParams.q
     ? { OR: [{ username: { contains: searchParams.q, mode: "insensitive" } }, { email: { contains: searchParams.q, mode: "insensitive" } }, { phone: { contains: searchParams.q, mode: "insensitive" } }] }
     : {}) };
-  const users = await prisma.user.findMany({ where, orderBy: { id: "desc" }, take: 100, include: { _count: { select: { smmOrders: true, premiumOrders: true } } } });
+  const users = await prisma.user.findMany({ where, orderBy: { id: "desc" }, take: 100, include: { _count: { select: { premiumOrders: true } } } });
   const totalBalance = await prisma.user.aggregate({ _sum: { balance: true } });
   return (
     <div>
@@ -29,7 +29,7 @@ export default async function AdminUsers({ searchParams }: { searchParams: { q?:
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[860px]">
             <thead className="bg-slate-50 border-b border-slate-200"><tr>
-              <th className="th">{L("Người dùng")}</th><th className="th">{L("Cấp / Vai trò")}</th><th className="th">{L("Số dư")}</th><th className="th">{L("Đã nạp / Đã chi")}</th><th className="th">{L("Đơn SMM / Premium")}</th><th className="th">{L("Đăng ký")}</th><th className="th">{L("Trạng thái")}</th><th className="th"></th>
+              <th className="th">{L("Người dùng")}</th><th className="th">{L("Cấp / Vai trò")}</th><th className="th">{L("Số dư")}</th><th className="th">{L("Đã nạp / Đã chi")}</th><th className="th">{L("Đơn Premium")}</th><th className="th">{L("Đăng ký")}</th><th className="th">{L("Trạng thái")}</th><th className="th"></th>
             </tr></thead>
             <tbody className="divide-y divide-slate-100">
               {users.map((u) => (
@@ -38,7 +38,7 @@ export default async function AdminUsers({ searchParams }: { searchParams: { q?:
                   <td className="td">{L(LEVEL_NAME[u.level])}{u.role !== "USER" && <Badge cls="bg-slate-900 text-white ml-2">{u.role}</Badge>}</td>
                   <td className="td font-bold text-emerald-700">{M(u.balance)}</td>
                   <td className="td text-slate-500">{M(u.totalDeposited)} / {M(u.totalSpent)}</td>
-                  <td className="td">{u._count.smmOrders} / {u._count.premiumOrders}</td>
+                  <td className="td">{u._count.premiumOrders}</td>
                   <td className="td text-xs text-slate-500">{dt(u.createdAt)}</td>
                   <td className="td"><Badge cls={u.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}>{u.status === "ACTIVE" ? L("Hoạt động") : L("Đã khoá")}</Badge></td>
                   <td className="td text-right"><Link href={`/admin/nguoi-dung/${u.id}`} className="btn-ghost btn-sm">{L("Chi tiết")}</Link></td>

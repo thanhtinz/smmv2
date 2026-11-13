@@ -5,11 +5,12 @@
  *     không trừ tiền, không dời hạn. Đơn mua Pass không sinh cashback.
  *  2) Thứ tự tiền Premium: giá -> flash -> mã giảm giá -> giảm Pass; cashback
  *     % tính trên tiền thực trả cuối, cộng ví trong cùng transaction.
- *  3) SMM: giảm Pass + cashback tương tự (sau chiết khấu cấp bậc + flash + promo).
- *  4) Phạm vi: scope=PREMIUM thì đơn SMM không hưởng (và ngược lại); khách
- *     không có Pass thì không giảm/không hoàn (flash vẫn chạy độc lập).
- *  5) Hoàn tiền: refundSmmOrder thu hồi cashback đúng tỉ lệ; thu hồi từng
- *     phần + hoàn nốt qua refundFzrPremiumOrder không vượt tổng đã cộng.
+ *  3) Giá trị phạm vi cũ "SMM" còn sót trong DB (trước đợt gỡ SMM 2026-11-12)
+ *     rơi về ALL: đơn Premium vẫn hưởng Pass bình thường.
+ *  4) Phạm vi PREMIUM vẫn áp cho đơn Premium; khách không có Pass thì không
+ *     giảm/không hoàn (flash vẫn chạy độc lập).
+ *  5) Hoàn tiền: thu hồi cashback từng phần + hoàn nốt qua refundFzrPremiumOrder
+ *     không vượt tổng đã cộng.
  *  6) Quà tháng: claim tạo đơn Premium 0đ giao thật từ kho (DELIVERED),
  *     không trừ ví, không cashback; nhận lần 2 cùng tháng bị chặn; khách
  *     không có Pass bị chặn.
@@ -23,7 +24,7 @@ async function main() {
   const { prisma } = await import("../src/lib/db");
   const { randomKey } = await import("../src/lib/format");
   const passLib = await import("../src/lib/pass");
-  const { createSmmOrder, createPremiumOrder, refundSmmOrder } = await import("../src/lib/orders");
+  const { createPremiumOrder } = await import("../src/lib/orders");
   const { refundFzrPremiumOrder } = await import("../src/lib/fzr-orders");
 
   const suffix = randomKey(6).toLowerCase();
@@ -43,10 +44,6 @@ async function main() {
   };
 
   // ---------- Fixtures ----------
-  const cat = await prisma.smmCategory.create({ data: { platform: "other", name: `PassTest ${suffix}` } });
-  const svc = await prisma.smmService.create({
-    data: { categoryId: cat.id, name: `SMM PassTest ${suffix}`, rate: 100000, costRate: 10000, min: 10, max: 1000000, fulfillment: "MANUAL" },
-  });
   const pcat = await prisma.premiumCategory.create({ data: { name: `PassTest ${suffix}`, slug: `passtest-${suffix}` } });
   const prod = await prisma.premiumProduct.create({ data: { categoryId: pcat.id, name: `Premium PassTest ${suffix}`, slug: `premium-passtest-${suffix}`, fulfillment: "MANUAL" } });
   const variant = await prisma.premiumVariant.create({ data: { productId: prod.id, name: "Gói test", price: 200000, cost: 50000 } });
@@ -57,7 +54,7 @@ async function main() {
     data: {
       name: `Flash PassTest ${suffix}`, percent: 20, scope: "ALL",
       startsAt: new Date(Date.now() - 3600_000), endsAt: new Date(Date.now() + 86400_000),
-      serviceIds: JSON.stringify([999999999]), productIds: JSON.stringify([prod.id]),
+      productIds: JSON.stringify([prod.id]),
     },
   });
   const promo = await prisma.discountCode.create({ data: { code: `PASSTEST${suffix.toUpperCase()}`, type: "PERCENT", value: 10, scope: "ALL", active: true } });
@@ -116,34 +113,24 @@ async function main() {
     check("Premium: ví = cũ - 136.800 + cashback 13.680", balAfterPremium === 900_000 - 136_800 + 13_680, `bal=${balAfterPremium}`);
     check("Premium: cashback của đơn = 13.680", (await cashbackSum(U.id, po.code)) === 13_680);
 
-    // ---------- 3) SMM: 100.000 -> Pass 5% = 95.000; cashback 9.500 ----------
-    const so = await createSmmOrder({ user: fullU, serviceId: svc.id, link: "https://example.com/passtest", quantity: 1000 });
-    const balAfterSmm = (await bal(U.id)).balance;
-    check("SMM: charge sau giảm Pass = 95.000", so.charge === 95_000, `charge=${so.charge}`);
-    check("SMM: passDiscount ghi đúng 5.000", (so as any).passDiscount === 5_000, `pd=${(so as any).passDiscount}`);
-    check("SMM: ví = cũ - 95.000 + cashback 9.500", balAfterSmm === balAfterPremium - 95_000 + 9_500, `bal=${balAfterSmm}`);
-    check("SMM: cashback của đơn = 9.500", (await cashbackSum(U.id, so.code)) === 9_500);
-
-    // ---------- 4) Phạm vi + khách không Pass ----------
-    await setPass({ pass_scope: "PREMIUM" });
-    const so2 = await createSmmOrder({ user: fullU, serviceId: svc.id, link: "https://example.com/passtest2", quantity: 1000 });
-    check("scope=PREMIUM: đơn SMM không giảm Pass", so2.charge === 100_000 && (so2 as any).passDiscount === 0, `charge=${so2.charge}`);
-    check("scope=PREMIUM: đơn SMM không cashback", (await cashbackSum(U.id, so2.code)) === 0);
+    // ---------- 3) Giá trị scope cũ "SMM" trong DB rơi về ALL ----------
+    // 200.000 -> flash 160.000 -> Pass 5% = -8.000 -> 152.000; cashback 15.200
     await setPass({ pass_scope: "SMM" });
-    const po2 = await createPremiumOrder({ user: fullU, variantId: variant.id, quantity: 1, buyerInfo: "buyer@test.local" });
-    check("scope=SMM: đơn Premium chỉ còn flash (160.000), không Pass", po2.total === 160_000 && po2.passDiscount === 0 && (await cashbackSum(U.id, po2.code)) === 0, `total=${po2.total}`);
+    check("passConfig: scope 'SMM' cũ đọc thành ALL", passLib.passConfigFromSettings({ ...(await import("../src/lib/settings")).DEFAULT_SETTINGS, pass_scope: "SMM" }).scope === "ALL");
+    const po3 = await createPremiumOrder({ user: fullU, variantId: variant.id, quantity: 1, buyerInfo: "buyer@test.local" });
+    check("scope cũ 'SMM': đơn Premium vẫn hưởng Pass (152.000)", po3.total === 152_000 && po3.passDiscount === 8_000, `total=${po3.total}`);
+    check("scope cũ 'SMM': cashback của đơn = 15.200", (await cashbackSum(U.id, po3.code)) === 15_200);
+
+    // ---------- 4) Phạm vi PREMIUM + khách không Pass ----------
+    await setPass({ pass_scope: "PREMIUM" });
+    const po4 = await createPremiumOrder({ user: fullU, variantId: variant.id, quantity: 1, buyerInfo: "buyer@test.local" });
+    check("scope=PREMIUM: đơn Premium hưởng Pass (152.000)", po4.total === 152_000 && po4.passDiscount === 8_000, `total=${po4.total}`);
     await setPass({ pass_scope: "ALL" });
     const poV = await createPremiumOrder({ user: fullV, variantId: variant.id, quantity: 1, buyerInfo: "v@test.local" });
     check("khách không Pass: flash vẫn chạy (160.000), không giảm Pass/cashback", poV.total === 160_000 && poV.passDiscount === 0 && (await cashbackSum(V.id)) === 0, `total=${poV.total}`);
 
     // ---------- 5) Hoàn tiền -> thu hồi cashback ----------
-    const balBeforeRefund = (await bal(U.id)).balance;
-    await refundSmmOrder(so.id, so.charge, "Test hoàn đơn SMM");
-    const balAfterRefund = (await bal(U.id)).balance;
-    check("hoàn SMM: ví += hoàn 95.000 - thu hồi cashback 9.500", balAfterRefund === balBeforeRefund + 95_000 - 9_500, `delta=${balAfterRefund - balBeforeRefund}`);
-    check("hoàn SMM: cashback ròng của đơn về 0", (await cashbackSum(U.id, so.code)) === 0);
-
-    // Premium: thu hồi tay một phần 68.400 (nửa tổng) -> 6.840; hoàn nốt qua đường FZR -> thêm 6.840 (không vượt ròng)
+    // Premium (đơn §2): thu hồi tay một phần 68.400 (nửa tổng) -> 6.840; hoàn nốt qua đường FZR -> thêm 6.840 (không vượt ròng)
     await passLib.clawbackPassCashback(U.id, 68_400, po.code);
     check("thu hồi một phần Premium: còn ròng 6.840", (await cashbackSum(U.id, po.code)) === 6_840, `net=${await cashbackSum(U.id, po.code)}`);
     const poFresh = (await prisma.premiumOrder.findUnique({ where: { id: po.id } }))!;
@@ -176,10 +163,8 @@ async function main() {
   } finally {
     // Dọn fixture + khôi phục settings Pass như trước khi test
     const userIds = [U.id, V.id, W.id];
-    await prisma.orderEvent.deleteMany({ where: { order: { userId: { in: userIds } } } }).catch(() => {});
     await prisma.passGiftClaim.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.premiumOrder.deleteMany({ where: { userId: { in: userIds } } });
-    await prisma.smmOrder.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.transaction.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.notification.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
@@ -187,8 +172,6 @@ async function main() {
     await prisma.premiumVariant.deleteMany({ where: { id: { in: [variant.id, giftVariant.id] } } });
     await prisma.premiumProduct.deleteMany({ where: { id: { in: [prod.id, giftProd.id] } } });
     await prisma.premiumCategory.deleteMany({ where: { id: pcat.id } });
-    await prisma.smmService.deleteMany({ where: { id: svc.id } });
-    await prisma.smmCategory.deleteMany({ where: { id: cat.id } });
     await prisma.flashSale.deleteMany({ where: { id: flash.id } });
     await prisma.discountCode.deleteMany({ where: { id: promo.id } });
     for (const k of PASS_KEYS) {

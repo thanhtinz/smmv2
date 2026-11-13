@@ -25,7 +25,8 @@ export default async function DealsPage() {
   const rows = promoOn
     ? await prisma.discountCode.findMany({
         where: {
-          panelId: null, isPublic: true, active: true,
+          // Mã phạm vi "SMM" đã chết cùng đợt gỡ SMM (không đơn nào áp được) — không quảng bá.
+          panelId: null, isPublic: true, active: true, scope: { not: "SMM" },
           AND: [
             { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
             { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
@@ -35,7 +36,7 @@ export default async function DealsPage() {
       })
     : [];
   const codes = rows.filter((c) => c.usageLimit === 0 || c.usedCount < c.usageLimit);
-  const scopeLabel = (scope: string) => (scope === "SMM" ? L("Dịch vụ SMM") : scope === "PREMIUM" ? L("Sản phẩm Premium") : L("Tất cả đơn hàng"));
+  const scopeLabel = (scope: string) => (scope === "PREMIUM" ? L("Sản phẩm Premium") : L("Tất cả đơn hàng"));
   const remaining = (endsAt: Date) => {
     const ms = endsAt.getTime() - now.getTime();
     const days = Math.floor(ms / 86400000);

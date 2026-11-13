@@ -17,7 +17,7 @@ export default async function AdminSystem({ searchParams }: { searchParams: { ms
     prisma.notification.count({ where: { read: true, createdAt: { lt: d30 } } }),
     prisma.orderEvent.count({ where: { createdAt: { lt: d30 } } }),
     prisma.user.count(),
-    prisma.smmOrder.count(),
+    prisma.premiumOrder.count(),
   ]);
   // --- Sức khoẻ hệ thống (đợt bổ sung): DB, cron gần nhất, hàng chờ, sức khoẻ provider, backup
   const t0 = Date.now();
@@ -26,25 +26,25 @@ export default async function AdminSystem({ searchParams }: { searchParams: { ms
   const d24 = new Date(Date.now() - 24 * 3600000);
   const [lastCron, pendingOrders, activeSubs, providers, err24, tot24] = await Promise.all([
     prisma.apiLog.findFirst({ where: { kind: "cron_sync" }, orderBy: { id: "desc" } }),
-    prisma.smmOrder.count({ where: { status: { in: ["PENDING", "PROCESSING", "IN_PROGRESS"] } } }),
-    prisma.subscription.count({ where: { active: true } }),
+    prisma.premiumOrder.count({ where: { status: "PENDING" } }),
+    prisma.user.count({ where: { passExpiresAt: { gt: new Date() } } }),
     prisma.provider.findMany({ where: { active: true }, orderBy: { id: "asc" } }),
-    prisma.smmOrder.count({ where: { updatedAt: { gte: d24 }, status: { in: ["CANCELED", "REFUNDED"] } } }),
-    prisma.smmOrder.count({ where: { updatedAt: { gte: d24 } } }),
+    prisma.premiumOrder.count({ where: { updatedAt: { gte: d24 }, status: { in: ["CANCELED", "REFUNDED"] } } }),
+    prisma.premiumOrder.count({ where: { updatedAt: { gte: d24 } } }),
   ]);
   const healthCards = [
     { label: L("Cơ sở dữ liệu"), value: dbOk ? L("Đang kết nối") + " · " + dbMs + "ms" : L("Mất kết nối") },
     { label: L("Cron đồng bộ gần nhất"), value: lastCron ? dt(lastCron.createdAt) : L("Chưa ghi nhận") },
     { label: L("Đơn đang xử lý (hàng chờ)"), value: num(pendingOrders) },
-    { label: L("Gói định kỳ đang chạy"), value: num(activeSubs) },
+    { label: L("Thành viên Pass còn hạn"), value: num(activeSubs) },
     { label: L("Tỉ lệ đơn lỗi 24 giờ"), value: tot24 ? Ld(`${Math.round((err24 / tot24) * 1000) / 10}% (${num(err24)}/${num(tot24)})`) : "0%" },
     { label: L("Sao lưu dữ liệu"), value: L("Xem deploy/backup.sh — bản sao nằm ở máy chủ (/var/backups/smmv2)") },
   ];
   const cards = [
-    { label: L("Phiên bản SMMv2"), value: "1.0" },
+    { label: L("Phiên bản"), value: "1.0" },
     { label: L("Môi trường chạy"), value: Ld(`Next.js 14 · Node ${process.versions.node}`) },
     { label: L("Tổng người dùng"), value: num(users) },
-    { label: L("Tổng đơn SMM"), value: num(orders) },
+    { label: L("Tổng đơn Premium"), value: num(orders) },
     { label: L("Nhật ký API (tổng)"), value: num(apiLogTotal) },
     { label: L("Uptime tiến trình"), value: Math.floor(process.uptime() / 60) + " " + L("phút") },
   ];

@@ -27,13 +27,12 @@ export default async function HomePage() {
   const premiumOff = s.module_premium === "0";
   // Dải icon lối tắt dưới hero (lệnh Tín 2026-11-08 21:08): ẩn/hiện từng ô
   // THEO ĐÚNG điều kiện của buildCustomerNav để dải và menu khách không bao
-  // giờ lệch nhau — ô SMM theo module_smm (như mục "Đặt đơn"), 2 ô Telegram
-  // theo telegram_enabled (như nhóm Telegram); Steam / Game Key / Gift Card /
-  // Top-Up luôn hiện như các nhóm menu tương ứng (menu luôn hiện vô điều kiện).
-  // Ô "Tất cả sản phẩm" đã BỎ khỏi dải theo lệnh Tín 2026-11-08 21:42 (chỉ
-  // bỏ ô trên dải — trang /premium và mục menu giữ nguyên).
+  // giờ lệch nhau — 2 ô Telegram theo telegram_enabled (như nhóm Telegram);
+  // Steam / Game Key / Gift Card / Top-Up luôn hiện như các nhóm menu tương
+  // ứng (menu luôn hiện vô điều kiện). Ô "Tất cả sản phẩm" đã BỎ khỏi dải
+  // theo lệnh Tín 2026-11-08 21:42; ô "Mạng xã hội" (SMM) đã GỠ theo lệnh
+  // Tín 2026-11-12 (web tách thành Digital Shop thuần).
   const stripTiles: StripTile[] = [
-    ...(s.module_smm !== "0" ? [{ href: "/dashboard/dat-hang", label: L("Mạng xã hội"), img: "/home-strip/smm.jpg" }] : []),
     { href: "/dashboard/steam/top-up", label: L("Steam Top-Up"), img: "/home-strip/steam-topup.jpg" },
     { href: "/dashboard/steam/gift-games", label: L("Steam Gift"), img: "/home-strip/steam-gift.jpg" },
     ...(s.telegram_enabled !== "0"
@@ -153,7 +152,7 @@ export default async function HomePage() {
           <HomeStripRow tiles={stripTiles} />
           <div className="card mt-10 p-8 text-center">
             <div className="text-lg font-bold text-slate-900">{L("Mảng Premium đang tạm ngưng")}</div>
-            <p className="mt-2 text-sm text-slate-500">{L("Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau hoặc dùng dịch vụ SMM.")}</p>
+            <p className="mt-2 text-sm text-slate-500">{L("Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau.")}</p>
           </div>
         </main>
       ) : all.length === 0 && gifts.length === 0 ? (

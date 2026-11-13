@@ -19,7 +19,7 @@ export async function AffiliateIntro({ pct, withdrawMin }: { pct: number; withdr
     { icon: I.wallet, title: L("Rút về ví chính"), desc: L("Đạt mức tối thiểu {min} thì rút hoa hồng về ví chính để mua hàng.").replace("{min}", M(withdrawMin)) },
   ];
   const rules = [
-    L("Hoa hồng áp dụng cho cả đơn dịch vụ SMM và đơn mua sản phẩm Premium."),
+    L("Hoa hồng áp dụng cho đơn mua sản phẩm Premium."),
     L("Đơn hàng bị hoàn tiền sẽ thu hồi phần hoa hồng tương ứng."),
     L("Không giới hạn số bạn bè được giới thiệu."),
     L("Hoa hồng cộng vào số dư riêng, chỉ rút được khi đạt mức tối thiểu."),

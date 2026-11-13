@@ -1,8 +1,8 @@
 import { getSettings } from "@/lib/settings";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { syncSmmOrderStatus, syncPremiumOrderStatus, processDripfeedOrders, processAutoRefills } from "@/lib/orders";
-import { syncProviderServices, syncProviderPremium, providerBalance } from "@/lib/provider";
+import { syncPremiumOrderStatus } from "@/lib/orders";
+import { syncProviderPremium, providerBalance } from "@/lib/provider";
 import { pollFzrPremiumOrder } from "@/lib/fzr-orders";
 import { syncFzrCatalog } from "@/lib/fzr-sync";
 
@@ -33,19 +33,11 @@ export async function GET(req: NextRequest) {
   });
   if (!matched) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const result: any = { ordersSynced: 0, ordersFailed: 0, premiumSynced: 0, premiumFailed: 0, providers: [] };
+  const result: any = { premiumSynced: 0, premiumFailed: 0, providers: [] };
 
-  // Drip-feed: thả các lượt đến hạn trước khi đồng bộ trạng thái
-  try {
-    result.dripfeed = await processDripfeedOrders(10);
-  } catch (e: any) {
-    result.dripfeedError = String(e?.message || e);
-  }
-
-  // Đăng ký định kỳ ĐÃ GỠ khỏi khu khách (lệnh 2026-11-07): cron KHÔNG còn tạo đơn
-  // mới từ subscription. Dữ liệu gói cũ giữ nguyên trong DB, không xử lý nữa.
-
-  // Gia hạn website con theo tháng: trừ phí tự động, hết tiền thì tạm ngưng
+  // Đơn SMM + drip-feed + auto-refill ĐÃ GỠ (lệnh Tín 2026-11-12 — web tách
+  // thành Digital Shop thuần, SMM làm web riêng): cron không còn xử lý đơn
+  // SMM; dữ liệu cũ giữ nguyên trong DB, không xử lý nữa.
 
   // Service Health Monitor: kiểm tra số dư/kết nối mọi provider đang bật; lỗi thì ghi log cảnh báo
   try {
@@ -84,27 +76,6 @@ export async function GET(req: NextRequest) {
     result.dailyReports = await maybeSendDailyReports();
   } catch (e: any) {
     result.dailyReportsError = String(e?.message || e);
-  }
-
-  // Auto Refill: tự gửi bảo hành cho đơn đã hoàn thành thuộc dịch vụ bật auto-refill
-  try {
-    result.autoRefill = await processAutoRefills(20);
-  } catch (e: any) {
-    result.autoRefillError = String(e?.message || e);
-  }
-
-  const orders = await prisma.smmOrder.findMany({
-    where: { fulfillment: "API", providerOrderId: { not: null }, status: { in: ["PENDING", "PROCESSING", "IN_PROGRESS"] } },
-    take: 200,
-    orderBy: { updatedAt: "asc" },
-  });
-  for (const o of orders) {
-    try {
-      await syncSmmOrderStatus(o);
-      result.ordersSynced++;
-    } catch {
-      result.ordersFailed++;
-    }
   }
 
   // Đơn premium đấu API đang chờ giao -> hỏi trạng thái phía provider.
@@ -185,7 +156,6 @@ export async function GET(req: NextRequest) {
             entry.fzrError = String(e?.message || e);
           }
         } else {
-          if (p.kind === "SMM" || p.kind === "BOTH") entry.smm = await syncProviderServices(p);
           if (p.kind === "PREMIUM" || p.kind === "BOTH") {
             try {
               entry.premium = await syncProviderPremium(p);
@@ -222,6 +192,6 @@ export async function GET(req: NextRequest) {
   }
 
   // Ghi nhận lần chạy cron cho trang Sức khoẻ hệ thống (Admin → Hệ thống)
-  await prisma.apiLog.create({ data: { kind: "cron_sync", ok: true, detail: JSON.stringify({ ordersSynced: result.ordersSynced, ordersFailed: result.ordersFailed, premiumSynced: result.premiumSynced, premiumFailed: result.premiumFailed }).slice(0, 900) } }).catch(() => {});
+  await prisma.apiLog.create({ data: { kind: "cron_sync", ok: true, detail: JSON.stringify({ premiumSynced: result.premiumSynced, premiumFailed: result.premiumFailed }).slice(0, 900) } }).catch(() => {});
   return NextResponse.json(result);
 }

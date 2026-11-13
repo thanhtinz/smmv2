@@ -22,10 +22,6 @@ async function award(userId: number, total: number, ref: string, label: string) 
   } catch {}
 }
 
-export async function awardPointsForSmmOrder(order: { id: number; userId: number; charge: number; code: string }) {
-  await award(order.userId, order.charge, `smm-${order.id}`, `đơn SMM ${order.code}`);
-}
-
 export async function awardPointsForPremiumOrder(order: { id: number; userId: number; total: number; code: string }) {
   await award(order.userId, order.total, `premium-${order.id}`, `đơn Premium ${order.code}`);
 }

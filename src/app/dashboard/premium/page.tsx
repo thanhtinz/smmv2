@@ -16,8 +16,8 @@ export default async function DashboardPremiumPage({ searchParams }: { searchPar
     return (
       <div className="card p-8 text-center">
         <div className="text-lg font-bold text-slate-900">{L("Mảng Premium đang tạm ngưng")}</div>
-        <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{L("Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau hoặc dùng dịch vụ SMM.")}</p>
-        <Link href="/dashboard/dich-vu" className="btn-primary mt-5 inline-block">{L("Xem dịch vụ SMM")}</Link>
+        <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{L("Khu vực tài khoản Premium hiện không mở bán. Vui lòng quay lại sau.")}</p>
+        <Link href="/" className="btn-primary mt-5 inline-block">{L("Về trang chủ")}</Link>
       </div>
     );
   }

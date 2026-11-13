@@ -7,7 +7,6 @@ import { sendMail } from "./mailer";
  *  lỗi gửi tin KHÔNG bao giờ làm hỏng luồng đơn hàng / tiền. */
 
 export const ALERT_EVENTS: { key: string; label: string }[] = [
-  { key: "smm_order", label: "Đơn SMM mới" },
   { key: "premium_order", label: "Đơn Premium mới" },
   { key: "deposit_pending", label: "Yêu cầu nạp chờ duyệt" },
   { key: "deposit_success", label: "Nạp tiền thành công (tự động)" },

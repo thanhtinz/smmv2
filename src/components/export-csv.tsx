@@ -14,8 +14,7 @@ export async function ExportCsvCard({ base }: { base: string }) {
         <p className="mt-0.5 text-sm text-slate-500">{L("Tải dữ liệu ra file CSV (mở bằng Excel) theo khoảng ngày.")}</p>
       </div>
       <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">{L("Loại dữ liệu")}
-        <select name="type" className={inputCls} defaultValue="smm">
-          <option value="smm">{L("Đơn SMM")}</option>
+        <select name="type" className={inputCls} defaultValue="premium">
           <option value="premium">{L("Đơn Premium")}</option>
           <option value="deposits">{L("Nạp tiền")}</option>
           <option value="transactions">{L("Giao dịch ví")}</option>

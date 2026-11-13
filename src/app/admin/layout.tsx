@@ -20,8 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (user.role !== "ADMIN" && user.role !== "STAFF") redirect("/");
   await enforceAdminSecurity(user);
   const s = await getSettings();
-  const [manualPending, prePending, depPending, ticketOpen] = await Promise.all([
-    prisma.smmOrder.count({ where: { fulfillment: "MANUAL", status: { in: ["PENDING", "PROCESSING"] } } }),
+  const [prePending, depPending, ticketOpen] = await Promise.all([
     prisma.premiumOrder.count({ where: { ...regularPremiumWhere(), status: { in: ["PENDING", "WARRANTY"] } } }),
     prisma.deposit.count({ where: { status: "PENDING" } }),
     prisma.ticket.count({ where: { status: "OPEN" } }),
@@ -29,30 +28,23 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Phân quyền 2 tầng: STAFF chỉ thấy việc của mình (đơn + ticket + nhật ký);
   // các mục tiền/nguồn/dịch vụ/kho/người dùng/thông báo/cấu hình là của ADMIN.
   const isAdmin = user.role === "ADMIN";
-  // Thứ tự + tên mục bám đúng sidebar admin của panel mẫu (trumapi): Tổng quan → Quản lý SMM ▾ →
-  // Tài khoản Premium ▾ → Người dùng → Ticket hỗ trợ → tiền → ... → Mô-đun → Cài đặt →
+  // Thứ tự + tên mục bám sidebar admin: Tổng quan → Tài khoản Premium ▾ →
+  // Người dùng → Ticket hỗ trợ → tiền → ... → Mô-đun → Cài đặt →
   // Bảo mật nâng cao → Bài viết ▾ → Cập nhật hệ thống → Dọn dẹp hệ thống.
-  // Các tính năng riêng của SMMv2 (Phân tích, Panel con, Báo cáo, Rủi ro, Nhật ký API, Hệ thống)
+  // Các tính năng riêng của web (Phân tích, Báo cáo, Rủi ro, Nhật ký API, Hệ thống)
   // đặt ngay sau mục gần nhất của mẫu để không phá thứ tự gốc.
   const i18n = await getServerI18n(null);
   const { L, M } = i18n;
   const all: (AdminNavEntry & { adminOnly?: boolean })[] = [
     { href: "/admin", label: L("Tổng quan"), icon: "home" },
     { href: "/admin/phan-tich", label: L("Phân tích"), icon: "chart", adminOnly: true },
-    {
-      group: "Quản lý SMM", icon: "share",
-      children: [
-        { href: "/admin/danh-muc", label: L("Danh mục dịch vụ"), icon: "layers", adminOnly: true } as any,
-        { href: "/admin/dich-vu", label: L("Danh sách dịch vụ"), icon: "list", adminOnly: true } as any,
-        { href: "/admin/cap-bac", label: L("Cấp bậc người dùng"), icon: "star", adminOnly: true } as any,
-        { href: "/admin/don-smm", label: L("Quản lý đơn hàng"), icon: "cart", badge: manualPending },
-        { href: "/admin/kiem-tra-ai", label: L("Kiểm tra AI"), icon: "cpu", adminOnly: true } as any,
-        { href: "/admin/gia-thong-minh", label: L("Giá thông minh"), icon: "money", adminOnly: true } as any,
-      ],
-    } as any,
+    // Nhóm "Quản lý SMM" ĐÃ GỠ (lệnh Tín 2026-11-12 — web tách thành Digital
+    // Shop thuần, SMM làm web riêng): danh mục/dịch vụ/đơn SMM, kiểm tra AI
+    // link đơn, giá thông minh và cấp bậc (chiết khấu cấp bậc chỉ áp giá
+    // SMM) đều đã gỡ cùng đợt.
     // FIX7 E1 (lệnh Tín 2026-11-08 02:12): Nhà cung cấp RA KHỎI dropdown —
-    // thành mục top-level ngay sau nhóm Quản lý SMM (trước đây chôn trong
-    // nhóm nên khó thấy; nhà cung cấp là nguồn sống của cả SMM lẫn Premium).
+    // thành mục top-level (trước đây chôn trong nhóm nên khó thấy; nhà cung
+    // cấp là nguồn sống của nguồn hàng Premium).
     { href: "/admin/nha-cung-cap", label: L("Nhà cung cấp (API)"), icon: "link", adminOnly: true },
     {
       group: "Tài khoản Premium", icon: "gem",
@@ -186,12 +178,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 font-black text-white">{s.site_logo_text || "S"}</span>
               <span className="font-extrabold text-slate-900">{s.site_name} <span className="font-medium text-slate-400">/ Admin</span></span>
             </Link>
-            <form action="/admin/don-smm" className="hidden max-w-md flex-1 md:block">
+            <form action="/admin/don-premium" className="hidden max-w-md flex-1 md:block">
               <div className="relative">
                 <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
                   <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
                 </span>
-                <input name="q" placeholder={L("Tìm kiếm đơn hàng, link, username...")} className="inp !rounded-full !pl-10" />
+                <input name="q" placeholder={L("Tìm kiếm đơn hàng, username...")} className="inp !rounded-full !pl-10" />
               </div>
             </form>
             <div className="ml-auto flex items-center gap-2.5">

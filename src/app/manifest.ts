@@ -10,7 +10,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
   return {
     name,
     short_name: name,
-    description: L(s?.site_tagline || "SMM Panel & Tài khoản Premium"),
+    description: L(s?.site_tagline || "Tài khoản Premium & Sản phẩm số"),
     start_url: "/",
     scope: "/",
     display: "standalone",

@@ -7,7 +7,7 @@ import { getSettings } from "@/lib/settings";
 import { adminAdjustBalance, adminUpdateUser, adminForceLogoutAction } from "@/app/actions/admin";
 import { riskRecalcAction, riskReviewAction } from "@/app/actions/security-center";
 import { isRiskRestricted, RISK_LEVEL_LABEL, riskFactorText, riskDetailText, type RiskFactor } from "@/lib/risk";
-import { num, LEVEL_NAME, dt, SMM_STATUS, PRE_STATUS } from "@/lib/format";
+import { num, LEVEL_NAME, dt, PRE_STATUS } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
@@ -23,11 +23,9 @@ export default async function AdminUserDetail({ params, searchParams }: { params
   });
   if (!u) notFound();
   // Tài khoản thuộc site con: web mẹ không xem được account này (kể cả số dư) — coi như không tồn tại
-  const [txs, smmAgg, preAgg, recentSmm, recentPre, tickets, deposits, settings] = await Promise.all([
+  const [txs, preAgg, recentPre, tickets, deposits, settings] = await Promise.all([
     prisma.transaction.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 30 }),
-    prisma.smmOrder.aggregate({ where: { userId: u.id, status: { notIn: ["REFUNDED"] } }, _sum: { charge: true }, _count: true }),
     prisma.premiumOrder.aggregate({ where: { userId: u.id, status: { notIn: ["REFUNDED", "CANCELED"] } }, _sum: { total: true }, _count: true }),
-    prisma.smmOrder.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 8, include: { service: true } }),
     prisma.premiumOrder.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5, include: { variant: { include: { product: true } } } }),
     prisma.ticket.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5 }),
     prisma.deposit.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5 }),
@@ -51,8 +49,8 @@ export default async function AdminUserDetail({ params, searchParams }: { params
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={L("Số dư hiện tại")} value={M(u.balance)} icon={I.wallet} tone="blue" />
         <Stat label={L("Tổng đã nạp")} value={M(u.totalDeposited)} icon={I.db} tone="emerald" />
-        <Stat label={L("Tổng chi SMM")} value={M(smmAgg._sum.charge || 0)} icon={I.cart} tone="violet" sub={<>{num(smmAgg._count)} {L("đơn")}</>} />
         <Stat label={L("Tổng chi Premium")} value={M(preAgg._sum.total || 0)} icon={I.gem} tone="rose" sub={<>{num(preAgg._count)} {L("đơn")}</>} />
+        <Stat label={L("Số dư hoa hồng")} value={M(u.affiliateBalance)} icon={I.cart} tone="violet" sub={<>{L("Đã nhận")} {M(affEarned._sum.amount || 0)}</>} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         <div className="lg:col-span-2 space-y-6">
@@ -78,7 +76,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
             <input type="hidden" name="userId" value={u.id} />
             <div className="font-bold text-slate-900">{L("Cấp bậc & trạng thái")}</div>
             <div>
-              <label className="lbl">{L("Cấp khách (chiết khấu SMM)")}</label>
+              <label className="lbl">{L("Cấp khách")}</label>
               <select className="inp" name="level" defaultValue={u.level}>
                 {Object.entries(LEVEL_NAME).map(([k, v]) => <option key={k} value={k}>{L(v)}</option>)}
               </select>
@@ -167,20 +165,6 @@ export default async function AdminUserDetail({ params, searchParams }: { params
           </div>
           </div>
         <div className="lg:col-span-3 space-y-6">
-          <div className="card overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 font-bold text-slate-900">{L("Đơn SMM gần nhất")}</div>
-            <table className="w-full"><tbody className="divide-y divide-slate-100">
-              {recentSmm.map((o) => (
-                <tr key={o.id}>
-                  <td className="td"><Link href={`/admin/don-smm/${o.id}`} className="font-mono text-xs font-semibold text-brand-700">{o.code}</Link><div className="max-w-[260px] truncate text-xs text-slate-400">{o.service.name}</div></td>
-                  <td className="td font-semibold">{M(o.charge)}</td>
-                  <td className="td"><Badge cls={SMM_STATUS[o.status].cls}>{L(SMM_STATUS[o.status].label)}</Badge></td>
-                  <td className="td whitespace-nowrap text-slate-500">{dt(o.createdAt)}</td>
-                </tr>
-              ))}
-              {recentSmm.length === 0 && <tr><td className="td text-slate-400">{L("Chưa có đơn SMM")}</td></tr>}
-            </tbody></table>
-          </div>
           <div className="card overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 font-bold text-slate-900">{L("Đơn Premium gần nhất")}</div>
             <table className="w-full"><tbody className="divide-y divide-slate-100">

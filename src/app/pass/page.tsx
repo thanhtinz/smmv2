@@ -47,7 +47,7 @@ export default async function PassPage({ searchParams }: { searchParams: { msg?:
     ? await prisma.post.findMany({ where: { published: true, categoryId: faqCat.id, panelId: null }, orderBy: [{ pinned: "desc" }, { id: "asc" }], take: 20 })
     : [];
 
-  const scopeText = cfg.scope === "PREMIUM" ? L("Sản phẩm Premium") : cfg.scope === "SMM" ? L("Dịch vụ SMM") : L("Dịch vụ SMM và Sản phẩm Premium");
+  const scopeText = cfg.scope === "PREMIUM" ? L("Sản phẩm Premium") : L("Tất cả sản phẩm");
   const cheapestPerMonth = cfg.terms.length > 1 ? Math.min(...cfg.terms.map((t) => t.price / t.months)) : null;
 
   const benefits: { icon: React.ReactNode; title: string; desc: string }[] = [];

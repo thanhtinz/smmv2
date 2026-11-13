@@ -37,7 +37,7 @@ export async function saveDiscountCodeAction(formData: FormData) {
     minOrder: Math.max(0, int(formData, "minOrder")),
     maxDiscount: Math.max(0, int(formData, "maxDiscount")),
     usageLimit: Math.max(0, int(formData, "usageLimit")),
-    scope: ["ALL", "SMM", "PREMIUM"].includes(str(formData, "scope")) ? str(formData, "scope") : "ALL",
+    scope: ["ALL", "PREMIUM"].includes(str(formData, "scope")) ? str(formData, "scope") : "ALL",
     startsAt: dtOrNull(formData, "startsAt"),
     endsAt: dtOrNull(formData, "endsAt"),
     active: formData.get("active") === "on",
@@ -181,15 +181,6 @@ export async function saveSecurityPolicyAction(formData: FormData) {
 }
 
 /* ---------- Cấp bậc: % giảm giá ---------- */
-export async function saveLevelsAction(formData: FormData) {
-  await requireAdmin();
-  for (const lv of ["MEMBER", "RESELLER", "AGENCY", "VIP"]) {
-    const v = Math.min(90, Math.max(0, int(formData, "level_discount_" + lv)));
-    await setSetting("level_discount_" + lv, String(v));
-  }
-  done("/admin/cap-bac", "Đã lưu chiết khấu cấp bậc");
-}
-
 /* ---------- Hệ thống: dọn dẹp ---------- */
 export async function cleanupSystemAction(formData: FormData) {
   await requireAdmin();
@@ -339,45 +330,12 @@ export async function sendMarketingEmailAction(formData: FormData) {
 }
 
 /* ---------- Giá thông minh: chỉnh giá bán hàng loạt ---------- */
-export async function bulkPriceAction(formData: FormData) {
-  await requireAdmin();
-  const scope = str(formData, "scope"); // all | provider:<id> | category:<id> | manual
-  const mode = str(formData, "mode"); // markup | percent
-  const value = int(formData, "value");
-  const where: any = {};
-  if (scope.startsWith("provider:")) where.providerId = parseInt(scope.slice(9));
-  else if (scope.startsWith("category:")) where.categoryId = parseInt(scope.slice(9));
-  else if (scope === "manual") where.fulfillment = "MANUAL";
-  const services = await prisma.smmService.findMany({ where });
-  if (!services.length) back("/admin/gia-thong-minh", "err", "Không có dịch vụ nào trong phạm vi đã chọn");
-  let updated = 0;
-  for (const sv of services) {
-    let rate: number;
-    if (mode === "markup") {
-      if (sv.costRate <= 0) continue;
-      rate = Math.max(100, Math.round((sv.costRate * (100 + value)) / 100 / 10) * 10);
-    } else {
-      rate = Math.max(100, Math.round((sv.rate * (100 + value)) / 100 / 10) * 10);
-    }
-    if (rate !== sv.rate) {
-      await prisma.smmService.update({ where: { id: sv.id }, data: { rate } });
-      updated++;
-    }
-  }
-  await prisma.apiLog.create({ data: { kind: "bulk_price", ok: true, ref: scope, detail: `mode=${mode} value=${value} updated=${updated}/${services.length}` } });
-  {
-    const actor = await requireAdmin();
-    await writeAudit({ actorId: actor.id, actorName: actor.username, role: actor.role, action: "price.bulk", targetType: "service", targetId: scope, detail: `Chỉnh giá hàng loạt mode=${mode} value=${value} — cập nhật ${updated}/${services.length} dịch vụ`, ip: currentIp() });
-  }
-  done("/admin/gia-thong-minh", `Đã cập nhật giá cho ${updated}/${services.length} dịch vụ`);
-}
-
 /* ---------- Mô-đun bật/tắt ---------- */
 export async function saveModulesAction(formData: FormData) {
   await requireAdmin();
   for (const k of [
-    "module_smm", "module_premium", "module_affiliate", "module_register",
-    "module_bulk", "module_promo", "module_tickets",
+    "module_premium", "module_affiliate", "module_register",
+    "module_promo", "module_tickets",
     "module_api", "module_blog", "livechat_enabled", "support_widget_enabled",
     // Công tắc mục Telegram (khu tách riêng của FZR) nằm cùng trang Mô-đun
     // từ 2026-11-08 — trang Cài đặt Telegram riêng đã bỏ.

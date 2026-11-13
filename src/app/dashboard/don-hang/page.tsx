@@ -1,9 +1,8 @@
-import { getCurrentUser } from "@/lib/auth";
-import { SmmOrdersView } from "@/components/orders";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function MySmmOrders({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
-  const user = (await getCurrentUser())!;
-  return <SmmOrdersView userId={user.id} sp={searchParams} />;
+/** Lịch sử đơn SMM ĐÃ GỠ — web tách thành Digital Shop thuần, phần SMM làm web riêng
+ *  (lệnh Tín 2026-11-12): route cũ chuyển hướng về trang chủ để bookmark cũ
+ *  không chết 404; dữ liệu cũ vẫn giữ nguyên trong DB. */
+export default function SmmOrdersRemoved() {
+  redirect("/");
 }

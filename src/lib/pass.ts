@@ -22,8 +22,8 @@ import { affDayKey } from "./affiliate";
  * nằm ở settings do admin đặt tại Cấu hình → tab Pass — không hardcode.
  */
 
-export type PassKind = "SMM" | "PREMIUM";
-export type PassScope = "ALL" | "PREMIUM" | "SMM";
+export type PassKind = "PREMIUM";
+export type PassScope = "ALL" | "PREMIUM";
 
 export interface PassConfig {
   enabled: boolean;
@@ -62,7 +62,8 @@ export function passConfigFromSettings(s: Record<string, string>): PassConfig {
     terms,
     cashbackPercent: pctOf(s.pass_cashback_percent, "pass_cashback_percent"),
     discountPercent: pctOf(s.pass_discount_percent, "pass_discount_percent"),
-    scope: scopeRaw === "PREMIUM" || scopeRaw === "SMM" ? scopeRaw : "ALL",
+    // Giá trị "SMM" còn sót trong DB từ trước đợt gỡ SMM rơi về "ALL" (áp mọi đơn còn lại = Premium).
+    scope: scopeRaw === "PREMIUM" ? scopeRaw : "ALL",
     giftProductId: Number.isFinite(gid) && gid > 0 ? gid : null,
     giftVariantId: Number.isFinite(vid) && vid > 0 ? vid : null,
   };

@@ -55,7 +55,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // Gói thành viên PASS (lib/pass.ts, trang bán /pass — mẫu ldshop Pass, lệnh Tín
   // 2026-11-12): MỌI giá trị thương mại đều do admin đặt tại Cấu hình → tab Pass,
   // không hardcode. pass_enabled "0" = tắt hẳn (ẩn menu + trang). Giá kỳ = 0đ =
-  // không bán kỳ đó. Phạm vi pass_scope: ALL | PREMIUM | SMM. Quà tháng: cặp
+  // không bán kỳ đó. Phạm vi pass_scope: ALL | PREMIUM. Quà tháng: cặp
   // product/variant id của sản phẩm Premium admin chọn sẵn (trống = không có quà).
   pass_enabled: "0",
   pass_name: "",
@@ -188,9 +188,6 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   password_min_length: "6",
   module_register: "1",
   module_affiliate: "1",
-  module_bulk: "1",
-  module_subscriptions: "1",
-  module_campaigns: "1",
   module_promo: "1",
   module_tickets: "1",
   module_api: "1",
@@ -203,7 +200,6 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   telegram_topup_field: "",
   telegram_topup_provider_id: "",
   telegram_provider_id: "",
-  module_smm: "1",
   ai_enabled: "0",
   // AI Kiểm tra: quét link đơn hàng bằng AI, gắn cờ rủi ro nếu vi phạm (tab AI Kiểm tra)
   ai_check_enabled: "0",
@@ -368,13 +364,6 @@ export function vietQrUrl(bankName: string, account: string, amount: number, con
 }
 
 
-/** % giảm giá theo cấp bậc — admin sửa được trong Cấu hình/Cấp bậc, mặc định như LEVEL_DISCOUNT */
-export function levelDiscountFromSettings(s: Record<string, string>, level: string): number {
-  const v = parseInt(s["level_discount_" + level] || "");
-  if (Number.isFinite(v) && v >= 0 && v <= 90) return v;
-  // Dự phòng lấy từ chính DEFAULT_SETTINGS — không giữ bảng số thứ hai trong code
-  return parseInt(DEFAULT_SETTINGS["level_discount_" + level] || "0") || 0;
-}
 
 /** Đọc 1 setting dạng số nguyên có kẹp khoảng — nguồn mặc định duy nhất là DEFAULT_SETTINGS. */
 export function intSetting(s: Record<string, string>, key: string, min: number, max: number): number {

@@ -4,16 +4,14 @@ import { dt } from "@/lib/format";
 import { FlashSaleForm } from "@/components/flash-form";
 import { getServerI18n } from "@/lib/lang-server";
 
-const SCOPE_LABEL: Record<string, string> = { ALL: "Chung (SMM + Premium)", SMM: "Chỉ SMM", PREMIUM: "Chỉ Premium" };
+const SCOPE_LABEL: Record<string, string> = { ALL: "Tất cả sản phẩm", PREMIUM: "Chỉ Premium" };
 function countIds(json: string | null): number | null {
   if (!json || !json.trim()) return null;
   try { const a = JSON.parse(json) as number[]; return Array.isArray(a) && a.length > 0 ? a.length : null; } catch { return null; }
 }
 function scopeDetail(x: { scope: string; serviceIds: string | null; productIds: string | null }): string[] {
-  const parts: string[] = [];
-  if (x.scope !== "PREMIUM") { const n = countIds(x.serviceIds); parts.push(n ? `${n} dịch vụ` : "Mọi dịch vụ"); }
-  if (x.scope !== "SMM") { const n = countIds(x.productIds); parts.push(n ? `${n} sản phẩm` : "Mọi sản phẩm"); }
-  return parts;
+  const n = countIds(x.productIds);
+  return [n ? `${n} sản phẩm` : "Mọi sản phẩm"];
 }
 
 /** Khối quản lý Flash Sale của Admin web mẹ.
@@ -33,7 +31,7 @@ export async function FlashSaleAdmin() {
   return (
     <div className="card mt-6 p-6">
       <div className="font-bold text-slate-900">{L("Flash Sale — giảm giá theo khung giờ")}</div>
-      <p className="mt-1 text-sm text-slate-500">{L("Trong khung giờ chạy, đơn thuộc phạm vi chương trình (chỉ SMM, chỉ Premium hoặc chung cả hai) được giảm thêm % này ngay khi đặt đơn (áp tại máy chủ), banner đếm ngược hiện ở trang chủ khách, trang đặt đơn và trang sản phẩm Premium.")}</p>
+      <p className="mt-1 text-sm text-slate-500">{L("Trong khung giờ chạy, đơn thuộc phạm vi chương trình được giảm thêm % này ngay khi đặt đơn (áp tại máy chủ), banner đếm ngược hiện ở trang chủ khách và trang sản phẩm Premium.")}</p>
       <FlashSaleForm action={create} products={products} />
       {sales.length > 0 && (
         <div className="mt-5 overflow-x-auto">
@@ -45,7 +43,7 @@ export async function FlashSaleAdmin() {
                   <td className="td font-medium">{x.name}</td>
                   <td className="td font-bold text-rose-600">{x.percent}%</td>
                   <td className="td">
-                    <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">{L(SCOPE_LABEL[x.scope] || "Chỉ SMM")}</span>
+                    <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">{L(SCOPE_LABEL[x.scope] || "Tất cả sản phẩm")}</span>
                     <span className="mt-1 block text-xs text-slate-400">{scopeDetail(x).map((p, i) => (<span key={i}>{i > 0 && <span> · </span>}{Ld(p)}</span>))}</span>
                   </td>
                   <td className="td whitespace-nowrap text-slate-500">{dt(x.startsAt)}</td>

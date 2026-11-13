@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { applyBalance } from "@/lib/wallet";
-import { refundSmmOrder } from "@/lib/orders";
+import { claimPassGift } from "@/lib/pass";
 import { consumePromo } from "@/lib/promo";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { setSetting, getSettings } from "@/lib/settings";
@@ -15,14 +15,34 @@ async function main() {
   const after = await prisma.user.findUnique({ where: { id: u.id }, select: { balance: true } });
   results.push(`applyBalance race: ${[a, b].sort().join("+")} balance=${after?.balance} ${[a, b].filter((x) => x === "ok").length === 1 && after?.balance === 20000 ? "PASS" : "FAIL"}`);
 
-  // --- 2. refundSmmOrder: 2 lần hoàn đồng thời -> tổng hoàn = đúng charge
-  const svc = await prisma.smmService.findFirst();
-  const ord = await prisma.smmOrder.create({ data: { code: "TEST-RACE-" + suf, userId: u.id, serviceId: svc!.id, link: "https://x", quantity: 1000, charge: 50000, status: "PROCESSING", fulfillment: "MANUAL" } });
-  const balBefore = (await prisma.user.findUnique({ where: { id: u.id }, select: { balance: true } }))!.balance;
-  await Promise.all([refundSmmOrder(ord.id, 50000, "test1", "REFUNDED"), refundSmmOrder(ord.id, 50000, "test2", "REFUNDED")]);
-  const ordAfter = await prisma.smmOrder.findUnique({ where: { id: ord.id } });
-  const balAfter = (await prisma.user.findUnique({ where: { id: u.id }, select: { balance: true } }))!.balance;
-  results.push(`refund race: refundedAmount=${ordAfter?.refundedAmount} credited=${balAfter - balBefore} ${ordAfter?.refundedAmount === 50000 && balAfter - balBefore === 50000 ? "PASS" : "FAIL"}`);
+  // --- 2. claimPassGift: 2 lần nhận quà tháng đồng thời -> chỉ 1 đơn quà
+  // (guard = khoá duy nhất userId+monthKey của PassGiftClaim; thay mục race
+  // hoàn tiền SMM đã gỡ cùng engine SMM — đợt gỡ 2026-11-12.)
+  const oldGiftP = (await prisma.setting.findUnique({ where: { key: "pass_gift_product_id" } }))?.value ?? null;
+  const oldGiftV = (await prisma.setting.findUnique({ where: { key: "pass_gift_variant_id" } }))?.value ?? null;
+  const oldEnabled = (await prisma.setting.findUnique({ where: { key: "pass_enabled" } }))?.value ?? null;
+  const gcat = await prisma.premiumCategory.create({ data: { name: "RaceGift " + suf, slug: "racegift-" + suf } });
+  const gprod = await prisma.premiumProduct.create({ data: { categoryId: gcat.id, name: "RaceGift Prod " + suf, slug: "racegift-prod-" + suf, fulfillment: "AUTO_STOCK" } });
+  const gvar = await prisma.premiumVariant.create({ data: { productId: gprod.id, name: "Quà race", price: 10000, cost: 1000 } });
+  await prisma.premiumStock.createMany({ data: [{ variantId: gvar.id, payload: "RACE-1-" + suf }, { variantId: gvar.id, payload: "RACE-2-" + suf }] });
+  await setSetting("pass_enabled", "1");
+  await setSetting("pass_gift_product_id", String(gprod.id));
+  await setSetting("pass_gift_variant_id", String(gvar.id));
+  await prisma.user.update({ where: { id: u.id }, data: { passExpiresAt: new Date(Date.now() + 30 * 86400_000) } });
+  const claims = await Promise.allSettled([claimPassGift(u.id), claimPassGift(u.id)]);
+  const okClaims = claims.filter((c) => c.status === "fulfilled").length;
+  const giftOrders = await prisma.premiumOrder.count({ where: { userId: u.id } });
+  const stockLeft = await prisma.premiumStock.count({ where: { variantId: gvar.id, status: "AVAILABLE" } });
+  results.push(`gift claim race: ok=${okClaims} orders=${giftOrders} stockLeft=${stockLeft} ${okClaims === 1 && giftOrders === 1 && stockLeft === 1 ? "PASS" : "FAIL"}`);
+  // dọn fixture quà + khôi phục setting
+  await prisma.passGiftClaim.deleteMany({ where: { userId: u.id } });
+  await prisma.premiumOrder.deleteMany({ where: { userId: u.id } });
+  await prisma.premiumStock.deleteMany({ where: { variantId: gvar.id } });
+  await prisma.premiumVariant.deleteMany({ where: { id: gvar.id } });
+  await prisma.premiumProduct.deleteMany({ where: { id: gprod.id } });
+  await prisma.premiumCategory.deleteMany({ where: { id: gcat.id } });
+  const restore = async (k: string, v: string | null) => { if (v === null) await prisma.setting.deleteMany({ where: { key: k } }); else await setSetting(k, v); };
+  await restore("pass_gift_product_id", oldGiftP); await restore("pass_gift_variant_id", oldGiftV); await restore("pass_enabled", oldEnabled);
 
   // --- 3. consumePromo: limit 1, 2 lần dùng đồng thời -> 1 thành công
   const dc = await prisma.discountCode.create({ data: { code: "RACE" + suf, type: "FIXED", value: 1000, usageLimit: 1, usedCount: 0, active: true } });

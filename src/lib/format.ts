@@ -5,9 +5,6 @@ export const dt = (d: Date | string) =>
 export const dshort = (d: Date | string) =>
   new Date(d).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
 
-/** Giá 1 đơn SMM: rate/1000 * quantity, làm tròn lên đồng */
-export const smmCharge = (ratePer1000: number, qty: number) => Math.ceil((ratePer1000 * qty) / 1000);
-
 export const LEVEL_DISCOUNT: Record<string, number> = {
   MEMBER: 0,
   RESELLER: 5,
@@ -21,15 +18,6 @@ export const LEVEL_NAME: Record<string, string> = {
   VIP: "VIP",
 };
 
-export const SMM_STATUS: Record<string, { label: string; cls: string }> = {
-  PENDING: { label: "Chờ xử lý", cls: "bg-amber-100 text-amber-800" },
-  PROCESSING: { label: "Đang xử lý", cls: "bg-sky-100 text-sky-800" },
-  IN_PROGRESS: { label: "Đang chạy", cls: "bg-indigo-100 text-indigo-800" },
-  COMPLETED: { label: "Hoàn thành", cls: "bg-emerald-100 text-emerald-800" },
-  PARTIAL: { label: "Hoàn một phần", cls: "bg-orange-100 text-orange-800" },
-  CANCELED: { label: "Đã huỷ", cls: "bg-rose-100 text-rose-800" },
-  REFUNDED: { label: "Đã hoàn tiền", cls: "bg-slate-200 text-slate-700" },
-};
 /** Danh sách ảnh của sản phẩm premium: mảng images (JSON) — rỗng thì dùng imageUrl cũ. */
 export function productImages(images: string | null | undefined, imageUrl?: string | null): string[] {
   if (images) {
@@ -76,17 +64,6 @@ export function relTime(d: Date | string): string {
   return `${Math.floor(mon / 12)} năm trước`;
 }
 
-export const PLATFORMS: Record<string, string> = {
-  facebook: "Facebook",
-  tiktok: "TikTok",
-  instagram: "Instagram",
-  youtube: "YouTube",
-  telegram: "Telegram",
-  shopee: "Shopee",
-  x: "X (Twitter)",
-  spotify: "Spotify",
-  other: "Khác",
-};
 
 export function genCode(prefix: string, id: number) {
   return `${prefix}${100000 + id}`;

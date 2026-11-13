@@ -11,7 +11,7 @@ export type StripTile = { href: string; label: string; img: string };
  *  THƯỜNG của trang chủ (không dải nền màu, nhãn chữ tối như chữ thường) —
  *  cấu trúc theo ảnh mẫu Tín gửi. Danh sách ô do page.tsx (server) dựng:
  *  nhãn qua từ điển, ẩn/hiện THEO ĐÚNG điều kiện của buildCustomerNav
- *  (module_smm / telegram_enabled; Steam, Game Key, Gift Card, Top-Up luôn
+ *  (telegram_enabled; Steam, Game Key, Gift Card, Top-Up luôn
  *  hiện như nhóm menu tương ứng; ô "Tất cả sản phẩm" đã bỏ khỏi dải theo
  *  lệnh Tín 2026-11-08 21:42).
  *  Mobile: hàng vuốt ngang — VỪA KÉO VỪA BẤM được: kéo quá ngưỡng 6px

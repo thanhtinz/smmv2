@@ -1,16 +1,17 @@
 import { prisma } from "./db";
 import { getSettings, DEFAULT_SETTINGS } from "./settings";
 
-/** Flash sale: giảm THÊM % trên giá trong khung giờ, theo PHẠM VI (scope):
- *  "SMM" = chỉ dịch vụ SMM (mặc định — hành vi cũ), "PREMIUM" = chỉ sản phẩm
- *  Premium, "ALL" = cả hai. Quy tắc chọn đợt (bắt chước nguyên phía SMM):
- *  trong các đợt đang chạy của site mà phạm vi bao phủ loại đơn này, chỉ lấy
- *  MỘT đợt % CAO NHẤT (không cộng dồn nhiều đợt); serviceIds/productIds
- *  null/rỗng = áp toàn bộ. Giá được áp tại createSmmOrder/createPremiumOrder
- *  (server) + hiển thị ở bảng giá/API/form để nhất quán. */
+/** Flash sale: giảm THÊM % trên giá sản phẩm Premium trong khung giờ, theo
+ *  PHẠM VI (scope): "PREMIUM" = chỉ sản phẩm Premium, "ALL" = mọi sản phẩm.
+ *  (Phạm vi "SMM" đã gỡ cùng đợt gỡ SMM 2026-11-12 — đợt cũ ghi scope SMM
+ *  trong DB không còn khớp điều kiện đọc nào nên không áp giá nữa.)
+ *  Quy tắc chọn đợt: trong các đợt đang chạy của site mà phạm vi bao phủ,
+ *  chỉ lấy MỘT đợt % CAO NHẤT (không cộng dồn nhiều đợt); productIds
+ *  null/rỗng = áp toàn bộ. Giá được áp tại createPremiumOrder (server) +
+ *  hiển thị ở thẻ sản phẩm/API/form để nhất quán. */
 
 export type FlashSaleRow = { id: number; name: string; percent: number; startsAt: Date; endsAt: Date; scope: string; serviceIds: string | null; productIds: string | null; panelId: number | null };
-export type FlashKind = "SMM" | "PREMIUM";
+export type FlashKind = "PREMIUM";
 
 export async function getActiveFlashSale(kind?: FlashKind): Promise<FlashSaleRow | null> {
   try {
@@ -46,19 +47,9 @@ function idsInclude(json: string | null, id: number): boolean {
   }
 }
 
-export function flashAppliesTo(sale: FlashSaleRow | null, serviceId: number): boolean {
-  if (!sale) return false;
-  return idsInclude(sale.serviceIds, serviceId);
-}
-
 export function flashAppliesToProduct(sale: FlashSaleRow | null, productId: number): boolean {
   if (!sale) return false;
   return idsInclude(sale.productIds, productId);
-}
-
-export async function flashPercentFor(serviceId: number): Promise<number> {
-  const sale = await getActiveFlashSale("SMM");
-  return flashAppliesTo(sale, serviceId) ? sale!.percent : 0;
 }
 
 export async function flashPercentForProduct(productId: number): Promise<number> {

@@ -66,7 +66,7 @@ export default async function AdminPromotions({ searchParams }: { searchParams: 
             <Stat label={L("Mã đang bật")} value={num(activeCodes)} icon={I.gift} />
             <Stat label={L("Lượt đã dùng")} value={num(usedAgg._sum.usedCount || 0)} icon={I.ticket} tone="emerald" />
           </div>
-          <p className="text-xs leading-relaxed text-slate-400">{L("Mã áp được cho cả đơn SMM và đơn Premium; mỗi lần khách đặt đơn thành công với mã, lượt dùng tự trừ vào giới hạn của mã.")}</p>
+          <p className="text-xs leading-relaxed text-slate-400">{L("Mã áp được cho đơn Premium; mỗi lần khách đặt đơn thành công với mã, lượt dùng tự trừ vào giới hạn của mã.")}</p>
           <a href="/admin/ma-giam-gia" className="btn-ghost !py-2">{L("Mở trang Mã giảm giá")}</a>
           <p className="text-xs leading-relaxed text-slate-400">{L("Tạo mã mới, đặt % giảm, giới hạn lượt dùng và thời hạn áp dụng ở trang Mã giảm giá.")}</p>
         </div>
@@ -74,7 +74,7 @@ export default async function AdminPromotions({ searchParams }: { searchParams: 
       <FlashSaleAdmin />
       <form action={adminSaveSettings} className="card mt-6 space-y-4 p-6">
         <div className="font-bold text-slate-900">{L("Tích điểm khách hàng thân thiết")}</div>
-        <p className="text-sm text-slate-500">{L("Khách được cộng điểm tự động khi đơn SMM/Premium hoàn thành, đổi điểm ra số dư ví ngay trong trang Hồ sơ.")}</p>
+        <p className="text-sm text-slate-500">{L("Khách được cộng điểm tự động khi đơn Premium hoàn thành, đổi điểm ra số dư ví ngay trong trang Hồ sơ.")}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div><label className="lbl">{L("Điểm nhận mỗi 100.000đ chi tiêu")}</label><input className="inp" name="points_per_100k" type="number" min={0} defaultValue={s.points_per_100k} /></div>
           <div><label className="lbl">{L("Giá trị 1 điểm khi đổi (VNĐ)")}</label><input className="inp" name="points_value_vnd" type="number" min={1} defaultValue={s.points_value_vnd} /></div>

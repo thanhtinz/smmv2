@@ -16,8 +16,8 @@ const isItem = (e: NavEntry): e is NavItem => !("section" in e);
 
 function NavLinks({ items, onNavigate }: { items: NavEntry[]; onNavigate?: () => void }) {
   const path = usePathname();
-  // Query của URL hiện tại (đọc phía client sau khi mount) — để nhận diện mục con dạng
-  // /dashboard/dat-hang?platform=..&cat=.. là đang xem, tự mở nhóm nền tảng chứa nó.
+  // Query của URL hiện tại (đọc phía client sau khi mount) — để nhận diện mục con
+  // có query là đang xem, tự mở nhóm chứa nó.
   const [search, setSearch] = useState("");
   useEffect(() => { setSearch(window.location.search); }, [path]);
   // LUẬT HIGHLIGHT DUY NHẤT (lệnh Tín 2026-11-07 23:12 "bấm vào menu bị tô

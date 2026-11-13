@@ -1,12 +1,11 @@
 import { prisma } from "./db";
 
-/** Thống kê dùng chung cho trang Phân tích + Báo cáo của web mẹ.
- *  Lợi nhuận = doanh thu − vốn. */
+/** Thống kê dùng chung cho trang Phân tích + Báo cáo — chỉ mảng Premium
+ *  (phần SMM đã gỡ, lệnh Tín 2026-11-12). Lợi nhuận = doanh thu − vốn. */
 
 export type Scope = Record<string, never>;
 
 export type PeriodStat = { revenue: number; profit: number; orders: number; deposits: number; newUsers: number };
-export type BestSmm = { name: string; orders: number; quantity: number; revenue: number; profit: number };
 export type BestPremium = { name: string; orders: number; quantity: number; revenue: number };
 export type TopUser = { id: number; username: string; level: string; spend: number; orders: number; deposited: number };
 export type StatsBundle = {
@@ -15,29 +14,25 @@ export type StatsBundle = {
   last7: PeriodStat;
   last30: PeriodStat;
   month: PeriodStat;
-  bestSmm: BestSmm[];
   bestPremium: BestPremium[];
   topUsers: TopUser[];
-  pending: { smmManual: number; premium: number; deposits: number; tickets: number };
+  pending: { premium: number; deposits: number; tickets: number };
 };
 
-const SMM_OK = { notIn: ["REFUNDED"] } as any;
 const PRE_OK = { notIn: ["REFUNDED", "CANCELED"] } as any;
 
 async function period(scope: Scope, from: Date): Promise<PeriodStat> {
-  const sw: any = { createdAt: { gte: from }, status: SMM_OK };
   const pw: any = { createdAt: { gte: from }, status: PRE_OK };
   const dw: any = { status: "APPROVED", createdAt: { gte: from } };
   const uw: any = { createdAt: { gte: from } };
-  const [smm, pre, dep, nu] = await Promise.all([
-    prisma.smmOrder.aggregate({ where: sw, _sum: { charge: true, cost: true, commission: true }, _count: true }),
+  const [pre, dep, nu] = await Promise.all([
     prisma.premiumOrder.aggregate({ where: pw, _sum: { total: true, cost: true, commission: true }, _count: true }),
     prisma.deposit.aggregate({ where: dw, _sum: { amount: true } }),
     prisma.user.count({ where: uw }),
   ]);
-  const revenue = (smm._sum.charge || 0) + (pre._sum.total || 0);
-  const profit = (smm._sum.charge || 0) - (smm._sum.cost || 0) + ((pre._sum.total || 0) - (pre._sum.cost || 0));
-  return { revenue, profit, orders: (smm._count || 0) + (pre._count || 0), deposits: dep._sum.amount || 0, newUsers: nu };
+  const revenue = pre._sum.total || 0;
+  const profit = (pre._sum.total || 0) - (pre._sum.cost || 0);
+  return { revenue, profit, orders: pre._count || 0, deposits: dep._sum.amount || 0, newUsers: nu };
 }
 
 export async function getStats(scope: Scope): Promise<StatsBundle> {
@@ -47,31 +42,16 @@ export async function getStats(scope: Scope): Promise<StatsBundle> {
   const start30 = new Date(now.getTime() - 29 * 86400000); start30.setHours(0, 0, 0, 0);
   const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const sw30: any = { createdAt: { gte: start30 }, status: SMM_OK };
   const pw30: any = { createdAt: { gte: start30 }, status: PRE_OK };
 
-  const [today, last7, last30, month, smmGroup, preGroup, smmUsers, preUsers] = await Promise.all([
+  const [today, last7, last30, month, preGroup, preUsers] = await Promise.all([
     period(scope, startDay),
     period(scope, start7),
     period(scope, start30),
     period(scope, startMonth),
-    prisma.smmOrder.groupBy({ by: ["serviceId"], where: sw30, _count: true, _sum: { charge: true, cost: true, commission: true, quantity: true }, orderBy: { _count: { serviceId: "desc" } }, take: 8 }),
     prisma.premiumOrder.groupBy({ by: ["variantId"], where: pw30, _count: true, _sum: { total: true, quantity: true }, orderBy: { _count: { variantId: "desc" } }, take: 8 }),
-    prisma.smmOrder.groupBy({ by: ["userId"], where: { status: SMM_OK }, _sum: { charge: true }, _count: true }),
     prisma.premiumOrder.groupBy({ by: ["userId"], where: { status: PRE_OK }, _sum: { total: true }, _count: true }),
   ]);
-
-  const svcRows = smmGroup.length
-    ? await prisma.smmService.findMany({ where: { id: { in: smmGroup.map((g) => g.serviceId) } }, select: { id: true, name: true } })
-    : [];
-  const svcName = new Map(svcRows.map((s) => [s.id, s.name]));
-  const bestSmm: BestSmm[] = smmGroup.map((g) => ({
-    name: svcName.get(g.serviceId) || `Dịch vụ #${g.serviceId}`,
-    orders: g._count,
-    quantity: g._sum.quantity || 0,
-    revenue: g._sum.charge || 0,
-    profit: (g._sum.charge || 0) - (g._sum.cost || 0),
-  }));
 
   const varRows = preGroup.length
     ? await prisma.premiumVariant.findMany({ where: { id: { in: preGroup.map((g) => g.variantId) } }, select: { id: true, name: true, product: { select: { name: true } } } })
@@ -85,7 +65,6 @@ export async function getStats(scope: Scope): Promise<StatsBundle> {
   }));
 
   const spend = new Map<number, { spend: number; orders: number }>();
-  for (const g of smmUsers) spend.set(g.userId, { spend: g._sum.charge || 0, orders: g._count });
   for (const g of preUsers) {
     const cur = spend.get(g.userId) || { spend: 0, orders: 0 };
     cur.spend += g._sum.total || 0;
@@ -107,8 +86,7 @@ export async function getStats(scope: Scope): Promise<StatsBundle> {
   }));
 
   const pendW: any = {};
-  const [smmManual, premiumP, depositsP, ticketsO] = await Promise.all([
-    prisma.smmOrder.count({ where: { ...pendW, fulfillment: "MANUAL", status: { in: ["PENDING", "PROCESSING"] } } }),
+  const [premiumP, depositsP, ticketsO] = await Promise.all([
     prisma.premiumOrder.count({ where: { ...pendW, status: "PENDING" } }),
     prisma.deposit.count({ where: { status: "PENDING" } }),
     prisma.ticket.count({ where: { status: "OPEN" } }),
@@ -118,7 +96,7 @@ export async function getStats(scope: Scope): Promise<StatsBundle> {
   return {
     scopeName,
     today, last7, last30, month,
-    bestSmm, bestPremium, topUsers,
-    pending: { smmManual, premium: premiumP, deposits: depositsP, tickets: ticketsO },
+    bestPremium, topUsers,
+    pending: { premium: premiumP, deposits: depositsP, tickets: ticketsO },
   };
 }

@@ -15,14 +15,11 @@ function parseSale(fd: FormData) {
   const percent = Math.min(100, Math.max(1, int(fd, "percent")));
   const startsAt = new Date(str(fd, "startsAt"));
   const endsAt = new Date(str(fd, "endsAt"));
-  // Phạm vi loại đơn: ALL (chung) | SMM | PREMIUM — mặc định SMM như hành vi cũ
+  // Phạm vi: ALL (mọi sản phẩm) | PREMIUM — phạm vi SMM đã gỡ (đợt 2026-11-12),
+  // giá trị lạ rơi về ALL. Cột serviceIds giữ null (bảng FlashSale để inert).
   const rawScope = str(fd, "applyScope").toUpperCase();
-  const scope = rawScope === "ALL" || rawScope === "PREMIUM" ? rawScope : "SMM";
-  let serviceIds: string | null = null;
-  if (str(fd, "svcScope") === "some") {
-    const ids = str(fd, "serviceIds").split(/[,\s]+/).map((x) => parseInt(x)).filter((n) => n > 0);
-    serviceIds = JSON.stringify(ids);
-  }
+  const scope = rawScope === "PREMIUM" ? "PREMIUM" : "ALL";
+  const serviceIds: string | null = null;
   let productIds: string | null = null;
   if (str(fd, "prodScope") === "some") {
     const ids = fd.getAll("productIds").map((x) => parseInt(String(x))).filter((n) => n > 0);

@@ -10,7 +10,7 @@ import { TwoFactorCard } from "@/components/two-factor";
 import { PasskeySection } from "@/components/passkey";
 import { ProfileTabs } from "@/components/profile-tabs";
 import { backupCodesLeft } from "@/lib/twofa";
-import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
+import { getSettings } from "@/lib/settings";
 import { LEVEL_NAME, num, dt, dshort, relTime } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { regularPremiumWhere } from "@/lib/order-scope";
@@ -117,7 +117,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
             <div>
               <label className="lbl">{L("Webhook URL — nhận thông báo khi đơn đổi trạng thái (không bắt buộc)")}</label>
               <input className="inp font-mono" name="webhookUrl" defaultValue={user.webhookUrl || ""} placeholder="https://he-thong-cua-ban.vn/webhook" />
-              <p className="mt-1.5 text-xs text-slate-400">{L("Hệ thống POST JSON { event, code, status, note, at } tới URL này mỗi khi đơn SMM của bạn chuyển trạng thái.")}</p>
+              <p className="mt-1.5 text-xs text-slate-400">{L("Hệ thống POST JSON { event, code, status, note, at } tới URL này mỗi khi đơn hàng của bạn chuyển trạng thái.")}</p>
             </div>
             <div className="border-t border-slate-100 pt-4">
               <div className="font-bold text-slate-900">{L("Thông tin đăng nhập")}</div>
@@ -135,7 +135,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
               <div className="mt-3 space-y-1.5 text-sm text-slate-500">
                 <div className="flex justify-between"><span>{L("Cấp bậc hiện tại")}</span><b className="text-slate-800">{L(LEVEL_NAME[user.level])}</b></div>
                 <div className="flex justify-between"><span>{L("Tổng chi tiêu tích lũy")}</span><b className="text-slate-800">{M(user.totalSpent)}</b></div>
-                <div className="flex justify-between"><span>{L("Giảm giá theo cấp bậc")}</span><b className="text-brand-700">{levelDiscountFromSettings(s, user.level)}%</b></div>
               </div>
             </div>
             <div className="card p-6">

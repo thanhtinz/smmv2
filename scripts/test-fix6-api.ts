@@ -3,7 +3,8 @@
  * (server local :3000) + mock FZR (:3998):
  *   products theo nhóm (kho WS9) · buy game key -> poll DELIVERED -> premium_status
  *   có delivery · buy Telegram Stars bằng username + telegram_id · gói manual
- *   theo dõi kho: trừ kho + chặn hết hàng {error} · ApiLog · hồi quy SMM.
+ *   theo dõi kho: trừ kho + chặn hết hàng {error} · ApiLog · các action SMM
+ *   cũ (balance/services/add) phải trả {error: Invalid action} (đợt gỡ SMM).
  *   npx tsx scripts/test-fix6-api.ts
  */
 import { spawn, type ChildProcess } from "node:child_process";
@@ -32,7 +33,6 @@ async function waitMock() {
 async function main() {
   const proc: ChildProcess = spawn("node", ["scripts/mock-fzr.mjs"], { stdio: "ignore" });
   const orderCodes: string[] = [];
-  let smmOrderId = 0;
   let manualProductId = 0;
   try {
     await waitMock();
@@ -77,11 +77,11 @@ async function main() {
     const badGroup = await api({ action: "products", group: "khong-co" });
     ok(badGroup.error === "Unknown group", "group lạ -> {error: Unknown group}");
 
-    /* 2) Hồi quy: balance + services SMM */
+    /* 2) Đợt gỡ SMM: các action SMM cũ phải bị từ chối */
     const bal = await api({ action: "balance" });
-    ok(bal.balance === "50000000" && bal.currency === "VND", `balance khớp DB: ${bal.balance}`);
+    ok(bal.error === "Invalid action", `action balance (SMM) đã gỡ: ${bal.error}`);
     const services = await api({ action: "services" });
-    ok(Array.isArray(services) && services.length > 0 && services[0].rate !== undefined, `services SMM còn nguyên (${services.length} dịch vụ)`);
+    ok(services.error === "Invalid action", `action services (SMM) đã gỡ: ${services.error}`);
 
     /* 3) Mua game key qua API -> poll -> premium_status có delivery */
     const buyGk = await api({ action: "buy", product: String(gkVariant!.id), quantity: "1" });
@@ -128,17 +128,11 @@ async function main() {
     const logs = await prisma.apiLog.findMany({ where: { kind: "reseller_in", ref: { in: orderCodes } } });
     ok(logs.length >= 3, `ApiLog reseller_in cho đơn API: ${logs.length} dòng`);
 
-    /* 7) Hồi quy SMM add qua API */
-    const svc = await prisma.smmService.findFirst({ where: { active: true }, orderBy: { id: "asc" } });
-    const add = await api({ action: "add", service: String(svc!.id), link: "https://www.instagram.com/demo.profile/", quantity: "100" });
-    ok(typeof add.order === "number" && add.order > 0, `SMM add qua API -> order id ${add.order}`);
-    smmOrderId = add.order;
+    /* 7) Đợt gỡ SMM: action add qua API phải bị từ chối */
+    const add = await api({ action: "add", service: "1", link: "https://www.instagram.com/demo.profile/", quantity: "100" });
+    ok(add.error === "Invalid action", `action add (SMM) đã gỡ: ${add.error}`);
   } finally {
     // Dọn fixture + khôi phục demo
-    if (smmOrderId) {
-      await prisma.orderEvent.deleteMany({ where: { orderId: smmOrderId } }).catch(() => {});
-      await prisma.smmOrder.deleteMany({ where: { id: smmOrderId } }).catch(() => {});
-    }
     if (orderCodes.length) await prisma.apiLog.deleteMany({ where: { kind: "reseller_in", ref: { in: orderCodes } } }).catch(() => {});
     const vs = (await prisma.premiumVariant.findMany({ where: { OR: [{ providerId: PROVIDER_ID }, { productId: manualProductId || -1 }] }, select: { id: true } })).map((v) => v.id);
     if (vs.length) {

@@ -4,8 +4,8 @@ import { prisma } from "../src/lib/db";
 import { issueEmailVerification, verifyEmailByToken } from "../src/lib/email-verify";
 import { cleanAttachments, parseAttachments } from "../src/lib/attachments";
 import { notifyUser } from "../src/lib/notify";
-import { createSmmOrder } from "../src/lib/orders";
-import { orderTransition } from "../src/lib/notify";
+import { createPremiumOrder } from "../src/lib/orders";
+import { awardPointsForPremiumOrder } from "../src/lib/points";
 import bcrypt from "bcryptjs";
 
 const log = (ok: boolean, name: string, extra = "") => console.log(`${ok ? "PASS" : "FAIL"} ${name} ${extra}`);
@@ -37,34 +37,33 @@ async function main() {
 
     // 6) Notify prefs: tắt order -> không tạo; system -> vẫn tạo
     await prisma.user.update({ where: { id: user.id }, data: { notifyPrefs: JSON.stringify({ order: false, deposit: true, refund: true, promo: true, system: true, ticket: true }) } });
-    await notifyUser(user.id, "Đơn hàng đã hoàn thành", "test order off", "/dashboard/don-hang/1");
+    await notifyUser(user.id, "Đơn hàng đã hoàn thành", "test order off", "/dashboard/don-premium");
     await notifyUser(user.id, "Thông báo hệ thống", "test system on", "/dashboard/thong-bao");
     const notifs = await prisma.notification.findMany({ where: { userId: user.id } });
     log(notifs.length === 1 && notifs[0].title.includes("hệ thống"), "6 notify-prefs", `count=${notifs.length}`);
 
-    // 8+9) Flash sale + points qua createSmmOrder thật
-    const cat = await prisma.smmCategory.findFirst();
-    const svc = await prisma.smmService.create({
-      data: { name: "SUPP TEST SVC", rate: 200000, costRate: 0, min: 100, max: 100000, categoryId: cat!.id, active: true, fulfillment: "MANUAL" },
-    });
+    // 8+9) Flash sale + points qua createPremiumOrder thật
+    const pcat = await prisma.premiumCategory.create({ data: { name: "SUPP TEST PCAT", slug: "supp-test-" + uname } });
+    const pprod = await prisma.premiumProduct.create({ data: { categoryId: pcat.id, name: "SUPP TEST PROD", slug: "supp-prod-" + uname, fulfillment: "MANUAL" } });
+    const pvar = await prisma.premiumVariant.create({ data: { productId: pprod.id, name: "Gói SUPP", price: 200000, cost: 0 } });
     const full = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-    const o1 = await createSmmOrder({ user: full, serviceId: svc.id, link: "https://example.com/a", quantity: 1000 });
-    log(o1.charge === 200000, "8a giá thường", `charge=${o1.charge}`);
+    const o1 = await createPremiumOrder({ user: full, variantId: pvar.id, quantity: 1, buyerInfo: "supp@test.local" });
+    log(o1.total === 200000, "8a giá thường", `total=${o1.total}`);
     const sale = await prisma.flashSale.create({
-      data: { name: "SUPP SALE", percent: 50, startsAt: new Date(Date.now() - 3600000), endsAt: new Date(Date.now() + 3600000), panelId: null, active: true },
+      data: { name: "SUPP SALE", percent: 50, scope: "ALL", startsAt: new Date(Date.now() - 3600000), endsAt: new Date(Date.now() + 3600000), panelId: null, active: true },
     });
-    const o2 = await createSmmOrder({ user: full, serviceId: svc.id, link: "https://example.com/b", quantity: 1000 });
-    log(o2.charge === 100000, "8b giá flash -50%", `charge=${o2.charge}`);
+    const o2 = await createPremiumOrder({ user: full, variantId: pvar.id, quantity: 1, buyerInfo: "supp@test.local" });
+    log(o2.total === 100000, "8b giá flash -50%", `total=${o2.total}`);
     // hết hạn -> giá thường
     await prisma.flashSale.update({ where: { id: sale.id }, data: { endsAt: new Date(Date.now() - 1000) } });
-    const o3 = await createSmmOrder({ user: full, serviceId: svc.id, link: "https://example.com/c", quantity: 1000 });
-    log(o3.charge === 200000, "8c hết flash giá thường", `charge=${o3.charge}`);
+    const o3 = await createPremiumOrder({ user: full, variantId: pvar.id, quantity: 1, buyerInfo: "supp@test.local" });
+    log(o3.total === 200000, "8c hết flash giá thường", `total=${o3.total}`);
     await prisma.flashSale.delete({ where: { id: sale.id } });
 
-    // points: hoàn thành o1 (charge 200.000 -> 2 điểm)
+    // points: đơn Premium 200.000 -> 2 điểm; cộng trùng không nhân đôi
     const before = (await prisma.user.findUnique({ where: { id: user.id } }))!.points;
-    await orderTransition({ id: o1.id, userId: user.id, code: o1.code }, "COMPLETED");
-    await orderTransition({ id: o1.id, userId: user.id, code: o1.code }, "COMPLETED"); // gọi trùng không cộng 2 lần
+    await awardPointsForPremiumOrder({ id: o1.id, userId: user.id, total: o1.total, code: o1.code });
+    await awardPointsForPremiumOrder({ id: o1.id, userId: user.id, total: o1.total, code: o1.code });
     const afterPts = (await prisma.user.findUnique({ where: { id: user.id } }))!;
     log(afterPts.points === before + 2, "9 points earn + chống trùng", `points=${afterPts.points}`);
 
@@ -75,12 +74,11 @@ async function main() {
     log(tr!.rating === 5, "3 ticket rating stored");
 
     // cleanup đơn test
-    for (const o of [o1, o2, o3]) {
-      await prisma.orderEvent.deleteMany({ where: { orderId: o.id } });
-      await prisma.apiLog.deleteMany({ where: { kind: "points_earn", ref: `smm-${o.id}` } });
-      await prisma.smmOrder.delete({ where: { id: o.id } });
-    }
-    await prisma.smmService.delete({ where: { id: svc.id } });
+    await prisma.premiumOrder.deleteMany({ where: { userId: user.id } });
+    await prisma.apiLog.deleteMany({ where: { kind: "points_earn", ref: `premium-${o1.id}` } });
+    await prisma.premiumVariant.delete({ where: { id: pvar.id } });
+    await prisma.premiumProduct.delete({ where: { id: pprod.id } });
+    await prisma.premiumCategory.delete({ where: { id: pcat.id } });
     await prisma.ticket.delete({ where: { id: t.id } });
   } finally {
     await prisma.notification.deleteMany({ where: { userId: user.id } });

@@ -5,9 +5,8 @@ import { requireAdmin, requireStaff, assertStepUp, currentIp } from "@/lib/auth"
 import { writeAudit } from "@/lib/audit";
 import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
 import { clawbackPassCashback } from "@/lib/pass";
-import { refundSmmOrder, syncSmmOrderStatus, syncPremiumOrderStatus } from "@/lib/orders";
-import { orderTransition } from "@/lib/notify";
-import { providerBalance, syncProviderServices, syncProviderPremium } from "@/lib/provider";
+import { syncPremiumOrderStatus } from "@/lib/orders";
+import { providerBalance, syncProviderPremium } from "@/lib/provider";
 import { getSettings, setSetting } from "@/lib/settings";
 import { fzrMarkupKey } from "@/lib/fzr-markup";
 import { DICT } from "@/lib/i18n";
@@ -68,82 +67,6 @@ export async function adminUpdateUser(formData: FormData) {
   await prisma.user.update({ where: { id: userId }, data });
   await auditAdmin(actor, "user.update", "user", userId, `role=${data.role} status=${data.status} level=${data.level}`);
   done(`/admin/nguoi-dung/${userId}`, "Đã cập nhật người dùng");
-}
-
-/* ---------- Danh mục + dịch vụ SMM ---------- */
-export async function adminSaveCategory(formData: FormData) {
-  await requireAdmin();
-  const id = parseInt(String(formData.get("id") || "0"));
-  const data = {
-    platform: String(formData.get("platform") || "other"),
-    name: String(formData.get("name") || "").trim(),
-    sort: parseInt(String(formData.get("sort") || "0")),
-    active: formData.get("active") === "on",
-  };
-  if (!data.name) back("/admin/danh-muc", "err", "Thiếu tên danh mục");
-  if (id) await prisma.smmCategory.update({ where: { id }, data });
-  else await prisma.smmCategory.create({ data });
-  done("/admin/danh-muc", "Đã lưu danh mục");
-}
-
-export async function adminDeleteCategory(formData: FormData) {
-  await requireAdmin();
-  const id = parseInt(String(formData.get("id")));
-  const count = await prisma.smmService.count({ where: { categoryId: id } });
-  if (count) back("/admin/danh-muc", "err", "Danh mục còn dịch vụ — hãy chuyển dịch vụ sang danh mục khác trước");
-  await prisma.smmCategory.delete({ where: { id } });
-  done("/admin/danh-muc", "Đã xoá danh mục");
-}
-
-export async function adminSaveService(formData: FormData) {
-  await requireAdmin();
-  const id = parseInt(String(formData.get("id") || "0"));
-  const fulfillment = String(formData.get("fulfillment") || "MANUAL") as "API" | "MANUAL";
-  const data: any = {
-    categoryId: parseInt(String(formData.get("categoryId"))),
-    name: String(formData.get("name") || "").trim(),
-    description: String(formData.get("description") || "") || null,
-    notice: String(formData.get("notice") || "").trim() || null,
-    rate: parseInt(String(formData.get("rate") || "0")),
-    costRate: parseInt(String(formData.get("costRate") || "0")),
-    min: parseInt(String(formData.get("min") || "10")),
-    max: parseInt(String(formData.get("max") || "100000")),
-    avgTime: String(formData.get("avgTime") || "") || null,
-    type: String(formData.get("type") || "Default"),
-    customMarkup: formData.get("customMarkup") === "" || formData.get("customMarkup") == null ? null : parseInt(String(formData.get("customMarkup"))),
-    refill: formData.get("refill") === "on",
-    cancelable: formData.get("cancelable") === "on",
-    dripfeed: formData.get("dripfeed") === "on",
-    fulfillment,
-    providerId: fulfillment === "API" && formData.get("providerId") ? parseInt(String(formData.get("providerId"))) : null,
-    providerServiceId: fulfillment === "API" ? String(formData.get("providerServiceId") || "") || null : null,
-    backupProviderId: fulfillment === "API" && formData.get("backupProviderId") ? parseInt(String(formData.get("backupProviderId"))) : null,
-    backupProviderServiceId: fulfillment === "API" ? String(formData.get("backupProviderServiceId") || "") || null : null,
-    backupCostRate: parseInt(String(formData.get("backupCostRate") || "0")),
-    autoRefill: formData.get("autoRefill") === "on",
-    autoSyncPrice: formData.get("autoSyncPrice") !== "off",
-    qtyAdjustPercent: Math.max(-90, Math.min(500, parseInt(String(formData.get("qtyAdjustPercent") || "0")) || 0)),
-    autoUid: formData.get("autoUid") === "on",
-    telegramBot: String(formData.get("telegramBot") || "") || null,
-    active: formData.get("active") === "on",
-    sort: parseInt(String(formData.get("sort") || "0")),
-  };
-  if (!data.name || !data.categoryId) back("/admin/dich-vu", "err", "Thiếu tên hoặc danh mục");
-  if (id) await prisma.smmService.update({ where: { id }, data });
-  else await prisma.smmService.create({ data });
-  done("/admin/dich-vu", "Đã lưu dịch vụ");
-}
-
-export async function adminDeleteService(formData: FormData) {
-  await requireAdmin();
-  const id = parseInt(String(formData.get("id")));
-  const count = await prisma.smmOrder.count({ where: { serviceId: id } });
-  if (count) {
-    await prisma.smmService.update({ where: { id }, data: { active: false } });
-    done("/admin/dich-vu", "Dịch vụ đã có đơn nên chỉ tắt bán (không xoá để giữ lịch sử)");
-  }
-  await prisma.smmService.delete({ where: { id } });
-  done("/admin/dich-vu", "Đã xoá dịch vụ");
 }
 
 /* ---------- Nhà cung cấp API ---------- */
@@ -213,10 +136,9 @@ export async function adminSaveProvider(formData: FormData) {
 export async function adminDeleteProvider(formData: FormData) {
   const actor = await requireAdmin();
   const id = parseInt(String(formData.get("id")));
-  await prisma.smmService.updateMany({ where: { providerId: id }, data: { fulfillment: "MANUAL", providerId: null, providerServiceId: null } });
   await prisma.provider.delete({ where: { id } });
-  await auditAdmin(actor, "provider.delete", "provider", id, "Xoá nhà cung cấp, dịch vụ liên kết chuyển về thủ công");
-  done("/admin/nha-cung-cap", "Đã xoá nhà cung cấp — các dịch vụ liên kết đã chuyển về xử lý thủ công");
+  await auditAdmin(actor, "provider.delete", "provider", id, "Xoá nhà cung cấp");
+  done("/admin/nha-cung-cap", "Đã xoá nhà cung cấp");
 }
 
 export async function adminProviderAction(formData: FormData) {
@@ -239,10 +161,6 @@ export async function adminProviderAction(formData: FormData) {
       done("/admin/nha-cung-cap", `Đã đồng bộ catalog FZR ${provider.name} — sản phẩm: tổng ${r.total}, mới ${r.created}, cập nhật ${r.updated} · ${r.variants} gói · tắt ${r.deactivated} gói hết hàng${withSteam ? " · có kèm Steam gift" : ""}`);
     }
     const parts: string[] = [];
-    if (provider.kind === "SMM" || provider.kind === "BOTH") {
-      const r = await syncProviderServices(provider);
-      parts.push(`SMM: tổng ${r.total}, mới ${r.created}, cập nhật ${r.updated}`);
-    }
     if (provider.kind === "PREMIUM" || provider.kind === "BOTH") {
       try {
         const rp = await syncProviderPremium(provider);
@@ -259,37 +177,6 @@ export async function adminProviderAction(formData: FormData) {
   }
 }
 
-
-export async function adminToggleService(formData: FormData) {
-  await requireAdmin();
-  const id = parseInt(String(formData.get("id")));
-  const sv = await prisma.smmService.findUnique({ where: { id }, select: { active: true } });
-  if (sv) await prisma.smmService.update({ where: { id }, data: { active: !sv.active } });
-  done("/admin/dich-vu", sv?.active ? "Đã tắt dịch vụ" : "Đã bật dịch vụ");
-}
-
-export async function adminToggleCategory(formData: FormData) {
-  await requireAdmin();
-  const id = parseInt(String(formData.get("id")));
-  const c = await prisma.smmCategory.findUnique({ where: { id }, select: { active: true } });
-  if (c) await prisma.smmCategory.update({ where: { id }, data: { active: !c.active } });
-  done("/admin/danh-muc", c?.active ? "Đã tắt danh mục" : "Đã bật danh mục");
-}
-
-export async function adminTogglePlatform(formData: FormData) {
-  await requireAdmin();
-  const platform = String(formData.get("platform"));
-  const target = formData.get("target") === "on";
-  await prisma.smmCategory.updateMany({ where: { platform }, data: { active: target } });
-  done("/admin/danh-muc", target ? "Đã bật cả nền tảng" : "Đã tắt cả nền tảng");
-}
-
-export async function adminReorderCategories(formData: FormData) {
-  await requireAdmin();
-  const ids = JSON.parse(String(formData.get("ids") || "[]")) as number[];
-  await prisma.$transaction(ids.map((id, i) => prisma.smmCategory.update({ where: { id }, data: { sort: i } })));
-  done("/admin/danh-muc", "Đã lưu thứ tự danh mục");
-}
 
 export async function adminProviderMarkup(formData: FormData) {
   await requireAdmin();
@@ -311,10 +198,6 @@ export async function adminSyncAllProviders() {
         parts.push(`${p.name} FZR: ${rf.total} sản phẩm`);
         continue;
       }
-      if (p.kind === "SMM" || p.kind === "BOTH") {
-        const r = await syncProviderServices(p);
-        parts.push(`${p.name}: ${r.total} dịch vụ`);
-      }
       if (p.kind === "PREMIUM" || p.kind === "BOTH") {
         const rp = await syncProviderPremium(p);
         parts.push(`${p.name} Premium: ${rp.total}`);
@@ -324,47 +207,6 @@ export async function adminSyncAllProviders() {
     }
   }
   done("/admin/nha-cung-cap", parts.length ? `Đã đồng bộ tất cả — ${parts.join(" · ")}` : "Chưa có nhà cung cấp đang bật");
-}
-
-/* ---------- Đơn SMM ---------- */
-export async function adminSmmOrderAction(formData: FormData) {
-  await requireStaff();
-  const id = parseInt(String(formData.get("id")));
-  const kind = String(formData.get("kind"));
-  const order = await prisma.smmOrder.findUnique({ where: { id } });
-  if (!order) back("/admin/don-smm", "err", "Không tìm thấy đơn");
-  const path = `/admin/don-smm/${id}`;
-  if (kind === "sync") {
-    try {
-      await syncSmmOrderStatus(order);
-      done(path, "Đã đồng bộ trạng thái từ nhà cung cấp");
-    } catch (e: any) {
-      if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
-      back(path, "err", String(e?.message || "Đồng bộ thất bại"));
-    }
-  }
-  if (kind === "cancel") {
-    await refundSmmOrder(id, order.charge - order.refundedAmount, "Admin huỷ đơn — hoàn tiền", "CANCELED");
-    done(path, "Đã huỷ đơn và hoàn tiền");
-  }
-  // kind = update: cập nhật tay
-  if (order.status === "REFUNDED" || order.status === "CANCELED") back(path, "err", "Đơn đã kết thúc — không sửa được nữa");
-  const status = String(formData.get("status") || order.status) as any;
-  if (status === "REFUNDED") back(path, "err", "Muốn hoàn tiền hãy dùng nút Huỷ đơn để tiền về đúng sổ");
-  const startCount = formData.get("startCount") ? parseInt(String(formData.get("startCount"))) : order.startCount;
-  const remains = formData.get("remains") !== null && formData.get("remains") !== "" ? parseInt(String(formData.get("remains"))) : order.remains;
-  const adminNote = String(formData.get("adminNote") || "") || null;
-  if (status === "PARTIAL" && remains && remains > 0) {
-    // hoàn phần chưa chạy trước, refundSmmOrder sẽ set status — ghi đè lại sau
-    const unit = order.charge / order.quantity;
-    const amt = Math.min(Math.floor(unit * remains), order.charge - order.refundedAmount);
-    if (amt > 0) await refundSmmOrder(id, amt, "Hoàn phần chưa chạy", "PARTIAL");
-    await prisma.smmOrder.update({ where: { id }, data: { startCount, remains, adminNote } });
-    done(path, `Đã cập nhật đơn + hoàn ${amt.toLocaleString("vi-VN")}đ phần chưa chạy`);
-  }
-  await prisma.smmOrder.update({ where: { id }, data: { status, startCount, remains, adminNote } });
-  if (status !== order.status) await orderTransition(order, status, "Admin cập nhật thủ công");
-  done(path, "Đã cập nhật đơn");
 }
 
 /* ---------- Premium ---------- */

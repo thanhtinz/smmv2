@@ -8,7 +8,7 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-const SCOPE_LABEL: Record<string, string> = { ALL: "Mọi đơn", SMM: "Đơn SMM", PREMIUM: "Đơn Premium" };
+const SCOPE_LABEL: Record<string, string> = { ALL: "Mọi đơn", PREMIUM: "Đơn Premium" };
 const fmtDtLocal = (d: Date | null) => (d ? new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
 
 export default async function AdminDiscountCodes({ searchParams }: { searchParams: { edit?: string; q?: string; msg?: string; err?: string } }) {
@@ -18,7 +18,7 @@ export default async function AdminDiscountCodes({ searchParams }: { searchParam
   const edit = searchParams.edit ? codes.find((c) => c.id === parseInt(searchParams.edit || "0")) : undefined;
   return (
     <div>
-      <PageHead title={L("Mã giảm giá")} desc={L("Mã khuyến mãi khách nhập khi đặt đơn SMM / mua Premium — tiền giảm trừ thẳng vào tiền đơn, hệ thống chịu phần giảm.")}>
+      <PageHead title={L("Mã giảm giá")} desc={L("Mã khuyến mãi khách nhập khi mua Premium — tiền giảm trừ thẳng vào tiền đơn, hệ thống chịu phần giảm.")}>
         {edit && <Link href="/admin/ma-giam-gia" className="btn-ghost">{L("+ Tạo mã mới")}</Link>}
       </PageHead>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
@@ -36,7 +36,7 @@ export default async function AdminDiscountCodes({ searchParams }: { searchParam
                     <tr key={c.id}>
                       <td className="td">
                         <span className="rounded-md border border-dashed border-brand-300 bg-brand-50 px-2 py-1 font-mono text-xs font-bold text-brand-700">{c.code}</span>
-                        <div className="mt-1.5 text-xs text-slate-400">{L(SCOPE_LABEL[c.scope])}</div>
+                        <div className="mt-1.5 text-xs text-slate-400">{L(SCOPE_LABEL[c.scope] || "Mọi đơn")}</div>
                       </td>
                       <td className="td font-semibold">{c.type === "PERCENT" ? `${c.value}%` : M(c.value)}{c.type === "PERCENT" && c.maxDiscount > 0 && <div className="text-xs font-normal text-slate-400">{L("tối đa")} {M(c.maxDiscount)}</div>}</td>
                       <td className="td">
@@ -66,7 +66,7 @@ export default async function AdminDiscountCodes({ searchParams }: { searchParam
               <select className="inp" name="type" defaultValue={edit?.type || "PERCENT"}><option value="PERCENT">{L("Phần trăm %")}</option><option value="FIXED">{L("Số tiền cố định")}</option></select></div>
             <div><label className="lbl">{L("Giá trị")}</label><input className="inp" name="value" type="number" min={1} required defaultValue={edit?.value ?? 10} /></div>
             <div><label className="lbl">{L("Áp dụng cho")}</label>
-              <select className="inp" name="scope" defaultValue={edit?.scope || "ALL"}><option value="ALL">{L("Mọi đơn")}</option><option value="SMM">{L("Đơn SMM")}</option><option value="PREMIUM">{L("Đơn Premium")}</option></select></div>
+              <select className="inp" name="scope" defaultValue={edit?.scope || "ALL"}><option value="ALL">{L("Mọi đơn")}</option><option value="PREMIUM">{L("Đơn Premium")}</option></select></div>
             <div><label className="lbl">{L("Đơn tối thiểu (đ)")}</label><input className="inp" name="minOrder" type="number" min={0} defaultValue={edit?.minOrder ?? 0} /></div>
             <div><label className="lbl">{L("Trần giảm cho mã % (đ)")}</label><input className="inp" name="maxDiscount" type="number" min={0} defaultValue={edit?.maxDiscount ?? 0} /></div>
             <div><label className="lbl">{L("Giới hạn lượt dùng")}</label><input className="inp" name="usageLimit" type="number" min={0} defaultValue={edit?.usageLimit ?? 0} /></div>

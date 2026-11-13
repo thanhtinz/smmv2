@@ -10,7 +10,7 @@ async function main() {
   /* ---------- Cấu hình mặc định ---------- */
   const settings: Record<string, string> = {
     site_name: "SMMv2",
-    site_tagline: "SMM Panel & Tài khoản Premium — tự động 24/7",
+    site_tagline: "Tài khoản Premium & Sản phẩm số — tự động 24/7",
     deposit_min: "10000",
   };
   for (const [k, v] of Object.entries(settings)) {
@@ -50,67 +50,6 @@ async function main() {
   });
   console.log("Admin:", admin.username, "| mật khẩu mẫu: Admin@123 (đổi ngay sau khi đăng nhập)");
 
-
-  /* ---------- Dịch vụ SMM mẫu (thủ công) ---------- */
-  if ((await prisma.smmService.count()) === 0) {
-    const cats: Record<string, number> = {};
-    const catDefs: [string, string, number][] = [
-      ["facebook", "Facebook Followers", 1],
-      ["facebook", "Facebook Like & Cảm xúc", 2],
-      ["facebook", "Facebook View & Watch", 3],
-      ["tiktok", "TikTok Followers", 4],
-      ["tiktok", "TikTok Like, View & Comment", 5],
-      ["instagram", "Instagram Followers & Like", 6],
-      ["youtube", "YouTube Sub, View & Like", 7],
-      ["telegram", "Telegram Members", 8],
-      ["shopee", "Shopee Follow & Like", 9],
-    ];
-    for (const [platform, name, sort] of catDefs) {
-      const c = await prisma.smmCategory.create({ data: { platform, name, sort } });
-      cats[name] = c.id;
-    }
-    type Sv = [string, string, number, number, number, number, string, boolean, string];
-    const services: Sv[] = [
-      ["Facebook Followers", "Facebook | Follow trang cá nhân | Tài khoản Việt, tốc độ ~5.000/ngày, bảo hành 30 ngày", 45000, 30000, 50, 200000, "1-6 giờ", true, "Link trang cá nhân để chế độ công khai. Không chạy cho trang bị giới hạn tuổi/quốc gia."],
-      ["Facebook Followers", "Facebook | Follow Fanpage | Lên đều, bảo hành 30 ngày", 38000, 25000, 50, 500000, "0-3 giờ", true, "Dán link fanpage. Page mới tạo nên để qua 24h trước khi chạy."],
-      ["Facebook Like & Cảm xúc", "Facebook | Like bài viết | Việt, lên nhanh", 15000, 9000, 20, 100000, "0-30 phút", false, "Bài viết phải để công khai."],
-      ["Facebook Like & Cảm xúc", "Facebook | Cảm xúc (Tim/Haha/Wow) bài viết", 25000, 16000, 20, 50000, "0-1 giờ", false, "Chọn 1 loại cảm xúc chính cho cả đơn, ghi vào phần ghi chú nếu cần."],
-      ["Facebook View & Watch", "Facebook | View video | Tốc độ cao", 8000, 5000, 100, 1000000, "0-1 giờ", false, "Video công khai, không giới hạn quốc gia."],
-      ["TikTok Followers", "TikTok | Followers Việt | Tốc độ 3.000-10.000/ngày, bảo hành 30 ngày", 55000, 38000, 10, 300000, "0-6 giờ", true, "Tài khoản để công khai, không đổi username trong lúc chạy."],
-      ["TikTok Followers", "TikTok | Followers quốc tế giá rẻ | Tốc độ cao", 32000, 20000, 10, 1000000, "0-3 giờ", false, "Phù hợp kéo số nhanh cho kênh mới."],
-      ["TikTok Like, View & Comment", "TikTok | Tim video | Lên nhanh sau 5-15 phút", 20000, 12000, 10, 200000, "0-15 phút", false, "Dán link video công khai."],
-      ["TikTok Like, View & Comment", "TikTok | View video | Giá rẻ, tốc độ rất cao", 3000, 1800, 100, 5000000, "0-15 phút", false, "View tính theo lượt phát, phù hợp đẩy đề xuất."],
-      ["TikTok Like, View & Comment", "TikTok | Comment Việt tuỳ chỉnh | Viết sẵn nội dung, mỗi dòng 1 comment", 350000, 250000, 10, 1000, "1-12 giờ", false, "Ghi toàn bộ nội dung comment vào phần ghi chú khi đặt đơn, mỗi comment 1 dòng."],
-      ["Instagram Followers & Like", "Instagram | Followers | Bảo hành 30 ngày", 60000, 40000, 10, 200000, "1-6 giờ", true, "Tài khoản phải để công khai trong suốt quá trình chạy."],
-      ["Instagram Followers & Like", "Instagram | Like bài viết / Reels", 18000, 11000, 10, 100000, "0-30 phút", false, "Dán link bài viết hoặc reels công khai."],
-      ["YouTube Sub, View & Like", "YouTube | Subscribe kênh | Lên chậm tự nhiên, bảo hành 30 ngày", 180000, 130000, 10, 50000, "6-24 giờ", true, "Kênh không ẩn số sub. Tốc độ chậm để an toàn cho kênh."],
-      ["YouTube Sub, View & Like", "YouTube | View video | Giữ chân người xem 30-60 giây", 35000, 22000, 100, 1000000, "0-6 giờ", false, "Video công khai, không chạy cho video giới hạn tuổi."],
-      ["YouTube Sub, View & Like", "YouTube | Like video", 25000, 15000, 10, 100000, "0-1 giờ", false, ""],
-      ["Telegram Members", "Telegram | Member group/channel | Bảo hành 15 ngày", 90000, 60000, 50, 100000, "1-12 giờ", true, "Nhóm/kênh công khai hoặc gửi link mời vào ghi chú."],
-      ["Shopee Follow & Like", "Shopee | Follow shop", 45000, 30000, 10, 50000, "1-6 giờ", false, "Dán link shop."],
-      ["Shopee Follow & Like", "Shopee | Like sản phẩm", 20000, 13000, 10, 100000, "0-3 giờ", false, "Dán link sản phẩm."],
-    ];
-    for (const [cat, name, rate, cost, min, max, avg, refill, desc] of services) {
-      await prisma.smmService.create({
-        data: {
-          categoryId: cats[cat],
-          name,
-          rate,
-          costRate: cost,
-          min,
-          max,
-          avgTime: avg,
-          refill,
-          cancelable: true,
-          // Dịch vụ follow/sub/member cho phép thả nhỏ giọt (drip-feed)
-          dripfeed: /follow|subscribe|member/i.test(name),
-          fulfillment: "MANUAL",
-          description: desc || null,
-        },
-      });
-    }
-    console.log(`Đã seed ${services.length} dịch vụ SMM mẫu (thủ công)`);
-  }
 
   /* ---------- Premium ---------- */
   if ((await prisma.premiumProduct.count()) === 0) {

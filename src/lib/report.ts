@@ -5,7 +5,7 @@ import { sendMail } from "./mailer";
 import { vnd, num } from "./format";
 
 /** Báo cáo ngày: thu nhập + mặt hàng bán chạy + top khách + việc chờ xử lý.
- *  Gửi qua Email / Telegram / Discord theo cấu hình của web mẹ.
+ *  Gửi qua Email / Telegram / Discord theo cấu hình của web.
  *  Chạy từ cron (maybeSendDailyReports) hoặc bấm "Gửi báo cáo ngay". */
 
 export type ReportChannel = "email" | "telegram" | "discord";
@@ -24,21 +24,16 @@ export function buildReportText(st: StatsBundle, dateLabel: string) {
   lines.push(periodLine("Tháng này", st.month));
   lines.push("");
   lines.push("MẶT HÀNG BÁN CHẠY (30 ngày)");
-  if (st.bestSmm.length) {
-    lines.push("Dịch vụ SMM:");
-    st.bestSmm.slice(0, 5).forEach((b, i) => lines.push(`${i + 1}. ${b.name} — ${num(b.orders)} đơn · ${vnd(b.revenue)}`));
-  }
   if (st.bestPremium.length) {
-    lines.push("Premium:");
     st.bestPremium.slice(0, 5).forEach((b, i) => lines.push(`${i + 1}. ${b.name} — ${num(b.quantity)} gói · ${vnd(b.revenue)}`));
   }
-  if (!st.bestSmm.length && !st.bestPremium.length) lines.push("Chưa có đơn nào trong 30 ngày.");
+  if (!st.bestPremium.length) lines.push("Chưa có đơn nào trong 30 ngày.");
   lines.push("");
   lines.push("TOP KHÁCH CHI TIÊU");
   if (st.topUsers.length) st.topUsers.slice(0, 5).forEach((u, i) => lines.push(`${i + 1}. ${u.username} — ${vnd(u.spend)} · ${num(u.orders)} đơn`));
   else lines.push("Chưa có dữ liệu.");
   lines.push("");
-  lines.push(`VIỆC CHỜ: ${num(st.pending.deposits)} yêu cầu nạp · ${num(st.pending.smmManual)} đơn SMM thủ công · ${num(st.pending.premium)} đơn Premium · ${num(st.pending.tickets)} ticket đang mở`);
+  lines.push(`VIỆC CHỜ: ${num(st.pending.deposits)} yêu cầu nạp · ${num(st.pending.premium)} đơn Premium · ${num(st.pending.tickets)} ticket đang mở`);
   return lines.join("\n");
 }
 
@@ -63,16 +58,15 @@ export function buildReportHtml(st: StatsBundle, dateLabel: string) {
       </table>
       ${head("MẶT HÀNG BÁN CHẠY — 30 NGÀY", "#7c3aed")}
       <table style="width:100%;border-collapse:collapse">
-        ${st.bestSmm.slice(0, 5).map((b, i) => row([`${i + 1}. ${b.name}`, `${num(b.orders)} đơn`, vnd(b.revenue)])).join("")}
         ${st.bestPremium.slice(0, 5).map((b, i) => row([`${i + 1}. ${b.name}`, `${num(b.quantity)} gói`, vnd(b.revenue)])).join("")}
-        ${!st.bestSmm.length && !st.bestPremium.length ? row(["Chưa có đơn nào trong 30 ngày", "", ""]) : ""}
+        ${!st.bestPremium.length ? row(["Chưa có đơn nào trong 30 ngày", "", ""]) : ""}
       </table>
       ${head("TOP KHÁCH CHI TIÊU", "#d97706")}
       <table style="width:100%;border-collapse:collapse">
         ${st.topUsers.slice(0, 5).map((u, i) => row([`${i + 1}. ${u.username}`, `${num(u.orders)} đơn`, vnd(u.spend)])).join("") || row(["Chưa có dữ liệu", "", ""])}
       </table>
       <div style="margin-top:20px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 14px;font-size:13px;color:#9a3412">
-        Việc chờ xử lý: <b>${num(st.pending.deposits)}</b> yêu cầu nạp · <b>${num(st.pending.smmManual)}</b> đơn SMM thủ công · <b>${num(st.pending.premium)}</b> đơn Premium · <b>${num(st.pending.tickets)}</b> ticket đang mở
+        Việc chờ xử lý: <b>${num(st.pending.deposits)}</b> yêu cầu nạp · <b>${num(st.pending.premium)}</b> đơn Premium · <b>${num(st.pending.tickets)}</b> ticket đang mở
       </div>
     </div>
   </div></div>`;

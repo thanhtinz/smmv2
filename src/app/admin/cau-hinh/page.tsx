@@ -150,7 +150,7 @@ function SeasonalPreview({ theme }: { theme: SeasonalTheme }) {
 
 /** Trang Cài đặt admin — dựng theo bố cục panel mẫu: các tab gạch chân cuộn ngang
  *  (Chung → Thanh toán → Email → Telegram → Thông báo → Google → Khuyến mãi →
- *  Giới thiệu → Pass → Bảo mật → Cron Job → SMM Tool API → AI Kiểm tra → USDT →
+ *  Giới thiệu → Pass → Bảo mật → Cron Job → API → AI tư vấn → USDT →
  *  Script/HTML), MỘT nút Lưu cài đặt ở góc phải header cho toàn trang.
  *  (Tab chọn kiểu trang Đăng nhập/Đăng ký đã bỏ — auth chỉ còn MỘT thiết kế.) */
 export default async function AdminSettings({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
@@ -466,7 +466,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
   const gioithieu = (
     <section className="card p-6 space-y-4">
       <div className="font-bold text-slate-900">{L("Chương trình giới thiệu (Affiliate)")}</div>
-      <div className={infoBox}>{L("Cho phép người dùng chia sẻ link giới thiệu và nhận hoa hồng trên mỗi giao dịch mua của người được giới thiệu (đặt đơn SMM + mua Premium). Hoa hồng cộng vào số dư hoa hồng riêng của người giới thiệu; khách tự rút về ví chính khi đạt mức tối thiểu bên dưới.")}</div>
+      <div className={infoBox}>{L("Cho phép người dùng chia sẻ link giới thiệu và nhận hoa hồng trên mỗi giao dịch mua của người được giới thiệu (mua sản phẩm Premium). Hoa hồng cộng vào số dư hoa hồng riêng của người giới thiệu; khách tự rút về ví chính khi đạt mức tối thiểu bên dưới.")}</div>
       <div>
         <label className="lbl">{L("Bật chương trình giới thiệu")}</label>
         <select className="inp" name="module_affiliate" defaultValue={s.module_affiliate === "0" ? "0" : "1"}><option value="1">{L("Bật")}</option><option value="0">{L("Tắt")}</option></select>
@@ -499,10 +499,9 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
         <div><label className="lbl">{L("Giảm thêm khi thanh toán (%)")}</label><input className="inp" name="pass_discount_percent" type="number" step="0.5" min="0" max="100" defaultValue={s.pass_discount_percent} /></div>
         <div>
           <label className="lbl">{L("Phạm vi áp dụng")}</label>
-          <select className="inp" name="pass_scope" defaultValue={s.pass_scope || "ALL"}>
-            <option value="ALL">{L("Tất cả đơn (SMM + Premium)")}</option>
+          <select className="inp" name="pass_scope" defaultValue={s.pass_scope === "SMM" ? "ALL" : s.pass_scope || "ALL"}>
+            <option value="ALL">{L("Tất cả đơn")}</option>
             <option value="PREMIUM">{L("Chỉ sản phẩm Premium")}</option>
-            <option value="SMM">{L("Chỉ dịch vụ SMM")}</option>
           </select>
         </div>
       </div>
@@ -595,7 +594,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
   );
   const cron = (
     <>
-      <div className={warnBox}>{L("Hệ thống chạy nền qua MỘT đường dẫn cron duy nhất: mỗi lần gọi, hệ thống tự đồng bộ trạng thái đơn hàng, thả đơn drip-feed và đăng ký định kỳ tới hạn, đồng bộ dịch vụ & giá từ nhà cung cấp, kiểm tra số dư nhà cung cấp, auto refill và gửi báo cáo ngày. Cài cron gọi mỗi 5–10 phút là đủ.")}</div>
+      <div className={warnBox}>{L("Hệ thống chạy nền qua MỘT đường dẫn cron duy nhất: mỗi lần gọi, hệ thống tự đồng bộ trạng thái đơn Premium, đồng bộ catalog & giá từ nhà cung cấp, kiểm tra số dư nhà cung cấp và gửi báo cáo ngày. Cài cron gọi mỗi 5–10 phút là đủ.")}</div>
       <section className="card p-6 space-y-3.5">
         <div className="font-bold text-slate-900">{L("Khoá bí mật Cron")}</div>
         <div>
@@ -605,7 +604,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       </section>
       <section className="card p-6 space-y-3.5">
         <div className="font-bold text-slate-900">{L("Danh sách đường dẫn Cron & Webhook")}</div>
-        {cronRow("Đồng bộ trạng thái đơn hàng, dịch vụ & refill", "mỗi 5–10 phút", cronUrl, "Trên VPS: crontab */5 * * * * curl -s \"URL trên\". Trên Vercel: vercel.json mục crons với header x-cron-secret.")}
+        {cronRow("Đồng bộ trạng thái đơn hàng & catalog", "mỗi 5–10 phút", cronUrl, "Trên VPS: crontab */5 * * * * curl -s \"URL trên\". Trên Vercel: vercel.json mục crons với header x-cron-secret.")}
         {cronRow("Webhook cộng tiền tự động (SePay / ngân hàng)", "theo giao dịch", webhookUrl, "Header: Authorization: Apikey <secret đặt ở trang Cấu hình nạp tiền>. Cộng tiền theo mã nạp trong nội dung chuyển khoản, chống cộng trùng theo mã giao dịch.")}
         {cronRow("Webhook Stripe", "theo sự kiện", `${base}/api/webhooks/stripe`, "Khai trong Stripe Dashboard, sự kiện checkout.session.completed, ký bằng Webhook Secret ở tab Thanh toán.")}
         {cronRow("Trang quay về sau thanh toán PayPal / Stripe", "sau thanh toán", `${base}/api/payments/paypal/return · ${base}/api/payments/stripe/return`)}
@@ -613,185 +612,37 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
     </>
   );
 
-  /* ---------------- SMM Tool API ---------------- */
-  const schemaRows: Array<[string, string, string]> = [
-    ["id", "Int", "ID duy nhất của đơn hàng"],
-    ["link", "String", "Link cần tăng (Facebook, TikTok,...)"],
-    ["quantity", "Int", "Số lượng cần tăng cho đơn hàng"],
-    ["start_count", "Int", "Số lượng ban đầu trước khi chạy (số tại thời điểm mua)"],
-    ["remains", "Int", "Số lượng còn lại cần chạy"],
-    ["external_order_id", "String", "ID đơn của phía tool (nếu cập nhật rồi thì giữ nguyên)"],
-    ["status", "String", "Trạng thái đơn: processing, inprogress, completed, partial, canceled, refunded, error"],
-  ];
-  const toolapi = (
-    <>
-      <section className="card p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="font-bold text-slate-900">{L("Cấu hình API Key")}</div>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">v1.0.0</span>
-        </div>
-        <div>
-          <label className="lbl">{L("Tool API Key (Mã bí mật)")}</label>
-          <ToolKeyField initial={s.tool_api_key} />
-        </div>
-        <div className="rounded-xl bg-rose-50 px-4 py-3 text-[13px] leading-relaxed text-rose-700">{L("Không chia sẻ Tool API Key này với bất kỳ ai. Người có key có thể xem các đơn hàng đang chờ và cập nhật trạng thái đơn hàng.")}</div>
-      </section>
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-        <section className="card p-6 space-y-3 text-sm">
-          <div className="font-bold text-slate-900">{L("Thông tin chung")}</div>
-          <div className="space-y-2 text-slate-600">
-            <div className="flex flex-wrap gap-2"><span className="w-24 shrink-0 font-semibold text-slate-800">Base URL:</span><code className="rounded-lg bg-slate-100 px-2 py-0.5 text-[13px]">{base}/api/tool</code></div>
-            <div className="flex flex-wrap gap-2"><span className="w-24 shrink-0 font-semibold text-slate-800">{L("Xác thực:")}</span><span>{L("Tham số key trên URL, header x-tool-key, hoặc field key trong body")}</span></div>
-            <div className="flex flex-wrap gap-2"><span className="w-24 shrink-0 font-semibold text-slate-800">{L("Định dạng:")}</span><span>JSON</span></div>
-            <div className="flex flex-wrap gap-2"><span className="w-24 shrink-0 font-semibold text-slate-800">{L("Mã hóa:")}</span><span>UTF-8</span></div>
-          </div>
-          <p className="text-[13px] leading-relaxed text-slate-500"><b className="text-slate-700">{L("Lưu ý quan trọng:")}</b> {L("Tool chỉ nhận đơn của dịch vụ")} <b>{L("Thủ công")}</b> {L("đang chờ xử lý (pending, processing, inprogress). Cập nhật thành công trả về")} <span className="font-mono">data: true</span>{L(". Trạng thái hợp lệ khi cập nhật: processing, inprogress, completed, partial, canceled, refunded, error. Huỷ/hoàn/một phần sẽ tự hoàn tiền theo phần chưa chạy.")}</p>
-        </section>
-        <section className="card p-6 space-y-3">
-          <div className="font-bold text-slate-900">{L("Bảng tham số dữ liệu (Response Schema)")}</div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400"><th className="py-2 pr-3">Field</th><th className="py-2 pr-3">{L("Kiểu")}</th><th className="py-2">{L("Mô tả chi tiết")}</th></tr></thead>
-              <tbody>
-                {schemaRows.map(([f, t, d]) => (
-                  <tr key={f} className="border-b border-slate-100 last:border-0"><td className="py-2 pr-3 font-mono text-[13px] font-semibold text-slate-800">{f}</td><td className="py-2 pr-3 text-slate-500">{t}</td><td className="py-2 text-slate-600">{L(d)}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+  /* ---------------- API đại lý ---------------- */
+  const api = (
+    <section className="card p-6 space-y-4 text-sm">
+      <div className="font-bold text-slate-900">{L("API đại lý")}</div>
+      <div>
+        <div className="text-slate-500 mb-1">Base URL:</div>
+        <code className="block bg-slate-950 text-slate-100 rounded-xl px-4 py-3 break-all">{base}/api/v2</code>
       </div>
-      <section className="card p-6 space-y-3">
-        <div className="font-bold text-slate-900">{L("Danh sách Endpoint")}</div>
-        <details className="group rounded-xl border border-slate-200 px-4 py-3" open>
-          <summary className="flex cursor-pointer flex-wrap items-center gap-2 text-sm font-semibold text-slate-800">
-            <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-extrabold text-emerald-700">GET</span>
-            <span className="font-mono">/orders</span>
-            <span className="font-normal text-slate-500">{L("— Lấy danh sách đơn hàng chờ xử lý")}</span>
-          </summary>
-          <div className="mt-3 space-y-2 text-sm text-slate-600">
-            <p>{L("Tham số lọc:")} <span className="font-mono">status, service_id, search</span>{L(". Lấy đầy đủ thông tin của đơn hàng cần xử lý (link, số lượng cần tăng...).")}</p>
-            <code className="block overflow-x-auto whitespace-pre rounded-xl bg-slate-950 px-4 py-3 text-[12.5px] leading-relaxed text-slate-100">{`GET ${base}/api/tool/orders?key=<TOOL_API_KEY>
-
-[
-  {
-    "id": 123,
-    "code": "SMM100123",
-    "link": "https://www.facebook.com/...",
-    "quantity": 1000,
-    "start_count": 250,
-    "remains": 1000,
-    "external_order_id": "",
-    "status": "pending",
-    "service_id": 1
-  }
-]`}</code>
-          </div>
-        </details>
-        <details className="group rounded-xl border border-slate-200 px-4 py-3">
-          <summary className="flex cursor-pointer flex-wrap items-center gap-2 text-sm font-semibold text-slate-800">
-            <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-extrabold text-emerald-700">GET</span>
-            <span className="font-mono">/orders/{"{id}"}</span>
-            <span className="font-normal text-slate-500">{L("— Xem chi tiết một đơn hàng cụ thể")}</span>
-          </summary>
-          <div className="mt-3">
-            <code className="block overflow-x-auto whitespace-pre rounded-xl bg-slate-950 px-4 py-3 text-[12.5px] leading-relaxed text-slate-100">{`GET ${base}/api/tool/orders/123?key=<TOOL_API_KEY>
-
-{
-  "id": 123,
-  "code": "SMM100123",
-  "link": "https://www.facebook.com/...",
-  "quantity": 1000,
-  "start_count": 250,
-  "remains": 400,
-  "external_order_id": "EXT-999",
-  "status": "inprogress",
-  "service_id": 1,
-  "admin_note": "",
-  "service": { "id": 1, "name": "Follow Facebook" }
-}`}</code>
-          </div>
-        </details>
-        <details className="group rounded-xl border border-slate-200 px-4 py-3">
-          <summary className="flex cursor-pointer flex-wrap items-center gap-2 text-sm font-semibold text-slate-800">
-            <span className="rounded-md bg-brand-100 px-2 py-0.5 text-[11px] font-extrabold text-brand-700">POST</span>
-            <span className="font-mono">/update</span>
-            <span className="font-normal text-slate-500">{L("— Cập nhật trạng thái đơn hàng (ID & Key trong Body)")}</span>
-          </summary>
-          <div className="mt-3 space-y-2 text-sm text-slate-600">
-            <p>{L("Tham số body:")} <span className="font-mono">id</span> {L("(bắt buộc),")} <span className="font-mono">external_order_id</span>{L(",")} <span className="font-mono">start_count</span>{L(",")} <span className="font-mono">remains</span> {L("(bắt buộc khi kết thúc),")} <span className="font-mono">status</span> {L("(bắt buộc): processing, inprogress, completed, partial, canceled, refunded, error.")}</p>
-            <code className="block overflow-x-auto whitespace-pre rounded-xl bg-slate-950 px-4 py-3 text-[12.5px] leading-relaxed text-slate-100">{`POST ${base}/api/tool/update
-Content-Type: application/json
-
-{
-  "key": "<TOOL_API_KEY>",
-  "id": 123,
-  "external_order_id": "EXT-999",
-  "start_count": 250,
-  "remains": 0,
-  "status": "completed"
-}`}</code>
-          </div>
-        </details>
-      </section>
-      <section className="card p-6 space-y-4 text-sm">
-        <div className="font-bold text-slate-900">{L("API đại lý (chuẩn SMM v2)")}</div>
-        <div>
-          <div className="text-slate-500 mb-1">Base URL:</div>
-          <code className="block bg-slate-950 text-slate-100 rounded-xl px-4 py-3 break-all">{base}/api/v2</code>
-        </div>
-        <p className="text-slate-600">{L("Xác thực: gửi kèm")} <span className="font-mono">key</span> {L("= API key riêng của từng tài khoản (khách tự lấy ở mục API đại lý trong tài khoản). Các action:")} <span className="font-mono">services · add · status · orders · balance · refill · refills · refill_status · cancel</span>{L(".")}</p>
-        <p className="text-slate-600">{L("Tài liệu đầy đủ cho khách ở trang")} <a className="text-brand-600 font-semibold" href="/dashboard/api-docs" target="_blank">{L("Tài liệu API")}</a>{L(".")}</p>
-      </section>
-    </>
+      <p className="text-slate-600">{L("Xác thực: gửi kèm")} <span className="font-mono">key</span> {L("= API key riêng của từng tài khoản (khách tự lấy ở mục API trong tài khoản). Các action:")} <span className="font-mono">products · category · buy · premium_status · history</span>{L(".")}</p>
+      <p className="text-slate-600">{L("Tài liệu đầy đủ cho khách ở trang")} <a className="text-brand-600 font-semibold" href="/dashboard/api-docs" target="_blank">{L("Tài liệu API")}</a>{L(".")}</p>
+    </section>
   );
 
-  /* ---------------- AI Kiểm tra ---------------- */
-  const aiCategories: Array<[string, string]> = [
-    ["Cơ quan nhà nước", "Trang web mạo danh cơ quan chính phủ, bộ ngành, địa phương."],
-    ["Nội dung khiêu dâm", "Hình ảnh, video, văn bản khiêu dâm, đồi trụy."],
-    ["Cờ bạc", "Trang web cờ bạc, cá cược, xổ số, casino trực tuyến."],
-    ["Ma tuý", "Mua bán, sử dụng, quảng cáo chất ma tuý, chất kích thích."],
-    ["Lừa đảo", "Trang web lừa đảo, phishing, giả mạo, chiếm đoạt tài sản."],
-    ["Bạo lực", "Nội dung bạo lực, đẫm máu, khủng bố, kích động thù hận."],
-    ["Chống phá Nhà nước", "Nội dung chống phá Đảng, Nhà nước, xuyên tạc lịch sử."],
-    ["Buôn bán vũ khí", "Mua bán súng đạn, vũ khí, vật liệu nổ trái phép."],
-    ["Xâm phạm quyền trẻ em", "Nội dung xâm hại, bóc lột trẻ em dưới mọi hình thức."],
-  ];
+  /* ---------------- AI tư vấn ---------------- */
   const ai = (
-    <>
-      <section className="card p-6 space-y-4">
-        <div className="font-bold text-slate-900">{L("Kiểm tra liên kết bằng AI")}</div>
-        <div className={infoBox}>{L("Khi bật, mỗi đơn SMM mới sẽ được AI quét link ở chế độ nền: nếu link thuộc nhóm nội dung vi phạm ở danh sách bên dưới, đơn bị gắn cờ rủi ro và báo về cho admin (đơn vẫn chạy bình thường, admin tự quyết định xử lý). Kết nối AI này cũng dùng cho LiveChat tư vấn tìm dịch vụ phía khách.")}</div>
-        <div>
-          <label className="lbl">{L("Bật AI kiểm tra link đơn hàng")}</label>
-          <select className="inp" name="ai_check_enabled" defaultValue={s.ai_check_enabled === "1" ? "1" : "0"}><option value="0">{L("Tắt")}</option><option value="1">{L("Bật — quét link mọi đơn SMM mới")}</option></select>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div><label className="lbl">{L("Bật AI (tư vấn + kiểm tra)")}</label>
-            <select className="inp" name="ai_enabled" defaultValue={s.ai_enabled === "1" ? "1" : "0"}><option value="0">{L("Tắt")}</option><option value="1">{L("Bật")}</option></select></div>
-          <div><label className="lbl">{L("Nhà cung cấp")}</label>
-            <select className="inp" name="ai_provider" defaultValue={s.ai_provider || "openai"}><option value="openai">{L("OpenAI / endpoint tương thích")}</option><option value="gemini">Google Gemini</option><option value="meta">Meta — Muse (Model API)</option></select></div>
-          <div><label className="lbl">{L("API URL (Base URL tuỳ chỉnh — để trống = mặc định)")}</label><input className="inp" name="ai_base_url" defaultValue={s.ai_base_url} placeholder="https://api.openai.com/v1" /></div>
-          <div><label className="lbl">{L("Model AI")}</label><input className="inp" name="ai_model" defaultValue={s.ai_model} placeholder="VD: gpt-4o-mini / gemini-2.0-flash" /></div>
-          <div className="sm:col-span-2"><label className="lbl">API Key</label><input className="inp" name="ai_api_key" defaultValue={s.ai_api_key} placeholder={L("Dán API key của bạn")} autoComplete="off" /><p className="mt-1 text-xs text-rose-500">{L("Không chia sẻ API key này với bất kỳ ai.")}</p></div>
-          <div><label className="lbl">Meta API Key (Muse)</label><input className="inp" name="ai_meta_api_key" defaultValue={s.ai_meta_api_key} placeholder="LLM_..." autoComplete="off" /></div>
-          <div><label className="lbl">{L("Model Meta")}</label><input className="inp" name="ai_meta_model" defaultValue={s.ai_meta_model} placeholder="muse-wonder-1.0" /></div>
-        </div>
-        <a href="/api/admin/ai-test" className="btn-ghost btn-sm inline-block">{L("Kiểm tra kết nối AI")}</a>
-      </section>
-      <section className="card p-6 space-y-3">
-        <div className="font-bold text-slate-900">{L("Các nội dung AI sẽ kiểm tra")}</div>
-        <ul className="divide-y divide-slate-100">
-          {aiCategories.map(([t, d]) => (
-            <li key={t} className="flex items-start gap-3 py-2.5">
-              <span className="mt-0.5 flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-md bg-emerald-500"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg></span>
-              <span className="text-sm leading-relaxed"><b className="text-slate-800">{L(t)}</b> <span className="text-slate-500">— {L(d)}</span></span>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </>
+    <section className="card p-6 space-y-4">
+      <div className="font-bold text-slate-900">{L("AI tư vấn (LiveChat)")}</div>
+      <div className={infoBox}>{L("Kết nối AI dùng cho LiveChat tư vấn phía khách: gợi ý sản phẩm Premium trong catalog của shop theo nhu cầu khách mô tả, kèm thông tin FAQ và nạp tiền có sẵn trên trang.")}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label className="lbl">{L("Bật AI tư vấn")}</label>
+          <select className="inp" name="ai_enabled" defaultValue={s.ai_enabled === "1" ? "1" : "0"}><option value="0">{L("Tắt")}</option><option value="1">{L("Bật")}</option></select></div>
+        <div><label className="lbl">{L("Nhà cung cấp")}</label>
+          <select className="inp" name="ai_provider" defaultValue={s.ai_provider || "openai"}><option value="openai">{L("OpenAI / endpoint tương thích")}</option><option value="gemini">Google Gemini</option><option value="meta">Meta — Muse (Model API)</option></select></div>
+        <div><label className="lbl">{L("API URL (Base URL tuỳ chỉnh — để trống = mặc định)")}</label><input className="inp" name="ai_base_url" defaultValue={s.ai_base_url} placeholder="https://api.openai.com/v1" /></div>
+        <div><label className="lbl">{L("Model AI")}</label><input className="inp" name="ai_model" defaultValue={s.ai_model} placeholder="VD: gpt-4o-mini / gemini-2.0-flash" /></div>
+        <div className="sm:col-span-2"><label className="lbl">API Key</label><input className="inp" name="ai_api_key" defaultValue={s.ai_api_key} placeholder={L("Dán API key của bạn")} autoComplete="off" /><p className="mt-1 text-xs text-rose-500">{L("Không chia sẻ API key này với bất kỳ ai.")}</p></div>
+        <div><label className="lbl">Meta API Key (Muse)</label><input className="inp" name="ai_meta_api_key" defaultValue={s.ai_meta_api_key} placeholder="LLM_..." autoComplete="off" /></div>
+        <div><label className="lbl">{L("Model Meta")}</label><input className="inp" name="ai_meta_model" defaultValue={s.ai_meta_model} placeholder="muse-wonder-1.0" /></div>
+      </div>
+      <a href="/api/admin/ai-test" className="btn-ghost btn-sm inline-block">{L("Kiểm tra kết nối AI")}</a>
+    </section>
   );
 
   /* ---------------- USDT ---------------- */
@@ -848,8 +699,8 @@ Content-Type: application/json
           { id: "pass", label: "Pass", icon: I.star, content: pass },
           { id: "baomat", label: L("Bảo mật"), icon: I.shield, content: baomat },
           { id: "cron", label: "Cron Job", icon: I.clock, content: cron },
-          { id: "toolapi", label: "SMM Tool API", icon: I.key, content: toolapi },
-          { id: "ai", label: L("AI Kiểm tra"), icon: I.cpu, content: ai },
+          { id: "api", label: "API", icon: I.key, content: api },
+          { id: "ai", label: L("AI tư vấn"), icon: I.cpu, content: ai },
           { id: "usdt", label: "USDT", icon: I.money, content: usdt },
           { id: "script", label: "Script/HTML", icon: I.file, content: script },
         ]} />

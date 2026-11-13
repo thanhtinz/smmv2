@@ -16,7 +16,7 @@ const T_STATUS: Record<string, { label: string; cls: string }> = {
   ANSWERED: { label: "Đã phản hồi", cls: "bg-emerald-100 text-emerald-800" },
   CLOSED: { label: "Đã đóng", cls: "bg-slate-200 text-slate-600" },
 };
-const T_CAT: Record<string, string> = { smm: "Đơn SMM", premium: "Đơn Premium / bảo hành", deposit: "Nạp tiền", other: "Khác" };
+const T_CAT: Record<string, string> = { smm: "Đơn hàng", premium: "Đơn Premium / bảo hành", deposit: "Nạp tiền", other: "Khác" };
 
 /** Giá trị hiển thị của một kênh liên hệ, suy từ link đã chuẩn hoá
  *  (cùng cách suy của footer): tel: → số điện thoại; t.me → @tên; còn lại bỏ phần miền. */
@@ -114,7 +114,6 @@ export default async function TicketsPage({ searchParams }: { searchParams: { ms
               <div>
                 <label className="lbl">{L("Chủ đề")}</label>
                 <select className="inp" name="category" defaultValue={searchParams.category || "other"}>
-                  <option value="smm">{L("Đơn SMM")}</option>
                   <option value="premium">{L("Đơn Premium / bảo hành")}</option>
                   <option value="deposit">{L("Nạp tiền")}</option>
                   <option value="other">{L("Khác")}</option>

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { adminSaveProvider, adminDeleteProvider, adminProviderAction, adminProviderMarkup, adminSyncAllProviders, adminSaveService, adminDeleteService, adminToggleService, adminSaveCategory, adminDeleteCategory, adminToggleCategory, adminTogglePlatform, adminReorderCategories } from "@/app/actions/admin";
-import { num, PLATFORMS } from "@/lib/format";
+import { adminSaveProvider, adminDeleteProvider, adminProviderAction, adminProviderMarkup, adminSyncAllProviders } from "@/app/actions/admin";
+import { num } from "@/lib/format";
 import { useLang } from "@/components/lang";
 
 /* ---------- Khung modal dùng chung cho khu vực danh mục (NCC / Dịch vụ / Danh mục) ---------- */
@@ -58,16 +58,15 @@ export const FZR_MARKUP_GROUPS = [
   ["steam_gift", "Steam Gift Games"],
 ] as const;
 
-export type ProviderMode = "SMM" | "PREMIUM" | "FZR" | "LEGACY";
+export type ProviderMode = "PREMIUM" | "FZR" | "LEGACY";
 
-/** Chế độ form nhà cung cấp (lệnh Tín 2026-11-08): ba nút thêm riêng — SMM /
- *  Premium / FZR — mỗi biến thể chỉ hiện field của loại đó, không còn dropdown
- *  kind/driver trong form. NCC cũ loại BOTH mở biến thể LEGACY (đủ 2 dropdown
- *  như form cũ) để vẫn sửa được mọi field. */
+/** Chế độ form nhà cung cấp: hai nút thêm riêng — Premium / FZR — mỗi biến
+ *  thể chỉ hiện field của loại đó, không còn dropdown kind/driver trong
+ *  form. NCC cũ loại BOTH (hoặc kind SMM sót từ trước đợt gỡ SMM 2026-11-12)
+ *  mở biến thể LEGACY (đủ 2 dropdown như form cũ) để vẫn sửa được mọi field. */
 export function providerModeOf(p?: ProviderDTO): ProviderMode {
-  if (!p) return "SMM";
+  if (!p) return "PREMIUM";
   if (p.driver === "FZR") return "FZR";
-  if (p.kind === "SMM") return "SMM";
   if (p.kind === "PREMIUM") return "PREMIUM";
   return "LEGACY";
 }
@@ -77,14 +76,14 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
   const [tab, setTab] = useState(0);
   const [driver, setDriver] = useState(provider?.driver || "STANDARD");
   const p = provider;
-  const m: ProviderMode = p ? providerModeOf(p) : mode || "SMM";
+  const m: ProviderMode = p ? providerModeOf(p) : mode || "PREMIUM";
   // apiUrl là CONTROLLED: trình duyệt có thói quen khôi phục giá trị đã gõ cho
   // field cùng tên giữa các lần mở modal (đã gặp: URL của form FZR bị áp sang
   // form SMM khi sửa) — controlled value theo đúng NCC đang sửa mới chống được.
   const [apiUrl, setApiUrl] = useState(p?.apiUrl || (m === "FZR" ? "https://api.fzr.cards" : ""));
   const effectiveDriver = m === "FZR" ? "FZR" : m === "LEGACY" ? driver : "STANDARD";
   const tabs = ["Thông tin cơ bản", "Cài đặt đồng bộ", "Tiền tệ & Giới hạn"];
-  const title = p ? t("Chỉnh sửa nhà cung cấp") : m === "SMM" ? t("Thêm nhà cung cấp SMM") : m === "PREMIUM" ? t("Thêm nhà cung cấp Premium") : t("Thêm nhà cung cấp FZR");
+  const title = p ? t("Chỉnh sửa nhà cung cấp") : m === "PREMIUM" ? t("Thêm nhà cung cấp Premium") : t("Thêm nhà cung cấp FZR");
   return (
     <Modal title={title} onClose={onClose} wide>
       <form action={adminSaveProvider}>
@@ -118,8 +117,7 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
                   <div>
                     <label className={lbl}>{t("Loại API *")}</label>
                     <select name="kind" defaultValue={p?.kind || "BOTH"} className={inp}>
-                      <option value="BOTH">Standard API (SMM + Premium)</option>
-                      <option value="SMM">{t("Chỉ SMM v2")}</option>
+                      <option value="BOTH">Standard API (Premium)</option>
                       <option value="PREMIUM">{t("Chỉ API sản phẩm (Premium)")}</option>
                     </select>
                   </div>
@@ -139,10 +137,9 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
               </>
             ) : (
               <>
-                <input type="hidden" name="kind" value={m === "SMM" ? "SMM" : "PREMIUM"} />
+                <input type="hidden" name="kind" value="PREMIUM" />
                 <input type="hidden" name="driver" value={m === "FZR" ? "FZR" : "STANDARD"} />
                 <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
-                  {m === "SMM" && t("Nhà cung cấp SMM chuẩn API v2: đồng bộ dịch vụ SMM, đẩy đơn và cập nhật trạng thái tự động.")}
                   {m === "PREMIUM" && t("Nhà cung cấp Premium chuẩn đối tác: đồng bộ catalog sản phẩm số (tài khoản, key, gói) vào cửa hàng Premium.")}
                   {m === "FZR" && t("FazerCards: đồng bộ sản phẩm số (game key, gift card, nạp dịch vụ, Telegram, Steam) vào Premium.")}
                 </p>
@@ -169,7 +166,7 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
             <div>
               <label className={lbl}>{t("Tỷ lệ giá (%)")}</label>
               <input name="markupPercent" type="number" min={0} max={500} defaultValue={p?.markupPercent ?? 30} className={inp} />
-              <p className="mt-1 text-xs text-slate-400">{t("Tỷ lệ tăng giá khi đồng bộ dịch vụ từ nhà cung cấp.")}</p>
+              <p className="mt-1 text-xs text-slate-400">{t("Tỷ lệ tăng giá khi đồng bộ sản phẩm từ nhà cung cấp.")}</p>
             </div>
             {effectiveDriver === "FZR" && (
               <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
@@ -186,12 +183,12 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
               </div>
             )}
             <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 px-4 py-2">
-              <Switch name="syncServices" defaultChecked={p ? p.syncServices : true} label={t("Đồng bộ dịch vụ")} />
+              <Switch name="syncServices" defaultChecked={p ? p.syncServices : true} label={t("Đồng bộ sản phẩm")} />
               <Switch name="syncCategories" defaultChecked={p ? p.syncCategories : true} label={t("Đồng bộ danh mục")} />
               <Switch name="autoUpdatePrice" defaultChecked={p ? p.autoUpdatePrice : true} label={t("Tự động cập nhật giá")} />
               <Switch name="syncContent" defaultChecked={p ? p.syncContent : false} label={t("Cập nhật Tên dịch vụ khi đồng bộ")} />
               <Switch name="filterHtml" defaultChecked={p ? p.filterHtml : true} label={t("Lọc HTML độc hại khỏi tên/mô tả")} />
-              <Switch name="syncAdvanced" defaultChecked={p ? p.syncAdvanced : false} label={t("Đồng bộ nâng cao (Refill / Hủy / Drip-feed)")} />
+              <Switch name="syncAdvanced" defaultChecked={p ? p.syncAdvanced : false} label={t("Đồng bộ nâng cao")} />
             </div>
           </div>
           <div className={tab === 2 ? "space-y-4" : "hidden"}>
@@ -216,109 +213,14 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
   );
 }
 
-type ImportSvc = { id: string; name: string; category: string; costVnd: number; min: number; max: number; imported: boolean };
-
 /** Import dịch vụ CHỌN LỌC: xem toàn bộ dịch vụ phía nhà cung cấp, tick chọn từng
  *  dịch vụ muốn nhập, đặt % markup riêng cho đợt nhập rồi mới tạo — khác nút Đồng bộ
  *  (đồng bộ là nhập tất cả + cập nhật giá các dịch vụ đã có). */
-export function ImportServicesModal({ provider, onClose }: { provider: ProviderDTO; onClose: () => void }) {
-  const { t, td, m } = useLang();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [services, setServices] = useState<ImportSvc[]>([]);
-  const [q, setQ] = useState("");
-  const [markup, setMarkup] = useState(provider.markupPercent);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState("");
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await fetch(`/api/admin/provider-services?providerId=${provider.id}`);
-        const j = await r.json();
-        if (!r.ok) throw new Error(j.error || t("Không lấy được danh sách"));
-        setServices(j.services);
-        setSelected(new Set(j.services.filter((s: ImportSvc) => !s.imported).map((s: ImportSvc) => s.id)));
-      } catch (e: any) {
-        setError(String(e?.message || t("Lỗi tải danh sách")));
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [provider.id]);
-
-  const visible = services.filter((s) => !q.trim() || s.name.toLowerCase().includes(q.trim().toLowerCase()) || s.category.toLowerCase().includes(q.trim().toLowerCase()));
-  const toggle = (id: string) => setSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  const toggleVisible = () => {
-    const ids = visible.filter((s) => !s.imported).map((s) => s.id);
-    const allOn = ids.every((id) => selected.has(id));
-    setSelected((prev) => { const n = new Set(prev); ids.forEach((id) => (allOn ? n.delete(id) : n.add(id))); return n; });
-  };
-
-  async function doImport() {
-    setBusy(true); setError("");
-    try {
-      const r = await fetch("/api/admin/provider-services", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ providerId: provider.id, markup, ids: Array.from(selected) }) });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || t("Import thất bại"));
-      setResult(`${t("Đã import")} ${j.created} ${t("dịch vụ mới")}${j.skipped ? `, ${t("bỏ qua")} ${j.skipped} ${t("dịch vụ đã có")}` : ""}.`);
-      setServices((prev) => prev.map((s) => (selected.has(s.id) ? { ...s, imported: true } : s)));
-      setSelected(new Set());
-    } catch (e: any) {
-      setError(String(e?.message || t("Import thất bại")));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Modal title={`${t("Import dịch vụ")} — ${provider.name}`} onClose={onClose} wide>
-      <div className="flex flex-col" style={{ maxHeight: "78vh" }}>
-        <div className="flex flex-wrap items-center gap-2 px-6 pt-4">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Tìm dịch vụ / danh mục phía nhà cung cấp…")} className="inp min-w-[220px] flex-1" />
-          <label className="flex items-center gap-1.5 text-sm text-slate-600">Markup <input type="number" min={0} max={500} value={markup} onChange={(e) => setMarkup(parseInt(e.target.value) || 0)} className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm" /> %</label>
-          <span className="text-sm text-slate-500">{t("Đã chọn")} <b className="text-slate-800">{selected.size}</b>{` / ${services.filter((s) => !s.imported).length} `}{t("dịch vụ mới")}</span>
-        </div>
-        {error && <div className="mx-6 mt-3 rounded-xl bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-600">{error}</div>}
-        {result && <div className="mx-6 mt-3 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">{result}</div>}
-        <div className="mt-3 flex-1 overflow-y-auto px-6 pb-2">
-          {loading ? <div className="py-12 text-center text-sm text-slate-400">{t("Đang lấy danh sách dịch vụ từ nhà cung cấp…")}</div> : (
-            <table className="w-full">
-              <thead><tr className="border-b border-slate-100 text-left">
-                <th className="th w-10"><input type="checkbox" onChange={toggleVisible} checked={visible.some((s) => !s.imported) && visible.filter((s) => !s.imported).every((s) => selected.has(s.id))} className="h-4 w-4 accent-blue-600" /></th>
-                <th className="th">{t("Dịch vụ phía nhà cung cấp")}</th><th className="th">{t("Giá vốn")}</th><th className="th">Min – Max</th><th className="th">{t("Trạng thái")}</th>
-              </tr></thead>
-              <tbody className="divide-y divide-slate-100">
-                {visible.map((s) => (
-                  <tr key={s.id} className={s.imported ? "opacity-55" : "hover:bg-slate-50/60"}>
-                    <td className="td"><input type="checkbox" disabled={s.imported} checked={selected.has(s.id)} onChange={() => toggle(s.id)} className="h-4 w-4 accent-blue-600" /></td>
-                    <td className="td"><div className="font-semibold text-slate-800">{s.name}</div><div className="text-xs text-slate-400">ID {s.id} · {s.category}</div></td>
-                    <td className="td font-semibold text-slate-700">{m(s.costVnd)}</td>
-                    <td className="td text-slate-500">{num(s.min)} – {num(s.max)}</td>
-                    <td className="td">{s.imported ? <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">{t("Đã có")}</span> : <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-600">{t("Mới")}</span>}</td>
-                  </tr>
-                ))}
-                {visible.length === 0 && <tr><td colSpan={5} className="td py-10 text-center text-slate-400">{t("Không có dịch vụ nào khớp.")}</td></tr>}
-              </tbody>
-            </table>
-          )}
-        </div>
-        <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-          <button type="button" onClick={() => (result ? window.location.reload() : onClose())} className="btn-ghost btn-sm !px-5 !py-2.5">{result ? t("Đóng & tải lại") : t("Hủy")}</button>
-          <button disabled={busy || selected.size === 0} onClick={doImport} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50">{busy ? t("Đang import…") : `${t("Import")} ${selected.size} ${t("dịch vụ")}`}</button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
 export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups }: { providers: ProviderDTO[]; webhookSecretSet?: boolean; fzrMarkups?: Record<string, string> }) {
   const { t, td, m } = useLang();
   const [editing, setEditing] = useState<ProviderDTO | undefined>(undefined);
-  const [addMode, setAddMode] = useState<ProviderMode>("SMM");
+  const [addMode, setAddMode] = useState<ProviderMode>("PREMIUM");
   const [open, setOpen] = useState(false);
-  const [importing, setImporting] = useState<ProviderDTO | undefined>(undefined);
   const iconBtn = "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-800";
   const openAdd = (mode: ProviderMode) => { setEditing(undefined); setAddMode(mode); setOpen(true); };
   return (
@@ -326,7 +228,6 @@ export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups }: { p
       <div className="flex flex-wrap items-center gap-2">
         <form action={adminSyncAllProviders}><button className="btn-ghost !px-4">{t("Đồng bộ tất cả")}</button></form>
         <span className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
-        <button onClick={() => openAdd("SMM")} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm nhà cung cấp SMM")}</button>
         <button onClick={() => openAdd("PREMIUM")} className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600">{t("+ Thêm nhà cung cấp Premium")}</button>
         <button onClick={() => openAdd("FZR")} className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700">{t("+ Thêm nhà cung cấp FZR")}</button>
       </div>
@@ -334,22 +235,20 @@ export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups }: { p
           (state không tự reset) — không có key, form thêm FZR mở sau form SMM
           sẽ còn nguyên URL đã gõ ở form trước (đã gặp thật khi kiểm chứng). */}
       {open && <ProviderModal key={editing ? `edit-${editing.id}` : `add-${addMode}`} provider={editing} mode={addMode} onClose={() => setOpen(false)} webhookSecretSet={webhookSecretSet} fzrMarkups={fzrMarkups} />}
-      {importing && <ImportServicesModal provider={importing} onClose={() => setImporting(undefined)} />}
       <div className="card mt-5 overflow-x-auto">
         <table className="w-full min-w-[880px]">
           <thead><tr className="border-b border-slate-100">
-            <th className="th">{t("Nhà cung cấp")}</th><th className="th">{t("Dịch vụ")}</th><th className="th">API</th><th className="th">{t("Tỷ lệ")}</th><th className="th">{t("Tiền tệ")}</th><th className="th">{t("Số dư")}</th><th className="th">{t("Trạng thái")}</th><th className="th text-right">{t("Hành động")}</th>
+            <th className="th">{t("Nhà cung cấp")}</th><th className="th">{t("Sản phẩm")}</th><th className="th">API</th><th className="th">{t("Tỷ lệ")}</th><th className="th">{t("Tiền tệ")}</th><th className="th">{t("Số dư")}</th><th className="th">{t("Trạng thái")}</th><th className="th text-right">{t("Hành động")}</th>
           </tr></thead>
           <tbody className="divide-y divide-slate-100">
             {providers.map((p) => (
               <tr key={p.id} className="hover:bg-slate-50/60">
                 <td className="td"><div className="font-bold text-slate-800">{p.name}</div><div className="max-w-[220px] truncate text-xs text-slate-400">{p.apiUrl}</div></td>
-                <td className="td text-slate-600">{`${num(p.serviceCount)} ${t("dịch vụ")}`}</td>
+                <td className="td text-slate-600">{`${num(p.serviceCount)} ${t("sản phẩm")}`}</td>
                 <td className="td">
                   {p.driver === "FZR" ? <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-bold text-violet-700">FZR · FazerCards</span>
-                    : p.kind === "SMM" ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">SMM</span>
                     : p.kind === "PREMIUM" ? <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">Premium</span>
-                    : <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">SMM + Premium</span>}
+                    : <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">Premium</span>}
                   <div className="mt-1 text-xs text-slate-400">{p.lastSyncAt ? `${t("Đồng bộ")}: ${p.lastSyncAt}` : t("Chưa đồng bộ")}</div></td>
                 <td className="td">
                   <form action={adminProviderMarkup} className="flex items-center gap-1.5">
@@ -365,317 +264,18 @@ export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups }: { p
                 <td className="td">
                   <div className="flex items-center justify-end gap-1.5">
                     <button className={iconBtn} title={t("Sửa")} onClick={() => { setEditing(p); setOpen(true); }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg></button>
-                    {p.kind !== "PREMIUM" && <button className={iconBtn} title={t("Import dịch vụ (chọn lọc)")} onClick={() => setImporting(p)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg></button>}
                     <form action={adminProviderAction}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="kind" value="sync" /><button className={iconBtn} title={t("Đồng bộ")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6" /></svg></button></form>
                     {p.driver === "FZR" && <form action={adminProviderAction}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="kind" value="sync-steam" /><button className={iconBtn} title={t("Đồng bộ kèm Steam gift")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" /></svg></button></form>}
                     <form action={adminProviderAction}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="kind" value="balance" /><button className={iconBtn} title={t("Kiểm tra số dư")}><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.5v15l13-7.5-13-7.5Z" /></svg></button></form>
-                    <form action={adminDeleteProvider} onSubmit={(e) => { if (!confirm(`${t("Xoá nhà cung cấp")} ${p.name}? ${t("Dịch vụ liên kết sẽ chuyển về thủ công.")}`)) e.preventDefault(); }}><input type="hidden" name="id" value={p.id} /><button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6" /></svg></button></form>
+                    <form action={adminDeleteProvider} onSubmit={(e) => { if (!confirm(`${t("Xoá nhà cung cấp")} ${p.name}?`)) e.preventDefault(); }}><input type="hidden" name="id" value={p.id} /><button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6" /></svg></button></form>
                   </div>
                 </td>
               </tr>
             ))}
-            {providers.length === 0 && <tr><td colSpan={8} className="td py-10 text-center text-slate-400">{t("Chưa có nhà cung cấp nào — chọn một trong ba nút thêm ở trên theo loại nguồn (SMM / Premium / FZR).")}</td></tr>}
+            {providers.length === 0 && <tr><td colSpan={8} className="td py-10 text-center text-slate-400">{t("Chưa có nhà cung cấp nào — chọn một trong hai nút thêm ở trên theo loại nguồn (Premium / FZR).")}</td></tr>}
           </tbody>
         </table>
       </div>
     </>
-  );
-}
-
-/* ================= DỊCH VỤ ================= */
-export type ServiceDTO2 = {
-  id: number; categoryId: number; categoryName: string; platform: string; name: string; description: string | null; notice: string | null;
-  rate: number; costRate: number; min: number; max: number; avgTime: string | null; type: string; customMarkup: number | null;
-  refill: boolean; cancelable: boolean; dripfeed: boolean; autoRefill: boolean; active: boolean;
-  autoSyncPrice: boolean; qtyAdjustPercent: number; autoUid: boolean; telegramBot: string | null; sort: number;
-  providerId: number | null; providerName: string | null; providerMarkup: number | null; providerServiceId: string | null;
-  backupProviderId: number | null; backupProviderServiceId: string | null; backupCostRate: number; updatedAt: string;
-};
-export type CategoryDTO = { id: number; platform: string; name: string; sort: number; active: boolean; serviceCount: number };
-export type ProviderOpt = { id: number; name: string; markupPercent: number };
-
-const SERVICE_TYPES = ["Default", "Comments", "Custom Comments", "Reactions", "Watch Time", "Package", "Mentions", "Subscriptions"];
-
-export type BotOpt = { id: string; name: string };
-
-export function ServiceModal({ service, categories, providers, bots, onClose }: { service?: ServiceDTO2; categories: CategoryDTO[]; providers: ProviderOpt[]; bots?: BotOpt[]; onClose: () => void }) {
-  const { t, td, m } = useLang();
-  const s = service;
-  const [providerId, setProviderId] = useState<string>(s?.providerId ? String(s.providerId) : "");
-  const [cost, setCost] = useState<number>(s?.costRate || 0);
-  const [rate, setRate] = useState<number>(s?.rate || 0);
-  const [markup, setMarkup] = useState<string>(s?.customMarkup != null ? String(s.customMarkup) : "");
-  const calcPrice = () => { const m = parseInt(markup || "0"); if (cost > 0) setRate(Math.round(cost * (1 + m / 100))); };
-  const platforms = Array.from(new Set(categories.map((c) => c.platform)));
-  return (
-    <Modal title={s ? t("Chỉnh sửa dịch vụ") : t("Thêm dịch vụ mới")} onClose={onClose} wide>
-      <form action={adminSaveService}>
-        {s && <input type="hidden" name="id" value={s.id} />}
-        <input type="hidden" name="fulfillment" value={providerId ? "API" : "MANUAL"} />
-        <input type="hidden" name="providerId" value={providerId} />
-        <input type="hidden" name="sort" value={s?.sort ?? 0} />
-        <div className="max-h-[66vh] space-y-4 overflow-y-auto px-6 py-5">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={lbl}>{t("Danh mục *")}</label>
-              <select name="categoryId" required defaultValue={s?.categoryId || ""} className={inp}>
-                <option value="" disabled>{t("Chọn danh mục")}</option>
-                {platforms.map((pf) => (
-                  <optgroup key={pf} label={t((PLATFORMS as any)[pf] || pf)}>
-                    {categories.filter((c) => c.platform === pf).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={lbl}>{t("Nhà cung cấp")}</label>
-              <select value={providerId} onChange={(e) => setProviderId(e.target.value)} className={inp}>
-                <option value="">{t("Thủ công (không đấu API)")}</option>
-                {providers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-          </div>
-          {providerId && (
-            <div><label className={lbl}>{t("ID dịch vụ tại nhà cung cấp")}</label><input name="providerServiceId" defaultValue={s?.providerServiceId || ""} className={inp} placeholder="VD: 1049" /></div>
-          )}
-          <div>
-            <label className={lbl}>{t("Bot Telegram báo đơn")}</label>
-            <select name="telegramBot" defaultValue={s?.telegramBot || ""} className={inp}>
-              <option value="">{t("Mặc định (Bot hệ thống)")}</option>
-              {(bots || []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-            <p className="mt-1 text-xs text-slate-400">{t("Thêm bot phụ ở Cấu hình → tab Telegram. Đơn của dịch vụ này sẽ báo về bot được chọn.")}</p>
-          </div>
-          <div><label className={lbl}>{t("Tên dịch vụ *")}</label><input name="name" required defaultValue={s?.name || ""} className={inp} placeholder={t("Nhập tên dịch vụ")} /></div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={lbl}>{t("Giá bán (VNĐ/1k) *")}</label>
-              <input name="rate" type="number" min={0} value={rate} onChange={(e) => setRate(parseInt(e.target.value || "0"))} className={inp} />
-              <p className="mt-1 text-xs text-blue-600">{t("Giá bán tính cho 1000 đơn vị.")}</p>
-            </div>
-            <div><label className={lbl}>{t("Giá vốn (VNĐ/1k)")}</label><input name="costRate" type="number" min={0} value={cost} onChange={(e) => setCost(parseInt(e.target.value || "0"))} className={inp} /></div>
-          </div>
-          {cost > 0 && (
-            <div className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
-              <span className={rate - cost >= 0 ? "font-bold text-emerald-600" : "font-bold text-rose-600"}>{`${t("Lãi:")} ${rate - cost >= 0 ? "+" : ""}${m(rate - cost)} (${cost > 0 ? (((rate - cost) / cost) * 100).toFixed(2) : "0"}%)`}</span>
-              <span className="text-slate-500">{` · ${t("So sánh với NCC:")} ${t("Giá gốc")} ${m(cost)} — ${t("Giá bán")} ${m(rate)}`}</span>
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={lbl}>{t("Phần trăm riêng (%)")}</label>
-              <div className="flex gap-2">
-                <input name="customMarkup" type="number" min={0} max={500} value={markup} onChange={(e) => setMarkup(e.target.value)} className={inp} placeholder={t("Để trống = theo NCC")} />
-                <button type="button" onClick={calcPrice} className="btn-ghost btn-sm shrink-0 !px-3">{t("Tính giá")}</button>
-              </div>
-            </div>
-            <div>
-              <label className={lbl}>{t("Loại dịch vụ")}</label>
-              <select name="type" defaultValue={s?.type || "Default"} className={inp}>{SERVICE_TYPES.map((ty) => <option key={ty} value={ty}>{ty}</option>)}</select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className={lbl}>{t("Số lượng tối thiểu")}</label><input name="min" type="number" min={1} defaultValue={s?.min ?? 10} className={inp} /></div>
-            <div><label className={lbl}>{t("Số lượng tối đa")}</label><input name="max" type="number" min={1} defaultValue={s?.max ?? 100000} className={inp} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className={lbl}>{t("Thời gian hoàn thành")}</label><input name="avgTime" defaultValue={s?.avgTime || ""} className={inp} placeholder={t("VD: 0-12 giờ")} /></div>
-            <div>
-              <label className={lbl}>{t("Điều chỉnh % số lượng sang API")}</label>
-              <input name="qtyAdjustPercent" type="number" min={-90} max={500} defaultValue={s?.qtyAdjustPercent ?? 0} className={inp} />
-              <p className="mt-1 text-xs text-slate-400">{t("+10% = đơn 100 đẩy sang API thành 110; -10% = đẩy 90. Khách vẫn tính theo số lượng khách đặt.")}</p>
-            </div>
-          </div>
-          <div><label className={lbl}>{t("Ghi chú / Mô tả")}</label><textarea name="description" rows={3} defaultValue={s?.description || ""} className={inp} placeholder={t("Nhập mô tả chi tiết về dịch vụ...")} /></div>
-          <div><label className={lbl}>{t("Thông báo dịch vụ")}</label><textarea name="notice" rows={2} defaultValue={s?.notice || ""} className={inp} placeholder={t("VD: Dịch vụ đang chạy chậm 12–24h, cân nhắc trước khi đặt...")} /><p className="mt-1 text-xs text-slate-400">{t("Hiện nổi bật màu vàng cho khách ở trang đặt đơn khi chọn dịch vụ này. Để trống = không hiện.")}</p></div>
-          <div className="grid grid-cols-3 gap-3 rounded-xl border border-slate-200 px-4 py-2">
-            <Switch name="refill" defaultChecked={s?.refill ?? true} label={t("Hỗ trợ Refill")} />
-            <Switch name="cancelable" defaultChecked={s?.cancelable ?? true} label={t("Hỗ trợ hủy")} />
-            <Switch name="dripfeed" defaultChecked={s?.dripfeed ?? false} label={t("Hỗ trợ Dripfeed")} />
-          </div>
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 px-4 py-2">
-            <Switch name="autoRefill" defaultChecked={s?.autoRefill ?? false} label={t("Tự động Refill khi tụt số")} />
-            <Switch name="active" defaultChecked={s ? s.active : true} label={t("Đang bật bán")} />
-            <Switch name="autoSyncPrice" defaultChecked={s?.autoSyncPrice ?? true} label={t("Tự động đồng bộ giá theo NCC")} />
-            <Switch name="autoUid" defaultChecked={s?.autoUid ?? false} label={t("Lấy UID tự động từ link")} />
-          </div>
-          {providerId && (
-            <details className="rounded-xl border border-slate-200 px-4 py-3">
-              <summary className="cursor-pointer text-sm font-semibold text-slate-700">{t("Nhà cung cấp dự phòng (Smart Routing)")}</summary>
-              <div className="mt-3 grid grid-cols-3 gap-3">
-                <select name="backupProviderId" defaultValue={s?.backupProviderId || ""} className={inp}><option value="">{t("Không đặt")}</option>{providers.filter((p) => p.id !== parseInt(providerId || "0")).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                <input name="backupProviderServiceId" defaultValue={s?.backupProviderServiceId || ""} className={inp} placeholder={t("ID tại NCC dự phòng")} />
-                <input name="backupCostRate" type="number" min={0} defaultValue={s?.backupCostRate || 0} className={inp} placeholder={t("Giá vốn dự phòng")} />
-              </div>
-            </details>
-          )}
-        </div>
-        <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm !px-5 !py-2.5">{t("Hủy")}</button>
-          <button className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("Lưu dịch vụ")}</button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-export function ServiceRowActions({ service, categories, providers, bots }: { service: ServiceDTO2; categories: CategoryDTO[]; providers: ProviderOpt[]; bots?: BotOpt[] }) {
-  const { t, td } = useLang();
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="flex items-center justify-end gap-1.5">
-      <button onClick={() => setOpen(true)} title={t("Sửa")} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg></button>
-      <form action={adminDeleteService} onSubmit={(e) => { if (!confirm(`${t("Xoá dịch vụ")} "${service.name}"?`)) e.preventDefault(); }}>
-        <input type="hidden" name="id" value={service.id} />
-        <button title={t("Xoá")} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6" /></svg></button>
-      </form>
-      {open && <ServiceModal service={service} categories={categories} providers={providers} bots={bots} onClose={() => setOpen(false)} />}
-    </div>
-  );
-}
-
-export function AddServiceButton({ categories, providers, bots }: { categories: CategoryDTO[]; providers: ProviderOpt[]; bots?: BotOpt[] }) {
-  const { t } = useLang();
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button onClick={() => setOpen(true)} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm dịch vụ")}</button>
-      {open && <ServiceModal categories={categories} providers={providers} bots={bots} onClose={() => setOpen(false)} />}
-    </>
-  );
-}
-
-export function ServiceStatusToggle({ service }: { service: ServiceDTO2 }) {
-  const { t } = useLang();
-  return (
-    <form action={adminToggleService}>
-      <input type="hidden" name="id" value={service.id} />
-      <button title={t("Bấm để bật/tắt")} className={`rounded-full px-2.5 py-1 text-xs font-bold ${service.active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{service.active ? t("Đang bật") : t("Đã tắt")}</button>
-    </form>
-  );
-}
-
-/* ================= DANH MỤC ================= */
-export function CategoryModal({ category, platforms, presetPlatform, onClose }: { category?: CategoryDTO; platforms: string[]; presetPlatform?: string; onClose: () => void }) {
-  const { t } = useLang();
-  const c = category;
-  const [platform, setPlatform] = useState(c?.platform || presetPlatform || platforms[0] || "facebook");
-  const isNewPlatform = platform === "__new";
-  return (
-    <Modal title={c ? t("Chỉnh sửa danh mục") : t("Thêm danh mục mới")} onClose={onClose}>
-      <form action={adminSaveCategory}>
-        {c && <input type="hidden" name="id" value={c.id} />}
-        <div className="space-y-4 px-6 py-5">
-          <div>
-            <label className={lbl}>{t("Danh mục cha (nền tảng)")}</label>
-            <select value={platform} onChange={(e) => setPlatform(e.target.value)} className={inp}>
-              {platforms.map((pf) => <option key={pf} value={pf}>{t((PLATFORMS as any)[pf] || pf)}</option>)}
-              <option value="__new">{t("+ Nền tảng mới...")}</option>
-            </select>
-            {isNewPlatform && <input name="platform" className={`${inp} mt-2`} placeholder={t("Mã nền tảng mới (vd: discord)")} />}
-            {!isNewPlatform && <input type="hidden" name="platform" value={platform} />}
-          </div>
-          <div><label className={lbl}>{t("Tên danh mục *")}</label><input name="name" required defaultValue={c?.name || ""} className={inp} placeholder={t("Nhập tên danh mục...")} /></div>
-          <div><label className={lbl}>{t("Thứ tự hiển thị")}</label><input name="sort" type="number" defaultValue={c?.sort ?? 0} className={inp} /></div>
-          <Switch name="active" defaultChecked={c ? c.active : true} label={t("Trạng thái")} />
-        </div>
-        <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm !px-5 !py-2.5">{t("Hủy")}</button>
-          <button className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">OK</button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-export function CategoriesClient({ categories }: { categories: CategoryDTO[] }) {
-  const { t, td } = useLang();
-  const platforms = Array.from(new Set(categories.map((c) => c.platform)));
-  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => Object.fromEntries(platforms.map((p) => [p, true])));
-  const [modal, setModal] = useState<{ category?: CategoryDTO; preset?: string } | null>(null);
-  const dragId = useRef<number | null>(null);
-  const [order, setOrder] = useState<CategoryDTO[]>(categories);
-  const reorderRef = useRef<HTMLFormElement>(null);
-  const [dragOrderIds, setDragOrderIds] = useState("");
-
-  const onDrop = (platform: string, targetId: number) => {
-    if (dragId.current == null) return;
-    const group = order.filter((c) => c.platform === platform);
-    const from = group.findIndex((c) => c.id === dragId.current);
-    const to = group.findIndex((c) => c.id === targetId);
-    if (from < 0 || to < 0 || from === to) return;
-    const [moved] = group.splice(from, 1);
-    group.splice(to, 0, moved);
-    const rest = order.filter((c) => c.platform !== platform);
-    setOrder([...rest, ...group]);
-    setDragOrderIds(JSON.stringify(group.map((c) => c.id)));
-    setTimeout(() => reorderRef.current?.requestSubmit(), 50);
-    dragId.current = null;
-  };
-
-  const avatarColor = (pf: string) => ({ facebook: "bg-blue-600", tiktok: "bg-slate-900", instagram: "bg-pink-600", youtube: "bg-red-600", telegram: "bg-sky-500", shopee: "bg-orange-500", x: "bg-slate-800", spotify: "bg-emerald-600", other: "bg-slate-500" } as Record<string, string>)[pf] || "bg-slate-500";
-  const iconBtn = "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700";
-
-  return (
-    <div className="card p-4 sm:p-5">
-      <form ref={reorderRef} action={adminReorderCategories} className="hidden"><input type="hidden" name="ids" value={dragOrderIds} /></form>
-      <div className="mb-3 flex items-center justify-between px-1">
-        <div className="text-sm text-slate-500">{`${t("Tổng")} ${order.length} ${t("danh mục · kéo thả để sắp xếp")}`}</div>
-        <button onClick={() => setModal({})} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm nền tảng")}</button>
-      </div>
-      <div className="space-y-3">
-        {platforms.map((pf) => {
-          const group = order.filter((c) => c.platform === pf);
-          const totalServices = group.reduce((a, c) => a + c.serviceCount, 0);
-          const allOn = group.every((c) => c.active);
-          const isOpen = expanded[pf] !== false;
-          return (
-            <div key={pf} className="rounded-2xl border border-slate-200">
-              <div className="flex items-center gap-3 px-4 py-3">
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-black text-white ${avatarColor(pf)}`}>{((PLATFORMS as any)[pf] || pf).charAt(0)}</span>
-                <div className="min-w-0 flex-1">
-                  <div className="font-extrabold text-slate-800">{t((PLATFORMS as any)[pf] || pf)}</div>
-                  <div className="text-xs text-slate-400">{`${group.length} ${t("danh mục con ·")} ${num(totalServices)} ${t("dịch vụ")}`}</div>
-                </div>
-                <form action={adminTogglePlatform}>
-                  <input type="hidden" name="platform" value={pf} />
-                  <input type="hidden" name="target" value={allOn ? "off" : "on"} />
-                  <button title={t("Bật/tắt cả nền tảng")} className={`rounded-full px-3 py-1 text-xs font-bold ${allOn ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{allOn ? t("Bật") : t("Tắt")}</button>
-                </form>
-                <button onClick={() => setExpanded({ ...expanded, [pf]: !isOpen })} className={iconBtn} title={isOpen ? t("Thu gọn") : t("Mở rộng")}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={`transition ${isOpen ? "rotate-90" : ""}`}><path d="m9 6 6 6-6 6" /></svg>
-                </button>
-              </div>
-              {isOpen && (
-                <div className="border-t border-slate-100 px-3 py-2">
-                  {group.map((c) => (
-                    <div key={c.id} draggable onDragStart={() => { dragId.current = c.id; }} onDragOver={(e) => e.preventDefault()} onDrop={() => onDrop(pf, c.id)}
-                      className="group flex items-center gap-2.5 rounded-xl px-2 py-2 hover:bg-slate-50">
-                      <span className="cursor-grab text-slate-300" title={t("Kéo để sắp xếp")}><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6" /><circle cx="15" cy="6" r="1.6" /><circle cx="9" cy="12" r="1.6" /><circle cx="15" cy="12" r="1.6" /><circle cx="9" cy="18" r="1.6" /><circle cx="15" cy="18" r="1.6" /></svg></span>
-                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-700">{c.name}</span>
-                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-600">{num(c.serviceCount)}</span>
-                      <form action={adminToggleCategory}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <button title={t("Bật/tắt danh mục")} className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${c.active ? "bg-blue-600" : "bg-slate-200"}`}>
-                          <span className={`absolute h-5 w-5 rounded-full bg-white shadow transition-all ${c.active ? "left-[22px]" : "left-0.5"}`} />
-                        </button>
-                      </form>
-                      <button className={iconBtn} title={t("Sửa")} onClick={() => setModal({ category: c })}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg></button>
-                      <form action={adminDeleteCategory} onSubmit={(e) => { if (!confirm(`${t("Xoá danh mục")} "${c.name}"?`)) e.preventDefault(); }}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <button className={`${iconBtn} hover:!bg-rose-50 hover:!text-rose-600`} title={t("Xoá")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6" /></svg></button>
-                      </form>
-                    </div>
-                  ))}
-                  <button onClick={() => setModal({ preset: pf })} className="mt-1 w-full rounded-xl border border-dashed border-slate-300 py-2.5 text-sm font-semibold text-slate-500 transition hover:border-blue-400 hover:text-blue-600">{t("+ Thêm danh mục con")}</button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {platforms.length === 0 && <div className="py-10 text-center text-slate-400">{t("Chưa có danh mục nào.")}</div>}
-      </div>
-      {modal && <CategoryModal category={modal.category} platforms={platforms} presetPlatform={modal.preset} onClose={() => setModal(null)} />}
-    </div>
   );
 }

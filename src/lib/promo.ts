@@ -2,7 +2,7 @@ import { prisma } from "./db";
 import { moduleOn } from "./modules";
 
 /** Kiểm tra mã giảm giá cho một đơn có tổng tiền `amount`. Trả số tiền được giảm hoặc ném lỗi hiển thị cho khách. */
-export async function checkPromo(rawCode: string, scope: "SMM" | "PREMIUM", amount: number) {
+export async function checkPromo(rawCode: string, scope: "PREMIUM", amount: number) {
   const code = rawCode.trim().toUpperCase();
   if (!code) return null;
   if (!(await moduleOn("promo"))) throw new Error("Tính năng mã giảm giá đang tạm tắt");

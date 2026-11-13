@@ -83,7 +83,6 @@ export async function SiteFooter({ brand, widgets = true }: { brand?: FooterBran
           <ul className="space-y-1.5">
             <li><Link href="/" className={linkCls}>{L("Trang chủ")}</Link></li>
             <li><Link href="/premium" className={linkCls}>{L("Tất cả sản phẩm")}</Link></li>
-            <li><Link href="/dashboard/dich-vu" className={linkCls}>{L("Bảng giá dịch vụ")}</Link></li>
             <li><Link href="/bai-viet" className={linkCls}>{L("Bài viết")}</Link></li>
           </ul>
         </div>

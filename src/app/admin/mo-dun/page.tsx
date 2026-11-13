@@ -9,17 +9,15 @@ export const dynamic = "force-dynamic";
 type Mod = { key: string; name: string; desc: string; icon: React.ReactNode };
 
 const MODULES: Mod[] = [
-  { key: "module_smm", name: "Đặt đơn SMM", desc: "Bán dịch vụ SMM cho khách.", icon: I.cart },
   { key: "module_premium", name: "Tài khoản Premium", desc: "Bán tài khoản Premium cho khách.", icon: I.gem },
   { key: "telegram_enabled", name: "Telegram (Stars & Premium)", desc: "Hiện menu và trang đặt đơn Telegram phía khách.", icon: I.send },
   { key: "module_register", name: "Đăng ký tài khoản", desc: "Cho khách đăng ký tài khoản mới.", icon: I.users },
-  { key: "module_bulk", name: "Đặt hàng loạt", desc: "Đặt nhiều đơn cùng lúc.", icon: I.layers },
   { key: "module_promo", name: "Mã giảm giá", desc: "Áp mã giảm giá khi đặt đơn.", icon: I.gift },
   { key: "module_affiliate", name: "Giới thiệu (Affiliate)", desc: "Hoa hồng cho người giới thiệu.", icon: I.money },
   { key: "module_tickets", name: "Hỗ trợ / Ticket", desc: "Khách mở ticket hỗ trợ.", icon: I.ticket },
   { key: "module_api", name: "API đại lý", desc: "API /api/v2 cho đại lý.", icon: I.key },
   { key: "module_blog", name: "Bài viết", desc: "Tin tức, hướng dẫn trên website.", icon: I.file },
-  { key: "livechat_enabled", name: "Tư vấn nổi (AI)", desc: "Nút tư vấn nổi gợi ý dịch vụ.", icon: I.cpu },
+  { key: "livechat_enabled", name: "Tư vấn nổi (AI)", desc: "Nút tư vấn nổi gợi ý sản phẩm.", icon: I.cpu },
   { key: "support_widget_enabled", name: "Widget liên hệ nổi", desc: "Nút liên hệ Zalo / Telegram / Facebook / Hotline.", icon: I.bell },
 ];
 

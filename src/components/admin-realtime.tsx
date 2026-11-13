@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useLang } from "@/components/lang";
 
 type RtEvent = { id: string; kind: string; title: string; body: string; link: string; at: string };
-type Feed = { counts: { total: number; depPending: number; smmManual: number; prePending: number; ticketOpen: number }; events: RtEvent[] };
+type Feed = { counts: { total: number; depPending: number; prePending: number; ticketOpen: number }; events: RtEvent[] };
 
 const KIND_STYLE: Record<string, { dot: string; ring: string; label: string }> = {
-  smm: { dot: "bg-sky-500", ring: "border-sky-200 bg-sky-50", label: "SMM" },
   premium: { dot: "bg-violet-500", ring: "border-violet-200 bg-violet-50", label: "Premium" },
   deposit: { dot: "bg-emerald-500", ring: "border-emerald-200 bg-emerald-50", label: "Nạp tiền" },
   ticket: { dot: "bg-rose-500", ring: "border-rose-200 bg-rose-50", label: "Ticket" },
@@ -144,14 +143,13 @@ export default function AdminRealtime({ endpoint, suffix }: { endpoint: string; 
             {feed && (
               <div className="flex flex-wrap gap-1.5 border-b border-slate-100 px-4 py-2.5 text-[11px] font-semibold">
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">{`${feed.counts.depPending} ${t("nạp chờ duyệt")}`}</span>
-                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">{`${feed.counts.smmManual} ${t("đơn thủ công")}`}</span>
                 <span className="rounded-full bg-violet-100 px-2 py-0.5 text-violet-800">{`${feed.counts.prePending} ${t("Premium chờ")}`}</span>
                 <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-800">{`${feed.counts.ticketOpen} ${t("ticket mở")}`}</span>
               </div>
             )}
             <div className="max-h-[380px] overflow-y-auto">
               {(feed?.events || []).map((ev) => {
-                const st = KIND_STYLE[ev.kind] || KIND_STYLE.smm;
+                const st = KIND_STYLE[ev.kind] || KIND_STYLE.premium;
                 return (
                   <Link key={ev.id} href={ev.link} onClick={() => setOpen(false)} className="flex gap-3 border-b border-slate-50 px-4 py-3 transition hover:bg-slate-50">
                     <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${st.dot}`} />
@@ -171,7 +169,7 @@ export default function AdminRealtime({ endpoint, suffix }: { endpoint: string; 
       </div>
       <div className="pointer-events-none fixed bottom-5 right-5 z-[90] flex w-[360px] max-w-[calc(100vw-2rem)] flex-col gap-2">
         {toasts.map((ev) => {
-          const st = KIND_STYLE[ev.kind] || KIND_STYLE.smm;
+          const st = KIND_STYLE[ev.kind] || KIND_STYLE.premium;
           return (
             <div key={ev.id} className={`pointer-events-auto flex gap-3 rounded-2xl border bg-white p-3.5 shadow-2xl ${st.ring}`}>
               <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${st.dot}`} />

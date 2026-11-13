@@ -1,9 +1,9 @@
 import { prisma } from "./db";
 
 /** Xuất CSV báo cáo (đợt bổ sung): UTF-8 có BOM để Excel đọc đúng tiếng Việt.
- *  Phạm vi toàn hệ thống (web mẹ). */
+ *  Phạm vi toàn hệ thống. Loại "smm" đã gỡ cùng đợt tách web (2026-11-12). */
 
-export const EXPORT_TYPES = ["smm", "premium", "deposits", "transactions", "users"] as const;
+export const EXPORT_TYPES = ["premium", "deposits", "transactions", "users"] as const;
 export type ExportType = (typeof EXPORT_TYPES)[number];
 
 function esc(v: unknown): string {
@@ -17,11 +17,7 @@ export async function buildExportCsv(type: ExportType, from?: Date, to?: Date): 
   const dateWhere = (from || to) ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {};
   const userScope = {};
   let lines: string[] = [];
-  if (type === "smm") {
-    const rows = await prisma.smmOrder.findMany({ where: { user: userScope, ...dateWhere }, orderBy: { id: "desc" }, take: 5000, include: { user: { select: { username: true } }, service: { select: { name: true } } } });
-    lines = [row(["Mã đơn", "Khách", "Dịch vụ", "Link", "Số lượng", "Tiền (VNĐ)", "Đã hoàn (VNĐ)", "Trạng thái", "Ngày tạo"]),
-      ...rows.map((o) => row([o.code, o.user.username, o.service.name, o.link, o.quantity, o.charge, o.refundedAmount, o.status, dstr(o.createdAt)]))];
-  } else if (type === "premium") {
+  if (type === "premium") {
     const rows = await prisma.premiumOrder.findMany({ where: { user: userScope, ...dateWhere }, orderBy: { id: "desc" }, take: 5000, include: { user: { select: { username: true } }, variant: { include: { product: { select: { name: true } } } } } });
     lines = [row(["Mã đơn", "Khách", "Sản phẩm", "Gói", "Số lượng", "Tiền (VNĐ)", "Trạng thái", "Ngày tạo"]),
       ...rows.map((o) => row([o.code, o.user.username, o.variant.product.name, o.variant.name, o.quantity, o.total, o.status, dstr(o.createdAt)]))];

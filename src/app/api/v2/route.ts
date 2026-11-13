@@ -1,33 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { userByApiKey } from "@/lib/auth";
-import { createSmmOrder, createPremiumOrder, refundSmmOrder } from "@/lib/orders";
-import { smmCharge, vnd, parsePremiumFields } from "@/lib/format";
-import { getSettings, levelDiscountFromSettings } from "@/lib/settings";
-import { getActiveFlashSale, flashAppliesTo, applyFlashAmount, flashPercentForProduct } from "@/lib/flash";
+import { createPremiumOrder } from "@/lib/orders";
+import { vnd, parsePremiumFields } from "@/lib/format";
+import { applyFlashAmount, flashPercentForProduct } from "@/lib/flash";
 import { variantSoldOut, isQtyTracked, resolveDeliveryType } from "@/lib/variant-stock";
 import { FZR_LABELS } from "@/lib/fzr";
 import { moduleOn } from "@/lib/modules";
-import { providerCancel, providerRefill } from "@/lib/provider";
 import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
 import { ipAllowed } from "@/lib/ip-match";
 
 /**
- * API cho đại lý (reseller) — chuẩn SMM API v2 tương thích Perfect Panel & hầu hết panel VN.
+ * API cho đại lý (reseller) — API SẢN PHẨM SỐ (Premium).
  * Endpoint: POST /api/v2  (key, action, ...)
- * action: services | balance | add | status | orders | cancel | refill
+ * action: products | category | buy | premium_status | history
+ * Các action dịch vụ SMM (services/add/status/orders/cancel/refill/balance)
+ * đã gỡ (lệnh Tín 2026-11-12 — web tách thành Digital Shop thuần, SMM làm
+ * web riêng).
  */
 export const dynamic = "force-dynamic";
-
-const STATUS_OUT: Record<string, string> = {
-  PENDING: "Pending",
-  PROCESSING: "Processing",
-  IN_PROGRESS: "In progress",
-  COMPLETED: "Completed",
-  PARTIAL: "Partial",
-  CANCELED: "Canceled",
-  REFUNDED: "Canceled",
-};
 
 async function handle(req: NextRequest) {
   const params = new URLSearchParams(await req.text().catch(() => ""));
@@ -67,145 +58,6 @@ async function handle(req: NextRequest) {
   }
 
   try {
-    if (action === "balance") {
-      return NextResponse.json({ balance: String(user.balance), currency: "VND" });
-    }
-
-    if (action === "services") {
-      // Chỉ dịch vụ của web mẹ.
-      const services = await prisma.smmService.findMany({
-        where: { active: true, panelId: null },
-        include: { category: true },
-        orderBy: [{ categoryId: "asc" }, { sort: "asc" }, { id: "asc" }],
-      });
-      // Giá hiển thị phải KHỚP giá thực thu trong createSmmOrder: giảm theo
-      // bậc khách hàng trong Cấu hình.
-      const settings = await getSettings();
-      const discount = levelDiscountFromSettings(settings, user.level);
-      const flashSale = await getActiveFlashSale("SMM");
-      const withFlash = (svc: (typeof services)[number], v: number) => applyFlashAmount(v, flashAppliesTo(flashSale, svc.id) ? flashSale!.percent : 0);
-      const rateFor = (svc: (typeof services)[number]) => withFlash(svc, Math.round(svc.rate * (1 - discount / 100)));
-      return NextResponse.json(
-        services.map((s) => ({
-          service: s.id,
-          name: s.name,
-          type: "Default",
-          category: s.category.name,
-          rate: String(rateFor(s)),
-          min: s.min,
-          max: s.max,
-          refill: s.refill,
-          cancel: s.cancelable,
-          dripfeed: s.dripfeed,
-        }))
-      );
-    }
-
-    if (action === "add") {
-      const serviceId = parseInt(get("service"));
-      const quantity = parseInt(get("quantity"));
-      const link = get("link");
-      if (!serviceId || !quantity || !link) return NextResponse.json({ error: "Missing service, link or quantity" });
-      // Tham số phụ kiểu ThaTim cho dịch vụ đặc thù
-      const extra: Record<string, any> = {};
-      if (get("comments")) extra.comments = get("comments");
-      if (get("reaction")) extra.reaction = get("reaction");
-      if (get("minutes")) extra.minutes = parseInt(get("minutes"));
-      if (get("duration")) extra.duration = parseInt(get("duration"));
-      if (get("posts")) extra.posts = parseInt(get("posts"));
-      const fresh = await prisma.user.findUnique({ where: { id: user.id } });
-      // Drip-feed kiểu panel chuẩn: dripfeed=1&runs=10&interval=60 (phút)
-      const dripfeed = get("dripfeed") && parseInt(get("runs")) > 0 && parseInt(get("interval")) > 0
-        ? { runs: parseInt(get("runs")), intervalMinutes: parseInt(get("interval")) }
-        : undefined;
-      const order = await createSmmOrder({ user: fresh!, serviceId, link, quantity, viaApi: true, extra, dripfeed, promoCode: get("promo_code") || get("promo") || undefined });
-      return NextResponse.json({ order: order.id });
-    }
-
-    if (action === "status") {
-      const id = parseInt(get("order"));
-      const o = await prisma.smmOrder.findFirst({ where: { id, userId: user.id } });
-      if (!o) return NextResponse.json({ error: "Order not found" });
-      return NextResponse.json({
-        charge: (o.charge / 1).toFixed(0),
-        start_count: o.startCount ?? 0,
-        status: STATUS_OUT[o.status],
-        remains: o.remains ?? 0,
-        currency: "VND",
-      });
-    }
-
-    if (action === "orders") {
-      const ids = get("orders")
-        .split(",")
-        .map((x) => parseInt(x.trim()))
-        .filter(Boolean)
-        .slice(0, 100);
-      const list = await prisma.smmOrder.findMany({ where: { id: { in: ids }, userId: user.id } });
-      const out: Record<string, any> = {};
-      for (const o of list)
-        out[o.id] = {
-          charge: String(o.charge),
-          start_count: o.startCount ?? 0,
-          status: STATUS_OUT[o.status],
-          remains: o.remains ?? 0,
-          currency: "VND",
-        };
-      for (const id of ids) if (!out[id]) out[id] = { error: "Order not found" };
-      return NextResponse.json(out);
-    }
-
-    if (action === "cancel") {
-      const ids = get("orders")
-        .split(",")
-        .map((x) => parseInt(x.trim()))
-        .filter(Boolean)
-        .slice(0, 100); // cắt tối đa 100 id/lần như nhánh orders — chống khuếch đại tải
-      const out: any[] = [];
-      for (const id of ids) {
-        const o = await prisma.smmOrder.findFirst({
-          where: { id, userId: user.id },
-          include: { service: true, provider: true },
-        });
-        if (!o) {
-          out.push({ order: id, error: "Order not found" });
-          continue;
-        }
-        if (!o.service.cancelable || !["PENDING", "PROCESSING"].includes(o.status)) {
-          out.push({ order: id, error: "Cannot cancel this order" });
-          continue;
-        }
-        if (o.providerOrderId && o.provider) await providerCancel(o.provider, o.providerOrderId);
-        await refundSmmOrder(o.id, o.charge - o.refundedAmount, "Khách huỷ qua API", "CANCELED");
-        out.push({ order: id, cancel: true });
-      }
-      return NextResponse.json(out);
-    }
-
-    if (action === "refill") {
-      const id = parseInt(get("order"));
-      const o = await prisma.smmOrder.findFirst({ where: { id, userId: user.id }, include: { service: true, provider: true } });
-      if (!o) return NextResponse.json({ error: "Order not found" });
-      if (!o.service.refill) return NextResponse.json({ error: "Service does not support refill" });
-      // Chỉ đơn đã hoàn thành/một phần mới được refill — refill đơn đã huỷ/đã
-      // hoàn tiền là bắt nhà cung cấp giao lại phần giá trị đã trả lại khách.
-      if (!["COMPLETED", "PARTIAL"].includes(o.status)) return NextResponse.json({ error: "Only completed or partial orders can be refilled" });
-      if (rateLimitExceeded(`v2refill|${user.id}`, 60, 60000)) return NextResponse.json({ error: "Too many refill requests" }, { status: 429 });
-      // Đơn API: đẩy refill thật sang provider
-      if (o.fulfillment === "API" && o.provider && o.providerOrderId) {
-        try {
-          const refillId = await providerRefill(o.provider, o.providerOrderId);
-          await prisma.apiLog.create({ data: { kind: "reseller_in", ref: o.code, detail: `Refill provider=${o.provider.name} refillId=${refillId}` } });
-          return NextResponse.json({ refill: refillId });
-        } catch (e: any) {
-          return NextResponse.json({ error: String(e?.message || "Refill failed") });
-        }
-      }
-      await prisma.apiLog.create({ data: { kind: "reseller_in", ref: o.code, detail: "Yêu cầu refill từ API (đơn thủ công)" } });
-      await prisma.smmOrder.update({ where: { id: o.id }, data: { adminNote: `[Refill] Khách yêu cầu bù lúc ${new Date().toISOString()}` } });
-      return NextResponse.json({ refill: o.id });
-    }
-
     /* ===== API SẢN PHẨM SỐ THEO NHÓM (fix6 task 6) — game key, gift card,
        top-up, dịch vụ thủ công, Telegram (Stars/Premium), Steam =====
        Nhóm của một gói = providerGroup phía FZR; gói không thuộc FZR xếp
@@ -438,8 +290,6 @@ async function handle(req: NextRequest) {
       );
     }
 
-    // tránh unused warning khi tính giá hiển thị
-    void smmCharge;
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (e: any) {
     console.error("[/api/v2]", e);

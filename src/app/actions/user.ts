@@ -5,7 +5,7 @@ import { lockdownState, userCanBypassLockdown, lockdownMessage } from "@/lib/loc
 import { prisma } from "@/lib/db";
 import { cleanAttachments } from "@/lib/attachments";
 import { requireUser, currentIp } from "@/lib/auth";
-import { createSmmOrder, createPremiumOrder } from "@/lib/orders";
+import { createPremiumOrder } from "@/lib/orders";
 import { notifyUser } from "@/lib/notify";
 import { applyBalance } from "@/lib/wallet";
 import { getSettings, calcBonus, bonusTiersFor } from "@/lib/settings";
@@ -33,113 +33,6 @@ async function lockdownBlock(user: { id: number; role: string }, path: string) {
 async function riskBlock(user: { id: number }, path: string) {
   const { isRiskRestricted, RISK_RESTRICT_MESSAGE } = await import("@/lib/risk");
   if (await isRiskRestricted(user.id)) back(path, "err", RISK_RESTRICT_MESSAGE);
-}
-
-export async function placeSmmOrderAction(formData: FormData) {
-  const user = await requireUser();
-  if (rateLimitExceeded(`ordsmm|${user.id}`, 60, 60000)) back("/dashboard/dat-hang", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
-  if ((await getSettings()).module_smm === "0") back("/dashboard/dat-hang", "err", "Đặt đơn SMM đang tạm ngưng");
-  await lockdownBlock(user, "/dashboard/dat-hang");
-  await riskBlock(user, "/dashboard/dat-hang");
-  const serviceId = parseInt(String(formData.get("serviceId") || "0"));
-  // campaignId lấy từ form phải là chiến dịch của CHÍNH người đặt — không kiểm
-  // là gắn được đơn của mình vào thống kê/ngân sách chiến dịch của người khác.
-  const rawCampaignId = parseInt(String(formData.get("campaignId") || "0")) || 0;
-  let campaignId: number | undefined;
-  if (rawCampaignId) {
-    const own = await prisma.campaign.findFirst({ where: { id: rawCampaignId, userId: user.id }, select: { id: true } });
-    if (own) campaignId = own.id;
-  }
-  // Toggle "Nhiều link": mỗi dòng của ô links là 1 đơn riêng (trùng dòng thì gộp 1)
-  const multiLinks = Array.from(new Set(String(formData.get("links") || "").split("\n").map((l) => l.trim()).filter(Boolean)));
-  const link = String(formData.get("link") || "") || multiLinks[0] || "";
-  const quantity = parseInt(String(formData.get("quantity") || "0"));
-  const note = String(formData.get("note") || "") || undefined;
-  const dripfeed = formData.get("dripfeed") === "1" && parseInt(String(formData.get("runs") || "0")) > 0 && parseInt(String(formData.get("interval") || "0")) > 0
-    ? { runs: parseInt(String(formData.get("runs"))), intervalMinutes: parseInt(String(formData.get("interval"))) }
-    : undefined;
-  const extra: Record<string, any> = {};
-  const comments = String(formData.get("comments") || "").trim();
-  const reaction = String(formData.get("reaction") || "").trim();
-  const minutes = parseInt(String(formData.get("minutes") || "0"));
-  if (comments) extra.comments = comments;
-  if (reaction) extra.reaction = reaction;
-  if (minutes > 0) extra.minutes = minutes;
-  // Schedule / Loop (gói định kỳ) ĐÃ GỠ khỏi khu khách (lệnh Tín 2026-11-07): form cũ
-  // còn gửi cờ schedule/loop thì báo rõ đã ngừng hỗ trợ thay vì tạo gói không chạy.
-  if (formData.get("schedule") === "1" || formData.get("loop") === "1") {
-    back("/dashboard/dat-hang", "err", "Tính năng đặt lịch / lặp lại đã ngừng hỗ trợ — vui lòng đặt đơn trực tiếp.");
-  }
-  // Chế độ nhiều link: tạo lần lượt từng đơn độc lập; mã giảm giá chỉ áp cho đơn đầu tiên
-  if (multiLinks.length > 1) {
-    const maxLinks = await orderMaxLinksFor(user.id);
-    if (multiLinks.length > maxLinks) back("/dashboard/dat-hang", "err", `Tối đa ${maxLinks} link mỗi lần đặt`);
-    const codes: string[] = [];
-    const errors: string[] = [];
-    for (let i = 0; i < multiLinks.length; i++) {
-      try {
-        const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-        const order = await createSmmOrder({ user: fresh, serviceId, link: multiLinks[i], quantity, note, extra, dripfeed, silentNotify: true, promoCode: i === 0 ? String(formData.get("promoCode") || "") || undefined : undefined, campaignId });
-        codes.push(order.code);
-      } catch (e: any) {
-        errors.push(`link ${i + 1}: ${String(e?.message || "lỗi")}`);
-      }
-    }
-    if (codes.length > 0) await notifyUser(user.id, "Đặt đơn thành công", `Đã đặt ${codes.length} đơn: ${codes.join(", ")}`, "/dashboard/don-hang");
-    if (codes.length === 0) back("/dashboard/dat-hang", "err", `Đặt thất bại cả ${multiLinks.length} link — ${errors[0] || ""}`);
-    back("/dashboard/don-hang", "msg", `Đã đặt ${codes.length}/${multiLinks.length} đơn: ${codes.join(", ")}${errors.length ? ` — lỗi ở ${errors.slice(0, 3).join("; ")}` : ""}`);
-  }
-  try {
-    const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-    const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, note, extra, dripfeed, promoCode: String(formData.get("promoCode") || "") || undefined, campaignId });
-    back("/dashboard/don-hang", "msg", `Đặt đơn ${order.code} thành công — trạng thái: ${order.status === "REFUNDED" ? "provider từ chối, đã hoàn tiền" : "đang xử lý"}`);
-  } catch (e: any) {
-    if (String((e as any)?.digest || "").startsWith("NEXT_REDIRECT")) throw e; // back()/done() ném redirect — không được nuốt thành thông báo lỗi
-    back("/dashboard/dat-hang", "err", String(e?.message || "Đặt đơn thất bại"));
-  }
-}
-
-/**
- * Đặt hàng loạt (bulk orders): mỗi dòng "service_id | link | quantity" là một đơn riêng.
- * Xử lý từng dòng độc lập — dòng lỗi không chặn các dòng còn lại; trả về tóm tắt.
- */
-export async function bulkPlaceOrdersAction(formData: FormData) {
-  const user = await requireUser();
-  if (rateLimitExceeded(`ordbulk|${user.id}`, 10, 60000)) back("/dashboard/dat-hang", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
-  await lockdownBlock(user, "/dashboard/dat-hang");
-  await riskBlock(user, "/dashboard/dat-hang");
-  if (!(await moduleOn("bulk"))) back("/dashboard/dat-hang-loat", "err", "Tính năng đặt hàng loạt đang tắt");
-  const raw = String(formData.get("bulk") || "");
-  const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
-  if (lines.length === 0) back("/dashboard/dat-hang-loat", "err", "Chưa có dòng nào để đặt");
-  const maxLines = await orderMaxLinksFor(user.id);
-  if (lines.length > maxLines) back("/dashboard/dat-hang-loat", "err", `Tối đa ${maxLines} dòng mỗi lần đặt hàng loạt`);
-  const fresh = (await prisma.user.findUnique({ where: { id: user.id } }))!;
-  let ok = 0;
-  const errors: string[] = [];
-  const codes: string[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    const parts = lines[i].split("|").map((p) => p.trim());
-    const [sidRaw, link, qtyRaw] = parts;
-    const serviceId = parseInt(sidRaw || "0");
-    const quantity = parseInt(qtyRaw || "0");
-    if (parts.length < 3 || !serviceId || !link || !quantity) {
-      errors.push(`dòng ${i + 1}: sai định dạng (cần: id dịch vụ | link | số lượng)`);
-      continue;
-    }
-    try {
-      const order = await createSmmOrder({ user: fresh, serviceId, link, quantity, silentNotify: true });
-      ok++;
-      codes.push(order.code);
-    } catch (e: any) {
-      errors.push(`dòng ${i + 1}: ${String(e?.message || "lỗi")}`);
-    }
-  }
-  await prisma.apiLog.create({ data: { kind: "bulk_order", ref: fresh.username, ok: errors.length === 0, detail: `ok=${ok}/${lines.length} codes=${codes.join(",")}` } });
-  if (ok > 0) await notifyUser(fresh.id, "Đặt đơn thành công", `Đặt hàng loạt: ${ok}/${lines.length} đơn thành công (${codes.slice(0, 5).join(", ")}${codes.length > 5 ? "…" : ""})`, "/dashboard/don-hang");
-  if (ok === 0) back("/dashboard/dat-hang-loat", "err", `Không đặt được đơn nào. ${errors.slice(0, 3).join("; ")}`);
-  const tail = errors.length ? ` ${errors.length} dòng lỗi: ${errors.slice(0, 3).join("; ")}${errors.length > 3 ? "…" : ""}` : "";
-  back("/dashboard/don-hang", "msg", `Đặt hàng loạt xong: ${ok}/${lines.length} đơn thành công (${codes.slice(0, 5).join(", ")}${codes.length > 5 ? "…" : ""}).${tail}`);
 }
 
 export async function buyPremiumAction(formData: FormData) {
@@ -531,9 +424,6 @@ export async function createBoltDepositAction(formData: FormData) {
 }
 
 /** Trần link mỗi lần đặt theo cấu hình chung. */
-async function orderMaxLinksFor(userId: number): Promise<number> {
-  return parseInt((await getSettings()).order_max_links) || 50;
-}
 
 /** Đánh giá sản phẩm Premium — CHỈ khách đã mua (đơn không huỷ/hoàn tiền) mới
  *  được gửi; mỗi khách 1 đánh giá cho mỗi sản phẩm, gửi lại là sửa. */

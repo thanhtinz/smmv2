@@ -15,19 +15,19 @@ export default async function AdminAnalytics() {
   const notRefunded = { notIn: ["REFUNDED"] } as any;
 
   const [days, topServices, topCustomers, byProvider, funnel] = await Promise.all([
-    prisma.smmOrder.findMany({ where: { createdAt: { gte: since30 }, status: notRefunded }, select: { createdAt: true, charge: true, cost: true } }),
-    prisma.smmOrder.groupBy({ by: ["serviceId"], where: { status: notRefunded }, _sum: { charge: true, cost: true }, _count: true, orderBy: { _sum: { charge: "desc" } }, take: 8 }),
-    prisma.smmOrder.groupBy({ by: ["userId"], where: { status: notRefunded }, _sum: { charge: true }, _count: true, orderBy: { _sum: { charge: "desc" } }, take: 8 }),
-    prisma.smmOrder.groupBy({ by: ["providerId"], where: { status: notRefunded, providerId: { not: null } }, _sum: { charge: true, cost: true }, _count: true }),
+    prisma.premiumOrder.findMany({ where: { createdAt: { gte: since30 }, status: notRefunded }, select: { createdAt: true, total: true, cost: true } }),
+    prisma.premiumOrder.groupBy({ by: ["variantId"], where: { status: notRefunded }, _sum: { total: true, cost: true }, _count: true, orderBy: { _sum: { total: "desc" } }, take: 8 }),
+    prisma.premiumOrder.groupBy({ by: ["userId"], where: { status: notRefunded }, _sum: { total: true }, _count: true, orderBy: { _sum: { total: "desc" } }, take: 8 }),
+    prisma.premiumOrder.groupBy({ by: ["providerId"], where: { status: notRefunded, providerId: { not: null } }, _sum: { total: true, cost: true }, _count: true }),
     Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { totalDeposited: { gt: 0 } } }),
-      prisma.smmOrder.groupBy({ by: ["userId"], where: { status: notRefunded } }).then((r) => r.length),
+      prisma.premiumOrder.groupBy({ by: ["userId"], where: { status: notRefunded } }).then((r) => r.length),
     ]),
   ]);
   const full = await getStats({});
-  const serviceRows = await prisma.smmService.findMany({ where: { id: { in: topServices.map((t) => t.serviceId) } }, select: { id: true, name: true } });
-  const serviceName = new Map(serviceRows.map((x) => [x.id, x.name]));
+  const variantRows = await prisma.premiumVariant.findMany({ where: { id: { in: topServices.map((t) => t.variantId) } }, select: { id: true, name: true, product: { select: { name: true } } } });
+  const serviceName = new Map(variantRows.map((x) => [x.id, `${x.product.name} — ${x.name}`]));
   const userRows = await prisma.user.findMany({ where: { id: { in: topCustomers.map((t) => t.userId) } }, select: { id: true, username: true } });
   const userName = new Map(userRows.map((x) => [x.id, x.username]));
   const providerRows = await prisma.provider.findMany({ select: { id: true, name: true } });
@@ -38,7 +38,7 @@ export default async function AdminAnalytics() {
     const d = new Date(since30.getTime() + i * 86400000);
     const next = new Date(d.getTime() + 86400000);
     const inDay = days.filter((x) => x.createdAt >= d && x.createdAt < next);
-    buckets.push({ label: `${d.getDate()}/${d.getMonth() + 1}`, rev: inDay.reduce((a, x) => a + x.charge, 0), profit: inDay.reduce((a, x) => a + x.charge - x.cost, 0) });
+    buckets.push({ label: `${d.getDate()}/${d.getMonth() + 1}`, rev: inDay.reduce((a, x) => a + x.total, 0), profit: inDay.reduce((a, x) => a + x.total - x.cost, 0) });
   }
   const maxBar = Math.max(...buckets.map((b) => b.rev), 1);
   const monthRev = buckets.reduce((a, b) => a + b.rev, 0);
@@ -47,7 +47,7 @@ export default async function AdminAnalytics() {
 
   return (
     <div>
-      <PageHead title={L("Phân tích")} desc={L("Thu nhập tổng (SMM + Premium), mặt hàng bán chạy, top khách và hành vi khách hàng.")} />
+      <PageHead title={L("Phân tích")} desc={L("Thu nhập tổng, mặt hàng bán chạy, top khách và hành vi khách hàng.")} />
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={L("Thu nhập hôm nay")} value={M(full.today.revenue)} sub={L("Lãi ") + M(full.today.profit) + L(" · ") + num(full.today.orders) + L(" đơn")} icon={I.money} tone="blue" />
         <Stat label={L("Thu nhập 7 ngày")} value={M(full.last7.revenue)} sub={L("Lãi ") + M(full.last7.profit) + L(" · ") + num(full.last7.orders) + L(" đơn")} icon={I.chart} tone="cyan" />
@@ -55,8 +55,8 @@ export default async function AdminAnalytics() {
         <Stat label={L("Thu nhập tháng này")} value={M(full.month.revenue)} sub={L("Lãi ") + M(full.month.profit) + L(" · Nạp ") + M(full.month.deposits)} icon={I.wallet} tone="emerald" />
       </div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Stat label={L("Doanh thu SMM 30 ngày")} value={M(monthRev)} icon={I.chart} tone="blue" />
-        <Stat label={L("Lợi nhuận SMM 30 ngày")} value={M(monthProfit)} icon={I.money} tone="emerald" sub={monthRev > 0 ? L("Biên lợi nhuận ") + Math.round((monthProfit / monthRev) * 100) + "%" : undefined} />
+        <Stat label={L("Doanh thu Premium 30 ngày")} value={M(monthRev)} icon={I.chart} tone="blue" />
+        <Stat label={L("Lợi nhuận Premium 30 ngày")} value={M(monthProfit)} icon={I.money} tone="emerald" sub={monthRev > 0 ? L("Biên lợi nhuận ") + Math.round((monthProfit / monthRev) * 100) + "%" : undefined} />
         <Stat label={L("Tỉ lệ khách nạp tiền / đăng ký")} value={totalUsers ? `${Math.round((depositedUsers / totalUsers) * 100)}%` : "0%"} icon={I.users} tone="violet" sub={num(depositedUsers) + " / " + num(totalUsers) + L(" tài khoản")} />
       </div>
 
@@ -74,12 +74,12 @@ export default async function AdminAnalytics() {
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="card h-full overflow-hidden">
-          <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">{L("Dịch vụ doanh thu cao nhất")}</div>
+          <div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">{L("Gói sản phẩm doanh thu cao nhất")}</div>
           <table className="w-full"><tbody className="divide-y divide-slate-100">
             {topServices.map((t) => (
-              <tr key={t.serviceId}>
-                <td className="td"><div className="max-w-[220px] truncate font-medium">{serviceName.get(t.serviceId) || `#${t.serviceId}`}</div><div className="text-xs text-slate-400">{num(t._count)}{L(" đơn")}</div></td>
-                <td className="td text-right"><div className="font-bold">{M(t._sum.charge || 0)}</div><div className="text-xs text-emerald-600">{L("lãi ")}{M((t._sum.charge || 0) - (t._sum.cost || 0))}</div></td>
+              <tr key={t.variantId}>
+                <td className="td"><div className="max-w-[220px] truncate font-medium">{serviceName.get(t.variantId) || `#${t.variantId}`}</div><div className="text-xs text-slate-400">{num(t._count)}{L(" đơn")}</div></td>
+                <td className="td text-right"><div className="font-bold">{M(t._sum.total || 0)}</div><div className="text-xs text-emerald-600">{L("lãi ")}{M((t._sum.total || 0) - (t._sum.cost || 0))}</div></td>
               </tr>
             ))}
             {topServices.length === 0 && <tr><td className="td text-slate-400">{L("Chưa có dữ liệu")}</td></tr>}
@@ -91,7 +91,7 @@ export default async function AdminAnalytics() {
             {topCustomers.map((t) => (
               <tr key={t.userId}>
                 <td className="td"><Link href={`/admin/nguoi-dung/${t.userId}`} className="font-medium text-brand-700">{userName.get(t.userId) || `#${t.userId}`}</Link><div className="text-xs text-slate-400">{num(t._count)}{L(" đơn")}</div></td>
-                <td className="td text-right font-bold">{M(t._sum.charge || 0)}</td>
+                <td className="td text-right font-bold">{M(t._sum.total || 0)}</td>
               </tr>
             ))}
             {topCustomers.length === 0 && <tr><td className="td text-slate-400">{L("Chưa có dữ liệu")}</td></tr>}
@@ -104,7 +104,7 @@ export default async function AdminAnalytics() {
               {byProvider.map((t) => (
                 <tr key={String(t.providerId)}>
                   <td className="td"><span className="font-medium">{providerName.get(t.providerId!) || L("Thủ công")}</span><div className="text-xs text-slate-400">{num(t._count)}{L(" đơn")}</div></td>
-                  <td className="td text-right"><div className="font-bold">{M(t._sum.charge || 0)}</div><div className="text-xs text-emerald-600">{L("lãi ")}{M((t._sum.charge || 0) - (t._sum.cost || 0))}</div></td>
+                  <td className="td text-right"><div className="font-bold">{M(t._sum.total || 0)}</div><div className="text-xs text-emerald-600">{L("lãi ")}{M((t._sum.total || 0) - (t._sum.cost || 0))}</div></td>
                 </tr>
               ))}
               {byProvider.length === 0 && <tr><td className="td text-slate-400">{L("Chưa có đơn qua API")}</td></tr>}
@@ -116,7 +116,7 @@ export default async function AdminAnalytics() {
               {[
                 { label: "Đăng ký tài khoản", value: totalUsers },
                 { label: "Đã nạp tiền", value: depositedUsers },
-                { label: "Đã đặt đơn SMM", value: orderedUsers },
+                { label: "Đã đặt đơn Premium", value: orderedUsers },
               ].map((f, _i, arr) => (
                 <div key={f.label}>
                   <div className="mb-1 flex justify-between text-sm"><span className="text-slate-600">{L(f.label)}</span><b>{num(f.value)}</b></div>
@@ -148,7 +148,7 @@ export default async function AdminAnalytics() {
         <div className="card overflow-hidden">
           <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white">{I.users}</span>
-            <span className="font-bold text-slate-900">{L("Top khách chi tiêu — SMM + Premium")}</span>
+            <span className="font-bold text-slate-900">{L("Top khách chi tiêu")}</span>
           </div>
           <div className="divide-y divide-slate-50 px-5">
             {full.topUsers.map((u, i) => (

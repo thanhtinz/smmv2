@@ -1,12 +1,12 @@
 import { prisma } from "./db";
 
 /** Nguồn sự kiện cho thông báo realtime trong Admin: gom các bản ghi mới nhất
- *  từ đơn SMM / đơn Premium / nạp tiền / ticket / khách mới / đơn rủi ro.
+ *  từ đơn Premium / nạp tiền / ticket / khách mới.
  *  Client poll endpoint này mỗi vài giây; bản ghi mới hơn mốc đã xem sẽ bật toast. */
 
 export type RtEvent = {
-  id: string; // dạng "smm-123" — so sánh phần số theo từng kind để biết tin mới
-  kind: "smm" | "premium" | "deposit" | "ticket" | "user" | "risk";
+  id: string; // dạng "pre-123" — so sánh phần số theo từng kind để biết tin mới
+  kind: "premium" | "deposit" | "ticket" | "user" | "risk";
   title: string;
   body: string;
   link: string;
@@ -16,30 +16,19 @@ export type RtEvent = {
 export async function getRealtimeFeed() {
   const ow: any = {};
   const dw: any = {};
-  const [smm, pre, dep, tickets, users, counts] = await Promise.all([
-    prisma.smmOrder.findMany({ where: ow, orderBy: { id: "desc" }, take: 6, include: { user: { select: { username: true } }, service: { select: { name: true } } } }),
+  const [pre, dep, tickets, users, counts] = await Promise.all([
     prisma.premiumOrder.findMany({ where: ow, orderBy: { id: "desc" }, take: 5, include: { user: { select: { username: true } }, variant: { include: { product: { select: { name: true } } } } } }),
     prisma.deposit.findMany({ where: dw, orderBy: { id: "desc" }, take: 5, include: { user: { select: { username: true } } } }),
     prisma.ticket.findMany({ where: { ...dw }, orderBy: { id: "desc" }, take: 5, include: { user: { select: { username: true } } } }),
     prisma.user.findMany({ orderBy: { id: "desc" }, take: 4, select: { id: true, username: true, createdAt: true } }),
     Promise.all([
       prisma.deposit.count({ where: { status: "PENDING", ...dw } }),
-      prisma.smmOrder.count({ where: { ...ow, fulfillment: "MANUAL", status: { in: ["PENDING", "PROCESSING"] } } }),
       prisma.premiumOrder.count({ where: { ...ow, status: "PENDING" } }),
       prisma.ticket.count({ where: { status: "OPEN", ...dw } }),
     ]),
   ]);
   const base = "/admin";
   const events: RtEvent[] = [];
-  for (const o of smm) {
-    events.push({
-      id: `smm-${o.id}`, kind: o.flagNote ? "risk" : "smm",
-      title: o.flagNote ? `Đơn rủi ro ${o.code}` : `Đơn SMM mới ${o.code}`,
-      body: o.flagNote ? o.flagNote : `${o.user.username} · ${o.service.name} · ${o.charge.toLocaleString("vi-VN")}đ`,
-      link: `${base}/don-smm/${o.id}`,
-      at: o.createdAt.toISOString(),
-    });
-  }
   for (const o of pre) {
     events.push({
       id: `pre-${o.id}`, kind: "premium", title: `Đơn Premium mới ${o.code}`,
@@ -74,9 +63,9 @@ export async function getRealtimeFeed() {
     });
   }
   events.sort((a, b) => (a.at < b.at ? 1 : -1));
-  const [depPending, smmManual, prePending, ticketOpen] = counts;
+  const [depPending, prePending, ticketOpen] = counts;
   return {
-    counts: { depPending, smmManual, prePending, ticketOpen, total: depPending + smmManual + prePending + ticketOpen },
+    counts: { depPending, prePending, ticketOpen, total: depPending + prePending + ticketOpen },
     events: events.slice(0, 12),
   };
 }
