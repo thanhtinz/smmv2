@@ -1221,7 +1221,7 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
     <div className="grid md:grid-cols-[220px_1fr] gap-4 items-start">
       <div className="card p-2 flex md:flex-col gap-1 overflow-x-auto min-w-0 max-w-full">
         {actions.map((a) => (
-          <button key={a.id} type="button" onClick={() => setActive(a.id)} className={`text-left whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${a.id === cur.id ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{a.label}</button>
+          <button key={a.id} type="button" onClick={() => setActive(a.id)} className={`text-left whitespace-nowrap shrink-0 md:shrink md:whitespace-normal md:leading-snug rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${a.id === cur.id ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>{a.label}</button>
         ))}
       </div>
       <div className="card p-5 min-w-0">
