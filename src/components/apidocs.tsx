@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { ApiTabs, CopyBtn, type ApiActionDoc } from "@/components/client";
+import { ApiDocTabs, ApiTabs, CopyBtn, type ApiActionDoc } from "@/components/client";
 import { getServerI18n } from "@/lib/lang-server";
 
 const KEY: [string, string, string] = ["key", "string", "API key cá nhân của bạn"];
@@ -75,6 +75,14 @@ export async function ApiDocsView({ apiKey }: { apiKey?: string | null }) {
     { id: "buy_group", label: "Đặt đơn sản phẩm số", params: [KEY, ["action", "string", "buy"], ["product", "int", "ID gói (variant) lấy từ danh sách sản phẩm theo nhóm"], ["quantity", "int", "Số lượng (mặc định 1; riêng Telegram Stars là số sao)"], ["username", "string", "Username Telegram của người nhận (nhóm telegram_stars / telegram_premium)"], ["telegram_id", "string", "ID số Telegram của người nhận — có ID thì giao tự động ngay (tuỳ chọn)"], ["player_id", "string", "ID người chơi / tài khoản nhận (nhóm topups)"], ["steam_login", "string", "Tên đăng nhập Steam (nhóm steam_topup)"], ["receiver", "string", "Tài khoản Steam nhận gift (nhóm steam_gift)"], ["fields", "string", "JSON các trường theo required_fields của sản phẩm — nhóm topups/manual truyền theo \"key\" của nhà cung cấp ghi trong required_fields, các nhóm khác truyền theo nhãn trường (tuỳ chọn)"], ["note", "string", "Ghi chú / thông tin bổ sung cho đơn (tuỳ chọn)"], ["promo_code", "string", "Mã khuyến mãi (tuỳ chọn)"]], note: "Lỗi nghiệp vụ trả về dạng {\"error\": \"...\"}: hết hàng (\"Gói đã hết hàng\"), thiếu trường bắt buộc, số lượng không hợp lệ hoặc số dư không đủ. Đơn Telegram chỉ có username (không telegram_id) có thể ở trạng thái PENDING để xử lý tay.", curl: `curl -X POST ${endpoint} \\\n  -d "key=YOUR_API_KEY" \\\n  -d "action=buy" \\\n  -d "product=87" \\\n  -d "quantity=1"`, response: `{\n  "order_code": "PRE100043",\n  "status": "DELIVERED",\n  "delivery": "XXXXX-XXXXX-XXXXX"\n}` },
     { id: "premium_status", label: "Trạng thái đơn sản phẩm", params: [KEY, ["action", "string", "premium_status"], ["order_code", "string", "Mã đơn sản phẩm (PRE...) trả về khi đặt đơn"]], note: "Trường delivery chỉ xuất hiện khi đơn đã giao (DELIVERED / COMPLETED / WARRANTY) — đó là key/tài khoản bàn giao cho khách của bạn.", curl: `curl -X POST ${endpoint} \\\n  -d "key=YOUR_API_KEY" \\\n  -d "action=premium_status" \\\n  -d "order_code=PRE100043"`, response: `{\n  "order_code": "PRE100043",\n  "status": "DELIVERED",\n  "product": "Steam Wallet Code 10 USD",\n  "variant": "Global",\n  "quantity": 1,\n  "price": 265000,\n  "delivery": "XXXXX-XXXXX-XXXXX",\n  "created_at": "2026-01-01T10:00:00.000Z"\n}` },
   ];
+  // Dòng phương thức riêng của 2 tab sản phẩm: API mua sản phẩm nhận cả GET lẫn
+  // POST (khác API SMM chỉ POST ở tab Chung) — giữ đúng thông tin cũ, viết gọn 1 dòng.
+  const MethodLine = ({ badge }: { badge: string }) => (
+    <div className="mb-4 flex flex-wrap items-center gap-2.5">
+      <span className="rounded-md bg-brand-600 text-white text-[11px] font-black px-2 py-1">{badge}</span>
+      <span className="text-sm text-slate-500"><b className="text-slate-800">GET / POST</b> — {L("Hỗ trợ cả hai giao thức nhận tin")}</span>
+    </div>
+  );
   return (
     <div>
       <div className="mb-8">
@@ -85,17 +93,39 @@ export async function ApiDocsView({ apiKey }: { apiKey?: string | null }) {
         <p className="text-slate-500 mt-1.5">{L("Tài liệu hướng dẫn tích hợp API V2: dịch vụ Social và mua sản phẩm Premium tự động dành cho đại lý")}</p>
       </div>
 
-      <h2 className="text-lg font-black text-slate-900 mb-4">{L("Tài liệu API dịch vụ Social")}</h2>
-      <InfoCards endpoint={endpoint} method="POST" methodDesc="application/x-www-form-urlencoded" apiKey={apiKey} />
-      <ApiTabs actions={localize(SMM_ACTIONS)} />
-
-      <h2 className="text-lg font-black text-slate-900 mt-12 mb-4">{L("Tài liệu API mua sản phẩm")} <span className="ml-1 rounded-md bg-brand-600 text-white text-[11px] font-black px-2 py-1 align-middle">PRODUCT</span></h2>
-      <InfoCards endpoint={endpoint} method="GET / POST" methodDesc="Hỗ trợ cả hai giao thức nhận tin" apiKey={apiKey} />
-      <ApiTabs actions={localize(PRODUCT_ACTIONS)} />
-
-      <h2 className="text-lg font-black text-slate-900 mt-12 mb-4">{L("Tài liệu API sản phẩm số")} <span className="ml-1 rounded-md bg-brand-600 text-white text-[11px] font-black px-2 py-1 align-middle">GAME KEY · TELEGRAM · STEAM</span></h2>
-      <InfoCards endpoint={endpoint} method="GET / POST" methodDesc="Hỗ trợ cả hai giao thức nhận tin" apiKey={apiKey} />
-      <ApiTabs actions={localize(GROUP_ACTIONS)} />
+      {/* Chia tab thay vì một trang kéo dài (lệnh Tín 2026-11-12): phần GIỐNG NHAU
+          (endpoint, khoá API, phương thức, định dạng) chỉ viết 1 lần ở tab Chung;
+          mỗi tab API chỉ còn action + tham số + ví dụ của riêng nó. Hash mở đúng
+          tab: #chung / #smm / #premium / #sanphamso. */}
+      <ApiDocTabs
+        tabs={[
+          { id: "chung", label: L("Chung") },
+          { id: "smm", label: L("Dịch vụ SMM") },
+          { id: "premium", label: L("Sản phẩm Premium") },
+          { id: "sanphamso", label: L("Sản phẩm số") },
+        ]}
+      >
+        <div>
+          <InfoCards endpoint={endpoint} method="POST" methodDesc="application/x-www-form-urlencoded" apiKey={apiKey} />
+          <div className="card p-5">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">{L("Lưu ý chung")}</div>
+            <ul className="space-y-2.5 text-sm leading-relaxed text-slate-600">
+              <li><b className="text-slate-800">{L("Xác thực")}:</b> {L("Mọi yêu cầu phải kèm tham số key (API key cá nhân của bạn). Nếu key bị lộ, hãy tạo key mới tại trang API đại lý.")}</li>
+              <li><b className="text-slate-800">{L("Lỗi")}:</b> {L("Lỗi trả về dạng JSON {\"error\": \"...\"} kèm mã trạng thái HTTP tương ứng.")}</li>
+              <li><b className="text-slate-800">{L("Giới hạn")}:</b> {L("Tối đa 600 yêu cầu/phút theo IP và 300 yêu cầu/phút theo API key.")}</li>
+            </ul>
+          </div>
+        </div>
+        <ApiTabs actions={localize(SMM_ACTIONS)} />
+        <div>
+          <MethodLine badge="PRODUCT" />
+          <ApiTabs actions={localize(PRODUCT_ACTIONS)} />
+        </div>
+        <div>
+          <MethodLine badge="GAME KEY · TELEGRAM · STEAM" />
+          <ApiTabs actions={localize(GROUP_ACTIONS)} />
+        </div>
+      </ApiDocTabs>
     </div>
   );
 }

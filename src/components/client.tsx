@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { num, PLATFORMS, type PremiumCustomField } from "@/lib/format";
 import { I, PLATFORM_COLORS, StarIcon } from "@/components/ui";
@@ -1257,6 +1257,53 @@ export function ApiTabs({ actions }: { actions: ApiActionDoc[] }) {
         <div className="text-xs font-mono text-slate-400 mb-1">response.json</div>
         <pre className="bg-slate-950 text-slate-100 rounded-2xl p-4 text-xs sm:text-[13px] overflow-x-auto">{cur.response}</pre>
       </div>
+    </div>
+  );
+}
+
+/* ---------- Tabs cấp trang cho tài liệu API (lệnh Tín 2026-11-12: chia tab thay vì
+ * kéo dài hết trang; phần chung viết 1 lần ở tab Chung). Tab chọn theo hash
+ * (#chung/#smm/#premium/#sanphamso) để dẫn link mở đúng tab; đổi tab cập nhật
+ * hash bằng pushState, không tải lại trang. Nội dung các panel do server render
+ * sẵn rồi truyền vào — component này chỉ lo chuyển tab. ---------- */
+export function ApiDocTabs({ tabs, children }: { tabs: { id: string; label: string }[]; children: ReactNode[] }) {
+  const [active, setActive] = useState(tabs[0]?.id);
+  useEffect(() => {
+    const fromHash = () => {
+      const h = window.location.hash.replace("#", "");
+      if (tabs.some((tb) => tb.id === h)) setActive(h);
+    };
+    fromHash();
+    window.addEventListener("hashchange", fromHash);
+    return () => window.removeEventListener("hashchange", fromHash);
+  }, [tabs]);
+  const select = (id: string) => {
+    setActive(id);
+    try { history.pushState(null, "", `#${id}`); } catch {}
+  };
+  return (
+    <div>
+      <div role="tablist" className="mb-6 flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+        {tabs.map((tb) => (
+          <button
+            key={tb.id}
+            type="button"
+            role="tab"
+            id={`apidoc-tab-${tb.id}`}
+            aria-selected={active === tb.id}
+            aria-controls={`apidoc-panel-${tb.id}`}
+            onClick={() => select(tb.id)}
+            className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-bold transition ${active === tb.id ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+          >
+            {tb.label}
+          </button>
+        ))}
+      </div>
+      {tabs.map((tb, i) => (
+        <div key={tb.id} role="tabpanel" id={`apidoc-panel-${tb.id}`} aria-labelledby={`apidoc-tab-${tb.id}`} hidden={active !== tb.id}>
+          {children[i]}
+        </div>
+      ))}
     </div>
   );
 }

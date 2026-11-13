@@ -158,6 +158,13 @@ export const DICT: Record<string, Tr> = {
   "Lịch sử nhận hoa hồng": e("Commission history", "佣金记录", "ประวัติค่าคอมมิชชัน", "コミッション履歴", "수수료 내역"),
   "Tài liệu API dịch vụ Social": e("Social services API", "社交服务 API", "API บริการโซเชียล", "ソーシャルサービスAPI", "소셜 서비스 API"),
   "Tài liệu API mua sản phẩm": e("Product purchase API", "产品购买 API", "API ซื้อสินค้า", "商品購入API", "상품 구매 API"),
+  "Sản phẩm số": e("Digital products", "数字产品", "สินค้าดิจิทัล", "デジタル商品", "디지털 상품"),
+  "Lưu ý chung": e("General notes", "通用说明", "หมายเหตุทั่วไป", "一般的な注意", "일반 참고 사항"),
+  "Xác thực": e("Authentication", "身份验证", "การยืนยันตัวตน", "認証", "인증"),
+  "Giới hạn": e("Limits", "限制", "ขีดจำกัด", "制限", "제한"),
+  "Mọi yêu cầu phải kèm tham số key (API key cá nhân của bạn). Nếu key bị lộ, hãy tạo key mới tại trang API đại lý.": e("Every request must include the key parameter (your personal API key). If your key is exposed, generate a new one on the reseller API page.", "每个请求都必须包含 key 参数（您的个人 API 密钥）。如果密钥泄露，请在经销商 API 页面生成新密钥。", "ทุกคำขอต้องมีพารามิเตอร์ key (API key ส่วนตัวของคุณ) หาก key รั่วไหล ให้สร้างใหม่ที่หน้า API ตัวแทนจำหน่าย", "すべてのリクエストには key パラメータ（個人用 API キー）が必要です。キーが漏洩した場合は、リセラー API ページで新しいキーを生成してください。", "모든 요청에는 key 매개변수(개인 API 키)가 포함되어야 합니다. 키가 노출된 경우 리셀러 API 페이지에서 새 키를 생성하세요."),
+  "Lỗi trả về dạng JSON {\"error\": \"...\"} kèm mã trạng thái HTTP tương ứng.": e("Errors are returned as JSON {\"error\": \"...\"} with the corresponding HTTP status code.", "错误以 JSON 形式返回 {\"error\": \"...\"}，并附带相应的 HTTP 状态码。", "ข้อผิดพลาดจะถูกส่งกลับเป็น JSON {\"error\": \"...\"} พร้อมรหัสสถานะ HTTP ที่เกี่ยวข้อง", "エラーは対応する HTTP ステータスコードとともに JSON {\"error\": \"...\"} 形式で返されます。", "오류는 해당 HTTP 상태 코드와 함께 JSON {\"error\": \"...\"} 형식으로 반환됩니다."),
+  "Tối đa 600 yêu cầu/phút theo IP và 300 yêu cầu/phút theo API key.": e("Up to 600 requests/minute per IP and 300 requests/minute per API key.", "每个 IP 每分钟最多 600 个请求，每个 API 密钥每分钟最多 300 个请求。", "สูงสุด 600 คำขอ/นาทีต่อ IP และ 300 คำขอ/นาทีต่อ API key", "IP あたり最大 600 リクエスト/分、API キーあたり最大 300 リクエスト/分。", "IP당 분당 최대 600개 요청, API 키당 분당 최대 300개 요청."),
   // Đăng nhập / đăng ký
   "Đăng nhập tài khoản": e("Log in to your account", "登录您的账户", "เข้าสู่บัญชีของคุณ", "アカウントにログイン", "계정에 로그인"),
   "Đăng ký tài khoản": e("Create an account", "注册账户", "สร้างบัญชี", "アカウントを作成", "계정 만들기"),
