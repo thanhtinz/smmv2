@@ -6,6 +6,7 @@ import { getServerI18n } from "@/lib/lang-server";
 import { DisplayEngine } from "@/components/display";
 import { LangProvider } from "@/components/lang";
 import { AffTracker } from "@/components/aff-tracker";
+import { BRAND_APPLE_ICON_URL, BRAND_FAVICON_URL, BRAND_FULL_URL } from "@/lib/brand";
 
 export const viewport: Viewport = {
   viewportFit: "cover",
@@ -20,14 +21,14 @@ export async function generateMetadata(): Promise<Metadata> {
   const { L } = await getServerI18n().catch(() => ({ L: (t: string) => t }));
   return {
     title: `${s?.site_name || "BNT Shop"} — ${L("Tài khoản Premium & Sản phẩm số")}`,
-    description: L(s?.meta_description || s?.site_tagline || "Tăng like, follow, view tự động + tài khoản premium giá tốt"),
+    description: L(s?.meta_description || s?.site_tagline || "Tài khoản Premium & Sản phẩm số — tự động 24/7"),
     keywords: s?.meta_keywords ? s.meta_keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
-    openGraph: { title: s?.site_name || "SMMv2", description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, type: "website", images: s?.og_image_url ? [s.og_image_url] : ["/icon.svg"] },
-    twitter: { card: "summary_large_image", title: s?.site_name || "SMMv2", description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, images: s?.og_image_url ? [s.og_image_url] : ["/icon.svg"] },
+    openGraph: { title: s?.site_name || "BNT Shop", description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, type: "website", images: s?.og_image_url ? [s.og_image_url] : [BRAND_FULL_URL] },
+    twitter: { card: "summary_large_image", title: s?.site_name || "BNT Shop", description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, images: s?.og_image_url ? [s.og_image_url] : [BRAND_FULL_URL] },
     alternates: { canonical: "/" },
     manifest: "/manifest.webmanifest",
-    appleWebApp: { capable: true, statusBarStyle: "default", title: s?.site_name || "SMMv2" },
-    icons: { icon: s?.favicon_url || "/icon.svg", apple: s?.favicon_url || "/icon.svg" },
+    appleWebApp: { capable: true, statusBarStyle: "default", title: s?.site_name || "BNT Shop" },
+    icons: { icon: s?.favicon_url || BRAND_FAVICON_URL, apple: s?.favicon_url || BRAND_APPLE_ICON_URL },
   };
 }
 
@@ -52,14 +53,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const orgLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: s?.site_name || "SMMv2",
+    name: s?.site_name || "BNT Shop",
     ...(siteBase ? { url: siteBase + "/" } : {}),
-    ...(s?.logo_url ? { logo: s.logo_url.startsWith("http") ? s.logo_url : siteBase + s.logo_url } : {}),
+    // Logo: admin tự tải thắng; trống → logo BNT Shop gói sẵn (đợt 117).
+    ...(s?.logo_url
+      ? { logo: s.logo_url.startsWith("http") ? s.logo_url : siteBase + s.logo_url }
+      : siteBase ? { logo: siteBase + BRAND_FULL_URL } : {}),
   };
   const webLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: s?.site_name || "SMMv2",
+    name: s?.site_name || "BNT Shop",
     ...(siteBase ? { url: siteBase + "/" } : {}),
   };
   return (

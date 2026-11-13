@@ -17,10 +17,15 @@ export type TopBarUser = { username: string; balance: number; role: string; leve
  *  (chỉ ADMIN), Đăng xuất. Bản khách chưa đăng nhập: giỏ + Cài đặt + nút
  *  Đăng nhập / Đăng ký theo đúng style nút của thanh này; ngăn kéo mobile
  *  dùng chung MobileSideNav (mục do nơi gọi truyền vào). */
-export function AppTopBar({ user, siteName, logoText, drawerLogoUrl, items, menuFooter, L, M }: {
+export function AppTopBar({ user, siteName, logoText, logoUrl, mobileLogoUrl, drawerLogoUrl, items, menuFooter, L, M }: {
   user: TopBarUser | null;
   siteName: string;
   logoText: string;
+  /** Logo nhỏ desktop (admin tự tải → logo BNT Shop gói sẵn, lib/brand). */
+  logoUrl: string;
+  /** Logo NGANG duy nhất cho header mobile (lệnh Tín 2026-11-13: bỏ ô icon
+   *  vuông khỏi header mobile — chỉ một logo, co theo chiều cao header). */
+  mobileLogoUrl: string;
   drawerLogoUrl: string | null;
   items: NavEntry[];
   menuFooter?: ReactNode;
@@ -31,9 +36,16 @@ export function AppTopBar({ user, siteName, logoText, drawerLogoUrl, items, menu
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
       <div className="max-w-[1400px] mx-auto px-3 sm:px-4 h-16 flex items-center gap-2 sm:gap-4">
         <MobileSideNav items={items} siteName={siteName} footer={menuFooter} logoUrl={drawerLogoUrl} logoText={logoText} />
-        <Link href="/" className="flex items-center gap-2.5">
-          <span className="w-10 h-10 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center">{logoText}</span>
-          <span className="font-extrabold text-slate-900 hidden sm:inline">{siteName}</span>
+        {/* Mobile: CHỈ một logo ngang — không ô icon vuông, không tên chữ. */}
+        <Link href="/" className="flex min-w-0 shrink items-center sm:hidden" aria-label={siteName}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={mobileLogoUrl} alt={siteName} className="h-8 w-auto max-w-full object-contain object-left" />
+        </Link>
+        {/* Desktop: icon vuông + tên website như thiết kế đã duyệt. */}
+        <Link href="/" className="hidden items-center gap-2.5 sm:flex">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logoUrl} alt={siteName} className="h-10 w-10 shrink-0 rounded-xl bg-white object-contain ring-1 ring-slate-200/70" />
+          <span className="font-extrabold text-slate-900">{siteName}</span>
         </Link>
         <div className="ml-auto flex items-center gap-1 sm:gap-2.5">
           <HeaderSearch placeholder={L("Tìm sản phẩm...")} searchLabel={L("Tìm kiếm")} closeLabel={L("Đóng")} />
@@ -52,7 +64,10 @@ export function AppTopBar({ user, siteName, logoText, drawerLogoUrl, items, menu
             <>
               <CartHeaderLink />
               <DisplaySettings />
-              <Link href="/login" className="btn-ghost btn-sm h-10 !px-4 whitespace-nowrap">{L("Đăng nhập")}</Link>
+              {/* <sm: ẩn nút Đăng nhập tại header để logo ngang có chỗ, không
+                  chen lấn nút khác (lệnh Tín 2026-11-13). Cửa Đăng nhập vẫn còn
+                  trong ngăn kéo mobile; nút Đăng ký giữ nguyên tại header. */}
+              <Link href="/login" className="btn-ghost btn-sm h-10 !px-4 whitespace-nowrap max-sm:hidden">{L("Đăng nhập")}</Link>
               <Link href="/register" className="btn-primary btn-sm h-10 !px-4 whitespace-nowrap">{L("Đăng ký")}</Link>
             </>
           )}

@@ -159,7 +159,7 @@ export async function boltCreateOrder(cfg: BoltConfig, input: { externalOrderId:
     notifyUrl: `${origin}/api/webhooks/boltutil`,
     returnUrl: `${origin}${input.returnPath || "/dashboard/nap-tien"}`,
     expiredMinutes: cfg.expiresMinutes,
-    orderDesc: `SMMv2 ${input.externalOrderId}`,
+    orderDesc: `BNT Shop ${input.externalOrderId}`,
   });
   return {
     orderId: String(data?.orderToken || ""),

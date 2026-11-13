@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const secret = generateTotpSecret();
     await prisma.user.update({ where: { id: user.id }, data: { totpSecret: storeTotpSecret(secret) } });
     const s = await getSettings().catch(() => null);
-    const uri = otpauthUri(secret, user.username, s?.site_name || "SMMv2");
+    const uri = otpauthUri(secret, user.username, s?.site_name || "BNT Shop");
     // GĐ2: QR sinh ngay phía server từ otpauth URI — secret không rời khỏi hệ thống
     const qr = await QRCode.toDataURL(uri, { margin: 1, width: 220 }).catch(() => null);
     return NextResponse.json({ ok: true, secret, uri, qr });

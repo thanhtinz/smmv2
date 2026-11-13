@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     select: { credentialId: true, transports: true },
   });
   const options = await generateRegistrationOptions({
-    rpName: settings?.site_name || "SMMv2",
+    rpName: settings?.site_name || "BNT Shop",
     rpID,
     // @simplewebauthn/server v14: userID là Uint8Array (không còn nhận string)
     userID: new TextEncoder().encode(user.username),

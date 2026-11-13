@@ -4,6 +4,7 @@ import { getSettings } from "@/lib/settings";
 import { getServerI18n } from "@/lib/lang-server";
 import { LiveChat } from "@/components/livechat";
 import { getFloatingContacts, type FloatingContact } from "@/lib/contact";
+import { footerLogoUrl } from "@/lib/brand";
 
 export type FooterBrand = {
   name: string;
@@ -59,10 +60,17 @@ export async function SiteFooter({ brand, widgets = true }: { brand?: FooterBran
           hệ từ Admin → Liên hệ, link chỉ trỏ tới trang đang có thật. */}
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.35fr_0.8fr_0.9fr_1.15fr] gap-10 lg:gap-8 text-sm">
         <div>
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 font-black text-white shadow-md shadow-brand-600/25">{(brand?.name || s.site_name || "S").charAt(0).toUpperCase()}</span>
-            <span className="text-slate-900 font-extrabold text-lg">{brand?.name || s.site_name}</span>
-          </div>
+          {brand ? (
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 font-black text-white shadow-md shadow-brand-600/25">{(brand.name || "S").charAt(0).toUpperCase()}</span>
+              <span className="text-slate-900 font-extrabold text-lg">{brand.name}</span>
+            </div>
+          ) : (
+            /* Footer đủ bề ngang → logo bản NGANG (admin tự tải → BNT Shop gói
+               sẵn, đợt 117); bản ngang đã gồm tên nên không lặp tên chữ cạnh. */
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={footerLogoUrl(s.logo_url)} alt={s.site_name} className="h-12 w-auto max-w-[240px] object-contain object-left" />
+          )}
           <p className="mt-3 max-w-xs leading-relaxed">{L(brand?.tagline || s.site_tagline)}</p>
           {footerContacts.length > 0 && (
             <div className="mt-5 flex flex-wrap gap-2.5">

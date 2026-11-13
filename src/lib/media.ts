@@ -67,7 +67,7 @@ export async function storeUploadedImage(buf: Buffer, stamp: boolean): Promise<S
   if (stamp && fmt !== "gif") {
     const s = await getSettings();
     if (String(s.watermark_enabled ?? "1") === "1") {
-      const text = (String(s.watermark_text || "").trim() || String(s.site_name || "SMMv2")).slice(0, 60);
+      const text = (String(s.watermark_text || "").trim() || String(s.site_name || "BNT Shop")).slice(0, 60);
       const opacity = Number(s.watermark_opacity ?? 35) || 35;
       const m2 = await sharp(original).metadata();
       const w = m2.width || 800;

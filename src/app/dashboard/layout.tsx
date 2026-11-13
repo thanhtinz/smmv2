@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { SideNav } from "@/components/nav";
 import { AppTopBar } from "@/components/topbar";
+import { headerLogoUrl, wideLogoUrl } from "@/lib/brand";
 import { buildCustomerNav } from "@/components/customer-nav";
 import { LiveChat } from "@/components/livechat";
 import { SiteFooter } from "@/components/site";
@@ -37,16 +38,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Menu + cụm đáy + header nay là component dùng chung với khung công khai
   // (components/customer-nav + components/topbar) — markup không đổi.
   const { items, menuFooter } = await buildCustomerNav(user, s, L);
-  // Logo đầu ngăn kéo menu = LOGO MENU (ảnh chữ nhật ngang): logo menu web mẹ
-  // (logo_menu_url) → logo nhỏ web mẹ (logo_url) → ô chữ viết tắt mặc định.
-  // Header vẫn dùng logo nhỏ như cũ.
-  const drawerLogoUrl = s.logo_menu_url || s.logo_url || null;
+  // Chuỗi logo (đợt 117): logo menu (logo_menu_url) → logo nhỏ (logo_url) →
+  // logo BNT Shop gói sẵn bản ngang (lib/brand). Đầu ngăn kéo + header mobile
+  // dùng bản ngang; header desktop dùng logo nhỏ/icon + tên chữ.
+  const drawerLogoUrl = wideLogoUrl(s.logo_menu_url, s.logo_url);
   // Trang trí mùa lễ hội: cùng nguồn settings + cùng component với khung công khai.
   const decorTheme = s.seasonal_decor_enabled === "1" ? parseSeasonalTheme(s.seasonal_theme) : null;
   return (
     <LangProvider lang={i18n.lang} ov={i18n.cfg.overrides[i18n.lang]} cur={i18n.cur} rates={i18n.rates}>
     <div className="min-h-screen">
-      <AppTopBar user={{ username: user.username, balance: user.balance, role: user.role, levelLabel: LEVEL_NAME[user.level] }} siteName={s.site_name} logoText={s.site_logo_text || "S"} drawerLogoUrl={drawerLogoUrl} items={items} menuFooter={menuFooter} L={L} M={M} />
+      <AppTopBar user={{ username: user.username, balance: user.balance, role: user.role, levelLabel: LEVEL_NAME[user.level] }} siteName={s.site_name} logoText={s.site_logo_text || "B"} logoUrl={headerLogoUrl(s.logo_url)} mobileLogoUrl={drawerLogoUrl} drawerLogoUrl={drawerLogoUrl} items={items} menuFooter={menuFooter} L={L} M={M} />
       {decorTheme ? <SeasonalDecor theme={decorTheme} /> : null}
       <div className="max-w-[1400px] mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[248px_1fr] gap-6 items-start">
         <aside className="hidden lg:block lg:sticky lg:top-24 lg:bg-white lg:rounded-2xl lg:border lg:border-slate-200/60 lg:shadow-soft lg:p-3">

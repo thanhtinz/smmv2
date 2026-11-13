@@ -5,6 +5,7 @@ import { getServerI18n } from "@/lib/lang-server";
 import { getCurrentUser } from "@/lib/auth";
 import { LEVEL_NAME } from "@/lib/format";
 import { AppTopBar } from "@/components/topbar";
+import { headerLogoUrl, wideLogoUrl } from "@/lib/brand";
 import SeasonalDecor from "@/components/seasonal-decor";
 import { parseSeasonalTheme } from "@/lib/seasonal";
 import { buildCustomerNav } from "@/components/customer-nav";
@@ -26,7 +27,9 @@ export async function PublicFrame({ children, skipSetupGate }: { children: React
   const s = await getSettings();
   const { L, M } = await getServerI18n();
   const user = await getCurrentUser().catch(() => null);
-  const drawerLogoUrl = s.logo_menu_url || s.logo_url || null;
+  // Chuỗi logo (đợt 117): admin tự tải thắng tuyệt đối; trống → logo BNT Shop
+  // gói sẵn (lib/brand). Ngăn kéo + header mobile dùng bản NGANG.
+  const drawerLogoUrl = wideLogoUrl(s.logo_menu_url, s.logo_url);
   let items: NavEntry[];
   let menuFooter: ReactNode = undefined;
   if (user) {
@@ -54,7 +57,9 @@ export async function PublicFrame({ children, skipSetupGate }: { children: React
       <AppTopBar
         user={user ? { username: user.username, balance: user.balance, role: user.role, levelLabel: LEVEL_NAME[user.level] } : null}
         siteName={s.site_name}
-        logoText={s.site_logo_text || "S"}
+        logoText={s.site_logo_text || "B"}
+        logoUrl={headerLogoUrl(s.logo_url)}
+        mobileLogoUrl={drawerLogoUrl}
         drawerLogoUrl={drawerLogoUrl}
         items={items}
         menuFooter={menuFooter}

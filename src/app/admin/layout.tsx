@@ -6,6 +6,7 @@ import { getSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { DisplaySettings } from "@/components/display";
 import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
+import { headerLogoUrl, wideLogoUrl } from "@/lib/brand";
 import AdminRealtime from "@/components/admin-realtime";
 import { prisma } from "@/lib/db";
 import { getServerI18n } from "@/lib/lang-server";
@@ -170,13 +171,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <LangProvider lang={i18n.lang} ov={i18n.cfg.overrides[i18n.lang]} cur={i18n.cur} rates={i18n.rates}>
     <div className="admin-scope min-h-screen bg-[#f4f6fb]">
-      <AdminNav siteName={s.site_name} logoText={s.site_logo_text || "S"} entries={entries} />
+      <AdminNav siteName={s.site_name} logoUrl={headerLogoUrl(s.logo_url)} entries={entries} />
       <div className="flex min-h-screen flex-col lg:pl-[260px]">
         <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
           <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
-            <Link href="/admin" className="ml-11 flex items-center gap-2.5 lg:hidden">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 font-black text-white">{s.site_logo_text || "S"}</span>
-              <span className="font-extrabold text-slate-900">{s.site_name} <span className="font-medium text-slate-400">/ Admin</span></span>
+            {/* Header admin mobile: CHỈ một logo ngang (cùng luật header
+                mobile phía khách, lệnh Tín 2026-11-13) — bỏ ô icon vuông. */}
+            <Link href="/admin" className="ml-11 flex min-w-0 shrink items-center gap-2 lg:hidden" aria-label={s.site_name}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={wideLogoUrl(s.logo_menu_url, s.logo_url)} alt={s.site_name} className="h-8 w-auto max-w-full object-contain object-left" />
+              <span className="shrink-0 font-medium whitespace-nowrap text-slate-400 max-sm:hidden">/ Admin</span>
             </Link>
             <form action="/admin/don-premium" className="hidden max-w-md flex-1 md:block">
               <div className="relative">

@@ -108,13 +108,16 @@ function Group({ entry, winner }: { entry: { group: string; icon: string; childr
   );
 }
 
-function NavBody({ siteName, logoText, entries, pathname, onNavigate }: { siteName: string; logoText: string; entries: AdminNavEntry[]; pathname: string; onNavigate?: () => void }) {
+function NavBody({ siteName, logoUrl, entries, pathname, onNavigate }: { siteName: string; logoUrl: string; entries: AdminNavEntry[]; pathname: string; onNavigate?: () => void }) {
   const { t } = useLang();
   const winner = navWinner(entries, pathname);
   return (
     <>
       <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-white/10 px-5">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 font-black text-white shadow-lg shadow-brand-900/50">{logoText}</span>
+        {/* Logo nhỏ + tên (biến thể hẹp): admin tự tải → BNT Shop gói sẵn.
+            Logo nền trắng nên đặt trong ô trắng bo góc cho khớp sidebar tối. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logoUrl} alt={siteName} className="h-9 w-9 shrink-0 rounded-xl bg-white object-contain ring-1 ring-white/25" />
         <span className="truncate font-extrabold text-white">
           {siteName} <span className="font-medium text-slate-400">/ Admin</span>
         </span>
@@ -137,14 +140,14 @@ function NavBody({ siteName, logoText, entries, pathname, onNavigate }: { siteNa
   );
 }
 
-export default function AdminNav({ siteName, logoText, entries }: { siteName: string; logoText: string; entries: AdminNavEntry[] }) {
+export default function AdminNav({ siteName, logoUrl, entries }: { siteName: string; logoUrl: string; entries: AdminNavEntry[] }) {
   const { t } = useLang();
   const pathname = usePathname() || "/admin";
   const [open, setOpen] = useState(false);
   return (
     <>
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-[260px] flex-col bg-[#081c36] text-slate-300 lg:flex">
-        <NavBody siteName={siteName} logoText={logoText} entries={entries} pathname={pathname} />
+        <NavBody siteName={siteName} logoUrl={logoUrl} entries={entries} pathname={pathname} />
       </aside>
       {/* Điện thoại: nút burger cố định ở góc trái thanh trên + ngăn kéo trượt chứa toàn bộ menu
           (thay thanh menu footer dưới đáy đã bỏ). Layout chừa ml cho logo để không đè nút. */}
@@ -156,7 +159,7 @@ export default function AdminNav({ siteName, logoText, entries }: { siteName: st
         <>
           <div className="fixed inset-0 z-[70] bg-slate-950/50 lg:hidden" onClick={() => setOpen(false)} />
           <div className="fixed inset-y-0 left-0 z-[80] flex w-[280px] max-w-[85vw] flex-col bg-[#081c36] text-slate-300 shadow-2xl lg:hidden">
-            <NavBody siteName={siteName} logoText={logoText} entries={entries} pathname={pathname} onNavigate={() => setOpen(false)} />
+            <NavBody siteName={siteName} logoUrl={logoUrl} entries={entries} pathname={pathname} onNavigate={() => setOpen(false)} />
           </div>
         </>
       )}

@@ -29,7 +29,7 @@ export async function KiemTienView({ userId, linkBase, sp, tabBase }: { userId: 
   const link = `${linkBase}?aff=${code}`;
   const tab = sp?.tab === "hist" ? "hist" : "ref";
   void tabBase;
-  const shareText = `${L("Đăng ký")} ${settings.site_name || "SMMv2"} ${L("qua link giới thiệu của tôi")}`;
+  const shareText = `${L("Đăng ký")} ${settings.site_name || "BNT Shop"} ${L("qua link giới thiệu của tôi")}`;
 
   // Lọc thời gian cho danh sách thành viên: all | 7 | 30 | month
   const range = ["7", "30", "month"].includes(String(sp?.range || "")) ? String(sp?.range) : "all";

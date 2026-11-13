@@ -130,7 +130,7 @@ export async function stripeCreateCheckout(secretKey: string, p: { amountCents: 
   body.set("line_items[0][quantity]", "1");
   body.set("line_items[0][price_data][currency]", "usd");
   body.set("line_items[0][price_data][unit_amount]", String(p.amountCents));
-  body.set("line_items[0][price_data][product_data][name]", `Nạp tiền SMMv2 ${p.depositCode}`);
+  body.set("line_items[0][price_data][product_data][name]", `Nạp tiền BNT Shop ${p.depositCode}`);
   const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
     headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
@@ -189,7 +189,7 @@ export async function paypalCreateOrder(token: string, mode: string, p: { amount
     body: JSON.stringify({
       intent: "CAPTURE",
       purchase_units: [{ reference_id: p.depositCode, custom_id: p.depositCode, amount: { currency_code: "USD", value: p.amountUsd } }],
-      application_context: { return_url: p.returnUrl, cancel_url: p.cancelUrl, user_action: "PAY_NOW", brand_name: "SMMv2" },
+      application_context: { return_url: p.returnUrl, cancel_url: p.cancelUrl, user_action: "PAY_NOW", brand_name: "BNT Shop" },
     }),
   });
   const j: any = await r.json().catch(() => null);

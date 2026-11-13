@@ -7,9 +7,9 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // chừng nào users còn trống và cờ này chưa bật thì mọi trang khách bị dẫn về
   // /setup. Cờ chỉ lật một lần (xem lib/setup.ts).
   setup_completed: "",
-  site_name: "SMMv2",
-  site_tagline: "SMM Panel & Tài khoản Premium — tự động 24/7",
-  site_logo_text: "S",
+  site_name: "BNT Shop",
+  site_tagline: "Tài khoản Premium & Sản phẩm số — tự động 24/7",
+  site_logo_text: "B",
   support_widget_enabled: "1",
   livechat_enabled: "1",
   support_telegram: "",

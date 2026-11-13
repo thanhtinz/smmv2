@@ -25,7 +25,7 @@ export async function issueEmailVerification(user: { id: number; email: string; 
     if (await smtpConfigured()) {
       await sendMail(
         [user.email],
-        `Xác thực email tài khoản ${user.username} — ${s.site_name || "SMMv2"}`,
+        `Xác thực email tài khoản ${user.username} — ${s.site_name || "BNT Shop"}`,
         `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
           <h2 style="color:#0f172a">Xác thực địa chỉ email</h2>
           <p>Chào ${user.username}, bấm nút bên dưới để xác thực email cho tài khoản của bạn. Liên kết có hiệu lực ${ttlHours} giờ.</p>

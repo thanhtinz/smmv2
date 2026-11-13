@@ -79,8 +79,8 @@ export function verifyTotp(secretBase32: string, code: string, atMs = Date.now()
 
 /** otpauth:// URI để app Authenticator quét/nhập — issuer = tên site, label = username */
 export function otpauthUri(secretBase32: string, username: string, issuer: string): string {
-  const iss = encodeURIComponent(issuer || "SMMv2");
-  const label = encodeURIComponent(`${issuer || "SMMv2"}:${username}`);
+  const iss = encodeURIComponent(issuer || "BNT Shop");
+  const label = encodeURIComponent(`${issuer || "BNT Shop"}:${username}`);
   return `otpauth://totp/${label}?secret=${secretBase32}&issuer=${iss}&algorithm=SHA1&digits=6&period=30`;
 }
 

@@ -45,7 +45,7 @@ export async function testMotherChannelAction(formData: FormData) {
   await requireAdmin();
   const channel = str(formData, "channel");
   const s = await getSettings();
-  const text = "Tin nhắn thử từ SMMv2 — kênh báo tin của bạn đã hoạt động.";
+  const text = "Tin nhắn thử từ BNT Shop — kênh báo tin của bạn đã hoạt động.";
   try {
     if (channel === "telegram") {
       if (!s.telegram_bot_token || !s.telegram_chat_id) back(PAGE, "err", "Chưa có Bot Token / Chat ID — điền và Lưu trước khi gửi thử");
@@ -56,7 +56,7 @@ export async function testMotherChannelAction(formData: FormData) {
     } else if (channel === "email") {
       const to = (s.alert_email_to || s.report_email_to).split(",").map((x) => x.trim()).filter(Boolean);
       if (!to.length) back(PAGE, "err", "Chưa nhập email nhận — điền và Lưu trước khi gửi thử");
-      await sendMail(to, "Tin nhắn thử — SMMv2", alertEmailHtml("Tin nhắn thử", text));
+      await sendMail(to, "Tin nhắn thử — BNT Shop", alertEmailHtml("Tin nhắn thử", text));
     } else {
       back(PAGE, "err", "Kênh không hợp lệ");
     }

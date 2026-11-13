@@ -9,7 +9,7 @@ const key = (_s: string) => randomBytes(16).toString("hex");
 async function main() {
   /* ---------- Cấu hình mặc định ---------- */
   const settings: Record<string, string> = {
-    site_name: "SMMv2",
+    site_name: "BNT Shop",
     site_tagline: "Tài khoản Premium & Sản phẩm số — tự động 24/7",
     deposit_min: "10000",
   };

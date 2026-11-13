@@ -35,7 +35,7 @@ export async function requestPasswordReset(email: string): Promise<string | null
     if (await smtpConfigured()) {
       await sendMail(
         [user.email],
-        `Đặt lại mật khẩu tài khoản ${user.username} — ${s.site_name || "SMMv2"}`,
+        `Đặt lại mật khẩu tài khoản ${user.username} — ${s.site_name || "BNT Shop"}`,
         `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
           <h2 style="color:#0f172a">Đặt lại mật khẩu</h2>
           <p>Chào ${user.username}, bấm nút bên dưới để đặt mật khẩu mới cho tài khoản của bạn. Liên kết có hiệu lực ${ttlMin} phút và chỉ dùng được một lần.</p>
