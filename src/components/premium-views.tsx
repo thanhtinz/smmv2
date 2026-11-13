@@ -156,6 +156,11 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
           </div>
           <div className="w-full lg:justify-self-end">
             <form method="get" action={base} className="flex gap-2">
+              {/* Giữ danh mục đang lọc khi tìm từ ô này: ?cat= và ?q= phải
+                  GHÉP nhau (lệnh Tín 2026-11-12 — khách tới từ pill danh
+                  mục trang chủ đang ở trạng thái đã lọc, tìm tiếp không
+                  được đánh rơi bộ lọc). Server đã lọc theo cả hai. */}
+              {catId ? <input type="hidden" name="cat" value={catId} /> : null}
               <input name="q" defaultValue={q || ""} placeholder={L("Tìm sản phẩm...")} className="h-11 min-w-0 flex-1 rounded-full border-0 bg-white px-4 text-sm text-slate-900 outline-none ring-brand-300 focus:ring-4" />
               <button className="h-11 shrink-0 rounded-full bg-slate-900 px-4 text-sm font-extrabold text-white transition hover:bg-slate-800">{L("Tìm kiếm")}</button>
             </form>

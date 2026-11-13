@@ -197,14 +197,11 @@ function RailSection({ icon, title, subtitle, href, items }: { icon: React.React
  *  đã xem gần đây, đúng thứ tự khối của shopkey; khung header/footer giữ nguyên. */
 export function HomeShop({ slides, cats, all, best, gifts, hero = true }: { slides: HomeSlide[]; cats: HomeCat[]; all: HomeCard[]; best: HomeCard[]; gifts: HomeGift[]; hero?: boolean }) {
   const { t } = useLang();
-  const [cat, setCat] = useState<number | null>(null);
   const [shown, setShown] = useState(PAGE);
-  useEffect(() => { setShown(PAGE); }, [cat]);
-  const pickCat = (id: number | null, scroll = false) => {
-    setCat(id);
-    if (scroll) document.getElementById("home-featured")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-  const filtered = cat == null ? all : all.filter((c) => c.categoryId === cat);
+  // Lưới nổi bật trang chủ luôn là các sản phẩm mới nhất của TOÀN catalog —
+  // lọc theo danh mục KHÔNG còn làm tại chỗ: pill danh mục là LINK sang
+  // /premium?cat=<id> (kiểu shopkey, lệnh Tín 2026-11-12 21:27).
+  const filtered = all;
   const recentStored = useRecentItems();
   const byId = new Map(all.map((c) => [c.productId, c]));
   const recent = recentStored.map((r) => byId.get(r.productId)).filter((x): x is HomeCard => !!x);
@@ -221,29 +218,33 @@ export function HomeShop({ slides, cats, all, best, gifts, hero = true }: { slid
           </div>
           {/* Dải pill danh mục (lệnh Tín 2026-11-08 01:51, thay lưới ô của
               fix6 task 11): một hàng pill rounded-full CHỈ CÓ TÊN — không
-              icon, không số lượng; pill đang chọn = nền brand chữ trắng,
-              chưa chọn = trắng viền nhạt. Mobile vuốt ngang (ẩn thanh
-              cuộn), desktop tự xuống hàng khi không đủ chỗ. Bấm pill = lọc
-              lưới nổi bật tại chỗ (Tất cả = bỏ lọc) như cũ. Vỏ PillStrip
-              (2026-11-08) thêm nút chevron 2 đầu + vệt mờ để khách biết
-              dải kéo qua được. */}
+              icon, không số lượng. Vỏ PillStrip (2026-11-08) thêm nút
+              chevron 2 đầu + vệt mờ để khách biết dải kéo qua được.
+              HÀNH VI MỚI (lệnh Tín 2026-11-12 21:27, kiểu shopkey): pill
+              là LINK điều hướng — bấm tên danh mục là sang trang Tất cả
+              sản phẩm /premium VỚI SẴN bộ lọc danh mục đó (tham số ?cat=
+              mà /premium đã đọc; pill tương ứng bên đó tự sáng). "Tất cả"
+              trỏ /premium không lọc — nó mang style "đang chọn" vì lưới
+              nổi bật ngay dưới khối này luôn là toàn catalog. Mọi điểm
+              chạm danh mục trên trang chủ (pill + slide hero danh mục)
+              cùng một hành vi. */}
           <PillStrip className="mt-4">
-            <button type="button" onClick={() => pickCat(null)}
-              className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition ${cat == null ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-700"}`}>
+            <Link href="/premium"
+              className="shrink-0 whitespace-nowrap rounded-full border border-brand-600 bg-brand-600 px-4 py-2 text-sm font-bold text-white transition">
               {t("Tất cả")}
-            </button>
+            </Link>
             {cats.map((c) => (
-              <button key={c.id} type="button" onClick={() => pickCat(c.id, true)}
-                className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition ${cat === c.id ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-700"}`}>
+              <Link key={c.id} href={`/premium?cat=${c.id}`}
+                className="shrink-0 whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-brand-300 hover:text-brand-700">
                 {c.name}
-              </button>
+              </Link>
             ))}
           </PillStrip>
         </section>
       )}
 
       <section id="home-featured" className="mt-10 scroll-mt-28">
-        <SectionHead icon={I.star} title={t("Sản phẩm nổi bật")} subtitle={t("Sản phẩm Premium mới nhất trên cửa hàng.")} href={cat == null ? "/premium" : `/premium?cat=${cat}`} />
+        <SectionHead icon={I.star} title={t("Sản phẩm nổi bật")} subtitle={t("Sản phẩm Premium mới nhất trên cửa hàng.")} href="/premium" />
         <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
           {filtered.slice(0, shown).map((item) => <PremiumCard key={item.slug} item={item} base="/premium" />)}
         </div>
