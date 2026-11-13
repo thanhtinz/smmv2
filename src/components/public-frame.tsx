@@ -40,8 +40,15 @@ export async function PublicFrame({ children, skipSetupGate }: { children: React
     items = [
       { href: "/", label: L("Trang chủ"), icon: I.home },
       { href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem },
-      { href: "/uu-dai", label: L("Ưu đãi"), icon: I.percent },
-      ...(s.pass_enabled === "1" ? [{ href: "/pass", label: (s.pass_name || "").trim() || "Pass", icon: I.star }] : []),
+      // Tài chính (lệnh Tín 2026-11-13): khách chưa đăng nhập cũng gộp Ưu
+      // đãi + Pass vào dropdown Tài chính như menu khách đã đăng nhập
+      // (buildCustomerNav) — nhóm đứng đúng vị trí Ưu đãi phẳng trước đây.
+      {
+        label: L("Tài chính"), icon: I.wallet, children: [
+          { href: "/uu-dai", label: L("Ưu đãi") },
+          ...(s.pass_enabled === "1" ? [{ href: "/pass", label: (s.pass_name || "").trim() || "Pass" }] : []),
+        ]
+      },
       { href: "/login", label: L("Đăng nhập"), icon: I.lock },
       { href: "/register", label: L("Đăng ký"), icon: I.plus },
     ];

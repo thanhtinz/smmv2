@@ -33,7 +33,18 @@ export async function buildCustomerNav(
     { href: "/dashboard/telegram", label: L("Đặt đơn") },
     { href: "/dashboard/telegram/lich-su", label: L("Lịch sử") },
   ];
+  // Tài chính (lệnh Tín 2026-11-13): Ưu đãi + Pass GỘP vào cùng dropdown
+  // Tài chính với Lịch sử số dư + Giới thiệu bạn bè — menu chỉ còn ĐÚNG MỘT
+  // nhóm "Tài chính" (NavLinks mở nhóm/chấm điểm theo nhãn nên hai nhóm
+  // trùng nhãn sẽ xung đột trạng thái mở). Nhóm đứng ở vị trí mục Ưu đãi
+  // phẳng trước đây. Ưu đãi: trang công khai gom mã giảm giá dùng cho tất
+  // cả (lệnh Tín 2026-11-12); Pass: gói thành viên trả phí (lib/pass.ts) —
+  // chỉ hiện khi admin bật pass_enabled, nhãn là tên gói admin đặt
+  // (pass_name, trống = "Pass"). Link chữ "Xem mã ưu đãi" ở khối mã giảm
+  // của giỏ hàng là cửa khác, giữ nguyên.
   const financeChildren = [
+    { href: "/uu-dai", label: L("Ưu đãi") },
+    ...(s.pass_enabled === "1" ? [{ href: "/pass", label: (s.pass_name || "").trim() || "Pass" }] : []),
     { href: "/dashboard/giao-dich", label: L("Lịch sử số dư") },
     ...(affiliateOn ? [{ href: "/dashboard/kiem-tien", label: L("Giới thiệu bạn bè") }] : []),
   ];
@@ -46,7 +57,7 @@ export async function buildCustomerNav(
   ];
   // Steam (lệnh Tín 2026-11-08 02:02): dropdown LUÔN hiện (kể cả khi chưa
   // đồng bộ sản phẩm Steam nào — trang đích tự hiện trạng thái chưa có dữ
-  // liệu), nằm ngay sau "Đơn Premium của tôi", trước nhóm Dịch vụ mạng xã hội.
+  // liệu), nằm ngay sau nhóm Tài chính.
   const steamChildren = [
     { href: "/dashboard/steam/top-up", label: L("Steam Top-Up (CIS)") },
     { href: "/dashboard/steam/gift-games", label: L("Steam Gift Games") },
@@ -86,19 +97,15 @@ export async function buildCustomerNav(
     { href: "/", label: L("Trang chủ"), icon: I.home },
     ...(premiumOn ? [{ href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem }] : []),
     { href: "/dashboard/don-premium", label: L("Đơn Premium của tôi"), icon: I.box },
-    // Ưu đãi: trang công khai gom mã giảm giá dùng cho tất cả (lệnh Tín
-    // 2026-11-12) — một cửa duy nhất trong menu khách, ngay sau Đơn Premium.
-    { href: "/uu-dai", label: L("Ưu đãi"), icon: I.percent },
-    // Pass: gói thành viên trả phí (lib/pass.ts) — chỉ hiện khi admin bật
-    // pass_enabled; nhãn là tên gói admin đặt (pass_name, trống = "Pass").
-    ...(s.pass_enabled === "1" ? [{ href: "/pass", label: (s.pass_name || "").trim() || "Pass", icon: I.star }] : []),
+    // Nhóm Tài chính đứng đúng vị trí mục Ưu đãi phẳng trước đây (gộp Ưu
+    // đãi + Pass vào đây — xem financeChildren ở trên).
+    { label: L("Tài chính"), icon: I.wallet, children: financeChildren },
     { label: "Steam", icon: I.gamepad, children: steamChildren },
     { label: "Game key", icon: I.key, children: gameKeyChildren },
     { label: "Gift Card", icon: I.gift, children: giftCardChildren },
     { label: "Top-Up", icon: I.zap, children: topupChildren },
     { label: "Manual Services", icon: I.wrench, children: manualChildren },
     ...(telegramOn ? [{ label: "Telegram Premium", icon: I.send, children: telegramChildren }] : []),
-    ...(financeChildren.length ? [{ label: L("Tài chính"), icon: I.wallet, children: financeChildren }] : []),
     ...(apiOn ? [{ href: "/dashboard/api-docs", label: L("Tài liệu API"), icon: I.code }] : []),
     ...(supportChildren.length ? [{ label: L("Hỗ trợ"), icon: I.ticket, children: supportChildren }] : []),
     { href: "/dashboard/ho-so", label: L("Hồ sơ"), icon: I.user },
