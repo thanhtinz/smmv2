@@ -314,7 +314,9 @@ export const DICT: Record<string, Tr> = {
   "Giải đáp nhanh trước khi bắt đầu.": e("Quick answers before you start.", "开始前的快速解答。", "คำตอบด่วนก่อนเริ่มต้น", "始める前のクイック回答。", "시작하기 전에 빠른 답변."),
   "Giảm giá theo cấp bậc": e("Tier discounts", "等级折扣", "ส่วนลดตามระดับ", "ランク別割引", "등급별 할인"),
   "Giới thiệu & hoa hồng": e("Referrals & commission", "推荐与佣金", "การแนะนำและค่าคอมมิชชัน", "紹介と手数料", "추천 및 수수료"),
-  "Giới thiệu bạn bè": e("Refer friends", "推荐好友", "แนะนำเพื่อน", "友達を紹介", "친구 추천"),
+  "Giới thiệu bạn bè": e("Refer friends", "推荐好友", "แนะนำเพื่อน", "友達を紹介", "亲구 추천"),
+  // Credit footer (lệnh Tín 2026-11-12): "BNT Studio" là link https://bnt.studio đặt sau cụm này
+  "Thiết kế và vận hành bởi": e("Designed and operated by", "Designed and operated by", "Designed and operated by", "Designed and operated by", "Designed and operated by"),
   // Gói thành viên PASS (đợt 2026-11-12 — zh/th/ja/ko không còn chọn được, để bản Anh như khối Affiliate)
   "Dịch vụ SMM và Sản phẩm Premium": e("SMM Services and Premium Products", "SMM Services and Premium Products", "SMM Services and Premium Products", "SMM Services and Premium Products", "SMM Services and Premium Products"),
   "Hoàn": e("Cashback", "Cashback", "Cashback", "Cashback", "Cashback"),

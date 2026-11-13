@@ -133,7 +133,7 @@ export async function SiteFooter({ brand, widgets = true }: { brand?: FooterBran
       <div className="border-t border-slate-200 bg-slate-50">
         <div className="max-w-7xl mx-auto flex flex-col items-center justify-between gap-1.5 px-4 py-5 text-center text-xs lg:flex-row lg:text-left">
           <span>© {new Date().getFullYear()} {brand?.name || s.site_name}.</span>
-          <span>{L("Mọi dịch vụ chỉ cần link công khai — tuyệt đối không yêu cầu mật khẩu của khách.")}</span>
+          <span>{L("Thiết kế và vận hành bởi")} <a href="https://bnt.studio" target="_blank" rel="noreferrer" className="font-semibold text-slate-700 hover:text-brand-600">BNT Studio</a></span>
         </div>
       </div>
     </footer>
