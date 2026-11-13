@@ -7,6 +7,8 @@ import { getServerI18n } from "@/lib/lang-server";
 import { premiumCardsFor } from "@/components/premium-views";
 import { HeroSlider, HomeShop, type HomeCard, type HomeCat, type HomeSlide } from "@/components/home-shop";
 import { HomeStripRow, type StripTile } from "@/components/home-strip";
+import { HomeFlashSale } from "@/components/home-flash";
+import { getActiveFlashSale } from "@/lib/flash";
 import { type HomeGift } from "@/components/home-gifts";
 import { regularCatalogWhere } from "@/lib/order-scope";
 import { productImages } from "@/lib/format";
@@ -51,6 +53,7 @@ export default async function HomePage() {
   let best: HomeCard[] = [];
   let slides: HomeSlide[] = [];
   let gifts: HomeGift[] = [];
+  let flash: { name: string; percent: number; endsAt: string; items: HomeCard[] } | null = null;
 
   if (!premiumOff) {
     const [catRows, products] = await Promise.all([
@@ -92,6 +95,16 @@ export default async function HomePage() {
       }));
     const cards = await premiumCardsFor(products as any);
     all = (products as any[]).map((p, i) => ({ ...cards[i], categoryId: p.categoryId }));
+    // Khung Flash Sale trang chủ (lệnh Tín 2026-11-12): chỉ dựng khi có đợt
+    // phạm vi PREMIUM/ALL đang chạy (getActiveFlashSale đã kẹp trần %) VÀ có
+    // sản phẩm catalog thường THẬT SỰ được giảm — flashPct trên thẻ do chính
+    // buildCardData tính từ cùng đợt đó (flashAppliesToProduct), minPrice > 0
+    // mới có giá để giảm. Xếp đã bán giảm dần, tối đa 10 thẻ.
+    const flashSale = await getActiveFlashSale("PREMIUM");
+    if (flashSale) {
+      const flashItems = [...all].filter((c) => c.flashPct > 0 && c.minPrice > 0).sort((a, b) => b.sold - a.sold).slice(0, 10);
+      if (flashItems.length > 0) flash = { name: flashSale.name, percent: flashSale.percent, endsAt: flashSale.endsAt.toISOString(), items: flashItems };
+    }
     // Bán chạy: xếp theo tổng đã bán thật (PremiumOrder); chưa có đơn nào thì
     // lấy các sản phẩm mới nhất để mục không trống.
     const soldRanked = [...all].filter((c) => c.sold > 0).sort((a, b) => b.sold - a.sold).slice(0, 8);
@@ -166,6 +179,10 @@ export default async function HomePage() {
             {/* Dải icon lối tắt NGAY DƯỚI hero, trên nền thường của trang
                 (đính chính Tín 2026-11-08 21:10: không dải nền màu). */}
             <HomeStripRow tiles={stripTiles} />
+            {/* Khung Flash Sale: NGAY DƯỚI dải icon, TRÊN khối Danh mục
+                (trong HomeShop) — không có đợt chạy thì flash = null, trang
+                không thêm một dòng DOM nào (lệnh Tín 2026-11-12). */}
+            {flash && <HomeFlashSale name={flash.name} percent={flash.percent} endsAt={flash.endsAt} items={flash.items} />}
             <HomeShop slides={slides} cats={cats} all={all} best={best} gifts={gifts} hero={false} />
           </main>
         </>
