@@ -78,9 +78,15 @@ export async function adminSaveProvider(formData: FormData) {
   const rawKey = String(formData.get("apiKey") || "").trim();
   // GĐ2: đặt API key nhà cung cấp mới = thao tác nhạy cảm, phải xác thực lại
   if (rawKey && !rawKey.includes("•")) await assertStepUp(actor.id, "/admin/nha-cung-cap");
+  const postedDriver = String(formData.get("driver") || "STANDARD") === "FZR" ? "FZR" : "STANDARD";
+  const postedKind = String(formData.get("kind") || "");
   const data: any = {
-    kind: (String(formData.get("kind") || "BOTH") as "SMM" | "PREMIUM" | "BOTH"),
-    driver: String(formData.get("driver") || "STANDARD") === "FZR" ? "FZR" : "STANDARD",
+    // Lớp máy chủ (đợt 122): driver STANDARD nay chỉ còn luồng sản phẩm
+    // Premium — ép kind = PREMIUM bất kể client gửi kind gì (form không
+    // còn gửi kind lạ, nhưng client cũ / request tự chế vẫn có thể). FZR
+    // giữ hành vi cũ: nhận kind hợp lệ từ form, sai/thiếu thì về BOTH.
+    driver: postedDriver,
+    kind: postedDriver === "STANDARD" ? "PREMIUM" : (["SMM", "PREMIUM", "BOTH"].includes(postedKind) ? postedKind : "BOTH"),
     name: String(formData.get("name") || "").trim(),
     apiUrl: String(formData.get("apiUrl") || "").trim(),
     apiKey: String(formData.get("apiKey") || "").trim(),
@@ -91,15 +97,19 @@ export async function adminSaveProvider(formData: FormData) {
     syncCategories: formData.get("syncCategories") !== "off",
     autoUpdatePrice: formData.get("autoUpdatePrice") !== "off",
     syncContent: formData.get("syncContent") === "on",
-    filterHtml: formData.get("filterHtml") !== "off",
-    syncAdvanced: formData.get("syncAdvanced") === "on",
-    coupon: String(formData.get("coupon") || "").trim() || null,
-    cronSyncLimit: Math.max(1, parseInt(String(formData.get("cronSyncLimit") || "50")) || 50),
     minBalanceAlert: parseInt(String(formData.get("minBalanceAlert") || "0")),
-    dailyLimit: parseInt(String(formData.get("dailyLimit") || "0")),
     active: formData.get("active") === "on",
     note: String(formData.get("note") || "") || null,
   };
+  // Các field đã gỡ khỏi form (đợt 122 — không còn nơi đọc trong luồng sản
+  // phẩm: coupon / dailyLimit / cronSyncLimit / syncAdvanced / filterHtml;
+  // cột DB giữ nguyên): chỉ ghi khi form thực sự gửi lên, để lần lưu từ
+  // form mới không xoá giá trị cũ đang lưu trong DB.
+  if (formData.has("coupon")) data.coupon = String(formData.get("coupon") || "").trim() || null;
+  if (formData.has("dailyLimit")) data.dailyLimit = parseInt(String(formData.get("dailyLimit") || "0")) || 0;
+  if (formData.has("cronSyncLimit")) data.cronSyncLimit = Math.max(1, parseInt(String(formData.get("cronSyncLimit") || "50")) || 50);
+  if (formData.has("syncAdvanced")) data.syncAdvanced = formData.get("syncAdvanced") === "on";
+  if (formData.has("filterHtml")) data.filterHtml = formData.get("filterHtml") !== "off";
   if (!data.name || !data.apiUrl) back("/admin/nha-cung-cap", "err", "Thiếu tên hoặc API URL");
   if (id && (!rawKey || rawKey.includes("•"))) { const oldP = await prisma.provider.findUnique({ where: { id } }); if (oldP) data["api" + "Key"] = (oldP as any)["api" + "Key"]; }
   if (data.apiKey) data.apiKey = encryptSecret(data.apiKey); // mã hoá khoá nhà cung cấp khi lưu (APP_ENC_KEY)

@@ -58,17 +58,18 @@ export const FZR_MARKUP_GROUPS = [
   ["steam_gift", "Steam Gift Games"],
 ] as const;
 
-export type ProviderMode = "PREMIUM" | "FZR" | "LEGACY";
+export type ProviderMode = "PREMIUM" | "FZR";
 
 /** Chế độ form nhà cung cấp: hai nút thêm riêng — Premium / FZR — mỗi biến
  *  thể chỉ hiện field của loại đó, không còn dropdown kind/driver trong
- *  form. NCC cũ loại BOTH (hoặc kind SMM sót từ trước đợt gỡ SMM 2026-11-12)
- *  mở biến thể LEGACY (đủ 2 dropdown như form cũ) để vẫn sửa được mọi field. */
+ *  form. Mọi nhà cung cấp không phải FZR đều mở form PREMIUM: driver
+ *  STANDARD nay chỉ còn luồng sản phẩm Premium (client SMM đã gỡ), nên
+ *  NCC cũ mang kind lạ (BOTH/SMM) khi lưu lại sẽ thành kind=PREMIUM —
+ *  phía máy chủ trong adminSaveProvider cũng ép cùng quy tắc này. */
 export function providerModeOf(p?: ProviderDTO): ProviderMode {
   if (!p) return "PREMIUM";
   if (p.driver === "FZR") return "FZR";
-  if (p.kind === "PREMIUM") return "PREMIUM";
-  return "LEGACY";
+  return "PREMIUM";
 }
 
 export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMarkups, siteBase }: { provider?: ProviderDTO; onClose: () => void; webhookSecretSet?: boolean; mode?: ProviderMode; fzrMarkups?: Record<string, string>; siteBase?: string }) {
@@ -78,14 +79,13 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
   const fzrWebhookUrl = `${siteBase || (typeof window !== "undefined" ? window.location.origin : "")}/api/webhooks/fzr`;
   const { t } = useLang();
   const [tab, setTab] = useState(0);
-  const [driver, setDriver] = useState(provider?.driver || "STANDARD");
   const p = provider;
   const m: ProviderMode = p ? providerModeOf(p) : mode || "PREMIUM";
   // apiUrl là CONTROLLED: trình duyệt có thói quen khôi phục giá trị đã gõ cho
   // field cùng tên giữa các lần mở modal (đã gặp: URL của form FZR bị áp sang
-  // form SMM khi sửa) — controlled value theo đúng NCC đang sửa mới chống được.
+  // form Premium khi sửa) — controlled value theo đúng NCC đang sửa mới chống được.
   const [apiUrl, setApiUrl] = useState(p?.apiUrl || (m === "FZR" ? "https://api.fzr.cards" : ""));
-  const effectiveDriver = m === "FZR" ? "FZR" : m === "LEGACY" ? driver : "STANDARD";
+  const effectiveDriver = m === "FZR" ? "FZR" : "STANDARD";
   const tabs = ["Thông tin cơ bản", "Cài đặt đồng bộ", "Tiền tệ & Giới hạn"];
   const title = p ? t("Chỉnh sửa nhà cung cấp") : m === "PREMIUM" ? t("Thêm nhà cung cấp Premium") : t("Thêm nhà cung cấp FZR");
   return (
@@ -114,41 +114,12 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
               <input name="apiKey" type="password" defaultValue={p ? "••••••••••••••••" : ""} className={inp} placeholder={t("Nhập API key")} autoComplete="new-password" />
               <p className="mt-1 text-xs text-slate-400">{p ? t("Để nguyên dấu • nếu không đổi key.") : t("API Key được mã hoá an toàn.")}</p>
             </div>
-            {m !== "FZR" && <div><label className={lbl}>{t("Mã giảm giá (Coupon) phía API — nếu nhà cung cấp có")}</label><input name="coupon" defaultValue={p?.coupon || ""} className={inp} placeholder={t("Để trống nếu không có")} /></div>}
-            {m === "LEGACY" ? (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={lbl}>{t("Loại API *")}</label>
-                    <select name="kind" defaultValue={p?.kind || "BOTH"} className={inp}>
-                      <option value="BOTH">Standard API (Premium)</option>
-                      <option value="PREMIUM">{t("Chỉ API sản phẩm (Premium)")}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={lbl}>{t("Kiểu kiểm tra API")}</label>
-                    <select className={inp} defaultValue="balance"><option value="balance">{t("Balance (số dư)")}</option><option value="services">{t("Services (danh sách)")}</option></select>
-                  </div>
-                </div>
-                <div>
-                  <label className={lbl}>{t("Giao thức API")}</label>
-                  <select name="driver" value={driver} onChange={(e) => setDriver(e.target.value)} className={inp}>
-                    <option value="STANDARD">{t("Chuẩn SMM v2 / sản phẩm đối tác")}</option>
-                    <option value="FZR">FazerCards (fzr.cards)</option>
-                  </select>
-                  <p className="mt-1 text-xs text-slate-400">{t("FazerCards: đồng bộ sản phẩm số (game key, gift card, nạp dịch vụ, Telegram, Steam) vào Premium.")}</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <input type="hidden" name="kind" value="PREMIUM" />
-                <input type="hidden" name="driver" value={m === "FZR" ? "FZR" : "STANDARD"} />
-                <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
-                  {m === "PREMIUM" && t("Nhà cung cấp Premium chuẩn đối tác: đồng bộ catalog sản phẩm số (tài khoản, key, gói) vào cửa hàng Premium.")}
-                  {m === "FZR" && t("FazerCards: đồng bộ sản phẩm số (game key, gift card, nạp dịch vụ, Telegram, Steam) vào Premium.")}
-                </p>
-              </>
-            )}
+            <input type="hidden" name="kind" value="PREMIUM" />
+            <input type="hidden" name="driver" value={m === "FZR" ? "FZR" : "STANDARD"} />
+            <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
+              {m === "PREMIUM" && t("Nhà cung cấp Premium chuẩn đối tác: đồng bộ catalog sản phẩm số (tài khoản, key, gói) vào cửa hàng Premium.")}
+              {m === "FZR" && t("FazerCards: đồng bộ sản phẩm số (game key, gift card, nạp dịch vụ, Telegram, Steam) vào Premium.")}
+            </p>
             {effectiveDriver === "FZR" && (
               <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
                 <div className="text-sm font-bold text-slate-800">{t("Webhook FazerCards (dùng chung)")}</div>
@@ -190,9 +161,7 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
               <Switch name="syncServices" defaultChecked={p ? p.syncServices : true} label={t("Đồng bộ sản phẩm")} />
               <Switch name="syncCategories" defaultChecked={p ? p.syncCategories : true} label={t("Đồng bộ danh mục")} />
               <Switch name="autoUpdatePrice" defaultChecked={p ? p.autoUpdatePrice : true} label={t("Tự động cập nhật giá")} />
-              <Switch name="syncContent" defaultChecked={p ? p.syncContent : false} label={t("Cập nhật Tên dịch vụ khi đồng bộ")} />
-              <Switch name="filterHtml" defaultChecked={p ? p.filterHtml : true} label={t("Lọc HTML độc hại khỏi tên/mô tả")} />
-              <Switch name="syncAdvanced" defaultChecked={p ? p.syncAdvanced : false} label={t("Đồng bộ nâng cao")} />
+              <Switch name="syncContent" defaultChecked={p ? p.syncContent : false} label={t("Cập nhật tên sản phẩm khi đồng bộ")} />
             </div>
           </div>
           <div className={tab === 2 ? "space-y-4" : "hidden"}>
@@ -203,8 +172,6 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
               </div>
               <div><label className={lbl}>{t("Tỷ giá hối đoái")}</label><input name="exchangeRate" type="number" min={1} defaultValue={p?.exchangeRate ?? 1} className={inp} /></div>
               <div><label className={lbl}>{t("Ngưỡng số dư tối thiểu (VNĐ)")}</label><input name="minBalanceAlert" type="number" min={0} defaultValue={p?.minBalanceAlert ?? 0} className={inp} /></div>
-              <div><label className={lbl}>{t("Giới hạn đặt hàng tối đa mỗi ngày")}</label><input name="dailyLimit" type="number" min={0} defaultValue={p?.dailyLimit ?? 0} className={inp} /></div>
-              <div><label className={lbl}>{t("Giới hạn đồng bộ đơn mỗi vòng cron")}</label><input name="cronSyncLimit" type="number" min={1} defaultValue={p?.cronSyncLimit ?? 50} className={inp} /></div>
             </div>
           </div>
         </div>
@@ -217,9 +184,8 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
   );
 }
 
-/** Import dịch vụ CHỌN LỌC: xem toàn bộ dịch vụ phía nhà cung cấp, tick chọn từng
- *  dịch vụ muốn nhập, đặt % markup riêng cho đợt nhập rồi mới tạo — khác nút Đồng bộ
- *  (đồng bộ là nhập tất cả + cập nhật giá các dịch vụ đã có). */
+/** Danh sách nhà cung cấp + hai nút thêm riêng (Premium / FZR) và các hành
+ *  động từng dòng: sửa, đồng bộ, kiểm tra số dư, xoá. */
 export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups, siteBase }: { providers: ProviderDTO[]; webhookSecretSet?: boolean; fzrMarkups?: Record<string, string>; siteBase?: string }) {
   const { t, td, m } = useLang();
   const [editing, setEditing] = useState<ProviderDTO | undefined>(undefined);
@@ -236,7 +202,7 @@ export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups, siteB
         <button onClick={() => openAdd("FZR")} className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700">{t("+ Thêm nhà cung cấp FZR")}</button>
       </div>
       {/* key theo đích mở: điều hướng mềm sau server action GIỮ instance modal
-          (state không tự reset) — không có key, form thêm FZR mở sau form SMM
+          (state không tự reset) — không có key, form thêm FZR mở sau form Premium
           sẽ còn nguyên URL đã gõ ở form trước (đã gặp thật khi kiểm chứng). */}
       {open && <ProviderModal key={editing ? `edit-${editing.id}` : `add-${addMode}`} provider={editing} mode={addMode} onClose={() => setOpen(false)} webhookSecretSet={webhookSecretSet} fzrMarkups={fzrMarkups} siteBase={siteBase} />}
       <div className="card mt-5 overflow-x-auto">
