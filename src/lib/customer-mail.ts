@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { prisma } from "./db";
-import { getSettings } from "./settings";
+import { getSettings, getSiteUrl, siteUrlFromSettings } from "./settings";
 import { resolveLangConfig } from "./lang-config";
 import { sendMail, smtpConfigured } from "./mailer";
 import { siteBaseUrl } from "./email-verify";
@@ -177,7 +177,9 @@ async function deliver(args: DeliverArgs, s: Record<string, string>): Promise<Cu
   const tplBody = args.templateOverride
     ? lang === "en" && args.templateOverride.bodyEn ? args.templateOverride.bodyEn : args.templateOverride.bodyVi
     : s[`mailtpl_${args.event}_body_${lang}`] || "";
-  const base = siteBaseUrl();
+  // Mọi liên kết tuyệt đối trong thư dựng từ Liên kết web đã cấu hình
+  // (setting site_url thắng env — đợt 120); đường dẫn nội bộ giữ nguyên.
+  const base = siteUrlFromSettings(s) || siteBaseUrl();
   const vars: Record<string, string> = {
     site_name: s.site_name || "BNT Shop",
     username: args.username,
@@ -254,7 +256,7 @@ export async function sendCustomerMail(
  *  kiểm tra được cả khi chưa bật hệ thống; vẫn cần SMTP đã cấu hình. */
 export async function sendCustomerMailTest(admin: { id: number; email: string; username: string }, event: CustomerMailEvent): Promise<CustomerMailResult> {
   const vars: Record<string, string> = { ...CUSTOMER_MAIL_SAMPLE_VARS[event] };
-  const base = siteBaseUrl();
+  const base = (await getSiteUrl()) || siteBaseUrl();
   if (!vars.order_url) vars.order_url = `${base}/dashboard/don-premium`;
   if (!vars.deposit_url) vars.deposit_url = `${base}/dashboard/nap-tien`;
   if (!vars.pass_url) vars.pass_url = `${base}/pass`;

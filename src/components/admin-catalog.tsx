@@ -71,7 +71,11 @@ export function providerModeOf(p?: ProviderDTO): ProviderMode {
   return "LEGACY";
 }
 
-export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMarkups }: { provider?: ProviderDTO; onClose: () => void; webhookSecretSet?: boolean; mode?: ProviderMode; fzrMarkups?: Record<string, string> }) {
+export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMarkups, siteBase }: { provider?: ProviderDTO; onClose: () => void; webhookSecretSet?: boolean; mode?: ProviderMode; fzrMarkups?: Record<string, string>; siteBase?: string }) {
+  // URL webhook FZR hiển thị cho admin dán vào panel FazerCards: gốc =
+  // Liên kết web đã cấu hình (server truyền xuống — đợt 120); chưa cấu
+  // hình thì dùng chính origin admin đang đứng (địa chỉ thật của bản cài).
+  const fzrWebhookUrl = `${siteBase || (typeof window !== "undefined" ? window.location.origin : "")}/api/webhooks/fzr`;
   const { t } = useLang();
   const [tab, setTab] = useState(0);
   const [driver, setDriver] = useState(provider?.driver || "STANDARD");
@@ -150,7 +154,7 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
                 <div className="text-sm font-bold text-slate-800">{t("Webhook FazerCards (dùng chung)")}</div>
                 <div>
                   <label className={lbl}>{t("URL webhook (dán vào panel FazerCards)")}</label>
-                  <input className={inp} readOnly value="https://smmv2-zeta.vercel.app/api/webhooks/fzr" />
+                  <input className={inp} readOnly value={fzrWebhookUrl} />
                 </div>
                 <div>
                   <label className={lbl}>{t("Webhook secret của FazerCards")}</label>
@@ -216,7 +220,7 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
 /** Import dịch vụ CHỌN LỌC: xem toàn bộ dịch vụ phía nhà cung cấp, tick chọn từng
  *  dịch vụ muốn nhập, đặt % markup riêng cho đợt nhập rồi mới tạo — khác nút Đồng bộ
  *  (đồng bộ là nhập tất cả + cập nhật giá các dịch vụ đã có). */
-export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups }: { providers: ProviderDTO[]; webhookSecretSet?: boolean; fzrMarkups?: Record<string, string> }) {
+export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups, siteBase }: { providers: ProviderDTO[]; webhookSecretSet?: boolean; fzrMarkups?: Record<string, string>; siteBase?: string }) {
   const { t, td, m } = useLang();
   const [editing, setEditing] = useState<ProviderDTO | undefined>(undefined);
   const [addMode, setAddMode] = useState<ProviderMode>("PREMIUM");
@@ -234,7 +238,7 @@ export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups }: { p
       {/* key theo đích mở: điều hướng mềm sau server action GIỮ instance modal
           (state không tự reset) — không có key, form thêm FZR mở sau form SMM
           sẽ còn nguyên URL đã gõ ở form trước (đã gặp thật khi kiểm chứng). */}
-      {open && <ProviderModal key={editing ? `edit-${editing.id}` : `add-${addMode}`} provider={editing} mode={addMode} onClose={() => setOpen(false)} webhookSecretSet={webhookSecretSet} fzrMarkups={fzrMarkups} />}
+      {open && <ProviderModal key={editing ? `edit-${editing.id}` : `add-${addMode}`} provider={editing} mode={addMode} onClose={() => setOpen(false)} webhookSecretSet={webhookSecretSet} fzrMarkups={fzrMarkups} siteBase={siteBase} />}
       <div className="card mt-5 overflow-x-auto">
         <table className="w-full min-w-[880px]">
           <thead><tr className="border-b border-slate-100">

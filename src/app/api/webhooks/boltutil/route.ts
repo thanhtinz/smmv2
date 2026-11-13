@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
  * (ref "bolt:<eventId>") TRƯỚC khi xử lý; cộng tiền vẫn qua
  * settleBoltutilDeposit với claim nguyên tử nên trùng lặp ở mọi lớp đều
  * chỉ cộng 1 lần. Mọi HTTP 2xx được BoltUtil coi là đã nhận.
- * URL cấu hình phía BoltUtil: https://smmv2-zeta.vercel.app/api/webhooks/boltutil
+ * URL cấu hình phía BoltUtil: <Liên kết web đã cấu hình>/api/webhooks/boltutil
+ * (giá trị cụ thể hiện sẵn tại Admin → Cấu hình nạp tiền).
  */
 const CAP = 64 * 1024;
 

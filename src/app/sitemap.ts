@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/db";
 import { siteBaseUrl } from "@/lib/email-verify";
+import { getSiteUrl } from "@/lib/settings";
 import { regularCatalogWhere } from "@/lib/order-scope";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 /** Sitemap XML: chỉ trang CÔNG KHAI (trang chủ, premium, bảng giá, bài viết đã đăng,
  *  sản phẩm premium đang bán). Khu khách/admin không đưa vào. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = siteBaseUrl();
+  const base = (await getSiteUrl()) || siteBaseUrl();
   const now = new Date();
   const entries: MetadataRoute.Sitemap = [
     { url: `${base}/`, lastModified: now, changeFrequency: "daily", priority: 1 },

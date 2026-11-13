@@ -1,12 +1,16 @@
 import crypto from "crypto";
 import { prisma } from "./db";
-import { getSettings, intSetting } from "./settings";
+import { getSettings, intSetting, siteUrlFromSettings } from "./settings";
 import { sendMail, smtpConfigured } from "./mailer";
 
 /** Xác thực email (đợt bổ sung): token ngẫu nhiên chỉ lưu HASH sha256 trong DB,
  *  link sống theo setting email_verify_ttl_hours (mặc định 24 giờ). Không khoá
  *  tính năng của user chưa xác thực — chỉ gắn cờ + nhắc. */
 
+/** Gốc URL dự phòng CUỐI (chỉ env, đồng bộ): nguồn đọc CHÍNH là
+ *  siteUrlFromSettings/getSiteUrl trong lib/settings (setting site_url ở
+ *  DB thắng env — luật cấu hình đợt 120). Hàm này chỉ còn là tầng rơi cuối
+ *  cho những chỗ chưa có bộ settings trong tay. */
 export function siteBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, "");
 }
@@ -20,7 +24,7 @@ export async function issueEmailVerification(user: { id: number; email: string; 
     where: { id: user.id },
     data: { emailVerifyToken: hash, emailVerifyExpiry: new Date(Date.now() + ttlHours * 3600 * 1000) },
   });
-  const link = `${siteBaseUrl()}/verify-email?token=${token}`;
+  const link = `${siteUrlFromSettings(s) || siteBaseUrl()}/verify-email?token=${token}`;
   try {
     if (await smtpConfigured()) {
       await sendMail(

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { getSettings } from "@/lib/settings";
+import { getSettings, siteUrlFromSettings } from "@/lib/settings";
 import { siteBaseUrl } from "@/lib/email-verify";
 import { getServerI18n } from "@/lib/lang-server";
 import { DisplayEngine } from "@/components/display";
@@ -19,11 +19,15 @@ export const viewport: Viewport = {
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => null);
   const { L } = await getServerI18n().catch(() => ({ L: (t: string) => t }));
+  // Gốc URL cho metadata (canonical/OG): Liên kết web admin cấu hình thắng
+  // env (đợt 120); đợt 121 (SEO chuyên nghiệp) mở rộng tiếp trên nền này.
+  const base = siteUrlFromSettings(s);
   return {
+    ...(base ? { metadataBase: new URL(base) } : {}),
     title: `${s?.site_name || "BNT Shop"} — ${L("Tài khoản Premium & Sản phẩm số")}`,
     description: L(s?.meta_description || s?.site_tagline || "Tài khoản Premium & Sản phẩm số — tự động 24/7"),
     keywords: s?.meta_keywords ? s.meta_keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
-    openGraph: { title: s?.site_name || "BNT Shop", description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, type: "website", images: s?.og_image_url ? [s.og_image_url] : [BRAND_FULL_URL] },
+    openGraph: { title: s?.site_name || "BNT Shop", siteName: s?.site_name || "BNT Shop", ...(base ? { url: base } : {}), description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, type: "website", images: s?.og_image_url ? [s.og_image_url] : [BRAND_FULL_URL] },
     twitter: { card: "summary_large_image", title: s?.site_name || "BNT Shop", description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, images: s?.og_image_url ? [s.og_image_url] : [BRAND_FULL_URL] },
     alternates: { canonical: "/" },
     manifest: "/manifest.webmanifest",
@@ -49,7 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const bodyHtml = s?.custom_body_html;
   // Dữ liệu có cấu trúc (SEO đợt 2026-11-08): Organization + WebSite toàn
   // site từ chính cài đặt (tên/logo/URL) — không bịa số liệu.
-  const siteBase = (() => { try { return siteBaseUrl(); } catch { return ""; } })();
+  const siteBase = siteUrlFromSettings(s) || (() => { try { return siteBaseUrl(); } catch { return ""; } })();
   const orgLd = {
     "@context": "https://schema.org",
     "@type": "Organization",

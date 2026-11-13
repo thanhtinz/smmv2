@@ -7,7 +7,7 @@ import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
 import { clawbackPassCashback } from "@/lib/pass";
 import { syncPremiumOrderStatus } from "@/lib/orders";
 import { providerBalance, syncProviderPremium } from "@/lib/provider";
-import { getSettings, setSetting } from "@/lib/settings";
+import { getSettings, setSetting, siteUrlFromSettings, normalizeSiteUrl } from "@/lib/settings";
 import { fzrMarkupKey } from "@/lib/fzr-markup";
 import { DICT } from "@/lib/i18n";
 import { LANG_KEYS, sanitizeEnabled, sanitizeOverrides, type LangOverrides } from "@/lib/lang-config";
@@ -548,7 +548,7 @@ export async function adminPaypalTestAction(formData: FormData) {
 export async function adminSepayStatusAction() {
   await requireAdmin();
   const s = await getSettings();
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn";
+  const base = siteUrlFromSettings(s) || "https://your-domain.vn";
   const url = `${base}/api/webhooks/sepay`;
   const lastLog = await prisma.apiLog.findFirst({ where: { kind: "webhook" }, orderBy: { id: "desc" }, select: { createdAt: true } });
   const lastReceipt = await prisma.webhookReceipt.findFirst({ orderBy: { id: "desc" }, select: { createdAt: true } });
@@ -676,8 +676,10 @@ export async function adminReplyTicket(formData: FormData) {
   if (body && tk) {
     const { sendCustomerMail } = await import("@/lib/customer-mail");
     const { siteBaseUrl } = await import("@/lib/email-verify");
+    const { getSiteUrl } = await import("@/lib/settings");
+    const mailBase = (await getSiteUrl().catch(() => "")) || siteBaseUrl();
     void sendCustomerMail(tk.userId, "ticket_replied", {
-      ticket_id: ticketId, ticket_subject: tk.subject, ticket_url: `${siteBaseUrl()}/dashboard/ticket`,
+      ticket_id: ticketId, ticket_subject: tk.subject, ticket_url: `${mailBase}/dashboard/ticket`,
     });
   }
   redirect(`/admin/ticket/${ticketId}`);
@@ -691,8 +693,20 @@ export async function adminSaveSettings(formData: FormData) {
   if (SENSITIVE_KEYS.some((k) => { const v = formData.get(k); return v !== null && String(v).trim() !== ""; })) {
     await assertStepUp(actor.id, "/admin/cau-hinh");
   }
+  // Liên kết web (đợt 120): kiểm tra hợp lệ PHÍA MÁY CHỦ trước khi lưu bất
+  // cứ thứ gì — giá trị lạ (không phải URL http/https đầy đủ) thì từ chối
+  // cả lượt lưu kèm thông báo rõ, không để lọt vào DB rồi thành liên kết
+  // gửi khách. Giá trị hợp lệ được lưu ở dạng ĐÃ CHUẨN HOÁ (bỏ "/" cuối).
+  const rawSiteUrl = formData.get("site_url");
+  if (rawSiteUrl !== null) {
+    const trimmed = String(rawSiteUrl).trim();
+    if (trimmed && !normalizeSiteUrl(trimmed)) {
+      back("/admin/cau-hinh", "err", "Liên kết web không hợp lệ — phải là URL http/https đầy đủ, ví dụ https://bntshop.com");
+    }
+    if (trimmed) formData.set("site_url", normalizeSiteUrl(trimmed));
+  }
   const keys = [
-    "site_name", "site_tagline", "support_telegram", "support_facebook", "support_zalo", "support_hotline",
+    "site_name", "site_url", "site_tagline", "support_telegram", "support_facebook", "support_zalo", "support_hotline",
     "child_ns1", "child_ns2",
     "bank_name", "bank_account", "bank_holder", "bank_branch",
     "deposit_min", "deposit_bonus_tiers", "maintenance", "announcement_bar", "sys_announce_enabled", "sys_announce_content", "affiliate_percent", "affiliate_withdraw_min",

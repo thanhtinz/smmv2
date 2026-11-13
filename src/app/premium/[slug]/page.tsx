@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { productImages } from "@/lib/format";
 import { siteBaseUrl } from "@/lib/email-verify";
+import { getSiteUrl } from "@/lib/settings";
 import { PublicFrame } from "@/components/public-frame";
 import { PremiumDetailView } from "@/components/premium-views";
 
@@ -22,7 +23,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const title = product.metaTitle || product.name;
   const description = product.metaDescription || product.tagline || plain(product.description).slice(0, 160) || undefined;
   const img = productImages(product.images, product.imageUrl)[0];
-  const abs = img ? (img.startsWith("http") ? img : (() => { try { return siteBaseUrl() + img; } catch { return img; } })()) : undefined;
+  const base = (await getSiteUrl().catch(() => "")) || siteBaseUrl();
+  const abs = img ? (img.startsWith("http") ? img : base + img) : undefined;
   return {
     title,
     description,

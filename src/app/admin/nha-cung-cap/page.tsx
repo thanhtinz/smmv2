@@ -4,7 +4,7 @@ import { PageHead, Flash, Stat, I } from "@/components/ui";
 import { ProvidersClient, type ProviderDTO } from "@/components/admin-catalog";
 import { dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
-import { getSettings } from "@/lib/settings";
+import { getSettings, siteUrlFromSettings } from "@/lib/settings";
 import { getTelegramProvider } from "@/lib/tg";
 import { fzrBalance, fzrMe, fzrTransactions, fzrWebhookConfig } from "@/lib/fzr";
 import { adminFzrAssignmentAction, adminTelegramTestAction, adminFzrWebhookTestAction } from "@/app/actions/telegram";
@@ -122,6 +122,7 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
       <div className="mt-2">
         <ProvidersClient
           providers={dtos}
+          siteBase={siteUrlFromSettings(s)}
           webhookSecretSet={Boolean(s.fzr_webhook_secret)}
           fzrMarkups={{
             gamekeys: s.fzr_markup_gamekeys || "",

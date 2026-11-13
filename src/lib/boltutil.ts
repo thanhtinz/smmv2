@@ -148,9 +148,10 @@ export type BoltOrderCreated = {
  * phân nhỏ để đối soát) — không tự làm tròn/cắt.
  */
 export async function boltCreateOrder(cfg: BoltConfig, input: { externalOrderId: string; amountUsd: number; network: string; returnPath?: string }): Promise<BoltOrderCreated> {
-  const { siteOrigin } = await import("./payments");
+  const { siteOrigin, gatewaySiteName } = await import("./payments");
   // Ngoài request scope (script kiểm thử) headers() không dùng được -> địa chỉ dự phòng.
   const origin = await siteOrigin().catch(() => (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, ""));
+  const siteName = await gatewaySiteName().catch(() => "BNT Shop");
   const data: any = await boltFetch(cfg, "POST", "/api/v1/order/create", {
     amount: input.amountUsd,
     externalOrderId: input.externalOrderId,
@@ -159,7 +160,7 @@ export async function boltCreateOrder(cfg: BoltConfig, input: { externalOrderId:
     notifyUrl: `${origin}/api/webhooks/boltutil`,
     returnUrl: `${origin}${input.returnPath || "/dashboard/nap-tien"}`,
     expiredMinutes: cfg.expiresMinutes,
-    orderDesc: `BNT Shop ${input.externalOrderId}`,
+    orderDesc: `${siteName} ${input.externalOrderId}`,
   });
   return {
     orderId: String(data?.orderToken || ""),

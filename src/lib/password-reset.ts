@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { prisma } from "./db";
-import { getSettings, intSetting } from "./settings";
+import { getSettings, intSetting, siteUrlFromSettings } from "./settings";
 import { sendMail, smtpConfigured } from "./mailer";
 import { siteBaseUrl } from "./email-verify";
 import { hashPassword } from "./password";
@@ -30,7 +30,7 @@ export async function requestPasswordReset(email: string): Promise<string | null
     where: { id: user.id },
     data: { passwordResetToken: sha256Hex(token), passwordResetExpiry: new Date(Date.now() + ttlMin * 60 * 1000) },
   });
-  const link = `${siteBaseUrl()}/reset-password?token=${token}`;
+  const link = `${siteUrlFromSettings(s) || siteBaseUrl()}/reset-password?token=${token}`;
   try {
     if (await smtpConfigured()) {
       await sendMail(

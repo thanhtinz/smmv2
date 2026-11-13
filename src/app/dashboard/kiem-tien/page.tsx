@@ -7,7 +7,7 @@ import { affiliateWithdrawMin } from "@/lib/affiliate";
 export const dynamic = "force-dynamic";
 
 export default async function EarnPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
-  const { getSettings } = await import("@/lib/settings");
+  const { getSettings, siteUrlFromSettings } = await import("@/lib/settings");
   const settings = await getSettings();
   if (settings.module_affiliate === "0") { const { redirect } = await import("next/navigation"); redirect("/"); }
   const user = (await getCurrentUser())!;
@@ -28,5 +28,8 @@ export default async function EarnPage({ searchParams }: { searchParams: Record<
   const proto = h.get("x-forwarded-proto") || (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
   // Link giới thiệu dạng trang chủ + ?aff=MÃ (mẫu shopkey): cookie first-touch
   // 30 ngày + đếm click do AffTracker / /api/aff/click xử lý trên mọi trang.
-  return <KiemTienView userId={user.id} linkBase={`${proto}://${host}`} sp={searchParams} tabBase="/dashboard/kiem-tien" />;
+  // Gốc link = Liên kết web đã cấu hình khi có (đợt 120); chưa cấu hình thì
+  // theo host của request như trước.
+  const linkBase = siteUrlFromSettings(settings) || `${proto}://${host}`;
+  return <KiemTienView userId={user.id} linkBase={linkBase} sp={searchParams} tabBase="/dashboard/kiem-tien" />;
 }

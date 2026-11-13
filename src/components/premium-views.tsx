@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getSettings } from "@/lib/settings";
+import { getSettings, siteUrlFromSettings } from "@/lib/settings";
 import { getSession } from "@/lib/auth";
 import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
@@ -294,7 +294,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
     : null;
   const affEnrolled = !!affUser?.affiliateEnrolledAt;
   const affCode = session && affPct > 0 && affEnrolled ? await ensureRefCode(session.id) : null;
-  const affLink = affCode ? `${siteBaseUrl()}/premium/${product.slug}?aff=${affCode}` : null;
+  const affLink = affCode ? `${siteUrlFromSettings(affSettings) || siteBaseUrl()}/premium/${product.slug}?aff=${affCode}` : null;
   const affVariants = product.variants.map((v) => ({ name: v.name, price: flashPct > 0 ? applyFlashAmount(v.price, flashPct) : v.price }));
   const variantIds = product.variants.map((v) => v.id);
   const reviewAgg = await prisma.premiumReview.aggregate({ where: { productId: product.id }, _avg: { rating: true }, _count: true });
@@ -354,7 +354,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   // đánh giá CHỈ khi sản phẩm thật có đánh giá) + BreadcrumbList khớp
   // đúng breadcrumb đang hiển thị (Trang chủ -> Sản phẩm -> tên).
   const seoLd = base === "/premium" ? (() => {
-    const sb = (() => { try { return siteBaseUrl(); } catch { return ""; } })();
+    const sb = siteUrlFromSettings(affSettings) || (() => { try { return siteBaseUrl(); } catch { return ""; } })();
     const abs = (u: string) => (u.startsWith("http") ? u : sb + u);
     const cheapest = product.variants.length ? Math.min(...product.variants.map((v) => v.price)) : 0;
     const price = flashPct > 0 ? applyFlashAmount(cheapest, flashPct) : cheapest;

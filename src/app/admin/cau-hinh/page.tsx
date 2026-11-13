@@ -1,4 +1,4 @@
-import { getSettings } from "@/lib/settings";
+import { getSettings, siteUrlFromSettings } from "@/lib/settings";
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
@@ -165,7 +165,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
     select: { id: true, name: true, variants: { where: { active: true }, orderBy: [{ sort: "asc" }, { id: "asc" }], select: { id: true, name: true } } },
   });
   const seasonalTheme = parseSeasonalTheme(s.seasonal_theme) || "tet";
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn";
+  const base = siteUrlFromSettings(s) || "https://your-domain.vn";
   const cronUrl = `${base}/api/cron/sync?secret=${s.cron_secret || "<CRON_SECRET>"}&services=1`;
   const webhookUrl = `${base}/api/webhooks/sepay`;
 
@@ -179,6 +179,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
         <section className="card p-6 space-y-4">
           <div className="font-bold text-slate-900">{L("Thương hiệu")}</div>
           <div><label className="lbl">{L("Tên website")}</label><input className="inp" name="site_name" defaultValue={s.site_name} /></div>
+          <div><label className="lbl">{L("Liên kết web")}</label><input className="inp" name="site_url" defaultValue={s.site_url} placeholder="https://bntshop.com" /><p className="mt-1 text-xs text-slate-400">{L("Dùng cho liên kết trong email gửi khách, thẻ chia sẻ và địa chỉ chính thức của web.")}</p></div>
           <div><label className="lbl">{L("Khẩu hiệu (tagline)")}</label><input className="inp" name="site_tagline" defaultValue={s.site_tagline} /></div>
           <div><label className="lbl">{L("Logo (để trống dùng chữ viết tắt)")}</label><ImageUpload name="logo_url" defaultValue={s.logo_url} stamp={false} /><p className="mt-1 text-xs text-slate-400">{L("PNG, JPG — hiển thị ở header. Logo là dấu hiệu thương hiệu nên KHÔNG bị đóng dấu mờ.")}</p></div>
           <div><label className="lbl">{L("Logo menu (ảnh ngang — để trống dùng logo nhỏ)")}</label><ImageUpload name="logo_menu_url" defaultValue={s.logo_menu_url} stamp={false} /><p className="mt-1 text-xs text-slate-400">{L("PNG, JPG — hiển thị ở đầu ngăn kéo menu trên điện thoại.")}</p></div>
@@ -360,7 +361,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
         <div><label className="lbl">Username</label><input className="inp" name="smtp_user" defaultValue={s.smtp_user} /></div>
         <div><label className="lbl">Password</label><input className="inp" name="smtp_pass" defaultValue={s.smtp_pass} autoComplete="off" /></div>
         <div><label className="lbl">{L("Từ Email (From)")}</label><input className="inp" name="smtp_from" defaultValue={s.smtp_from} placeholder="VD: no-reply@domain.vn" /></div>
-        <div><label className="lbl">{L("Từ Tên")}</label><input className="inp" name="smtp_from_name" defaultValue={s.smtp_from_name} placeholder="VD: SMMv2 Support" /></div>
+        <div><label className="lbl">{L("Từ Tên")}</label><input className="inp" name="smtp_from_name" defaultValue={s.smtp_from_name} placeholder={`VD: ${s.site_name || "BNT Shop"} Support`} /></div>
       </div>
       <p className="text-xs text-slate-400">{L("Dùng cho Email Marketing và thông báo hệ thống. Gmail cần bật xác minh 2 bước và tạo App Password. Gửi email thử ở mục")} <b>{L("Email Marketing")}</b>{L(".")}</p>
     </section>

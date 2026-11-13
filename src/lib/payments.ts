@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { headers } from "next/headers";
 import { prisma } from "./db";
 import { applyBalance } from "./wallet";
-import { getSettings, calcBonus, bonusTiersFor, DEFAULT_SETTINGS } from "./settings";
+import { getSettings, calcBonus, bonusTiersFor, DEFAULT_SETTINGS, normalizeSiteUrl } from "./settings";
 import { fxDepositRate } from "./rates";
 import { genCode, vnd } from "./format";
 import { sendCustomerMail } from "./customer-mail";
@@ -64,10 +64,15 @@ export async function resolveIntlConfigByExternalId(externalId: string): Promise
   return resolveIntlConfig(dep.userId);
 }
 
-/** Origin để dựng URL quay về sau thanh toán: CHỈ tin Host thuộc hệ thống
+/** Origin để dựng URL quay về sau thanh toán: admin đã cấu hình Liên kết
+ *  web (setting site_url — đợt 120) thì ĐÓ là gốc chính thức, thắng mọi
+ *  nguồn khác. Chưa cấu hình thì giữ logic cũ: CHỈ tin Host thuộc hệ thống
  *  (domain chính đã cấu hình) — không lấy thẳng header
  *  Host lạ (kẻ tấn công chèn Host để link quay về trỏ sang trang giả mạo). */
 export async function siteOrigin(): Promise<string> {
+  const s = await getSettings().catch(() => null);
+  const configured = normalizeSiteUrl(s?.site_url);
+  if (configured) return configured;
   const h = headers();
   const rawHost = (h.get("x-forwarded-host") || h.get("host") || "").split(",")[0].trim();
   const host = rawHost.split(":")[0].toLowerCase();
@@ -120,6 +125,14 @@ export async function creditExternalDeposit(externalId: string, paidUsdCents?: n
   return { ok: credited, reason: credited ? "credited" : "raced" };
 }
 
+/** Tên web hiển thị PHÍA CỔNG (tên sản phẩm Stripe / brand_name PayPal /
+ *  mô tả đơn BoltUtil): luôn đọc từ setting site_name — không hardcode tên
+ *  web riêng ở tầng cổng (luật cấu hình đợt 120). */
+export async function gatewaySiteName(): Promise<string> {
+  const s = await getSettings().catch(() => null);
+  return (s?.site_name || "").trim() || DEFAULT_SETTINGS.site_name;
+}
+
 /* ============================== STRIPE (REST, không cần SDK) ============================== */
 export async function stripeCreateCheckout(secretKey: string, p: { amountCents: number; depositCode: string; successUrl: string; cancelUrl: string; expiresAtSec?: number }) {
   const body = new URLSearchParams();
@@ -136,7 +149,7 @@ export async function stripeCreateCheckout(secretKey: string, p: { amountCents: 
   body.set("line_items[0][quantity]", "1");
   body.set("line_items[0][price_data][currency]", "usd");
   body.set("line_items[0][price_data][unit_amount]", String(p.amountCents));
-  body.set("line_items[0][price_data][product_data][name]", `Nạp tiền BNT Shop ${p.depositCode}`);
+  body.set("line_items[0][price_data][product_data][name]", `Nạp tiền ${await gatewaySiteName()} ${p.depositCode}`);
   const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
     headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
@@ -195,7 +208,7 @@ export async function paypalCreateOrder(token: string, mode: string, p: { amount
     body: JSON.stringify({
       intent: "CAPTURE",
       purchase_units: [{ reference_id: p.depositCode, custom_id: p.depositCode, amount: { currency_code: "USD", value: p.amountUsd } }],
-      application_context: { return_url: p.returnUrl, cancel_url: p.cancelUrl, user_action: "PAY_NOW", brand_name: "BNT Shop" },
+      application_context: { return_url: p.returnUrl, cancel_url: p.cancelUrl, user_action: "PAY_NOW", brand_name: await gatewaySiteName() },
     }),
   });
   const j: any = await r.json().catch(() => null);

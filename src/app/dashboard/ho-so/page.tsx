@@ -10,7 +10,7 @@ import { TwoFactorCard } from "@/components/two-factor";
 import { PasskeySection } from "@/components/passkey";
 import { ProfileTabs } from "@/components/profile-tabs";
 import { backupCodesLeft } from "@/lib/twofa";
-import { getSettings } from "@/lib/settings";
+import { getSettings, siteUrlFromSettings } from "@/lib/settings";
 import { LEVEL_NAME, num, dt, dshort, relTime } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { regularPremiumWhere } from "@/lib/order-scope";
@@ -45,7 +45,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
   const myIp = currentIp();
   const adminMust2fa = searchParams.bat2fa === "1" || ((user.role === "ADMIN" || user.role === "STAFF") && s.admin_2fa_required !== "0");
   const initials = (user.fullName || user.username).trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-  const endpoint = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/v2`;
+  const endpoint = `${siteUrlFromSettings(s)}/api/v2`;
   const passwordForm = (
     <form action={changePasswordAction} className="card space-y-4 p-6">
       <div className="flex items-center gap-3">

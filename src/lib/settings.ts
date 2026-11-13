@@ -8,6 +8,12 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // /setup. Cờ chỉ lật một lần (xem lib/setup.ts).
   setup_completed: "",
   site_name: "BNT Shop",
+  // Liên kết web (URL/domain CHÍNH THỨC — luật cấu hình Tín ban hành
+  // 2026-11-13, đợt 120): admin cấu hình tại Cấu hình → Chung → Thương hiệu.
+  // Đã cấu hình (hợp lệ) thì giá trị này THẮNG biến môi trường
+  // NEXT_PUBLIC_SITE_URL ở mọi điểm đọc qua siteUrlFromSettings/getSiteUrl/
+  // siteOrigin; để trống thì rơi về env/host của request như trước.
+  site_url: "",
   site_tagline: "Tài khoản Premium & Sản phẩm số — tự động 24/7",
   site_logo_text: "B",
   support_widget_enabled: "1",
@@ -617,4 +623,46 @@ export async function adminProductPageSize(): Promise<number> {
  *  Mọi nơi quy đổi USDT phải đi qua hàm này — trước đây mỗi nơi một chuỗi dự phòng khác nhau. */
 export function usdtRateOf(s: Record<string, string>): number {
   return parseInt(s.usdt_rate || "") || parseInt(s.usd_rate || "") || parseInt(DEFAULT_SETTINGS.usd_rate);
+}
+
+/* ================= LIÊN KẾT WEB CHÍNH THỨC (đợt 120) =================
+ * MỘT nguồn đọc duy nhất cho "địa chỉ gốc của web" — đợt 121 (SEO) dùng lại
+ * đúng các helper này cho metadata/canonical/OG, không dựng nguồn thứ hai.
+ * Thứ tự ưu tiên: (1) setting site_url trong DB (admin cấu hình — thắng mọi
+ * nguồn khác), (2) biến môi trường NEXT_PUBLIC_SITE_URL. Mọi giá trị đều
+ * phải qua normalizeSiteUrl: chỉ http/https + host hợp lệ mới được dùng để
+ * dựng liên kết tuyệt đối; giá trị lạ -> coi như chưa cấu hình (""), KHÔNG
+ * bao giờ để lọt vào href/link gửi khách. */
+
+/** Chuẩn hoá một URL gốc: cắt khoảng trắng, bỏ query/hash, bỏ "/" cuối.
+ *  Trả "" khi không phải URL http/https hợp lệ. */
+export function normalizeSiteUrl(raw: string | null | undefined): string {
+  const v = String(raw || "").trim();
+  if (!v) return "";
+  let u: URL;
+  try {
+    u = new URL(v);
+  } catch {
+    return "";
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return "";
+  if (!u.hostname) return "";
+  const path = u.pathname.replace(/\/+$/, "");
+  return `${u.protocol}//${u.host}${path}`;
+}
+
+/** URL gốc chính thức từ một bộ settings ĐÃ đọc sẵn: site_url (DB) thắng,
+ *  chưa cấu hình thì rơi về NEXT_PUBLIC_SITE_URL; "" khi cả hai đều trống/
+ *  không hợp lệ (nơi gọi tự rơi tiếp về hành vi cũ của nó). */
+export function siteUrlFromSettings(s: Record<string, string> | null | undefined): string {
+  const fromDb = normalizeSiteUrl(s?.site_url);
+  if (fromDb) return fromDb;
+  return normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
+}
+
+/** Như siteUrlFromSettings nhưng tự đọc settings — dùng ở nơi chưa có sẵn
+ *  bộ settings trong tay (sitemap, robots, action lẻ). */
+export async function getSiteUrl(): Promise<string> {
+  const s = await getSettings().catch(() => null);
+  return siteUrlFromSettings(s);
 }

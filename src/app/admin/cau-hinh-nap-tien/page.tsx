@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireAdminPage } from "@/lib/auth";
-import { getSettings } from "@/lib/settings";
+import { getSettings, siteUrlFromSettings } from "@/lib/settings";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
 import { adminSaveMethodsAction, adminBoltPingAction, adminStripeTestAction, adminPaypalTestAction, adminSepayStatusAction, adminFetchRatesNowAction } from "@/app/actions/admin";
@@ -71,7 +71,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn";
+  const base = siteUrlFromSettings(s) || "https://your-domain.vn";
   const banks = await prisma.bankAccount.findMany({ where: { active: true }, orderBy: { id: "asc" } });
   const back = "/admin/cau-hinh-nap-tien";
   // Lần webhook SePay gần nhất hệ thống nhận được (cho khối trạng thái trung thực)
@@ -186,7 +186,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
           </div>
           <div>
             <label className="lbl">{L("URL webhook (dán vào BoltUtil → Integrations → API)")}</label>
-            <input className="inp" readOnly value="https://smmv2-zeta.vercel.app/api/webhooks/boltutil" />
+            <input className="inp" readOnly value={`${base}/api/webhooks/boltutil`} />
           </div>
           <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">{L("BoltUtil không giữ tiền — USDT về thẳng ví nhận đã cấu hình trong dashboard BoltUtil; tiền cộng cho khách theo số thực nhận khi giao dịch đủ xác nhận.")}</p>
           <PurposeTicks
