@@ -110,6 +110,13 @@ export function StarIcon({ filled = false, size = 20 }: { filled?: boolean; size
     <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3.5l2.55 5.37 5.9.72-4.34 4.06 1.1 5.83L12 16.9l-5.21 2.58 1.1-5.83L3.55 9.59l5.9-.72L12 3.5z" /></svg>
   );
 }
+/** Tim YÊU THÍCH cho sản phẩm Premium (nút ở hero trang chi tiết): đã lưu =
+ *  tô đầy, chưa lưu = chỉ viền — cùng quy ước với StarIcon. */
+export function HeartIcon({ filled = false, size = 20 }: { filled?: boolean; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z" /></svg>
+  );
+}
 export const I = {
   globe: <P d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM3 12h18M12 3c2.5 2.6 3.9 5.7 3.9 9S14.5 18.4 12 21c-2.5-2.6-3.9-5.7-3.9-9S9.5 5.6 12 3Z" />,
   home: <P d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,
@@ -138,6 +145,8 @@ export const I = {
   bell: <P d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" />,
   layers: <P d="m12 2 10 5-10 5L2 7l10-5ZM2 17l10 5 10-5M2 12l10 5 10-5" />,
   money: <P d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm0-17.5V19M15.3 7.4c-.6-.9-1.9-1.4-3.3-1.4-1.9 0-3.4 1-3.4 2.4 0 3.4 6.8 2.7 6.8 4.9 0 1.4-1.5 2.4-3.4 2.4-1.4 0-2.7-.5-3.3-1.4" />,
+  // Bàn tay ngửa hứng đồng xu — nút "Kiếm tiền" (chia sẻ nhận hoa hồng)
+  handCoin: <P d="M11 14.5h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16.5M3 16.5c2.9 2.1 6.3 3.1 10 2.8.9-.1 1.5-.9 1.4-1.8l-.4-2.7M16.5 8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 4.2v2.6M15.6 4.9c.2-.2.5-.3.9-.3.5 0 .9.3.9.7 0 .9-1.8.6-1.8 1.4 0 .4.4.7.9.7.3 0 .7-.1.9-.3" />,
   gift: <P d="M4 11h16v10H4zM4 7h16v4H4zM12 7v14M12 7C8 7 7.5 3 9.5 2.5C11 2 12 4 12 7Zm0 0c4 0 4.5-4 2.5-4.5C13 2 12 4 12 7Z" />,
   star: <P d="M12 3.5l2.55 5.37 5.9.72-4.34 4.06 1.1 5.83L12 16.9l-5.21 2.58 1.1-5.83L3.55 9.59l5.9-.72L12 3.5z" />,
   send: <P d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" />,

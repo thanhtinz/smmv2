@@ -22,6 +22,8 @@ import { getActiveFlashSale, flashAppliesToProduct, applyFlashAmount } from "@/l
 import { siteBaseUrl } from "@/lib/email-verify";
 import { resolveDeliveryType, variantSoldOut, isQtyTracked } from "@/lib/variant-stock";
 import { FlashBanner } from "@/components/flash-banner";
+import { ProductAffiliate } from "@/components/product-affiliate";
+import { ensureRefCode } from "@/lib/wallet";
 
 /** Dựng dữ liệu thẻ cho một nhóm sản phẩm: khoảng giá gói, tổng đã bán, còn kho. */
 async function buildCardData(
@@ -272,6 +274,23 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   // mọi sản phẩm. Chỉ để form hiển thị giá đã giảm + xem trước dòng giảm.
   const flashSale = await getActiveFlashSale("PREMIUM");
   const flashPct = flashAppliesToProduct(flashSale, product.id) ? flashSale!.percent : 0;
+  // Nút Kiếm tiền + hộp "Chia sẻ kiếm tiền" ở hero (mẫu shopkey Tín gửi
+  // 2026-11-12): % lấy TRỰC TIẾP từ affiliate_percent admin đang cấu hình
+  // (tắt module hoặc % = 0 thì ẩn nút); giá gói trong hộp là giá đang hiển
+  // thị (đã gồm giảm flash như form mua). Link cá nhân chỉ có khi đã đăng
+  // nhập — khách vãng lai mở hộp sẽ thấy lời mời đăng nhập.
+  const affSettings = await getSettings();
+  const affPct = affSettings.module_affiliate === "0" ? 0 : (parseFloat(affSettings.affiliate_percent || "0") || 0);
+  // Cổng tham gia: chỉ khách ĐÃ ghi danh chương trình mới có link giới thiệu
+  // cá nhân; chưa ghi danh thì hộp chia sẻ hiện lời mời tham gia (huy hiệu %
+  // vẫn hiện). Ghi nhận hoa hồng của engine không đổi.
+  const affUser = session && affPct > 0
+    ? await prisma.user.findUnique({ where: { id: session.id }, select: { affiliateEnrolledAt: true } })
+    : null;
+  const affEnrolled = !!affUser?.affiliateEnrolledAt;
+  const affCode = session && affPct > 0 && affEnrolled ? await ensureRefCode(session.id) : null;
+  const affLink = affCode ? `${siteBaseUrl()}/premium/${product.slug}?aff=${affCode}` : null;
+  const affVariants = product.variants.map((v) => ({ name: v.name, price: flashPct > 0 ? applyFlashAmount(v.price, flashPct) : v.price }));
   const variantIds = product.variants.map((v) => v.id);
   const reviewAgg = await prisma.premiumReview.aggregate({ where: { productId: product.id }, _avg: { rating: true }, _count: true });
   const reviewAvg = reviewAgg._avg.rating || 0;
@@ -393,7 +412,10 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             )}
           </div>
           <div>
-            <span className="inline-block rounded-full border border-white/40 px-3 py-1 text-xs font-bold text-white">{product.category.name}</span>
+            <div className="flex items-start justify-between gap-3">
+              <span className="inline-block rounded-full border border-white/40 px-3 py-1 text-xs font-bold text-white">{product.category.name}</span>
+              <ProductAffiliate slug={product.slug} productName={product.name} pct={affPct} affLink={affLink} loggedIn={!!session} enrolled={affEnrolled} variants={affVariants} />
+            </div>
             <h1 className="mt-3 text-3xl font-extrabold leading-tight">{product.name}</h1>
             {product.tagline && <p className="mt-2 text-sm leading-relaxed text-white/85">{product.tagline}</p>}
             {prices.length > 0 && (

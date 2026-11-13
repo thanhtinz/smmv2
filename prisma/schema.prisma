@@ -64,6 +64,7 @@ model User {
   depositCode    String     @unique @db.VarChar(12) // nội dung CK: SMM <code>
   refCode        String?    @unique @db.VarChar(12) // mã giới thiệu (trang Kiếm tiền)
   affiliateBalance Int      @default(0) // số dư hoa hồng giới thiệu RIÊNG — rút về ví chính khi đủ mức tối thiểu (affiliate_withdraw_min)
+  affiliateEnrolledAt DateTime? // mốc ĐÃ đăng ký tham gia chương trình giới thiệu (null = chưa tham gia -> thấy trang giới thiệu chương trình)
   webhookUrl     String?    @db.VarChar(255) // URL nhận thông báo trạng thái đơn (Webhook ra hệ thống ngoài của khách)
   termsAcceptedVersion Int  @default(0) // phiên bản điều khoản đã xác nhận (đối chiếu settings terms_version)
   referredById   Int? // người đã giới thiệu tài khoản này
