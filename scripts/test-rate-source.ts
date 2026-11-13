@@ -57,7 +57,11 @@ async function main() {
     const fresh = async () => (await prisma.provider.findUnique({ where: { id: PID } }))!;
     const starsPrice = async () => {
       const p = await prisma.premiumProduct.findFirst({ where: { providerId: PID, providerProductId: "telegram-stars" }, include: { variants: true } });
-      return p?.variants[0];
+      // Đọc đúng variant "1 sao" theo providerItemId — KHÔNG dùng variants[0]:
+      // include không orderBy trả hàng theo thứ tự heap của Postgres, thứ tự
+      // này ĐỔI sau mỗi lần sync UPDATE (bắt được 2026-11-13: variants[0] có
+      // lúc là gói 10000 sao -> giá lệch 10000 lần dù giá sync hoàn toàn đúng).
+      return p?.variants.find((v) => v.providerItemId === "stars");
     };
     const premium12 = async () => {
       const p = await prisma.premiumProduct.findFirst({ where: { providerId: PID, providerProductId: "telegram-premium" }, include: { variants: true } });
