@@ -1,7 +1,8 @@
-/** NGHIỆM THU dòng "★ 4.0 (2) · Đã bán 43" trên thẻ sản phẩm (lệnh Tín
- *  2026-11-12): node scripts/shots-card-rating.mjs
+/** NGHIỆM THU dòng "★ 4.0 (2) | Đã bán 43" trên thẻ sản phẩm (lệnh Tín
+ *  2026-11-12; dấu ngăn cách "·" -> "|" theo đính chính của Tín 21:20 cùng
+ *  ngày): node scripts/shots-card-rating.mjs
  *  Điều kiện: server production :3000 + fixture scripts/card-rating-fixture.ts.
- *  1. Thẻ Fixture A (2 đánh giá 4★, 43 đơn): dòng meta đúng "4.0 (2) · Đã bán 43".
+ *  1. Thẻ Fixture A (2 đánh giá 4★, 43 đơn): dòng meta đúng "4.0 (2) | Đã bán 43".
  *  2. Thẻ Fixture B (0 đánh giá, 7 đơn): chỉ "Đã bán 7" — không sao, không "0.0".
  *  3. Thẻ Fixture C (0 đánh giá, 0 đơn): chỉ "Đã bán 0".
  *  4. Dòng meta ghim NGAY TRÊN hàng nút Xem (khoảng cách = pt-2.5 = 10px),
@@ -98,7 +99,7 @@ async function checkFixtures(tag) {
   const A = m.items.find((i) => i.name.startsWith("Fixture A"));
   const B = m.items.find((i) => i.name.startsWith("Fixture B"));
   const C = m.items.find((i) => i.name.startsWith("Fixture C"));
-  ok(!!A && A.metaText === "4.0 (2) · Đã bán 43", `${tag}: thẻ A dòng meta đúng "4.0 (2) · Đã bán 43" (thực tế: ${A ? JSON.stringify(A.metaText) : "không thấy thẻ"})`);
+  ok(!!A && A.metaText === "4.0 (2) | Đã bán 43", `${tag}: thẻ A dòng meta đúng "4.0 (2) | Đã bán 43" (thực tế: ${A ? JSON.stringify(A.metaText) : "không thấy thẻ"})`);
   ok(!!B && B.metaText === "Đã bán 7", `${tag}: thẻ B chỉ "Đã bán 7", không sao bịa (thực tế: ${B ? JSON.stringify(B.metaText) : "không thấy thẻ"})`);
   ok(!!C && C.metaText === "Đã bán 0", `${tag}: thẻ C chỉ "Đã bán 0" (thực tế: ${C ? JSON.stringify(C.metaText) : "không thấy thẻ"})`);
   const allMetaOk = m.items.every((i) => i.metaH === 16 && i.metaScrollW <= i.metaClientW + 1);

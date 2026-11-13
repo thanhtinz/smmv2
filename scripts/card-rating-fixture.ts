@@ -1,9 +1,9 @@
 /**
- * Fixture kiểm chứng dòng "★ điểm (số đánh giá) · Đã bán N" trên thẻ sản
- * phẩm (lệnh Tín 2026-11-12):
+ * Fixture kiểm chứng dòng "★ điểm (số đánh giá) | Đã bán N" trên thẻ sản
+ * phẩm (lệnh Tín 2026-11-12; ngăn cách "|" theo đính chính 21:20):
  *   npx tsx scripts/card-rating-fixture.ts         -> trồng 3 sản phẩm fixture
  *   npx tsx scripts/card-rating-fixture.ts clean   -> xoá fixture
- * A: 2 đánh giá 4★ (TB 4.0) + 43 đơn  -> dòng phải là "4.0 (2) · Đã bán 43"
+ * A: 2 đánh giá 4★ (TB 4.0) + 43 đơn  -> dòng phải là "4.0 (2) | Đã bán 43"
  * B: 0 đánh giá + 7 đơn               -> dòng chỉ "Đã bán 7"
  * C: 0 đánh giá + 0 đơn               -> dòng chỉ "Đã bán 0"
  * Cả 3 là sản phẩm catalog thường (panelId null, không nhóm FZR), tạo mới

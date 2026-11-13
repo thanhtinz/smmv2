@@ -106,7 +106,8 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
         </div>
         <div aria-hidden={!(item.flashPct > 0 && !contact)} className={`mt-0.5 h-4 whitespace-nowrap text-xs font-medium leading-4 text-slate-400 line-through ${item.flashPct > 0 && !contact ? "" : "invisible"}`}>{`${t("Từ")} ${m(item.minPrice)}`}</div>
         {/* Dòng sao + đã bán GHIM NGAY TRÊN hàng nút Xem (lệnh Tín 2026-11-12,
-            đúng ảnh mẫu "★ 4.0 (2) · Đã bán 43"): 1 sao amber + điểm trung bình
+            ảnh mẫu "★ 4.0 (2) | Đã bán 43" — dấu ngăn cách đổi "·" -> "|" theo
+            đính chính của Tín 21:20 cùng ngày): 1 sao amber + điểm trung bình
             1 số lẻ + (số đánh giá) — CHỈ hiện khi có đánh giá thật (reviewCount
             > 0, không bịa 0.0); "Đã bán N" LUÔN hiện với số đơn thật (kể cả 0).
             Hàng cố định h-4 + nowrap trong khối đáy mt-auto cùng CTA -> thẻ
@@ -120,7 +121,7 @@ export function PremiumCard({ item, base, className = "" }: { item: PremiumCardD
                 <span>({item.reviewCount})</span>
               </span>
             )}
-            {item.reviewCount > 0 && <span aria-hidden="true" className="shrink-0">·</span>}
+            {item.reviewCount > 0 && <span aria-hidden="true" className="shrink-0">|</span>}
             <span className="truncate">{t("Đã bán ")}{item.sold.toLocaleString("vi-VN")}</span>
           </div>
           <div className="flex items-center justify-between gap-2 pt-2.5">
