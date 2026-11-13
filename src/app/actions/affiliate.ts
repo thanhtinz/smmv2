@@ -11,6 +11,22 @@ function back(key: "msg" | "err", text: string): never {
   redirect(`/dashboard/kiem-tien?${key}=${encodeURIComponent(text)}`);
 }
 
+/** Đăng ký tham gia chương trình giới thiệu — ghi mốc affiliateEnrolledAt
+ *  (một lần, không ghi đè). Trước khi tham gia, route /dashboard/kiem-tien
+ *  hiện trang GIỚI THIỆU chương trình; sau khi tham gia mới hiện dashboard
+ *  hoa hồng. Việc ghi nhận hoa hồng của engine vẫn chạy theo quan hệ giới
+ *  thiệu sẵn có — cổng này chỉ khoá PHẦN HIỂN THỊ/link/thống kê. */
+export async function enrollAffiliateAction() {
+  const user = await requireUser();
+  const settings = await getSettings();
+  if (settings.module_affiliate === "0") back("err", "Chương trình giới thiệu đang tắt");
+  await prisma.user.updateMany({
+    where: { id: user.id, affiliateEnrolledAt: null },
+    data: { affiliateEnrolledAt: new Date() },
+  });
+  back("msg", "Bạn đã tham gia chương trình giới thiệu bạn bè");
+}
+
 /** Rút TOÀN BỘ số dư hoa hồng về ví chính — chỉ khi đạt mức tối thiểu admin
  *  cấu hình (affiliate_withdraw_min). Hai chân tiền chạy trong MỘT transaction:
  *  trừ số dư hoa hồng (sổ AffiliateTxn WITHDRAW) + cộng ví chính (sổ
