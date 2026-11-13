@@ -201,6 +201,15 @@ export async function GET(req: NextRequest) {
     result.passAutoRenewError = String(e?.message || e);
   }
 
+  // Đợt 119: phát THÔNG BÁO HỆ THỐNG qua email theo LÔ (tối đa 50 khách/lượt
+  // cho đợt đang chạy cũ nhất — lib/customer-mail.ts tự giữ con trỏ + đếm).
+  try {
+    const { processMailCampaignBatch } = await import("@/lib/customer-mail");
+    result.mailCampaigns = await processMailCampaignBatch();
+  } catch (e: any) {
+    result.mailCampaignsError = String(e?.message || e);
+  }
+
   // Ghi nhận lần chạy cron cho trang Sức khoẻ hệ thống (Admin → Hệ thống)
   await prisma.apiLog.create({ data: { kind: "cron_sync", ok: true, detail: JSON.stringify({ premiumSynced: result.premiumSynced, premiumFailed: result.premiumFailed }).slice(0, 900) } }).catch(() => {});
   return NextResponse.json(result);

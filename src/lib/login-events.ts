@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { prisma } from "./db";
 import { notifyUser } from "./notify";
+import { sendCustomerMail } from "./customer-mail";
 
 /** Ghi 1 sự kiện đăng nhập + phát hiện thiết bị mới.
  *  deviceHash = sha256(ip + userAgent). isNewDevice chỉ tính cho lần đăng nhập
@@ -44,6 +45,14 @@ export async function recordLoginEvent(input: {
             `Tài khoản của bạn vừa đăng nhập từ thiết bị/IP mới (${input.ip}). Nếu không phải bạn, hãy đổi mật khẩu ngay và bật xác thực hai lớp (2FA).`,
             "/dashboard/ho-so?tab=security"
           );
+          // Đợt 119: cùng cảnh báo này qua EMAIL (sự kiện login_alert — mail
+          // bảo mật thiết yếu, khách không tắt được; lõi tự kiểm tra công
+          // tắc tổng/sự kiện + SMTP và không bao giờ ném lỗi).
+          void sendCustomerMail(input.userId, "login_alert", {
+            time: new Date().toLocaleString("vi-VN", { hour12: false }),
+            ip: input.ip || "",
+            device: ua || "Không rõ thiết bị",
+          });
         }
       }
     }

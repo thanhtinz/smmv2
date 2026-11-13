@@ -8,7 +8,7 @@ export async function smtpConfigured() {
 
 export type SmtpOverride = { host: string; port?: string | null; user: string; pass?: string | null; from: string; secure?: boolean };
 
-export async function sendMail(to: string[], subject: string, html: string, override?: SmtpOverride | null) {
+export async function sendMail(to: string[], subject: string, html: string, override?: SmtpOverride | null, text?: string) {
   const s = await getSettings();
   if (!override && s.smtp_enabled === "0") throw new Error("SMTP đang tắt — bật ở Admin → Cấu hình → tab Email");
   const cfg = override
@@ -25,7 +25,7 @@ export async function sendMail(to: string[], subject: string, html: string, over
   // Gửi theo lô BCC để không lộ danh sách người nhận
   for (let i = 0; i < to.length; i += 50) {
     const batch = to.slice(i, i + 50);
-    await transporter.sendMail({ from: cfg.from, to: cfg.from, bcc: batch, subject, html });
+    await transporter.sendMail({ from: cfg.from, to: cfg.from, bcc: batch, subject, html, ...(text ? { text } : {}) });
   }
   return to.length;
 }

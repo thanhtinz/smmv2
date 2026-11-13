@@ -4,6 +4,7 @@ import { applyBalance } from "./wallet";
 import { affDayKey } from "./affiliate";
 import { notifyUser } from "./notify";
 import { vnd } from "./format";
+import { sendCustomerMail } from "./customer-mail";
 
 /**
  * PASS — gói thành viên trả phí (trang bán /pass, mẫu ldshop Pass; lệnh Tín
@@ -259,7 +260,12 @@ async function chargePassTerm(userId: number, months: number, note: string): Pro
 /** MUA / GIA HẠN Pass bằng số dư ví (hạn cộng dồn từ hạn cũ — xem chargePassTerm). */
 export async function buyPass(userId: number, months: number): Promise<{ price: number; expiry: Date; name: string }> {
   const cfg = await getPassConfig();
-  return chargePassTerm(userId, months, `Mua ${cfg.name} — ${months} tháng`);
+  const r = await chargePassTerm(userId, months, `Mua ${cfg.name} — ${months} tháng`);
+  // Đợt 119: mail xác nhận mua/gia hạn Pass (lõi tự nuốt lỗi).
+  void sendCustomerMail(userId, "pass_purchased", {
+    pass_name: r.name, months, price: vnd(r.price), expiry_date: r.expiry.toLocaleDateString("vi-VN"),
+  });
+  return r;
 }
 
 /**
@@ -275,7 +281,12 @@ export async function switchPass(userId: number, months: number): Promise<{ pric
   const st = await getPassState(userId);
   if (!st.active) throw new Error(`Bạn chưa có ${cfg.name} đang còn hạn — hãy mua gói trước`);
   if (st.termMonths === months) throw new Error("Bạn đang dùng kỳ này rồi — hãy bấm Gia hạn gói này");
-  return chargePassTerm(userId, months, `Đổi gói ${cfg.name} — sang kỳ ${months} tháng`);
+  const r = await chargePassTerm(userId, months, `Đổi gói ${cfg.name} — sang kỳ ${months} tháng`);
+  // Đợt 119: mail xác nhận đổi gói Pass (cùng sự kiện pass_purchased).
+  void sendCustomerMail(userId, "pass_purchased", {
+    pass_name: r.name, months, price: vnd(r.price), expiry_date: r.expiry.toLocaleDateString("vi-VN"),
+  });
+  return r;
 }
 
 /**
@@ -372,6 +383,10 @@ export async function processPassAutoRenewals(now = new Date()): Promise<{ renew
       });
       renewed++;
       await notifyUser(c.id, `${cfg.name} đã tự gia hạn`, `${cfg.name} kỳ ${months} tháng vừa tự gia hạn bằng số dư ví (${vnd(price)}) — hạn dùng mới tới ${exp.toLocaleDateString("vi-VN")}.`, "/pass", "system");
+      // Đợt 119: mail xác nhận tự gia hạn thành công.
+      void sendCustomerMail(c.id, "pass_auto_renew", {
+        pass_name: cfg.name, months, price: vnd(price), expiry_date: exp.toLocaleDateString("vi-VN"),
+      });
     } catch (e: any) {
       failed++;
       const reason = String(e?.message || e);
@@ -380,6 +395,12 @@ export async function processPassAutoRenewals(now = new Date()): Promise<{ renew
         await notifyUser(c.id, `Không thể tự gia hạn ${cfg.name}`, `Kỳ ${months} tháng của bạn không còn mở bán nên ${cfg.name} không tự gia hạn được. Hãy chọn kỳ khác trên trang Pass trước khi hết hạn.`, "/pass", "system");
       } else {
         await notifyUser(c.id, `Không đủ số dư để tự gia hạn ${cfg.name}`, `Số dư ví không đủ ${vnd(price)} để tự gia hạn ${cfg.name} kỳ ${months} tháng. Gói sẽ hết hạn vào ${exp0.toLocaleDateString("vi-VN")} — nạp thêm tiền rồi mua/gia hạn lại trên trang Pass.`, "/pass", "system");
+        // Đợt 119: mail báo tự gia hạn THẤT BẠI vì thiếu số dư (biến thể
+        // riêng pass_auto_renew_failed theo lệnh — TERM_CLOSED chỉ báo
+        // trong app như trước, không gửi biến thể này).
+        void sendCustomerMail(c.id, "pass_auto_renew_failed", {
+          pass_name: cfg.name, months, price: vnd(price), expiry_date: exp0.toLocaleDateString("vi-VN"),
+        });
       }
     }
   }

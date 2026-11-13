@@ -14,6 +14,7 @@ import {
 import { executeFzrPremiumOrder, refreshFzrQuotePrice, parseBuyerInfoLines } from "./fzr-orders";
 import { claimVariantStock, restoreVariantStock, variantSoldOut, OUT_OF_STOCK_ERROR, notifyStockCrossing } from "./variant-stock";
 import { passDiscountFor, creditPassCashback, clawbackPassCashback } from "./pass";
+import { sendCustomerMail } from "./customer-mail";
 import type { PremiumOrder, User } from "@prisma/client";
 
 /**
@@ -213,6 +214,18 @@ export async function createPremiumOrder(input: {
     return { ...o, code };
   });
   void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
+  // Đợt 119: email cho khách — đơn vừa tạo (và đã giao ngay nếu kho tự động
+  // giao trong cùng transaction). Lõi mail tự nuốt lỗi, không chặn đơn.
+  void sendCustomerMail(input.user.id, "order_created", {
+    order_code: created.code, product_name: variant.product.name, variant_name: variant.name,
+    quantity: input.quantity, total: vnd(created.total),
+  });
+  if (created.status === "DELIVERED") {
+    void sendCustomerMail(input.user.id, "order_delivered", {
+      order_code: created.code, product_name: variant.product.name, variant_name: variant.name,
+      delivery_content: created.deliveryData || "",
+    });
+  }
   // Đợt 111: cảnh báo kho nếu lần trừ của đơn này vừa vượt mốc (hết/sắp hết).
   const finalStockMove = stockMove as { before: number; after: number } | null;
   if (finalStockMove) void notifyStockCrossing({ productName: variant.product.name, variantName: variant.name, before: finalStockMove.before, after: finalStockMove.after });
@@ -271,6 +284,10 @@ export async function createPremiumOrder(input: {
       });
       await clawbackReferralCommission(input.user.id, total, created.code);
       await clawbackPassCashback(input.user.id, total, created.code);
+      void sendCustomerMail(input.user.id, "order_refunded", {
+        order_code: created.code, product_name: variant.product.name,
+        refund_amount: vnd(total), balance: await balanceText(input.user.id),
+      });
       return { ...created, status: "REFUNDED" as const };
     }
     if (failed > 0) {
@@ -281,6 +298,10 @@ export async function createPremiumOrder(input: {
       });
       await clawbackReferralCommission(input.user.id, refundAmt, created.code);
       await clawbackPassCashback(input.user.id, refundAmt, created.code);
+      void sendCustomerMail(input.user.id, "order_refunded", {
+        order_code: created.code, product_name: variant.product.name,
+        refund_amount: vnd(refundAmt), balance: await balanceText(input.user.id),
+      });
     }
     const updated = await prisma.premiumOrder.update({
       where: { id: created.id },
@@ -292,9 +313,21 @@ export async function createPremiumOrder(input: {
         ...(failed > 0 ? { adminNote: `${failed}/${input.quantity} đơn vị bị provider từ chối — đã hoàn tiền phần đó` } : {}),
       },
     });
+    if (updated.status === "DELIVERED") {
+      void sendCustomerMail(input.user.id, "order_delivered", {
+        order_code: created.code, product_name: variant.product.name, variant_name: variant.name,
+        delivery_content: updated.deliveryData || "",
+      });
+    }
     return updated;
   }
   return created;
+}
+
+/** Số dư ví hiện tại của khách dạng chữ cho biến thư ({{balance}}). */
+async function balanceText(userId: number): Promise<string> {
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { balance: true } }).catch(() => null);
+  return vnd(u?.balance ?? 0);
 }
 
 /** Đồng bộ đơn premium API từ provider (action=history) — cron + nút bấm admin.
@@ -305,7 +338,7 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
   if (!provider) return order;
   const variant = await prisma.premiumVariant.findUnique({
     where: { id: order.variantId },
-    include: { product: { select: { providerProductId: true } } },
+    include: { product: { select: { providerProductId: true, name: true } } },
   });
   const codes = order.providerOrderId.split(",").map((x) => x.trim()).filter(Boolean);
   const deliveries: string[] = [];
@@ -328,6 +361,14 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
       data: { status: "DELIVERED", deliveryData: deliveries.join("\n---\n") },
     });
     await awardPointsForPremiumOrder(order);
+    // Mail chỉ bắn khi đơn THẬT SỰ chuyển sang đã giao ở lần đồng bộ này —
+    // admin bấm đồng bộ lại trên đơn đã giao thì không gửi trùng.
+    if (order.status !== "DELIVERED" && order.status !== "COMPLETED") {
+      void sendCustomerMail(order.userId, "order_delivered", {
+        order_code: order.code, product_name: variant?.product.name || "", variant_name: variant?.name || "",
+        delivery_content: deliveries.join("\n---\n"),
+      });
+    }
   } else if (completedNoData > 0 && seen === codes.length && canceled === 0) {
     // Provider báo hoàn thành nhưng chưa trả dữ liệu bàn giao -> đánh dấu hoàn thành, admin đối soát
     await prisma.premiumOrder.update({
@@ -335,6 +376,12 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
       data: { status: "COMPLETED", adminNote: [order.adminNote, "Provider báo completed nhưng chưa có dữ liệu bàn giao"].filter(Boolean).join(" · ") },
     });
     await awardPointsForPremiumOrder(order);
+    if (order.status !== "DELIVERED" && order.status !== "COMPLETED") {
+      void sendCustomerMail(order.userId, "order_delivered", {
+        order_code: order.code, product_name: variant?.product.name || "", variant_name: variant?.name || "",
+        delivery_content: "",
+      });
+    }
   } else if (canceled === codes.length && codes.length > 0 && order.status !== "REFUNDED") {
     // Claim REFUNDED trong transaction trước khi cộng tiền — đồng bộ chạy trùng
     // với admin bấm huỷ tay thì chỉ một đường hoàn được tiền.
@@ -353,6 +400,10 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
     if (claimed) {
       await clawbackReferralCommission(order.userId, order.total, order.code);
       await clawbackPassCashback(order.userId, order.total, order.code);
+      void sendCustomerMail(order.userId, "order_refunded", {
+        order_code: order.code, product_name: variant?.product.name || "",
+        refund_amount: vnd(order.total), balance: await balanceText(order.userId),
+      });
     }
   }
   return prisma.premiumOrder.findUnique({ where: { id: order.id } });

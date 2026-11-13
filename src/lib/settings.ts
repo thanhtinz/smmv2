@@ -192,6 +192,210 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   alert_discord_enabled: "0",
   alert_discord_webhook: "",
   alert_events: "",
+  // EMAIL TỰ ĐỘNG CHO KHÁCH (đợt 119 — lib/customer-mail.ts): công tắc tổng
+  // MẶC ĐỊNH TẮT — chỉ gửi khi admin bật tại Báo cáo & Thông báo VÀ SMTP đã
+  // cấu hình. Công tắc riêng từng sự kiện customer_mail_ev_<event> mặc định
+  // bật (chỉ có tác dụng khi công tắc tổng bật). Mẫu thư mailtpl_<event>_*
+  // (tiêu đề + thân, VI/EN) admin sửa cùng chỗ; biến dạng {{ten_bien}}.
+  customer_mail_enabled: "0",
+  customer_mail_ev_order_created: "1",
+  customer_mail_ev_order_delivered: "1",
+  customer_mail_ev_order_refunded: "1",
+  customer_mail_ev_deposit_success: "1",
+  customer_mail_ev_ticket_replied: "1",
+  customer_mail_ev_pass_purchased: "1",
+  customer_mail_ev_pass_auto_renew: "1",
+  customer_mail_ev_pass_auto_renew_failed: "1",
+  customer_mail_ev_login_alert: "1",
+  customer_mail_ev_announcement: "1",
+  mailtpl_order_created_subject_vi: "Đã nhận đơn {{order_code}} — {{site_name}}",
+  mailtpl_order_created_body_vi: `Chào {{username}},
+
+Đơn hàng {{order_code}} của bạn đã được tạo thành công.
+
+Sản phẩm: {{product_name}} — {{variant_name}}
+Số lượng: {{quantity}}
+Tổng tiền: {{total}}
+
+Xem chi tiết đơn tại: {{order_url}}
+
+Cảm ơn bạn đã mua hàng tại {{site_name}}.`,
+  mailtpl_order_created_subject_en: "Order {{order_code}} received — {{site_name}}",
+  mailtpl_order_created_body_en: `Hi {{username}},
+
+Your order {{order_code}} has been created successfully.
+
+Product: {{product_name}} — {{variant_name}}
+Quantity: {{quantity}}
+Total: {{total}}
+
+View your order: {{order_url}}
+
+Thank you for shopping at {{site_name}}.`,
+  mailtpl_order_delivered_subject_vi: "Đơn {{order_code}} đã giao — {{site_name}}",
+  mailtpl_order_delivered_body_vi: `Chào {{username}},
+
+Đơn hàng {{order_code}} ({{product_name}} — {{variant_name}}) đã được giao.
+
+Nội dung đã giao:
+{{delivery_content}}
+
+Bạn cũng có thể xem lại bất cứ lúc nào tại: {{order_url}}
+
+Cảm ơn bạn đã mua hàng tại {{site_name}}.`,
+  mailtpl_order_delivered_subject_en: "Order {{order_code}} delivered — {{site_name}}",
+  mailtpl_order_delivered_body_en: `Hi {{username}},
+
+Your order {{order_code}} ({{product_name}} — {{variant_name}}) has been delivered.
+
+Delivered content:
+{{delivery_content}}
+
+You can also view it any time at: {{order_url}}
+
+Thank you for shopping at {{site_name}}.`,
+  mailtpl_order_refunded_subject_vi: "Hoàn tiền đơn {{order_code}} — {{site_name}}",
+  mailtpl_order_refunded_body_vi: `Chào {{username}},
+
+Đơn hàng {{order_code}} ({{product_name}}) đã được xử lý hoàn tiền.
+
+Số tiền hoàn về ví: {{refund_amount}}
+Số dư ví hiện tại: {{balance}}
+
+Xem chi tiết đơn tại: {{order_url}}
+
+Nếu bạn cần hỗ trợ thêm, hãy tạo ticket trên website để được giúp.`,
+  mailtpl_order_refunded_subject_en: "Refund for order {{order_code}} — {{site_name}}",
+  mailtpl_order_refunded_body_en: `Hi {{username}},
+
+Your order {{order_code}} ({{product_name}}) has been refunded.
+
+Amount returned to your wallet: {{refund_amount}}
+Current wallet balance: {{balance}}
+
+View your order: {{order_url}}
+
+If you need more help, please open a support ticket on the website.`,
+  mailtpl_deposit_success_subject_vi: "Nạp tiền thành công +{{amount}} — {{site_name}}",
+  mailtpl_deposit_success_body_vi: `Chào {{username}},
+
+Ví của bạn vừa được cộng tiền thành công.
+
+Mã nạp: {{deposit_code}}
+Số tiền cộng: {{amount}}
+Thưởng nạp: {{bonus}}
+Số dư ví hiện tại: {{balance}}
+
+Xem lịch sử nạp tiền tại: {{deposit_url}}`,
+  mailtpl_deposit_success_subject_en: "Deposit successful +{{amount}} — {{site_name}}",
+  mailtpl_deposit_success_body_en: `Hi {{username}},
+
+Your wallet has just been credited successfully.
+
+Deposit code: {{deposit_code}}
+Amount credited: {{amount}}
+Deposit bonus: {{bonus}}
+Current wallet balance: {{balance}}
+
+View your deposit history: {{deposit_url}}`,
+  mailtpl_ticket_replied_subject_vi: "Hỗ trợ đã trả lời ticket #{{ticket_id}} — {{site_name}}",
+  mailtpl_ticket_replied_body_vi: `Chào {{username}},
+
+Ticket "{{ticket_subject}}" của bạn vừa được đội hỗ trợ trả lời.
+
+Xem và trả lời tiếp tại: {{ticket_url}}`,
+  mailtpl_ticket_replied_subject_en: "Support replied to ticket #{{ticket_id}} — {{site_name}}",
+  mailtpl_ticket_replied_body_en: `Hi {{username}},
+
+Your ticket "{{ticket_subject}}" has just been answered by our support team.
+
+View and reply here: {{ticket_url}}`,
+  mailtpl_pass_purchased_subject_vi: "{{pass_name}} đã kích hoạt — hạn dùng tới {{expiry_date}}",
+  mailtpl_pass_purchased_body_vi: `Chào {{username}},
+
+Bạn đã mua / gia hạn thành công gói {{pass_name}} kỳ {{months}} tháng.
+
+Số tiền đã trừ ví: {{price}}
+Hạn dùng mới: {{expiry_date}}
+
+Xem gói của bạn tại: {{pass_url}}`,
+  mailtpl_pass_purchased_subject_en: "{{pass_name}} activated — valid until {{expiry_date}}",
+  mailtpl_pass_purchased_body_en: `Hi {{username}},
+
+You have successfully purchased / renewed the {{pass_name}} plan ({{months}}-month term).
+
+Amount charged to your wallet: {{price}}
+New expiry date: {{expiry_date}}
+
+View your plan: {{pass_url}}`,
+  mailtpl_pass_auto_renew_subject_vi: "{{pass_name}} đã tự gia hạn — hạn dùng tới {{expiry_date}}",
+  mailtpl_pass_auto_renew_body_vi: `Chào {{username}},
+
+Gói {{pass_name}} kỳ {{months}} tháng của bạn vừa được TỰ GIA HẠN bằng số dư ví.
+
+Số tiền đã trừ ví: {{price}}
+Hạn dùng mới: {{expiry_date}}
+
+Xem gói của bạn tại: {{pass_url}}`,
+  mailtpl_pass_auto_renew_subject_en: "{{pass_name}} auto-renewed — valid until {{expiry_date}}",
+  mailtpl_pass_auto_renew_body_en: `Hi {{username}},
+
+Your {{pass_name}} plan ({{months}}-month term) has just been AUTO-RENEWED using your wallet balance.
+
+Amount charged: {{price}}
+New expiry date: {{expiry_date}}
+
+View your plan: {{pass_url}}`,
+  mailtpl_pass_auto_renew_failed_subject_vi: "Không tự gia hạn được {{pass_name}} — {{site_name}}",
+  mailtpl_pass_auto_renew_failed_body_vi: `Chào {{username}},
+
+Hệ thống không thể tự gia hạn gói {{pass_name}} kỳ {{months}} tháng (giá {{price}}) cho bạn. Nguyên nhân thường gặp: số dư ví không đủ, hoặc kỳ gói này đã ngừng bán.
+
+Gói hiện tại hết hạn vào: {{expiry_date}}
+
+Hãy nạp thêm tiền và mua / gia hạn lại tại: {{pass_url}}`,
+  mailtpl_pass_auto_renew_failed_subject_en: "Could not auto-renew {{pass_name}} — {{site_name}}",
+  mailtpl_pass_auto_renew_failed_body_en: `Hi {{username}},
+
+We could not auto-renew your {{pass_name}} plan ({{months}}-month term, price {{price}}). Common reasons: insufficient wallet balance, or this term is no longer on sale.
+
+Your current plan expires on: {{expiry_date}}
+
+Please top up and purchase / renew again at: {{pass_url}}`,
+  mailtpl_login_alert_subject_vi: "Cảnh báo bảo mật: đăng nhập từ thiết bị mới — {{site_name}}",
+  mailtpl_login_alert_body_vi: `Chào {{username}},
+
+Tài khoản của bạn vừa đăng nhập thành công từ một thiết bị / địa chỉ IP chưa từng thấy trước đây.
+
+Thời gian: {{time}}
+Địa chỉ IP: {{ip}}
+Thiết bị: {{device}}
+
+Nếu đây không phải bạn, hãy đổi mật khẩu ngay và bật xác thực hai lớp (2FA) tại: {{password_url}}`,
+  mailtpl_login_alert_subject_en: "Security alert: sign-in from a new device — {{site_name}}",
+  mailtpl_login_alert_body_en: `Hi {{username}},
+
+Your account has just been signed in successfully from a device / IP address never seen before.
+
+Time: {{time}}
+IP address: {{ip}}
+Device: {{device}}
+
+If this wasn't you, change your password immediately and enable two-factor authentication (2FA) at: {{password_url}}`,
+  // Mẫu THÔNG BÁO HỆ THỐNG: chỉ là nội dung ĐIỀN SẴN cho form soạn đợt phát
+  // trong admin — nội dung thật của từng đợt nằm ở bản ghi MailCampaign.
+  mailtpl_announcement_subject_vi: "Thông báo từ {{site_name}}",
+  mailtpl_announcement_body_vi: `Chào {{username}},
+
+(Nội dung thông báo — admin thay đoạn này bằng nội dung thật khi soạn đợt phát.)
+
+— Đội ngũ {{site_name}}`,
+  mailtpl_announcement_subject_en: "Announcement from {{site_name}}",
+  mailtpl_announcement_body_en: `Hi {{username}},
+
+(Announcement content — the admin replaces this line with the real message when composing a broadcast.)
+
+— The {{site_name}} team`,
   report_daily_enabled: "0",
   report_time: "21:00",
   report_channels: "telegram",

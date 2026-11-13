@@ -110,5 +110,12 @@ export async function POST(req: NextRequest) {
   await prisma.apiLog.create({ data: { kind: "webhook", ref: txId || dep.code, detail: `user=${matched.id} amount=${amount} bonus=${bonus} deposit=${dep.code}` } });
   const { alertMother } = await import("@/lib/alerts");
   await alertMother("deposit_success", "Nạp tiền thành công", `+${amount.toLocaleString("vi-VN")}đ${bonus > 0 ? ` (+${bonus.toLocaleString("vi-VN")}đ thưởng)` : ""} — khách #${matched.id}, mã ${dep.code}`);
+  // Đợt 119: mail nạp tiền thành công cho khách (SePay cộng tự động).
+  const { sendCustomerMail } = await import("@/lib/customer-mail");
+  const { vnd } = await import("@/lib/format");
+  const freshUser = await prisma.user.findUnique({ where: { id: matched.id }, select: { balance: true } }).catch(() => null);
+  void sendCustomerMail(matched.id, "deposit_success", {
+    deposit_code: dep.code, amount: vnd(amount), bonus: vnd(bonus), balance: vnd(freshUser?.balance ?? 0),
+  });
   return NextResponse.json({ success: true, deposit: dep.code });
 }

@@ -45,6 +45,7 @@ model User {
   passwordResetToken String?  @db.VarChar(64) // sha256 của token đặt lại mật khẩu (quên mật khẩu)
   passwordResetExpiry DateTime?
   notifyPrefs    String?    @db.Text // JSON {order,deposit,refund,promo,system,ticket} — tuỳ chỉnh loại thông báo
+  emailNotify    Boolean    @default(true) // nhận EMAIL thông báo KHÔNG thiết yếu (thông báo hệ thống — đợt 119); mail giao dịch + cảnh báo đăng nhập luôn gửi, không bị cột này chặn
   points         Int        @default(0) // điểm tích luỹ (đổi ra số dư theo setting points_value_vnd)
   backupCodes    String?    @db.Text // JSON mảng HASH bcrypt của mã dự phòng 2FA (mỗi mã dùng 1 lần)
   role           Role       @default(USER)
@@ -93,6 +94,7 @@ model User {
   passGiftClaims PassGiftClaim[]
   tickets       Ticket[]
   notifications Notification[]
+  mailLogs      MailLog[]
   loginEvents   LoginEvent[]
   sessions      UserSession[]
   auditLogs     AuditLog[]
@@ -912,6 +914,54 @@ model OrderEvent {
   createdAt DateTime @default(now())
 
   @@index([orderId, createdAt])
+}
+
+// Nhật ký EMAIL TỰ ĐỘNG gửi cho khách (đợt 119 — lib/customer-mail.ts):
+// mỗi lần hệ thống XỬ LÝ một thư cho khách đều ghi 1 dòng (kể cả khi bị chặn
+// bởi công tắc/tuỳ chọn của khách) để admin đối soát. status: SENT | FAILED |
+// SKIPPED; reason ghi lý do bỏ qua hoặc lỗi gửi (đã rút gọn).
+model MailLog {
+  id         Int           @id @default(autoincrement())
+  userId     Int?
+  user       User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  event      String        @db.VarChar(40) // order_created | order_delivered | ... | announcement
+  toEmail    String        @db.VarChar(191)
+  subject    String        @db.VarChar(255)
+  status     String        @db.VarChar(10) // SENT | FAILED | SKIPPED
+  reason     String?       @db.VarChar(255)
+  campaignId Int?
+  campaign   MailCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt  DateTime      @default(now())
+
+  @@index([createdAt])
+  @@index([event, createdAt])
+  @@index([userId, createdAt])
+}
+
+// Đợt PHÁT THÔNG BÁO HỆ THỐNG qua email (đợt 119): admin soạn 1 lần, cron
+// /api/cron/sync gửi theo LÔ (tối đa 50 khách/lượt) theo con trỏ lastUserId —
+// chỉ khách ACTIVE, còn nhận email thông báo và có id <= maxUserId (chụp tại
+// lúc tạo đợt, khách đăng ký sau không nhận). status: SENDING | DONE.
+model MailCampaign {
+  id           Int       @id @default(autoincrement())
+  subjectVi    String    @db.VarChar(255)
+  bodyVi       String    @db.Text
+  subjectEn    String?   @db.VarChar(255)
+  bodyEn       String?   @db.Text
+  status       String    @default("SENDING") @db.VarChar(12) // SENDING | DONE
+  totalCount   Int       @default(0) // tổng khách có email tại lúc tạo đợt
+  sentCount    Int       @default(0)
+  failedCount  Int       @default(0)
+  skippedCount Int       @default(0)
+  lastUserId   Int       @default(0)
+  maxUserId    Int       @default(0)
+  createdBy    Int? // userId của admin tạo đợt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  logs MailLog[]
+
+  @@index([status, createdAt])
 }
 
 // Thông báo riêng cho từng khách (đơn hoàn thành/lỗi/hoàn tiền...)

@@ -30,6 +30,12 @@ export default async function NotificationsPage({ searchParams }: { searchParams
             </label>
           ))}
         </div>
+        <div className="mt-4 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <input type="checkbox" name="np_email" value="1" defaultChecked={user.emailNotify !== false} className="h-4 w-4 accent-brand-600" /> {L("Nhận email thông báo")}
+          </label>
+          <p className="mt-1 text-sm text-slate-500">{L("Chỉ áp cho email thông báo hệ thống. Email giao dịch (đơn hàng, nạp tiền, ticket, Pass) và cảnh báo bảo mật khi đăng nhập từ thiết bị mới vẫn luôn được gửi.")}</p>
+        </div>
         <button className="btn-primary mt-4">{L("Lưu tuỳ chỉnh")}</button>
       </form>
       <div className="card overflow-hidden">

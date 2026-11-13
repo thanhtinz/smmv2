@@ -257,6 +257,13 @@ export async function settleBoltutilDeposit(depositId: number, payload: any): Pr
     await alertMother("deposit_success", "Nạp USDT (BoltUtil) thành công", `+${creditedVnd.toLocaleString("vi-VN")}đ — mã ${dep.code}`).catch(() => {});
     const { notifyUser } = await import("./notify");
     await notifyUser(dep.userId, "Nạp tiền thành công", `Yêu cầu ${dep.code}: +${creditedVnd.toLocaleString("vi-VN")}đ vào ví`, "/dashboard/nap-tien").catch(() => {});
+    // Đợt 119: mail nạp tiền thành công cho khách (BoltUtil USDT).
+    const { sendCustomerMail } = await import("./customer-mail");
+    const { vnd } = await import("./format");
+    const u = await prisma.user.findUnique({ where: { id: dep.userId }, select: { balance: true } }).catch(() => null);
+    void sendCustomerMail(dep.userId, "deposit_success", {
+      deposit_code: dep.code, amount: vnd(creditedVnd), bonus: vnd(bonus), balance: vnd(u?.balance ?? 0),
+    });
     const { evaluateUserRisk } = await import("./risk");
     void evaluateUserRisk(dep.userId).catch(() => {});
   }

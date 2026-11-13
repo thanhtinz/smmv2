@@ -67,6 +67,59 @@ export async function testMotherChannelAction(formData: FormData) {
   }
 }
 
+/* ---------- EMAIL TỰ ĐỘNG CHO KHÁCH (đợt 119) ---------- */
+
+/** Lưu công tắc + mẫu thư email khách (cùng trang Báo cáo & Thông báo). */
+export async function saveCustomerMailAction(formData: FormData) {
+  await requireAdmin();
+  const { CUSTOMER_MAIL_EVENTS } = await import("@/lib/customer-mail");
+  await setSetting("customer_mail_enabled", str(formData, "customer_mail_enabled") === "1" ? "1" : "0");
+  for (const e of CUSTOMER_MAIL_EVENTS) {
+    await setSetting(`customer_mail_ev_${e.key}`, formData.get(`ev_${e.key}`) === "1" ? "1" : "0");
+    for (const f of ["subject_vi", "body_vi", "subject_en", "body_en"]) {
+      const v = formData.get(`mailtpl_${e.key}_${f}`);
+      if (v !== null) await setSetting(`mailtpl_${e.key}_${f}`, String(v));
+    }
+  }
+  back(PAGE, "msg", "Đã lưu cấu hình email tự động cho khách");
+}
+
+/** Gửi thư thử 1 sự kiện về email của chính admin đang đăng nhập. */
+export async function testCustomerMailAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const { isCustomerMailEvent, sendCustomerMailTest } = await import("@/lib/customer-mail");
+  const { smtpConfigured } = await import("@/lib/mailer");
+  const event = str(formData, "event");
+  if (!isCustomerMailEvent(event)) back(PAGE, "err", "Sự kiện thư không hợp lệ");
+  if (!(await smtpConfigured())) back(PAGE, "err", "Chưa cấu hình SMTP — vào Cấu hình → tab Email để điền trước");
+  const r = await sendCustomerMailTest({ id: admin.id, email: admin.email, username: admin.username }, event);
+  if (r === "SENT") back(PAGE, "msg", `Đã gửi thư thử sự kiện "${event}" về ${admin.email} — kiểm tra hộp thư nhé`);
+  back(PAGE, "err", `Gửi thư thử thất bại (${r}) — xem Nhật ký gửi mail bên dưới để biết lý do`);
+}
+
+/** Tạo 1 đợt PHÁT THÔNG BÁO HỆ THỐNG qua email — cron gửi theo lô 50 khách/lượt. */
+export async function createAnnouncementAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const s = await getSettings();
+  const { smtpConfigured } = await import("@/lib/mailer");
+  const subjectVi = str(formData, "ann_subject_vi");
+  const bodyVi = String(formData.get("ann_body_vi") || "").trim();
+  if (!subjectVi || !bodyVi) back(PAGE, "err", "Thiếu tiêu đề hoặc nội dung thông báo (tiếng Việt)");
+  if (s.customer_mail_enabled !== "1" || s.customer_mail_ev_announcement === "0") {
+    back(PAGE, "err", "Hệ thống email khách đang tắt (hoặc sự kiện Thông báo hệ thống đang tắt) — bật công tắc và Lưu cấu hình trước khi phát");
+  }
+  if (!(await smtpConfigured())) back(PAGE, "err", "Chưa cấu hình SMTP — vào Cấu hình → tab Email để điền trước");
+  const { createMailCampaign } = await import("@/lib/customer-mail");
+  const c = await createMailCampaign({
+    createdBy: admin.id,
+    subjectVi,
+    bodyVi,
+    subjectEn: str(formData, "ann_subject_en"),
+    bodyEn: String(formData.get("ann_body_en") || ""),
+  });
+  back(PAGE, "msg", `Đã tạo đợt phát thông báo #${c.id} cho ${c.totalCount} khách — hệ thống sẽ gửi dần theo từng lượt cron (50 khách/lượt)`);
+}
+
 /** Gửi báo cáo ngày ngay lập tức qua các kênh đã chọn cho báo cáo. */
 export async function sendMotherReportNowAction() {
   await requireAdmin();

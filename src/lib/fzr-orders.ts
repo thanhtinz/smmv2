@@ -13,7 +13,8 @@ import {
   fzrCreateSteamTopupOrder, fzrCreateSteamGiftOrder, fzrGetOrder, fzrCheckSteamLogin,
   fzrTelegramStarsQuote, fzrSteamGiftOffers, cheapestSteamGiftOffer,
 } from "./fzr";
-import { parsePremiumFields } from "./format";
+import { parsePremiumFields, vnd } from "./format";
+import { sendCustomerMail } from "./customer-mail";
 import { fzrMarkupFor } from "./fzr-markup";
 import type { PremiumOrder, PremiumVariant, Provider } from "@prisma/client";
 
@@ -59,8 +60,37 @@ export async function refundFzrPremiumOrder(
     await clawbackReferralCommission(order.userId, order.total, order.code);
     await clawbackPassCashback(order.userId, order.total, order.code);
     await notifyUser(order.userId, "Đơn Premium đã được hoàn tiền", `Đơn ${order.code}: ${reason}`, "/dashboard/don-premium");
+    void mailOrderRefunded(order, order.total);
   }
   return claimed;
+}
+
+/** Tên sản phẩm/gói của 1 đơn cho biến thư ({{product_name}} / {{variant_name}}). */
+async function orderMailNames(order: PremiumOrder): Promise<{ product_name: string; variant_name: string }> {
+  const v = await prisma.premiumVariant.findUnique({
+    where: { id: order.variantId },
+    select: { name: true, product: { select: { name: true } } },
+  }).catch(() => null);
+  return { product_name: v?.product.name || "", variant_name: v?.name || "" };
+}
+
+/** Đợt 119: gửi mail order_refunded cho 1 đơn đã hoàn tiền (dùng chung các đường hoàn FZR). */
+async function mailOrderRefunded(order: PremiumOrder, refundAmount: number) {
+  const names = await orderMailNames(order);
+  const u = await prisma.user.findUnique({ where: { id: order.userId }, select: { balance: true } }).catch(() => null);
+  await sendCustomerMail(order.userId, "order_refunded", {
+    order_code: order.code, product_name: names.product_name,
+    refund_amount: vnd(refundAmount), balance: vnd(u?.balance ?? 0),
+  });
+}
+
+/** Đợt 119: gửi mail order_delivered cho 1 đơn vừa chuyển Đã giao. */
+async function mailOrderDelivered(order: PremiumOrder, deliveryContent: string) {
+  const names = await orderMailNames(order);
+  await sendCustomerMail(order.userId, "order_delivered", {
+    order_code: order.code, product_name: names.product_name, variant_name: names.variant_name,
+    delivery_content: deliveryContent || "",
+  });
 }
 
 /** Parse buyerInfo dạng "Nhãn: giá trị" (createPremiumOrder gộp từ customData) thành map. */
@@ -328,6 +358,7 @@ export async function executeFzrPremiumOrder(args: {
     });
     await clawbackReferralCommission(order.userId, refundAmt, order.code);
     await clawbackPassCashback(order.userId, refundAmt, order.code);
+    void mailOrderRefunded(order, refundAmt);
   }
 
   const rawStored = units === 1 ? raws[0] : raws;
@@ -350,6 +381,7 @@ export async function executeFzrPremiumOrder(args: {
   if (updated.status === "DELIVERED") {
     await awardPointsForPremiumOrder(updated);
     await notifyUser(order.userId, "Đơn Premium đã được giao", `Đơn ${order.code} đã giao — xem nội dung trong chi tiết đơn`, "/dashboard/don-premium");
+    void mailOrderDelivered(updated, updated.deliveryData || "");
   }
   return updated;
 }
@@ -412,6 +444,11 @@ export async function applyFzrOrderStatus(
     });
     await awardPointsForPremiumOrder(updated);
     await notifyUser(order.userId, "Đơn Premium đã được giao", `Đơn ${order.code} đã giao — xem nội dung trong chi tiết đơn`, "/dashboard/don-premium");
+    // Mail chỉ bắn khi đơn thật sự CHUYỂN sang đã giao ở lần áp trạng thái
+    // này (đồng bộ lại đơn đã giao không gửi trùng).
+    if (current.status !== "DELIVERED" && current.status !== "COMPLETED") {
+      void mailOrderDelivered(updated, updated.deliveryData || "");
+    }
     if (partial) {
       await alertMother("fzr_partial", `Đơn FZR giao một phần: ${order.code}`, `Đơn ${order.code} được FazerCards báo giao một phần (partial). Nội dung đã giao nằm trong chi tiết đơn; phần còn lại xử lý tay.`).catch(() => {});
     }

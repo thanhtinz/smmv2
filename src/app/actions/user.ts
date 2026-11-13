@@ -209,13 +209,18 @@ export async function resendEmailVerificationAction() {
   back("/dashboard/ho-so", "msg", "Đã tạo liên kết xác thực — nếu đã cấu hình SMTP, email sẽ được gửi tới hộp thư của bạn");
 }
 
-/** Lưu tuỳ chỉnh loại thông báo (chuông trên web). */
+/** Lưu tuỳ chỉnh loại thông báo (chuông trên web) + công tắc nhận EMAIL
+ *  thông báo hệ thống (đợt 119 — User.emailNotify; chỉ chặn mail announcement,
+ *  mail giao dịch + cảnh báo đăng nhập vẫn luôn gửi). */
 export async function saveNotifyPrefsAction(formData: FormData) {
   const user = await requireUser();
   const keys = ["order", "deposit", "refund", "promo", "system", "ticket"];
   const prefs: Record<string, boolean> = {};
   for (const k of keys) prefs[k] = formData.get(`np_${k}`) === "1";
-  await prisma.user.update({ where: { id: user.id }, data: { notifyPrefs: JSON.stringify(prefs) } });
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { notifyPrefs: JSON.stringify(prefs), emailNotify: formData.get("np_email") === "1" },
+  });
   back("/dashboard/thong-bao", "msg", "Đã lưu tuỳ chỉnh thông báo");
 }
 

@@ -4,7 +4,8 @@ import { prisma } from "./db";
 import { applyBalance } from "./wallet";
 import { getSettings, calcBonus, bonusTiersFor, DEFAULT_SETTINGS } from "./settings";
 import { fxDepositRate } from "./rates";
-import { genCode } from "./format";
+import { genCode, vnd } from "./format";
+import { sendCustomerMail } from "./customer-mail";
 
 /** Nạp tiền qua cổng quốc tế (PayPal / Stripe): khách trả USD, hệ thống cộng VND theo tỉ giá usd_rate.
  *  Mỗi phiên thanh toán = 1 Deposit (method PAYPAL/STRIPE) gắn externalId duy nhất phía cổng;
@@ -110,6 +111,11 @@ export async function creditExternalDeposit(externalId: string, paidUsdCents?: n
   if (credited) {
     const { alertMother } = await import("./alerts");
     await alertMother("deposit_success", "Nạp tiền quốc tế thành công", `+${dep.amount.toLocaleString("vi-VN")}đ qua ${dep.method} — mã ${dep.code}`);
+    // Đợt 119: mail nạp tiền thành công cho khách (PayPal/Stripe).
+    const u = await prisma.user.findUnique({ where: { id: dep.userId }, select: { balance: true } }).catch(() => null);
+    void sendCustomerMail(dep.userId, "deposit_success", {
+      deposit_code: dep.code, amount: vnd(dep.amount), bonus: vnd(bonus), balance: vnd(u?.balance ?? 0),
+    });
   }
   return { ok: credited, reason: credited ? "credited" : "raced" };
 }

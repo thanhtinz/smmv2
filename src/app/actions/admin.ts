@@ -380,7 +380,7 @@ export async function adminPremiumOrderAction(formData: FormData) {
   await requireStaff();
   const id = parseInt(String(formData.get("id")));
   const kind = String(formData.get("kind"));
-  const order = await prisma.premiumOrder.findUnique({ where: { id }, include: { variant: { include: { product: { select: { panelId: true } } } } } });
+  const order = await prisma.premiumOrder.findUnique({ where: { id }, include: { variant: { include: { product: { select: { panelId: true, name: true } } } } } });
   if (!order) back("/admin/don-premium", "err", "Không tìm thấy đơn");
   const path = `/admin/don-premium/${id}`;
   if (kind === "sync") {
@@ -413,6 +413,16 @@ export async function adminPremiumOrderAction(formData: FormData) {
     if (!claimed) back(path, "err", "Đơn đã kết thúc — không hoàn tiền thêm được");
     await clawbackReferralCommission(order.userId, order.total, order.code);
     await clawbackPassCashback(order.userId, order.total, order.code);
+    // Đợt 119: mail hoàn tiền cho khách (admin huỷ đơn).
+    {
+      const { sendCustomerMail } = await import("@/lib/customer-mail");
+      const { vnd } = await import("@/lib/format");
+      const u = await prisma.user.findUnique({ where: { id: order.userId }, select: { balance: true } }).catch(() => null);
+      void sendCustomerMail(order.userId, "order_refunded", {
+        order_code: order.code, product_name: order.variant.product.name,
+        refund_amount: vnd(order.total), balance: vnd(u?.balance ?? 0),
+      });
+    }
     done(path, "Đã huỷ đơn và hoàn tiền");
   }
   // Cập nhật thường: đơn đã REFUNDED/CANCELED là kết thúc — không cho "hồi sinh"
@@ -424,6 +434,15 @@ export async function adminPremiumOrderAction(formData: FormData) {
   if (!["PENDING", "DELIVERED", "COMPLETED", "WARRANTY"].includes(status)) back(path, "err", "Trạng thái không hợp lệ — muốn hoàn tiền hãy dùng nút Huỷ đơn");
   const adminNote = String(formData.get("adminNote") || "") || order.adminNote;
   await prisma.premiumOrder.update({ where: { id }, data: { status, deliveryData, adminNote } });
+  // Đợt 119: admin vừa chuyển đơn sang Đã giao/Hoàn thành (từ trạng thái
+  // chưa giao) -> mail cho khách kèm nội dung đã giao.
+  if ((status === "DELIVERED" || status === "COMPLETED") && order.status !== "DELIVERED" && order.status !== "COMPLETED") {
+    const { sendCustomerMail } = await import("@/lib/customer-mail");
+    void sendCustomerMail(order.userId, "order_delivered", {
+      order_code: order.code, product_name: order.variant.product.name, variant_name: order.variant.name,
+      delivery_content: deliveryData || "",
+    });
+  }
   done(path, "Đã cập nhật đơn premium");
 }
 
@@ -602,6 +621,15 @@ export async function adminDepositAction(formData: FormData) {
   });
   if (!claimed) back("/admin/nap-tien", "err", "Yêu cầu nạp không còn chờ duyệt");
   await auditAdmin(actor, "deposit.approve", "deposit", id, `${dep.code} — cộng ${dep.amount}đ${dep.bonus > 0 ? ` + thưởng ${dep.bonus}đ` : ""} cho user ${dep.userId}`);
+  // Đợt 119: mail nạp tiền thành công cho khách (admin duyệt nạp).
+  {
+    const { sendCustomerMail } = await import("@/lib/customer-mail");
+    const { vnd } = await import("@/lib/format");
+    const u = await prisma.user.findUnique({ where: { id: dep.userId }, select: { balance: true } }).catch(() => null);
+    void sendCustomerMail(dep.userId, "deposit_success", {
+      deposit_code: dep.code, amount: vnd(dep.amount), bonus: vnd(dep.bonus), balance: vnd(u?.balance ?? 0),
+    });
+  }
   void (async () => { const { evaluateUserRisk } = await import("@/lib/risk"); await evaluateUserRisk(dep.userId); })();
   done("/admin/nap-tien", `Đã cộng ${dep.amount.toLocaleString("vi-VN")}đ cho khách`);
 }
@@ -622,6 +650,15 @@ export async function adminManualDeposit(formData: FormData) {
     await applyBalance(tx, userId, amount, "DEPOSIT", code, "Admin cộng tiền tay");
   });
   await auditAdmin(actor, "deposit.manual", "user", userId, `Cộng tiền tay ${amount}đ (mã ${code})`);
+  // Đợt 119: mail nạp tiền thành công cho khách (admin cộng tay).
+  {
+    const { sendCustomerMail } = await import("@/lib/customer-mail");
+    const { vnd } = await import("@/lib/format");
+    const u = await prisma.user.findUnique({ where: { id: userId }, select: { balance: true } }).catch(() => null);
+    void sendCustomerMail(userId, "deposit_success", {
+      deposit_code: code, amount: vnd(amount), bonus: vnd(0), balance: vnd(u?.balance ?? 0),
+    });
+  }
   done("/admin/nap-tien", `Đã cộng ${amount.toLocaleString("vi-VN")}đ`);
 }
 
@@ -630,11 +667,19 @@ export async function adminManualDeposit(formData: FormData) {
 export async function adminReplyTicket(formData: FormData) {
   await requireStaff();
   const ticketId = parseInt(String(formData.get("ticketId")));
-  const tk = await prisma.ticket.findUnique({ where: { id: ticketId }, select: { user: { select: { panelId: true } } } });
+  const tk = await prisma.ticket.findUnique({ where: { id: ticketId }, select: { userId: true, subject: true, user: { select: { panelId: true } } } });
   const body = String(formData.get("body") || "").trim();
   const close = formData.get("close") === "on";
   if (body) await prisma.ticketMessage.create({ data: { ticketId, body, fromAdmin: true, attachments: cleanAttachments(formData.get("attachments")) } });
   await prisma.ticket.update({ where: { id: ticketId }, data: { status: close ? "CLOSED" : "ANSWERED" } });
+  // Đợt 119: mail cho khách khi nhân viên trả lời ticket (chỉ khi có nội dung trả lời).
+  if (body && tk) {
+    const { sendCustomerMail } = await import("@/lib/customer-mail");
+    const { siteBaseUrl } = await import("@/lib/email-verify");
+    void sendCustomerMail(tk.userId, "ticket_replied", {
+      ticket_id: ticketId, ticket_subject: tk.subject, ticket_url: `${siteBaseUrl()}/dashboard/ticket`,
+    });
+  }
   redirect(`/admin/ticket/${ticketId}`);
 }
 
