@@ -5,6 +5,7 @@ import { siteBaseUrl } from "@/lib/email-verify";
 import { getServerI18n } from "@/lib/lang-server";
 import { DisplayEngine } from "@/components/display";
 import { LangProvider } from "@/components/lang";
+import { AffTracker } from "@/components/aff-tracker";
 
 export const viewport: Viewport = {
   viewportFit: "cover",
@@ -81,6 +82,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <LangProvider lang={i18n?.lang || "en"} ov={i18n ? i18n.cfg.overrides[i18n.lang] : undefined} cur={i18n?.cur || "VND"} rates={i18n?.rates || {}}>
           {children}
         </LangProvider>
+        <AffTracker />
         <DisplayEngine />
         {bodyHtml ? <div hidden dangerouslySetInnerHTML={{ __html: bodyHtml }} /> : null}
       </body>

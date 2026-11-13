@@ -51,8 +51,11 @@ export async function applyBalance(
   return after;
 }
 
-/** Hoa hồng giới thiệu (trang Kiếm tiền, kiểu thatim): hoa hồng tính trên GIAO DỊCH MUA
- *  của người được giới thiệu — gọi trong transaction tạo đơn (SMM + Premium). */
+/** Hoa hồng giới thiệu (trang Giới thiệu bạn bè, kiểu thatim): hoa hồng tính trên
+ *  GIAO DỊCH MUA của người được giới thiệu — gọi trong transaction tạo đơn
+ *  (SMM + Premium). Từ 2026-11-12 hoa hồng cộng vào SỐ DƯ HOA HỒNG RIÊNG
+ *  (User.affiliateBalance + sổ AffiliateTxn), KHÔNG vào thẳng ví chính như
+ *  trước; khách rút về ví khi đủ mức tối thiểu (affiliate_withdraw_min). */
 export async function creditReferralCommission(
   tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
   buyerId: number,
@@ -69,11 +72,17 @@ export async function creditReferralCommission(
   if (pct <= 0) return 0;
   const commission = Math.floor((amount * pct) / 100);
   if (commission <= 0) return 0;
-  await applyBalance(tx, buyer.referredById, commission, "REFERRAL_COMMISSION", ref, `Hoa hồng giới thiệu — ${buyer.username} mua hàng`);
+  const { applyAffiliateBalance } = await import("./affiliate");
+  await applyAffiliateBalance(tx, buyer.referredById, commission, "EARN", {
+    ref,
+    note: `Hoa hồng giới thiệu — ${buyer.username} mua hàng`,
+    fromUserId: buyerId,
+  });
   return commission;
 }
 
-/** Thu hồi hoa hồng giới thiệu theo tỉ lệ số tiền đơn bị hoàn (best-effort, không chặn hoàn tiền của khách) */
+/** Thu hồi hoa hồng giới thiệu theo tỉ lệ số tiền đơn bị hoàn — trừ từ SỐ DƯ
+ *  HOA HỒNG (best-effort, không chặn hoàn tiền của khách) */
 export async function clawbackReferralCommission(buyerId: number, refundAmount: number, ref?: string) {
   if (refundAmount <= 0) return;
   const buyer = await prisma.user.findUnique({ where: { id: buyerId }, select: { referredById: true } });
@@ -82,19 +91,50 @@ export async function clawbackReferralCommission(buyerId: number, refundAmount: 
   const pct = parseFloat(row?.value || DEFAULT_SETTINGS.affiliate_percent) || 0;
   let due = Math.floor((refundAmount * pct) / 100);
   if (due <= 0) return;
-  // Chỉ thu hồi tối đa phần hoa hồng THẬT SỰ đã cộng cho đơn này (ròng sau các lần thu hồi trước) —
+  // Chỉ thu hồi tối đa phần hoa hồng THẬT SỰ đã cộng cho đơn này (ròng sau các lần thu hồi trước,
+  // tính trên sổ hoa hồng mới + sổ ví cũ cho các đơn từ trước đợt tách số dư) —
   // tránh trường hợp đơn được đặt khi mô-đun affiliate tắt (không cộng) nhưng lúc hoàn vẫn bị thu.
   if (ref) {
-    const net = await prisma.transaction.aggregate({
-      where: { userId: buyer.referredById, type: "REFERRAL_COMMISSION", ref },
-      _sum: { amount: true },
-    });
-    due = Math.min(due, Math.max(0, net._sum.amount || 0));
-    if (due <= 0) return;
+    const [affNet, legacyNet] = await Promise.all([
+      prisma.affiliateTxn.aggregate({
+        where: { userId: buyer.referredById, ref, kind: { in: ["EARN", "CLAWBACK"] } },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.aggregate({
+        where: { userId: buyer.referredById, type: "REFERRAL_COMMISSION", ref },
+        _sum: { amount: true },
+      }),
+    ]);
+    const affDue = Math.min(due, Math.max(0, affNet._sum.amount || 0));
+    const legacyDue = Math.min(due - affDue, Math.max(0, legacyNet._sum.amount || 0));
+    if (affDue <= 0 && legacyDue <= 0) return;
+    try {
+      const { applyAffiliateBalance } = await import("./affiliate");
+      await prisma.$transaction(async (tx) => {
+        if (affDue > 0) {
+          await applyAffiliateBalance(tx, buyer.referredById!, -affDue, "CLAWBACK", {
+            ref,
+            note: `Thu hồi hoa hồng — đơn ${ref || ""} hoàn tiền`,
+            fromUserId: buyerId,
+          });
+        }
+        if (legacyDue > 0) {
+          await applyBalance(tx, buyer.referredById!, -legacyDue, "REFERRAL_COMMISSION", ref, `Thu hồi hoa hồng — đơn ${ref || ""} hoàn tiền`);
+        }
+      });
+    } catch (e: any) {
+      await prisma.apiLog.create({ data: { kind: "referral_commission", ref, ok: false, detail: `clawback failed ${due}: ${String(e?.message || e)}` } });
+    }
+    return;
   }
   try {
+    const { applyAffiliateBalance } = await import("./affiliate");
     await prisma.$transaction(async (tx) => {
-      await applyBalance(tx, buyer.referredById!, -due, "REFERRAL_COMMISSION", ref, `Thu hồi hoa hồng — đơn ${ref || ""} hoàn tiền`);
+      await applyAffiliateBalance(tx, buyer.referredById!, -due, "CLAWBACK", {
+        ref,
+        note: `Thu hồi hoa hồng — đơn ${ref || ""} hoàn tiền`,
+        fromUserId: buyerId,
+      });
     });
   } catch (e: any) {
     await prisma.apiLog.create({ data: { kind: "referral_commission", ref, ok: false, detail: `clawback failed ${due}: ${String(e?.message || e)}` } });

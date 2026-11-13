@@ -48,8 +48,10 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   stripe_publishable_key: "",
   stripe_secret_key: "",
   stripe_webhook_secret: "",
-  // Hoa hồng giới thiệu (% trên tiền nạp của người được giới thiệu) — trang Kiếm tiền
+  // Hoa hồng giới thiệu (% trên giao dịch MUA của người được giới thiệu) — trang Giới thiệu bạn bè.
+  // Hoa hồng cộng vào SỐ DƯ HOA HỒNG riêng; rút về ví chính khi đạt mức tối thiểu dưới đây.
   affiliate_percent: "6",
+  affiliate_withdraw_min: "10000",
   // Thưởng nạp dạng JSON: [{"from":500000,"percent":2},{"from":2000000,"percent":5}]
   deposit_bonus_tiers: JSON.stringify([{ from: 1000000, percent: 2 }, { from: 5000000, percent: 5 }]), // mốc thưởng mặc định — nguồn duy nhất (seed không ghi nữa)
   maintenance: "0",

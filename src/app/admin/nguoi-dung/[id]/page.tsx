@@ -11,7 +11,7 @@ import { num, LEVEL_NAME, dt, SMM_STATUS, PRE_STATUS } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
-const TX_LABEL: Record<string, string> = { DEPOSIT: "Nạp tiền", SMM_ORDER: "Đặt đơn SMM", PREMIUM_ORDER: "Mua Premium", REFUND: "Hoàn tiền", ADJUST: "Admin điều chỉnh", BONUS: "Thưởng", PANEL_COMMISSION: "Hoa hồng panel con", REFERRAL_COMMISSION: "Hoa hồng giới thiệu" };
+const TX_LABEL: Record<string, string> = { DEPOSIT: "Nạp tiền", SMM_ORDER: "Đặt đơn SMM", PREMIUM_ORDER: "Mua Premium", REFUND: "Hoàn tiền", ADJUST: "Admin điều chỉnh", BONUS: "Thưởng", PANEL_COMMISSION: "Hoa hồng panel con", REFERRAL_COMMISSION: "Hoa hồng giới thiệu", AFFILIATE_WITHDRAW: "Rút hoa hồng về ví" };
 
 export default async function AdminUserDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
   await requireAdminPage();
@@ -32,6 +32,11 @@ export default async function AdminUserDetail({ params, searchParams }: { params
     prisma.ticket.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5 }),
     prisma.deposit.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 5 }),
     getSettings(),
+  ]);
+  // Giới thiệu: số dư hoa hồng riêng + tổng đã nhận / đã rút (sổ AffiliateTxn)
+  const [affEarned, affWithdrawn] = await Promise.all([
+    prisma.affiliateTxn.aggregate({ where: { userId: u.id, kind: "EARN" }, _sum: { amount: true } }),
+    prisma.affiliateTxn.aggregate({ where: { userId: u.id, kind: "WITHDRAW" }, _sum: { amount: true } }),
   ]);
   const riskTh = { watch: parseInt(settings.risk_watch) || 40, restrict: parseInt(settings.risk_restrict) || 70, critical: parseInt(settings.risk_critical) || 90 };
   const userSessions = await prisma.userSession.findMany({ where: { userId: u.id }, orderBy: { id: "desc" }, take: 10 });
@@ -57,7 +62,7 @@ export default async function AdminUserDetail({ params, searchParams }: { params
               <Badge cls={u.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}>{u.status === "ACTIVE" ? L("Hoạt động") : L("Đã khoá")}</Badge>
             </div>
             <dl className="mt-4 space-y-2 text-sm">
-              {[["Email", u.email], ["Họ tên", u.fullName || "—"], ["SĐT", u.phone || "—"], ["Cấp bậc", L(LEVEL_NAME[u.level])], ["Panel", u.panel?.name || L("Web chính")], ["Được giới thiệu bởi", u.referredBy?.username || "—"], ["Đã giới thiệu", u._count.referrals + " " + L("người")], ["Mã nạp tiền", `SMM ${u.depositCode}`], ["API key", u.apiKey], ["Đăng ký", dt(u.createdAt)], ["Đăng nhập gần nhất", u.lastLoginAt ? dt(u.lastLoginAt) : "—"]].map(([k, v]) => (
+              {[["Email", u.email], ["Họ tên", u.fullName || "—"], ["SĐT", u.phone || "—"], ["Cấp bậc", L(LEVEL_NAME[u.level])], ["Panel", u.panel?.name || L("Web chính")], ["Được giới thiệu bởi", u.referredBy?.username || "—"], ["Đã giới thiệu", u._count.referrals + " " + L("người")], ["Số dư hoa hồng", M(u.affiliateBalance)], ["Tổng hoa hồng đã nhận", M(affEarned._sum.amount || 0)], ["Hoa hồng đã rút về ví", M(Math.abs(affWithdrawn._sum.amount || 0))], ["Mã nạp tiền", `SMM ${u.depositCode}`], ["API key", u.apiKey], ["Đăng ký", dt(u.createdAt)], ["Đăng nhập gần nhất", u.lastLoginAt ? dt(u.lastLoginAt) : "—"]].map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-4"><dt className="text-slate-500">{L(k)}</dt><dd className="font-medium text-right break-all">{v}</dd></div>
               ))}
             </dl>

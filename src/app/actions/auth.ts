@@ -17,6 +17,8 @@ async function assertNotBanned() {
   if (ban) throw new Error("Địa chỉ IP của bạn đã bị chặn khỏi hệ thống" + (ban.reason ? `: ${ban.reason}` : ""));
 }
 import { createSession, destroySession, createPending2fa } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { AFF_COOKIE_REF } from "@/lib/affiliate";
 import { recordLoginEvent } from "@/lib/login-events";
 import { getSettings } from "@/lib/settings";
 import { passwordError, loginLockSeconds, recordLoginFail, clearLoginFails, verifyRecaptcha, isDisposableEmail, regIpExceeded, recordRegAttempt } from "@/lib/security";
@@ -54,7 +56,10 @@ export async function registerAction(formData: FormData) {
   const regIp = await registrationGuard(formData, email, password, "/register");
   const exists = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
   if (exists) back("/register", "err", "Tên đăng nhập hoặc email đã được sử dụng");
-  const ref = String(formData.get("ref") || "").trim().toUpperCase();
+  // Mã giới thiệu: ưu tiên mã trong form (?ref= trên link đăng ký); không có thì
+  // lấy cookie aff_ref do link ?aff= đặt trước đó (first-touch). Không bao giờ
+  // tự ghi đè — tài khoản mới tạo chưa có người giới thiệu nào khác.
+  const ref = (String(formData.get("ref") || "").trim() || cookies().get(AFF_COOKIE_REF)?.value || "").trim().toUpperCase();
   const referrer = ref ? await prisma.user.findUnique({ where: { refCode: ref }, select: { id: true } }) : null;
   const user = await prisma.user.create({
     data: {

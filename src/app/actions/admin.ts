@@ -806,7 +806,7 @@ export async function adminSaveSettings(formData: FormData) {
     "site_name", "site_tagline", "support_telegram", "support_facebook", "support_zalo", "support_hotline",
     "child_ns1", "child_ns2",
     "bank_name", "bank_account", "bank_holder", "bank_branch",
-    "deposit_min", "deposit_bonus_tiers", "maintenance", "announcement_bar", "sys_announce_enabled", "sys_announce_content", "affiliate_percent",
+    "deposit_min", "deposit_bonus_tiers", "maintenance", "announcement_bar", "sys_announce_enabled", "sys_announce_content", "affiliate_percent", "affiliate_withdraw_min",
     "usd_rate", "paypal_enabled", "paypal_client_id", "paypal_client_secret", "paypal_mode",
     "stripe_enabled", "stripe_publishable_key", "stripe_secret_key", "stripe_webhook_secret", "profit_protection",
     "default_accent", "default_mode",

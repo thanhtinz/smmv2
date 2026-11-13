@@ -457,12 +457,13 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
   const gioithieu = (
     <section className="card p-6 space-y-4">
       <div className="font-bold text-slate-900">{L("Chương trình giới thiệu (Affiliate)")}</div>
-      <div className={infoBox}>{L("Cho phép người dùng chia sẻ link giới thiệu và nhận hoa hồng trên mỗi giao dịch mua của người được giới thiệu (đặt đơn SMM + mua Premium), cộng thẳng vào số dư chính.")}</div>
+      <div className={infoBox}>{L("Cho phép người dùng chia sẻ link giới thiệu và nhận hoa hồng trên mỗi giao dịch mua của người được giới thiệu (đặt đơn SMM + mua Premium). Hoa hồng cộng vào số dư hoa hồng riêng của người giới thiệu; khách tự rút về ví chính khi đạt mức tối thiểu bên dưới.")}</div>
       <div>
         <label className="lbl">{L("Bật chương trình giới thiệu")}</label>
         <select className="inp" name="module_affiliate" defaultValue={s.module_affiliate === "0" ? "0" : "1"}><option value="1">{L("Bật")}</option><option value="0">{L("Tắt")}</option></select>
       </div>
       <div><label className="lbl">{L("Tỷ lệ hoa hồng (%)")}</label><input className="inp" name="affiliate_percent" type="number" step="0.5" min="0" max="50" defaultValue={s.affiliate_percent} /></div>
+      <div><label className="lbl">{L("Mức rút hoa hồng tối thiểu (đ)")}</label><input className="inp" name="affiliate_withdraw_min" type="number" step="1000" min="0" defaultValue={s.affiliate_withdraw_min} /></div>
       <p className="text-xs text-slate-400">{L("Ví dụ: người được giới thiệu mua 1.000.000₫, người giới thiệu nhận đúng tỷ lệ % này. Panel con tự đặt % riêng cho khách của mình ở Panel Admin.")}</p>
     </section>
   );

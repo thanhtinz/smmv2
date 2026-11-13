@@ -41,7 +41,7 @@ export async function buildCustomerNav(
   ];
   const financeChildren = [
     { href: "/dashboard/giao-dich", label: L("Lịch sử số dư") },
-    ...(affiliateOn ? [{ href: "/dashboard/kiem-tien", label: L("Kiếm tiền") }] : []),
+    ...(affiliateOn ? [{ href: "/dashboard/kiem-tien", label: L("Giới thiệu bạn bè") }] : []),
   ];
   const supportChildren = [
     ...(ticketsOn ? [{ href: "/dashboard/ticket", label: L("Hỗ trợ / Ticket"), badge: openTickets }] : []),

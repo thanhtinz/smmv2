@@ -46,6 +46,10 @@ export async function GET(req: NextRequest) {
       const base = (email.split("@")[0] || "user").replace(/[^a-z0-9_.]/g, "").slice(0, 24) || "user";
       let username = base.length >= 4 ? base : base + "user";
       if (await prisma.user.findUnique({ where: { username } })) username = (base + randomKey(4)).toLowerCase().slice(0, 30);
+      // Gắn người giới thiệu từ cookie first-touch aff_ref (link ?aff= đã đi qua trước đó)
+      const { AFF_COOKIE_REF } = await import("@/lib/affiliate");
+      const affCode = (cookies().get(AFF_COOKIE_REF)?.value || "").trim().toUpperCase();
+      const referrer = affCode ? await prisma.user.findUnique({ where: { refCode: affCode }, select: { id: true } }) : null;
       user = await prisma.user.create({
         data: {
           username,
@@ -55,6 +59,7 @@ export async function GET(req: NextRequest) {
           fullName: String(info.name || "").slice(0, 80) || null,
           depositCode: randomKey(6).toUpperCase(),
           refCode: randomKey(8).toUpperCase(),
+          referredById: referrer?.id ?? null,
           apiKey: randomKey(32),
         },
       });

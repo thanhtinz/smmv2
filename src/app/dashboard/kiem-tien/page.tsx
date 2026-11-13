@@ -11,5 +11,7 @@ export default async function EarnPage({ searchParams }: { searchParams: Record<
   const h = headers();
   const host = h.get("host") || "localhost:3000";
   const proto = h.get("x-forwarded-proto") || (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
-  return <KiemTienView userId={user.id} linkBase={`${proto}://${host}/register`} sp={searchParams} tabBase="/dashboard/kiem-tien" />;
+  // Link giới thiệu dạng trang chủ + ?aff=MÃ (mẫu shopkey): cookie first-touch
+  // 30 ngày + đếm click do AffTracker / /api/aff/click xử lý trên mọi trang.
+  return <KiemTienView userId={user.id} linkBase={`${proto}://${host}`} sp={searchParams} tabBase="/dashboard/kiem-tien" />;
 }

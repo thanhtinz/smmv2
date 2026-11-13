@@ -63,6 +63,7 @@ model User {
   riskReviewedAt DateTime? // admin/chủ panel đã duyệt: không tự hạn chế lại cho tới khi có tín hiệu mới
   depositCode    String     @unique @db.VarChar(12) // nội dung CK: SMM <code>
   refCode        String?    @unique @db.VarChar(12) // mã giới thiệu (trang Kiếm tiền)
+  affiliateBalance Int      @default(0) // số dư hoa hồng giới thiệu RIÊNG — rút về ví chính khi đủ mức tối thiểu (affiliate_withdraw_min)
   webhookUrl     String?    @db.VarChar(255) // URL nhận thông báo trạng thái đơn (Webhook ra hệ thống ngoài của khách)
   termsAcceptedVersion Int  @default(0) // phiên bản điều khoản đã xác nhận (đối chiếu settings terms_version)
   referredById   Int? // người đã giới thiệu tài khoản này
@@ -81,6 +82,8 @@ model User {
   deposits      Deposit[]
   purchasePayments PurchasePayment[]
   transactions  Transaction[]
+  affiliateTxns AffiliateTxn[]
+  affiliateClicks AffiliateClick[] @relation("AffiliateClicks")
   tickets       Ticket[]
   notifications Notification[]
   loginEvents   LoginEvent[]
@@ -536,6 +539,7 @@ enum TxType {
   BONUS
   PANEL_COMMISSION
   REFERRAL_COMMISSION
+  AFFILIATE_WITHDRAW
   PANEL_FEE
   POINTS
 }
@@ -552,6 +556,40 @@ model Transaction {
   createdAt    DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+// Sổ hoa hồng giới thiệu (số dư RIÊNG, tách khỏi ví chính): EARN cộng khi
+// người được giới thiệu mua hàng, CLAWBACK trừ khi đơn bị hoàn, WITHDRAW trừ
+// khi khách rút về ví chính. fromUserId = khách được giới thiệu đã tạo ra
+// dòng hoa hồng (để tính hoa hồng theo từng thành viên).
+model AffiliateTxn {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  kind         String   @db.VarChar(10) // EARN | CLAWBACK | WITHDRAW
+  amount       Int // + cộng, - trừ
+  balanceAfter Int
+  fromUserId   Int?
+  ref          String?  @db.VarChar(30)
+  note         String?  @db.VarChar(255)
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([fromUserId])
+}
+
+// Lượt click vào link giới thiệu (?aff= / ?ref=): chống đếm trùng theo
+// (người giới thiệu × khách thăm × ngày) — dayKey dạng YYYY-MM-DD giờ VN.
+model AffiliateClick {
+  id         Int      @id @default(autoincrement())
+  referrerId Int
+  referrer   User     @relation("AffiliateClicks", fields: [referrerId], references: [id])
+  visitorId  String   @db.VarChar(40)
+  dayKey     String   @db.VarChar(10)
+  createdAt  DateTime @default(now())
+
+  @@unique([referrerId, visitorId, dayKey])
+  @@index([referrerId, createdAt])
 }
 
 enum TicketStatus {
