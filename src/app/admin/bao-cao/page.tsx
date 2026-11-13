@@ -99,6 +99,29 @@ export default async function AdminReportPage({ searchParams }: { searchParams: 
           <p className="mt-2 text-xs text-slate-400">{L("Bỏ chọn hết = không báo sự kiện nào qua kênh ngoài (chuông realtime trong Admin vẫn chạy).")}</p>
         </div>
 
+        <div>
+          <div className="mb-1 font-bold text-slate-900">{L("Email nhận riêng theo sự kiện")}</div>
+          <p className="mb-3 text-sm text-slate-400">{L("Mỗi sự kiện có thể nhận email riêng — để trống ô nào thì sự kiện đó dùng danh sách email chung ở trên.")}</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {ALERT_EVENTS.map((e) => (
+              <div key={e.key}>
+                <label className="lbl">{L(e.label)}</label>
+                <input
+                  className="inp"
+                  name={`alert_email_to_${e.key}`}
+                  defaultValue={s[`alert_email_to_${e.key}`] || ""}
+                  placeholder={e.key === "ticket" ? L("Email hỗ trợ nhận ticket") : e.key.startsWith("deposit") || e.key === "premium_order" ? L("Email quản trị nhận đơn / nạp tiền") : L("Trống = dùng danh sách chung")}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-5">
+            <label className="lbl">{L("Ngưỡng cảnh báo sắp hết kho")}</label>
+            <input type="number" min={0} step={1} name="alert_stock_low_threshold" defaultValue={s.alert_stock_low_threshold || "5"} className="inp !w-[130px]" />
+            <p className="mt-2 text-xs text-slate-400">{L("Khi tồn của một gói rơi xuống bằng hoặc dưới số này, hệ thống báo sắp hết kho một lần. Đặt 0 = chỉ báo khi hết kho hẳn.")}</p>
+          </div>
+        </div>
+
         <div className="rounded-2xl border border-slate-200 p-5">
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <span className="font-bold text-slate-900">{L("Báo cáo ngày tự động")}</span>

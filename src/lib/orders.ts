@@ -12,7 +12,7 @@ import {
   providerBuyProduct, findPremiumOrderInHistory, extractDelivery,
 } from "./provider";
 import { executeFzrPremiumOrder, refreshFzrQuotePrice, parseBuyerInfoLines } from "./fzr-orders";
-import { claimVariantStock, restoreVariantStock, variantSoldOut, OUT_OF_STOCK_ERROR } from "./variant-stock";
+import { claimVariantStock, restoreVariantStock, variantSoldOut, OUT_OF_STOCK_ERROR, notifyStockCrossing } from "./variant-stock";
 import { passDiscountFor, creditPassCashback, clawbackPassCashback } from "./pass";
 import type { PremiumOrder, User } from "@prisma/client";
 
@@ -134,10 +134,14 @@ export async function createPremiumOrder(input: {
     if (passDiscount > 0) total -= passDiscount;
   }
 
+  // Đợt 111: ghi lại lần trừ kho của đơn này (before/after) để bắn cảnh báo
+  // kho SAU khi transaction chốt — chỉ khi lần trừ vừa vượt mốc hết/sắp hết.
+  let stockMove: { before: number; after: number } | null = null;
   const created = await prisma.$transaction(async (tx) => {
     // Trừ kho số lượng NGUYÊN TỬ cùng transaction với tiền: thiếu kho -> ném
     // lỗi, cả tiền lẫn đơn rollback (không bán vượt, không trừ tiền oan).
-    await claimVariantStock(tx, variant, variant.product.fulfillment, input.quantity);
+    const move = await claimVariantStock(tx, variant, variant.product.fulfillment, input.quantity);
+    if (move) stockMove = move;
     if (!input.externalPaid && !input.gift) {
       await applyBalance(tx, input.user.id, -total, "PREMIUM_ORDER", undefined, `Mua ${variant.product.name} — ${variant.name}`);
     }
@@ -185,6 +189,10 @@ export async function createPremiumOrder(input: {
           data: { status: "SOLD", orderId: o.id },
         });
         if (claimed.count === stocks.length) {
+          // Đợt 111: tồn AUTO_STOCK sau lần claim này = số dòng AVAILABLE còn
+          // lại trong transaction; before = after + số vừa lấy.
+          const remaining = await tx.premiumStock.count({ where: { variantId: variant.id, status: "AVAILABLE" } });
+          stockMove = { before: remaining + stocks.length, after: remaining };
           const delivered = await tx.premiumOrder.update({
             where: { id: o.id },
             data: { status: "DELIVERED", deliveryData: stocks.map((s) => s.payload).join("\n---\n") },
@@ -205,6 +213,9 @@ export async function createPremiumOrder(input: {
     return { ...o, code };
   });
   void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
+  // Đợt 111: cảnh báo kho nếu lần trừ của đơn này vừa vượt mốc (hết/sắp hết).
+  const finalStockMove = stockMove as { before: number; after: number } | null;
+  if (finalStockMove) void notifyStockCrossing({ productName: variant.product.name, variantName: variant.name, before: finalStockMove.before, after: finalStockMove.after });
   await notifyUser(input.user.id, "Đặt hàng Premium thành công", `Đơn ${created.code}: ${variant.product.name} — ${variant.name} × ${input.quantity} — ${input.gift ? "quà tháng của Pass (0đ)" : input.externalPaid ? `đã thanh toán trực tiếp qua ${input.externalPaid.method}` : `đã trừ ${vnd(created.total)}`}${created.status === "DELIVERED" ? " — đã giao tự động, xem nội dung trong đơn" : ""}`, "/dashboard/don-premium");
   // GĐ3: tính lại điểm rủi ro nền sau khi mua Premium — lỗi tính điểm không ảnh hưởng đơn
   void evaluateUserRisk(input.user.id);

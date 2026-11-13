@@ -173,6 +173,22 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // Báo tin & báo cáo đa kênh cho admin (Email / Discord + sự kiện + báo cáo ngày)
   alert_email_enabled: "0",
   alert_email_to: "",
+  // Email nhận RIÊNG theo sự kiện (đợt 111, Tín chốt 2026-11-12): điền thì sự
+  // kiện đó gửi tới danh sách này; để trống thì dùng danh sách chung
+  // alert_email_to như hành vi cũ. Khoá động alert_email_to_<event> theo
+  // ALERT_EVENTS trong lib/alerts.ts.
+  alert_email_to_premium_order: "",
+  alert_email_to_deposit_pending: "",
+  alert_email_to_deposit_success: "",
+  alert_email_to_ticket: "",
+  alert_email_to_new_user: "",
+  alert_email_to_risk: "",
+  alert_email_to_low_balance: "",
+  alert_email_to_stock: "",
+  // Ngưỡng "sắp hết kho" cho sự kiện stock: tồn còn lại rơi xuống bằng/dưới
+  // số này thì cảnh báo 1 lần khi vừa vượt mốc. 0 = tắt cảnh báo sắp hết,
+  // chỉ báo khi hết kho hẳn (tồn chạm 0).
+  alert_stock_low_threshold: "5",
   alert_discord_enabled: "0",
   alert_discord_webhook: "",
   alert_events: "",

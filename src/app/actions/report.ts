@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { getSettings, setSetting } from "@/lib/settings";
-import { sendDiscord, sendTelegramTo, alertEmailHtml } from "@/lib/alerts";
+import { sendDiscord, sendTelegramTo, alertEmailHtml, ALERT_EVENTS } from "@/lib/alerts";
 import { sendMail } from "@/lib/mailer";
 import { sendReport, ReportChannel } from "@/lib/report";
 
@@ -31,6 +31,11 @@ export async function saveMotherAlertsAction(formData: FormData) {
     report_channels: channels.join(",") || "telegram",
     report_email_to: str(formData, "report_email_to"),
   };
+  // Đợt 111: email nhận riêng từng sự kiện (alert_email_to_<event>) + ngưỡng
+  // sắp hết kho — lưu cùng form báo tin, không tạo trang cài đặt mới.
+  for (const e of ALERT_EVENTS) data[`alert_email_to_${e.key}`] = str(formData, `alert_email_to_${e.key}`);
+  const th = parseInt(str(formData, "alert_stock_low_threshold"));
+  data.alert_stock_low_threshold = Number.isFinite(th) && th >= 0 ? String(th) : "5";
   for (const [k, v] of Object.entries(data)) await setSetting(k, v);
   back(PAGE, "msg", "Đã lưu cấu hình báo tin & báo cáo");
 }

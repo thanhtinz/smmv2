@@ -14,6 +14,7 @@ export const ALERT_EVENTS: { key: string; label: string }[] = [
   { key: "new_user", label: "Khách đăng ký mới" },
   { key: "risk", label: "Đơn bị gắn cờ rủi ro" },
   { key: "low_balance", label: "Số dư nhà cung cấp sắp hết" },
+  { key: "stock", label: "Kho sản phẩm (hết / sắp hết)" },
 ];
 
 export function eventEnabled(list: string | null | undefined, key: string) {
@@ -67,8 +68,13 @@ export async function alertMother(event: string, title: string, text: string) {
     if (s.alert_discord_enabled === "1" && s.alert_discord_webhook) {
       jobs.push(sendDiscord(s.alert_discord_webhook, `**${title}**\n${text}`).catch(() => {}));
     }
-    if (s.alert_email_enabled === "1" && s.alert_email_to) {
-      const to = s.alert_email_to.split(",").map((x) => x.trim()).filter(Boolean);
+    if (s.alert_email_enabled === "1") {
+      // Đợt 111: sự kiện có danh sách email RIÊNG (alert_email_to_<event>)
+      // thì gửi tới danh sách đó; để trống thì rơi về danh sách chung
+      // alert_email_to — chưa cấu hình gì thêm thì hành vi y như trước.
+      const own = (s[`alert_email_to_${event}`] || "").trim();
+      const raw = own || s.alert_email_to || "";
+      const to = raw.split(",").map((x) => x.trim()).filter(Boolean);
       if (to.length) jobs.push(sendMail(to, title, alertEmailHtml(title, text)).catch(() => {}));
     }
     await Promise.all(jobs);
