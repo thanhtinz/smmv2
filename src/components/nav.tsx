@@ -214,8 +214,15 @@ export function MobileSideNav({ items, siteName, footer, logoUrl, logoText }: {
           <div className="fixed inset-y-0 left-0 z-[80] flex w-[280px] max-w-[85vw] flex-col bg-white shadow-2xl lg:hidden">
             <div className="relative flex h-20 shrink-0 items-center justify-center border-b border-slate-100 px-4">
               {logoUrl ? (
+                // Dịch phải 8px (translate-x-2): HỘP logo vốn đã giữa sẵn,
+                // nhưng artwork chính thức nặng thị giác bên trái (khối icon
+                // tím/xanh đậm hơn phần chữ) — trọng tâm mực đo thật lệch
+                // trái ~8,2px ở khổ hiển thị 168px nên mắt thấy logo tựa
+                // trái (Tín lệnh căn giữa 2026-11-13, đợt 124). Dịch đúng
+                // 8px đưa trọng tâm thị giác về giữa ngăn kéo; kiểm chứng
+                // bằng quét pixel trên ảnh chụp trong scripts/shots-drawer-logo-124.mjs.
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt={siteName} className="max-h-14 w-auto max-w-[220px] object-contain" />
+                <img src={logoUrl} alt={siteName} className="max-h-14 w-auto max-w-[220px] translate-x-2 object-contain" />
               ) : (
                 <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-2xl font-black text-white">{logoText || "B"}</span>
               )}
