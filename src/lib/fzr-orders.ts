@@ -1,5 +1,6 @@
 import { prisma } from "./db";
 import { applyBalance, clawbackReferralCommission } from "./wallet";
+import { clawbackPassCashback } from "./pass";
 import { notifyUser } from "./notify";
 import { alertMother } from "./alerts";
 import { awardPointsForPremiumOrder } from "./points";
@@ -56,6 +57,7 @@ export async function refundFzrPremiumOrder(
   });
   if (claimed) {
     await clawbackReferralCommission(order.userId, order.total, order.code);
+    await clawbackPassCashback(order.userId, order.total, order.code);
     await notifyUser(order.userId, "Đơn Premium đã được hoàn tiền", `Đơn ${order.code}: ${reason}`, "/dashboard/don-premium");
   }
   return claimed;
@@ -325,6 +327,7 @@ export async function executeFzrPremiumOrder(args: {
       await applyBalance(tx, order.userId, refundAmt, "REFUND", order.code, `Hoàn ${failedUnits} lượt FZR không thực thi được`);
     });
     await clawbackReferralCommission(order.userId, refundAmt, order.code);
+    await clawbackPassCashback(order.userId, refundAmt, order.code);
   }
 
   const rawStored = units === 1 ? raws[0] : raws;

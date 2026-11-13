@@ -157,6 +157,22 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
               <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">{L("Hoa hồng")} <b className="text-slate-800">{s.affiliate_percent}%</b> {L("trên mỗi đơn mua của người được giới thiệu.")}</p>
               <Link href="/dashboard/kiem-tien" className="btn-ghost btn-sm mt-3">{L("Lấy link giới thiệu")}</Link>
             </div>
+            {s.pass_enabled === "1" && (
+              <div className="card p-6">
+                <div className="font-bold text-slate-900">{(s.pass_name || "").trim() || "Pass"}</div>
+                <div className="mt-3 space-y-1.5 text-sm text-slate-500">
+                  <div className="flex justify-between"><span>{L("Trạng thái")}</span>{user.passExpiresAt && user.passExpiresAt > new Date()
+                    ? <Badge cls="bg-emerald-100 text-emerald-700">{L("Đang còn hạn")}</Badge>
+                    : <Badge cls="bg-slate-100 text-slate-500">{L("Chưa kích hoạt")}</Badge>}</div>
+                  {user.passExpiresAt && user.passExpiresAt > new Date() && (
+                    <div className="flex justify-between"><span>{L("Hạn dùng tới")}</span><b className="text-slate-800">{dt(user.passExpiresAt)}</b></div>
+                  )}
+                  {parseFloat(s.pass_cashback_percent || "0") > 0 && <div className="flex justify-between"><span>{L("Hoàn tiền mỗi đơn")}</span><b className="text-brand-700">{s.pass_cashback_percent}%</b></div>}
+                  {parseFloat(s.pass_discount_percent || "0") > 0 && <div className="flex justify-between"><span>{L("Giảm thêm khi thanh toán")}</span><b className="text-brand-700">{s.pass_discount_percent}%</b></div>}
+                </div>
+                <Link href="/pass" className="btn-ghost btn-sm mt-3">{user.passExpiresAt && user.passExpiresAt > new Date() ? L("Gia hạn") : L("Mua ngay")}</Link>
+              </div>
+            )}
           </div>
         </div>
         )}

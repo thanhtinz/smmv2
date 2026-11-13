@@ -65,6 +65,7 @@ model User {
   refCode        String?    @unique @db.VarChar(12) // mã giới thiệu (trang Kiếm tiền)
   affiliateBalance Int      @default(0) // số dư hoa hồng giới thiệu RIÊNG — rút về ví chính khi đủ mức tối thiểu (affiliate_withdraw_min)
   affiliateEnrolledAt DateTime? // mốc ĐÃ đăng ký tham gia chương trình giới thiệu (null = chưa tham gia -> thấy trang giới thiệu chương trình)
+  passExpiresAt DateTime? // hạn gói Pass (thành viên trả phí — lib/pass.ts); null hoặc quá khứ = không còn hạn
   webhookUrl     String?    @db.VarChar(255) // URL nhận thông báo trạng thái đơn (Webhook ra hệ thống ngoài của khách)
   termsAcceptedVersion Int  @default(0) // phiên bản điều khoản đã xác nhận (đối chiếu settings terms_version)
   referredById   Int? // người đã giới thiệu tài khoản này
@@ -85,6 +86,7 @@ model User {
   transactions  Transaction[]
   affiliateTxns AffiliateTxn[]
   affiliateClicks AffiliateClick[] @relation("AffiliateClicks")
+  passGiftClaims PassGiftClaim[]
   tickets       Ticket[]
   notifications Notification[]
   loginEvents   LoginEvent[]
@@ -243,6 +245,7 @@ model SmmOrder {
   flagNote       String?        @db.VarChar(255) // cờ rủi ro/trùng đơn do hệ thống gắn (Duplicate/Risk Detection)
   promoCode      String?        @db.VarChar(40)
   promoDiscount  Int            @default(0)
+  passDiscount   Int            @default(0) // giảm thêm của Pass — áp SAU flash + mã giảm giá (lib/pass.ts)
   events         OrderEvent[]
   refundedAmount Int            @default(0)
   createdAt      DateTime       @default(now())
@@ -432,6 +435,7 @@ model PremiumOrder {
   buyerInfo     String?            @db.Text // email/tài khoản khách cần nâng cấp (gói MANUAL)
   promoCode     String?            @db.VarChar(40)
   promoDiscount Int                @default(0)
+  passDiscount  Int                @default(0) // giảm thêm của Pass — áp SAU flash + mã giảm giá (lib/pass.ts)
   deliveryData  String?            @db.Text // nội dung đã giao (kho hoặc admin nhập)
   warrantyUntil DateTime?
   adminNote     String?            @db.Text
@@ -543,6 +547,8 @@ enum TxType {
   AFFILIATE_WITHDRAW
   PANEL_FEE
   POINTS
+  PASS_PURCHASE // mua / gia hạn gói Pass bằng số dư ví (lib/pass.ts)
+  PASS_CASHBACK // hoàn % tiền đơn về ví cho thành viên Pass (+ cộng khi đơn thành công, − khi thu hồi theo phần hoàn tiền)
 }
 
 model Transaction {
@@ -591,6 +597,23 @@ model AffiliateClick {
 
   @@unique([referrerId, visitorId, dayKey])
   @@index([referrerId, createdAt])
+}
+
+// Lượt NHẬN QUÀ THÁNG của thành viên Pass (lib/pass.ts): mỗi khách còn hạn
+// Pass được nhận 1 lần trong 1 tháng dương lịch — khoá chống nhận trùng là
+// cặp duy nhất (userId, monthKey), monthKey dạng YYYY-MM giờ Việt Nam (cùng
+// quy ước affDayKey của AffiliateClick). orderCode = mã đơn Premium 0đ đã
+// tạo cho lượt nhận (đơn đi qua đúng đường giao hàng của createPremiumOrder).
+model PassGiftClaim {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  monthKey  String   @db.VarChar(7) // YYYY-MM (giờ VN)
+  orderCode String?  @db.VarChar(16)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, monthKey])
+  @@index([userId, createdAt])
 }
 
 enum TicketStatus {

@@ -17,6 +17,9 @@ const TX_LABEL: Record<string, string> = {
   PANEL_COMMISSION: "Hoa hồng panel",
   REFERRAL_COMMISSION: "Hoa hồng giới thiệu",
   PANEL_FEE: "Phí tạo panel",
+  AFFILIATE_WITHDRAW: "Rút hoa hồng về ví",
+  PASS_PURCHASE: "Mua gói Pass",
+  PASS_CASHBACK: "Hoàn tiền Pass",
 };
 
 /* ===== Dòng tiền / Lịch sử số dư — bố cục theo panel mẫu: 1 thẻ "Chi tiết giao dịch",

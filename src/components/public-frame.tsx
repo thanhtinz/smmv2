@@ -38,6 +38,7 @@ export async function PublicFrame({ children, skipSetupGate }: { children: React
       { href: "/", label: L("Trang chủ"), icon: I.home },
       { href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem },
       { href: "/uu-dai", label: L("Ưu đãi"), icon: I.percent },
+      ...(s.pass_enabled === "1" ? [{ href: "/pass", label: (s.pass_name || "").trim() || "Pass", icon: I.star }] : []),
       { href: "/login", label: L("Đăng nhập"), icon: I.lock },
       { href: "/register", label: L("Đăng ký"), icon: I.plus },
     ];

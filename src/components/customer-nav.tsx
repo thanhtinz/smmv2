@@ -95,6 +95,9 @@ export async function buildCustomerNav(
     // Ưu đãi: trang công khai gom mã giảm giá dùng cho tất cả (lệnh Tín
     // 2026-11-12) — một cửa duy nhất trong menu khách, ngay sau Đơn Premium.
     { href: "/uu-dai", label: L("Ưu đãi"), icon: I.percent },
+    // Pass: gói thành viên trả phí (lib/pass.ts) — chỉ hiện khi admin bật
+    // pass_enabled; nhãn là tên gói admin đặt (pass_name, trống = "Pass").
+    ...(s.pass_enabled === "1" ? [{ href: "/pass", label: (s.pass_name || "").trim() || "Pass", icon: I.star }] : []),
     { label: "Steam", icon: I.gamepad, children: steamChildren },
     { label: "Game key", icon: I.key, children: gameKeyChildren },
     { label: "Gift Card", icon: I.gift, children: giftCardChildren },

@@ -57,9 +57,10 @@ export async function availableDirectMethods(): Promise<{ id: DirectMethodId; na
 }
 
 /** Tổng phải trả của giỏ — tính BẰNG ĐÚNG công thức createPremiumOrder cho
- *  từng dòng (giá gói → flash → mã giảm giá) để số khách trả khớp số tiền
- *  các đơn sẽ ghi. share = phần tiền của từng dòng trong tổng đó. */
-export async function computeCartPayable(lines: { variantId: number; qty: number; custom: Record<string, string>; buyerInfo?: string | null }[], promoCode: string) {
+ *  từng dòng (giá gói → flash → mã giảm giá → giảm thêm Pass) để số khách trả
+ *  khớp số tiền các đơn sẽ ghi. share = phần tiền của từng dòng trong tổng đó.
+ *  userId để tính giảm Pass của CHÍNH khách đó (chưa biết khách thì bỏ qua). */
+export async function computeCartPayable(lines: { variantId: number; qty: number; custom: Record<string, string>; buyerInfo?: string | null }[], promoCode: string, userId?: number) {
   const shares: number[] = [];
   for (const line of lines.slice(0, 50)) {
     const variant = await prisma.premiumVariant.findUnique({ where: { id: line.variantId }, select: { price: true, providerGroup: true, product: { select: { id: true } } } });
@@ -70,6 +71,10 @@ export async function computeCartPayable(lines: { variantId: number; qty: number
     if (flashPct > 0) total = applyFlashAmount(total, flashPct);
     const promo = promoCode?.trim() ? await checkPromo(promoCode.trim().toUpperCase(), "PREMIUM", total) : null;
     if (promo) total -= promo.discount;
+    if (userId) {
+      const { passDiscountFor } = await import("./pass");
+      total -= await passDiscountFor(userId, "PREMIUM", total);
+    }
     shares.push(total);
   }
   return { total: shares.reduce((a, b) => a + b, 0), shares };
@@ -85,7 +90,7 @@ export async function createPurchasePayment(input: {
 }) {
   const available = await availableDirectMethods();
   if (!available.some((x) => x.id === input.method)) throw new Error("Phương thức thanh toán này chưa được bật");
-  const { total, shares } = await computeCartPayable(input.lines, input.promoCode);
+  const { total, shares } = await computeCartPayable(input.lines, input.promoCode, input.userId);
   if (total <= 0) throw new Error("Giỏ hàng trống hoặc tổng tiền không hợp lệ");
   const s = await getSettings();
   const snapshot: PurchaseSnapshot = {

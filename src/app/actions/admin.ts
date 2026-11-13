@@ -4,6 +4,7 @@ import { cleanAttachments } from "@/lib/attachments";
 import { requireAdmin, requireStaff, assertStepUp, currentIp } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
 import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
+import { clawbackPassCashback } from "@/lib/pass";
 import { refundSmmOrder, syncSmmOrderStatus, syncPremiumOrderStatus } from "@/lib/orders";
 import { orderTransition } from "@/lib/notify";
 import { providerBalance, syncProviderServices, syncProviderPremium } from "@/lib/provider";
@@ -569,6 +570,7 @@ export async function adminPremiumOrderAction(formData: FormData) {
     });
     if (!claimed) back(path, "err", "Đơn đã kết thúc — không hoàn tiền thêm được");
     await clawbackReferralCommission(order.userId, order.total, order.code);
+    await clawbackPassCashback(order.userId, order.total, order.code);
     done(path, "Đã huỷ đơn và hoàn tiền");
   }
   // Cập nhật thường: đơn đã REFUNDED/CANCELED là kết thúc — không cho "hồi sinh"
@@ -835,6 +837,8 @@ export async function adminSaveSettings(formData: FormData) {
     "watermark_enabled", "watermark_text", "watermark_opacity",
     "password_reset_ttl_minutes", "email_verify_ttl_hours", "flash_max_percent",
     "seasonal_decor_enabled", "seasonal_theme",
+    "pass_enabled", "pass_name", "pass_price_1m", "pass_price_3m", "pass_price_12m",
+    "pass_cashback_percent", "pass_discount_percent", "pass_scope", "pass_gift_product_id", "pass_gift_variant_id",
   ];
   const savedKeys: string[] = [];
   for (const k of keys) {

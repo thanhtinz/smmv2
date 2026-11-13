@@ -221,6 +221,28 @@ async function main() {
     });
   }
 
+  // FAQ mẫu của trang PASS (danh mục slug "pass-faq") — admin sửa/thêm qua Bài viết;
+  // trang /pass đọc từ đây, cùng cơ chế với FAQ chính (slug "faq") ở trên.
+  const passFaqCat = await prisma.postCategory.upsert({
+    where: { slug: "pass-faq" },
+    create: { name: "Hỏi đáp về Pass", slug: "pass-faq", description: "Câu hỏi thường gặp về gói thành viên Pass" },
+    update: {},
+  });
+  const passFaqs: [string, string, string][] = [
+    ["pass-faq-mua-the-nao", "Mua Pass bằng cách nào?", "Pass được mua và gia hạn trực tiếp bằng số dư ví trên website: chọn kỳ hạn ở trang Pass rồi bấm Mua ngay. Số dư chưa đủ thì nạp thêm ở trang Nạp tiền trước."],
+    ["pass-faq-quyen-loi", "Quyền lợi của Pass áp dụng khi nào?", "Quyền lợi (giảm thêm khi thanh toán, hoàn tiền mỗi đơn, quà tháng) áp dụng tự động cho các đơn thuộc phạm vi của gói trong suốt thời gian Pass còn hạn — bạn không cần nhập mã hay thao tác thêm."],
+    ["pass-faq-gia-han", "Gia hạn Pass có bị mất ngày còn lại không?", "Không. Gia hạn cộng tiếp vào hạn hiện tại: hạn mới = hạn cũ cộng thêm số tháng của kỳ bạn mua, nên mua sớm không bị thiệt ngày."],
+    ["pass-faq-hoan-tien", "Hoàn tiền của Pass nhận ở đâu?", "Phần hoàn theo % của mỗi đơn được cộng thẳng vào số dư ví ngay khi đơn chốt tiền, xem lại được trong Lịch sử số dư (mục Hoàn tiền Pass). Đơn bị hoàn tiền sẽ thu hồi phần hoàn tương ứng."],
+    ["pass-faq-qua-thang", "Quà tháng nhận thế nào?", "Khi Pass còn hạn, vào trang Pass và bấm Nhận quà tháng này. Mỗi tháng dương lịch nhận tối đa 1 lần; quà được giao qua một đơn hàng 0đ như đơn mua thường."],
+  ];
+  for (const [slug, title, content] of passFaqs) {
+    await prisma.post.upsert({
+      where: { slug },
+      create: { title, slug, content, excerpt: content.slice(0, 250), categoryId: passFaqCat.id, published: true },
+      update: {},
+    });
+  }
+
   // Tự xoay các API key cũ sinh từ seed lỗi (bắt đầu bằng adminkey/demokey) sang key ngẫu nhiên
   const legacy = await prisma.user.findMany({ where: { OR: [{ apiKey: { startsWith: "adminkey" } }, { apiKey: { startsWith: "demokey" } }] }, select: { id: true, username: true } });
   for (const u of legacy) {

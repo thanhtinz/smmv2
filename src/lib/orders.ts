@@ -16,6 +16,7 @@ import {
 } from "./provider";
 import { executeFzrPremiumOrder, refreshFzrQuotePrice, parseBuyerInfoLines } from "./fzr-orders";
 import { claimVariantStock, restoreVariantStock, variantSoldOut, OUT_OF_STOCK_ERROR } from "./variant-stock";
+import { passDiscountFor, creditPassCashback, clawbackPassCashback } from "./pass";
 import type { PremiumOrder, SmmOrder, User } from "@prisma/client";
 
 /** Trạng thái drip-feed lưu trong params của đơn (JSON) */
@@ -172,6 +173,12 @@ export async function createSmmOrder(input: {
     if (promo) finalCharge = charge - promo.discount;
   }
 
+  // Pass (lib/pass.ts): giảm THÊM % trên số tiền SAU flash + mã giảm giá —
+  // khách còn hạn Pass trong phạm vi SMM mới được giảm; cashback cộng trong
+  // transaction tạo đơn ở dưới, tính trên finalCharge cuối cùng này.
+  const passDiscount = await passDiscountFor(input.user.id, "SMM", finalCharge);
+  if (passDiscount > 0) finalCharge -= passDiscount;
+
   // Duplicate Detection + Order Risk Detection: gắn cờ để admin chú ý (vẫn cho đặt)
   const flags: string[] = [];
   const dup = await prisma.smmOrder.findFirst({
@@ -198,6 +205,7 @@ export async function createSmmOrder(input: {
         charge: finalCharge,
         promoCode: promo?.row.code,
         promoDiscount: promo?.discount || 0,
+        passDiscount,
         cost,
         status: "PENDING",
         fulfillment: service.fulfillment,
@@ -220,7 +228,10 @@ export async function createSmmOrder(input: {
     await tx.smmOrder.update({ where: { id: o.id }, data: { code } });
     // Hoa hồng giới thiệu: tính trên giao dịch mua của người được giới thiệu (kiểu thatim)
     await creditReferralCommission(tx, input.user.id, finalCharge, code);
-    return { ...o, code, charge: finalCharge };
+    // Cashback Pass: hoàn % trên số tiền thực trả cuối cùng, cộng ví ngay trong
+    // transaction này (tự kiểm tra hạn/phạm vi trong lib/pass.ts).
+    await creditPassCashback(tx, input.user.id, "SMM", finalCharge, code);
+    return { ...o, code, charge: finalCharge, passDiscount };
   });
   await orderEvent(order.id, "PENDING", flagNote ? `Đã tạo đơn · Cờ: ${flagNote}` : "Đã tạo đơn");
   // GĐ3: tính lại điểm rủi ro nền sau khi tạo đơn (spam đơn là 1 tín hiệu) — lỗi tính điểm không ảnh hưởng đơn
@@ -320,6 +331,8 @@ export async function refundSmmOrder(orderId: number, amount: number, note: stri
   await orderTransition(order, status, amt > 0 ? `${note} — hoàn ${vnd(amt)}` : note);
   // Thu hồi hoa hồng giới thiệu theo tỉ lệ số tiền vừa hoàn
   await clawbackReferralCommission(order.userId, amt, order.code);
+  // Thu hồi cashback Pass theo đúng tỉ lệ đó (không vượt phần đã cộng cho đơn)
+  await clawbackPassCashback(order.userId, amt, order.code);
 }
 
 /**
@@ -413,6 +426,8 @@ export async function syncSmmOrderStatus(order: SmmOrder) {
         });
       });
       await orderTransition(order, "PARTIAL", `Hoàn phần chưa chạy ${vnd(extra)}`);
+      // Thu hồi cashback Pass theo phần tiền vừa hoàn (đường này không qua refundSmmOrder)
+      await clawbackPassCashback(order.userId, extra, order.code);
       return prisma.smmOrder.findUnique({ where: { id: order.id } });
     }
     await prisma.smmOrder.update({ where: { id: order.id }, data: { status: "PARTIAL", remains, startCount } });
@@ -439,6 +454,10 @@ export async function createPremiumOrder(input: {
   // transaction KHÔNG trừ số dư; mọi cơ chế còn lại (kho, flash, promo,
   // referral, giao API) giữ nguyên như mua bằng ví.
   externalPaid?: { method: string; ref: string };
+  // QUÀ THÁNG của Pass (lib/pass.ts): đơn 0đ — không trừ ví, không tính
+  // giảm Pass / cashback / hoa hồng (tổng chốt 0đ), nhưng vẫn đi ĐÚNG đường
+  // kho + giao hàng như đơn thường. Chỉ actions/pass.ts được đặt cờ này.
+  gift?: boolean;
 }) {
   if ((await getSettings()).module_premium === "0") throw new Error("Mảng Premium đang tạm tắt");
   // GĐ3: tài khoản rủi ro cao (chưa được duyệt lại) bị chặn mua Premium mới
@@ -523,11 +542,22 @@ export async function createPremiumOrder(input: {
     if (promo) total -= promo.discount;
   }
 
+  // Pass (lib/pass.ts): giảm THÊM % trên tổng SAU flash + mã giảm giá; đơn quà
+  // tháng thì chốt thẳng 0đ và bỏ qua cả mã giảm giá lẫn giảm Pass/cashback.
+  let passDiscount = 0;
+  if (input.gift) {
+    promo = null;
+    total = 0;
+  } else {
+    passDiscount = await passDiscountFor(input.user.id, "PREMIUM", total);
+    if (passDiscount > 0) total -= passDiscount;
+  }
+
   const created = await prisma.$transaction(async (tx) => {
     // Trừ kho số lượng NGUYÊN TỬ cùng transaction với tiền: thiếu kho -> ném
     // lỗi, cả tiền lẫn đơn rollback (không bán vượt, không trừ tiền oan).
     await claimVariantStock(tx, variant, variant.product.fulfillment, input.quantity);
-    if (!input.externalPaid) {
+    if (!input.externalPaid && !input.gift) {
       await applyBalance(tx, input.user.id, -total, "PREMIUM_ORDER", undefined, `Mua ${variant.product.name} — ${variant.name}`);
     }
     if (promo) await consumePromo(tx, promo.row.id);
@@ -540,6 +570,7 @@ export async function createPremiumOrder(input: {
         total,
         promoCode: promo?.row.code,
         promoDiscount: promo?.discount || 0,
+        passDiscount,
         cost,
         status: "PENDING",
         providerId: variant.product.providerId,
@@ -554,6 +585,8 @@ export async function createPremiumOrder(input: {
     await tx.premiumOrder.update({ where: { id: o.id }, data: { code } });
     // Hoa hồng giới thiệu: tính trên giao dịch mua (kiểu thatim)
     await creditReferralCommission(tx, input.user.id, total, code);
+    // Cashback Pass trên số tiền thực trả cuối cùng (đơn quà 0đ tự cho 0).
+    await creditPassCashback(tx, input.user.id, "PREMIUM", total, code);
 
     // Giao tự động từ kho
     if (variant.product.fulfillment === "AUTO_STOCK") {
@@ -591,7 +624,7 @@ export async function createPremiumOrder(input: {
     return { ...o, code };
   });
   void alertMother("premium_order", `Đơn Premium mới ${created.code}`, `${input.user.username} mua ${variant.product.name} — ${variant.name} — ${created.total.toLocaleString("vi-VN")}đ`);
-  await notifyUser(input.user.id, "Đặt hàng Premium thành công", `Đơn ${created.code}: ${variant.product.name} — ${variant.name} × ${input.quantity} — ${input.externalPaid ? `đã thanh toán trực tiếp qua ${input.externalPaid.method}` : `đã trừ ${vnd(created.total)}`}${created.status === "DELIVERED" ? " — đã giao tự động, xem nội dung trong đơn" : ""}`, "/dashboard/don-premium");
+  await notifyUser(input.user.id, "Đặt hàng Premium thành công", `Đơn ${created.code}: ${variant.product.name} — ${variant.name} × ${input.quantity} — ${input.gift ? "quà tháng của Pass (0đ)" : input.externalPaid ? `đã thanh toán trực tiếp qua ${input.externalPaid.method}` : `đã trừ ${vnd(created.total)}`}${created.status === "DELIVERED" ? " — đã giao tự động, xem nội dung trong đơn" : ""}`, "/dashboard/don-premium");
   // GĐ3: tính lại điểm rủi ro nền sau khi mua Premium — lỗi tính điểm không ảnh hưởng đơn
   void evaluateUserRisk(input.user.id);
   if (created.status === "DELIVERED" || created.status === "COMPLETED") await awardPointsForPremiumOrder(created);
@@ -645,6 +678,7 @@ export async function createPremiumOrder(input: {
         await tx.premiumOrder.update({ where: { id: created.id }, data: { status: "REFUNDED" } });
       });
       await clawbackReferralCommission(input.user.id, total, created.code);
+      await clawbackPassCashback(input.user.id, total, created.code);
       return { ...created, status: "REFUNDED" as const };
     }
     if (failed > 0) {
@@ -654,6 +688,7 @@ export async function createPremiumOrder(input: {
         await applyBalance(tx, input.user.id, refundAmt, "REFUND", created.code, `Hoàn ${failed} đơn vị provider không nhận`);
       });
       await clawbackReferralCommission(input.user.id, refundAmt, created.code);
+      await clawbackPassCashback(input.user.id, refundAmt, created.code);
     }
     const updated = await prisma.premiumOrder.update({
       where: { id: created.id },
@@ -723,7 +758,10 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
       if (order.status === "PENDING") await restoreVariantStock(tx, order.variantId, order.quantity);
       await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Nhà cung cấp huỷ đơn premium — hoàn tiền");
     });
-    if (claimed) await clawbackReferralCommission(order.userId, order.total, order.code);
+    if (claimed) {
+      await clawbackReferralCommission(order.userId, order.total, order.code);
+      await clawbackPassCashback(order.userId, order.total, order.code);
+    }
   }
   return prisma.premiumOrder.findUnique({ where: { id: order.id } });
 }

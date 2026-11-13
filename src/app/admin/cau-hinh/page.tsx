@@ -9,6 +9,8 @@ import { RichTextEditor } from "@/components/rich-editor";
 import { ImageUpload } from "@/components/image-upload";
 import { getServerI18n } from "@/lib/lang-server";
 import { parseSeasonalTheme, type SeasonalTheme } from "@/lib/seasonal";
+import { prisma } from "@/lib/db";
+import { PassGiftPicker } from "@/components/pass-gift-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -148,13 +150,20 @@ function SeasonalPreview({ theme }: { theme: SeasonalTheme }) {
 
 /** Trang Cài đặt admin — dựng theo bố cục panel mẫu: các tab gạch chân cuộn ngang
  *  (Chung → Thanh toán → Email → Telegram → Thông báo → Google → Khuyến mãi →
- *  Giới thiệu → Bảo mật → Cron Job → SMM Tool API → AI Kiểm tra → USDT →
+ *  Giới thiệu → Pass → Bảo mật → Cron Job → SMM Tool API → AI Kiểm tra → USDT →
  *  Script/HTML), MỘT nút Lưu cài đặt ở góc phải header cho toàn trang.
  *  (Tab chọn kiểu trang Đăng nhập/Đăng ký đã bỏ — auth chỉ còn MỘT thiết kế.) */
 export default async function AdminSettings({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();
+  // Danh sách cho bộ chọn QUÀ THÁNG của Pass (tab Pass): sản phẩm Premium
+  // đang bán + các gói đang bán của chúng.
+  const passGiftProducts = await prisma.premiumProduct.findMany({
+    where: { active: true },
+    orderBy: [{ sort: "asc" }, { id: "asc" }],
+    select: { id: true, name: true, variants: { where: { active: true }, orderBy: [{ sort: "asc" }, { id: "asc" }], select: { id: true, name: true } } },
+  });
   const seasonalTheme = parseSeasonalTheme(s.seasonal_theme) || "tet";
   const base = process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.vn";
   const cronUrl = `${base}/api/cron/sync?secret=${s.cron_secret || "<CRON_SECRET>"}&services=1`;
@@ -465,6 +474,51 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       <div><label className="lbl">{L("Tỷ lệ hoa hồng (%)")}</label><input className="inp" name="affiliate_percent" type="number" step="0.5" min="0" max="50" defaultValue={s.affiliate_percent} /></div>
       <div><label className="lbl">{L("Mức rút hoa hồng tối thiểu (đ)")}</label><input className="inp" name="affiliate_withdraw_min" type="number" step="1000" min="0" defaultValue={s.affiliate_withdraw_min} /></div>
       <p className="text-xs text-slate-400">{L("Ví dụ: người được giới thiệu mua 1.000.000₫, người giới thiệu nhận đúng tỷ lệ % này. Panel con tự đặt % riêng cho khách của mình ở Panel Admin.")}</p>
+    </section>
+  );
+
+  /* ---------------- Pass (gói thành viên) ---------------- */
+  const pass = (
+    <section className="card p-6 space-y-4">
+      <div className="font-bold text-slate-900">{L("Gói thành viên Pass")}</div>
+      <div className={infoBox}>{L("Khách mua Pass bằng số dư ví tại trang /pass. Khi còn hạn, đơn trong phạm vi áp dụng được giảm thêm % (tính sau flash sale và mã giảm giá) và hoàn % tiền về ví (tính trên số tiền thực trả). Đơn bị hoàn tiền sẽ thu hồi phần hoàn tương ứng. Mọi giá trị dưới đây đều do bạn đặt — giá kỳ nào để 0đ thì kỳ đó không bán.")}</div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label className="lbl">{L("Bật gói Pass")}</label>
+          <select className="inp" name="pass_enabled" defaultValue={s.pass_enabled === "1" ? "1" : "0"}><option value="1">{L("Bật")}</option><option value="0">{L("Tắt")}</option></select>
+        </div>
+        <div><label className="lbl">{L("Tên gói (để trống = Pass)")}</label><input className="inp" name="pass_name" defaultValue={s.pass_name} placeholder="Pass" /></div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div><label className="lbl">{L("Giá 1 tháng (đ)")}</label><input className="inp" name="pass_price_1m" type="number" step="1000" min="0" defaultValue={s.pass_price_1m} /></div>
+        <div><label className="lbl">{L("Giá 3 tháng (đ)")}</label><input className="inp" name="pass_price_3m" type="number" step="1000" min="0" defaultValue={s.pass_price_3m} /></div>
+        <div><label className="lbl">{L("Giá 12 tháng (đ)")}</label><input className="inp" name="pass_price_12m" type="number" step="1000" min="0" defaultValue={s.pass_price_12m} /></div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div><label className="lbl">{L("Hoàn tiền mỗi đơn (%)")}</label><input className="inp" name="pass_cashback_percent" type="number" step="0.5" min="0" max="100" defaultValue={s.pass_cashback_percent} /></div>
+        <div><label className="lbl">{L("Giảm thêm khi thanh toán (%)")}</label><input className="inp" name="pass_discount_percent" type="number" step="0.5" min="0" max="100" defaultValue={s.pass_discount_percent} /></div>
+        <div>
+          <label className="lbl">{L("Phạm vi áp dụng")}</label>
+          <select className="inp" name="pass_scope" defaultValue={s.pass_scope || "ALL"}>
+            <option value="ALL">{L("Tất cả đơn (SMM + Premium)")}</option>
+            <option value="PREMIUM">{L("Chỉ sản phẩm Premium")}</option>
+            <option value="SMM">{L("Chỉ dịch vụ SMM")}</option>
+          </select>
+        </div>
+      </div>
+      <div className="border-t border-slate-100 pt-4">
+        <div className="text-sm font-bold text-slate-800">{L("Quà tặng mỗi tháng")}</div>
+        <p className="mt-1 text-xs text-slate-400">{L("Thành viên còn hạn Pass được nhận miễn phí gói này 1 lần mỗi tháng, giao qua đơn hàng 0đ như đơn mua thường. Để trống = không có quà tháng.")}</p>
+        <div className="mt-3">
+          <PassGiftPicker
+            products={passGiftProducts}
+            defaultProductId={s.pass_gift_product_id || ""}
+            defaultVariantId={s.pass_gift_variant_id || ""}
+            labels={{ product: L("Sản phẩm quà tặng"), variant: L("Gói quà tặng"), none: L("— Không có quà —") }}
+          />
+        </div>
+        <p className="mt-2 text-xs text-slate-400">{L("Câu hỏi thường gặp của trang Pass sửa ở Bài viết, danh mục \"pass-faq\".")}</p>
+      </div>
     </section>
   );
 
@@ -791,6 +845,7 @@ Content-Type: application/json
           { id: "google", label: "Google", icon: I.users, content: google },
           { id: "khuyenmai", label: L("Khuyến mãi"), icon: I.gift, content: khuyenmai },
           { id: "gioithieu", label: L("Giới thiệu"), icon: I.percent, content: gioithieu },
+          { id: "pass", label: "Pass", icon: I.star, content: pass },
           { id: "baomat", label: L("Bảo mật"), icon: I.shield, content: baomat },
           { id: "cron", label: "Cron Job", icon: I.clock, content: cron },
           { id: "toolapi", label: "SMM Tool API", icon: I.key, content: toolapi },

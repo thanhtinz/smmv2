@@ -52,6 +52,21 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // Hoa hồng cộng vào SỐ DƯ HOA HỒNG riêng; rút về ví chính khi đạt mức tối thiểu dưới đây.
   affiliate_percent: "6",
   affiliate_withdraw_min: "10000",
+  // Gói thành viên PASS (lib/pass.ts, trang bán /pass — mẫu ldshop Pass, lệnh Tín
+  // 2026-11-12): MỌI giá trị thương mại đều do admin đặt tại Cấu hình → tab Pass,
+  // không hardcode. pass_enabled "0" = tắt hẳn (ẩn menu + trang). Giá kỳ = 0đ =
+  // không bán kỳ đó. Phạm vi pass_scope: ALL | PREMIUM | SMM. Quà tháng: cặp
+  // product/variant id của sản phẩm Premium admin chọn sẵn (trống = không có quà).
+  pass_enabled: "0",
+  pass_name: "",
+  pass_price_1m: "0",
+  pass_price_3m: "0",
+  pass_price_12m: "0",
+  pass_cashback_percent: "0",
+  pass_discount_percent: "0",
+  pass_scope: "ALL",
+  pass_gift_product_id: "",
+  pass_gift_variant_id: "",
   // Thưởng nạp dạng JSON: [{"from":500000,"percent":2},{"from":2000000,"percent":5}]
   deposit_bonus_tiers: JSON.stringify([{ from: 1000000, percent: 2 }, { from: 5000000, percent: 5 }]), // mốc thưởng mặc định — nguồn duy nhất (seed không ghi nữa)
   maintenance: "0",
