@@ -37,6 +37,7 @@ export async function PublicFrame({ children, skipSetupGate }: { children: React
     items = [
       { href: "/", label: L("Trang chủ"), icon: I.home },
       { href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem },
+      { href: "/uu-dai", label: L("Ưu đãi"), icon: I.percent },
       { href: "/login", label: L("Đăng nhập"), icon: I.lock },
       { href: "/register", label: L("Đăng ký"), icon: I.plus },
     ];

@@ -45,7 +45,7 @@ export default async function AdminDiscountCodes({ searchParams }: { searchParam
                       </td>
                       <td className="td text-slate-500">{c.minOrder > 0 ? L("Đơn từ") + " " + M(c.minOrder) : L("Không")}</td>
                       <td className="td text-xs text-slate-500">{c.startsAt ? dt(c.startsAt) : "—"} <span className="inline-flex align-middle [&_svg]:h-3.5 [&_svg]:w-3.5">{I.arrowRight}</span> {c.endsAt ? dt(c.endsAt) : "—"}</td>
-                      <td className="td">{c.active ? <Badge cls="bg-emerald-100 text-emerald-700">{L("Hoạt động")}</Badge> : <Badge cls="bg-slate-200 text-slate-500">{L("Đã tắt")}</Badge>}</td>
+                      <td className="td">{c.active ? <Badge cls="bg-emerald-100 text-emerald-700">{L("Hoạt động")}</Badge> : <Badge cls="bg-slate-200 text-slate-500">{L("Đã tắt")}</Badge>}{c.isPublic && <> <Badge cls="bg-sky-100 text-sky-700">{L("Công khai")}</Badge></>}</td>
                       <td className="td whitespace-nowrap">
                         <Link href={`/admin/ma-giam-gia?edit=${c.id}`} className="btn-ghost btn-sm">{L("Sửa")}</Link>{" "}
                         <form action={deleteDiscountCodeAction} className="inline"><input type="hidden" name="id" value={c.id} /><button className="btn-ghost btn-sm !text-rose-600">{L("Xoá")}</button></form>
@@ -74,6 +74,7 @@ export default async function AdminDiscountCodes({ searchParams }: { searchParam
             <div><label className="lbl">{L("Kết thúc")}</label><input className="inp" name="endsAt" type="datetime-local" defaultValue={fmtDtLocal(edit?.endsAt ?? null)} /></div>
           </div>
           <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" name="active" defaultChecked={edit ? edit.active : true} className="h-4 w-4 accent-brand-600" /> {L("Đang bật")}</label>
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" name="isPublic" defaultChecked={edit ? edit.isPublic : false} className="h-4 w-4 accent-brand-600" /> {L("Hiện trên trang Ưu đãi")}</label>
           <button className="btn-primary w-full">{edit ? L("Lưu thay đổi") : L("Tạo mã")}</button>
         </form>
       </div>

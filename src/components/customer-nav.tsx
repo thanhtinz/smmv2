@@ -92,6 +92,9 @@ export async function buildCustomerNav(
     { href: "/", label: L("Trang chủ"), icon: I.home },
     ...(premiumOn ? [{ href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem }] : []),
     { href: "/dashboard/don-premium", label: L("Đơn Premium của tôi"), icon: I.box },
+    // Ưu đãi: trang công khai gom mã giảm giá dùng cho tất cả (lệnh Tín
+    // 2026-11-12) — một cửa duy nhất trong menu khách, ngay sau Đơn Premium.
+    { href: "/uu-dai", label: L("Ưu đãi"), icon: I.percent },
     { label: "Steam", icon: I.gamepad, children: steamChildren },
     { label: "Game key", icon: I.key, children: gameKeyChildren },
     { label: "Gift Card", icon: I.gift, children: giftCardChildren },

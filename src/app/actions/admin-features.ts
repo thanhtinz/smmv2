@@ -41,6 +41,7 @@ export async function saveDiscountCodeAction(formData: FormData) {
     startsAt: dtOrNull(formData, "startsAt"),
     endsAt: dtOrNull(formData, "endsAt"),
     active: formData.get("active") === "on",
+    isPublic: formData.get("isPublic") === "on",
   };
   try {
     if (id) await prisma.discountCode.update({ where: { id }, data });

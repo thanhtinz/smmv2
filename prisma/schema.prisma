@@ -879,6 +879,7 @@ model DiscountCode {
   startsAt    DateTime?
   endsAt      DateTime?
   active      Boolean   @default(true)
+  isPublic    Boolean   @default(false) // hiện trên trang /uu-dai cho mọi khách xem; mặc định RIÊNG — admin bật tay mới công khai (lệnh Tín 2026-11-12)
   createdAt   DateTime  @default(now())
 }
 

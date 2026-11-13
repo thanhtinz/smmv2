@@ -559,7 +559,10 @@ export function CartView({ loggedIn, balance, flash, directMethods = [], initial
         </summary>
         <div className="px-5 pb-5">
           <input className="inp uppercase" value={promo} onChange={(e) => setPromo(e.target.value)} placeholder={t("VD: SALE10")} autoComplete="off" />
-          <p className="mt-1.5 text-xs text-slate-400">{t("Mã áp dụng cho từng đơn khi thanh toán.")}</p>
+          <div className="mt-1.5 flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-400">{t("Mã áp dụng cho từng đơn khi thanh toán.")}</p>
+            <Link href="/uu-dai" className="shrink-0 text-xs font-bold text-brand-600 hover:text-brand-500">{t("Xem mã ưu đãi")}</Link>
+          </div>
         </div>
       </details>
 
