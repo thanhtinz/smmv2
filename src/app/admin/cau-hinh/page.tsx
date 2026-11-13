@@ -716,10 +716,12 @@ Content-Type: application/json
           <div><label className="lbl">{L("Bật AI (tư vấn + kiểm tra)")}</label>
             <select className="inp" name="ai_enabled" defaultValue={s.ai_enabled === "1" ? "1" : "0"}><option value="0">{L("Tắt")}</option><option value="1">{L("Bật")}</option></select></div>
           <div><label className="lbl">{L("Nhà cung cấp")}</label>
-            <select className="inp" name="ai_provider" defaultValue={s.ai_provider || "openai"}><option value="openai">{L("OpenAI / endpoint tương thích")}</option><option value="gemini">Google Gemini</option></select></div>
+            <select className="inp" name="ai_provider" defaultValue={s.ai_provider || "openai"}><option value="openai">{L("OpenAI / endpoint tương thích")}</option><option value="gemini">Google Gemini</option><option value="meta">Meta — Muse (Model API)</option></select></div>
           <div><label className="lbl">{L("API URL (Base URL tuỳ chỉnh — để trống = mặc định)")}</label><input className="inp" name="ai_base_url" defaultValue={s.ai_base_url} placeholder="https://api.openai.com/v1" /></div>
           <div><label className="lbl">{L("Model AI")}</label><input className="inp" name="ai_model" defaultValue={s.ai_model} placeholder="VD: gpt-4o-mini / gemini-2.0-flash" /></div>
           <div className="sm:col-span-2"><label className="lbl">API Key</label><input className="inp" name="ai_api_key" defaultValue={s.ai_api_key} placeholder={L("Dán API key của bạn")} autoComplete="off" /><p className="mt-1 text-xs text-rose-500">{L("Không chia sẻ API key này với bất kỳ ai.")}</p></div>
+          <div><label className="lbl">Meta API Key (Muse)</label><input className="inp" name="ai_meta_api_key" defaultValue={s.ai_meta_api_key} placeholder="LLM_..." autoComplete="off" /></div>
+          <div><label className="lbl">{L("Model Meta")}</label><input className="inp" name="ai_meta_model" defaultValue={s.ai_meta_model} placeholder="muse-wonder-1.0" /></div>
         </div>
         <a href="/api/admin/ai-test" className="btn-ghost btn-sm inline-block">{L("Kiểm tra kết nối AI")}</a>
       </section>

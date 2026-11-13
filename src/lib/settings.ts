@@ -196,6 +196,11 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   ai_base_url: "",
   ai_api_key: "",
   ai_model: "",
+  // Meta Model API (Muse): key + model RIÊNG cho nhà Meta để không lẫn với key
+  // OpenAI/Gemini; ai_meta_api_key khớp regex khoá bí mật nên tự mã hoá khi lưu.
+  // Model mặc định là Muse Wonder theo tài liệu dev.meta.ai (muse-wonder-1.0).
+  ai_meta_api_key: "",
+  ai_meta_model: "muse-wonder-1.0",
   google_enabled: "0",
   google_client_id: "",
   google_client_secret: "",

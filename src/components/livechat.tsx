@@ -45,7 +45,7 @@ export function LiveChat() {
       if (j.picks?.length) {
         setMsgs((prev) => [...prev, { role: "bot", text: j.mode === "ai" ? t("Mình gợi ý các dịch vụ này cho bạn:") : t("Đây là các dịch vụ khớp nhất với mô tả của bạn:"), picks: j.picks, mode: j.mode }]);
       } else {
-        setMsgs((prev) => [...prev, { role: "bot", text: t("Chưa thấy dịch vụ khớp — bạn thử ghi rõ tên mạng xã hội và thứ cần tăng (follow, like, view...) nhé.") }]);
+        setMsgs((prev) => [...prev, { role: "bot", text: t("Chưa thấy dịch vụ khớp — bạn thử ghi rõ tên mạng xã hội và thứ cần tăng (follow, like, view...), hoặc tạo ticket hỗ trợ để được tư vấn trực tiếp nhé.") }]);
       }
     } catch (e: any) {
       setMsgs((prev) => [...prev, { role: "bot", text: String(e?.message || t("Có lỗi xảy ra, thử lại sau nhé.")) }]);

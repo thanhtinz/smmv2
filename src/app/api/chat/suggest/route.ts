@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
 import { getCurrentUser } from "@/lib/auth";
+import { getLang } from "@/lib/lang-server";
 import { findServices } from "@/lib/finder";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
     q,
     platform,
     viewer: user ? { level: user.level } : null,
+    lang: getLang(),
   });
   return NextResponse.json({ mode, picks, loggedIn: !!user });
 }

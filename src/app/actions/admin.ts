@@ -798,7 +798,7 @@ export async function adminReplyTicket(formData: FormData) {
 export async function adminSaveSettings(formData: FormData) {
   const actor = await requireAdmin();
   // GĐ2: form chứa khoá bí mật/cấu hình thanh toán thì phải xác thực lại trước khi lưu
-  const SENSITIVE_KEYS = ["sepay_secret", "stripe_secret_key", "stripe_webhook_secret", "paypal_client_secret", "usdt_address", "cron_secret", "tool_api_key", "smtp_pass", "google_client_secret", "telegram_bot_token", "ai_api_key", "recaptcha_secret"];
+  const SENSITIVE_KEYS = ["sepay_secret", "stripe_secret_key", "stripe_webhook_secret", "paypal_client_secret", "usdt_address", "cron_secret", "tool_api_key", "smtp_pass", "google_client_secret", "telegram_bot_token", "ai_api_key", "ai_meta_api_key", "recaptcha_secret"];
   if (SENSITIVE_KEYS.some((k) => { const v = formData.get(k); return v !== null && String(v).trim() !== ""; })) {
     await assertStepUp(actor.id, "/admin/cau-hinh");
   }
@@ -813,7 +813,7 @@ export async function adminSaveSettings(formData: FormData) {
     "smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_from", "smtp_secure",
     "telegram_bot_token", "telegram_chat_id", "telegram_notify",
     "custom_head_html", "custom_body_html", "password_min_length",
-    "ai_enabled", "ai_provider", "ai_base_url", "ai_api_key", "ai_model", "ai_check_enabled", "tool_api_key",
+    "ai_enabled", "ai_provider", "ai_base_url", "ai_api_key", "ai_model", "ai_meta_api_key", "ai_meta_model", "ai_check_enabled", "tool_api_key",
     "google_enabled", "google_client_id", "google_client_secret",
     "sepay_secret", "cron_secret",
     "usdt_enabled", "usdt_address", "usdt_network", "usdt_rate",
