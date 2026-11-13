@@ -75,15 +75,15 @@ export function ProductAffiliate({ slug, productName, pct, affLink, loggedIn, en
         <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t("Chia sẻ kiếm tiền")}>
           <div className="absolute inset-0 bg-slate-950/55" onClick={() => setOpen(false)} />
           <div className="relative max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white text-slate-900 shadow-2xl sm:rounded-3xl">
-            <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-600 to-teal-500 px-5 py-4 text-white">
+            <div className="flex items-center gap-3 bg-gradient-to-r from-brand-700 via-brand-600 to-brand-500 px-5 py-4 text-white">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 [&>svg]:h-6 [&>svg]:w-6">{I.handCoin}</span>
               <span className="flex-1 text-lg font-extrabold">{t("Chia sẻ kiếm tiền")}</span>
               <button type="button" onClick={() => setOpen(false)} aria-label={t("Đóng")} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20 transition hover:bg-white/30 [&>svg]:h-[18px] [&>svg]:w-[18px]">{I.x}</button>
             </div>
             <div className="space-y-5 px-5 py-5">
-              <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3.5">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white [&>svg]:h-5 [&>svg]:w-5">{I.gift}</span>
-                <p className="text-[15px] leading-snug text-slate-700">{t("Nhận ngay")} <b className="text-emerald-600">{pct}%</b> {t("hoa hồng khi bạn bè mua hàng qua link của bạn!")}</p>
+              <div className="flex items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white [&>svg]:h-5 [&>svg]:w-5">{I.gift}</span>
+                <p className="text-[15px] leading-snug text-slate-700">{t("Nhận ngay")} <b className="text-brand-700">{pct}%</b> {t("hoa hồng khi bạn bè mua hàng qua link của bạn!")}</p>
               </div>
 
               {loggedIn && !enrolled ? (
