@@ -19,7 +19,7 @@ function slugify(text: string) {
 }
 
 /* ================= DANH MỤC PREMIUM ================= */
-export type PremiumCategoryDTO = { id: number; name: string; slug: string; description: string | null; icon: string | null; sort: number; active: boolean; productCount: number };
+export type PremiumCategoryDTO = { id: number; name: string; slug: string; description: string | null; icon: string | null; sort: number; active: boolean; metaTitle: string | null; metaDescription: string | null; productCount: number };
 
 export function PremiumCategoryModal({ category, onClose }: { category?: PremiumCategoryDTO; onClose: () => void }) {
   const { t } = useLang();
@@ -53,6 +53,20 @@ export function PremiumCategoryModal({ category, onClose }: { category?: Premium
             </div>
           </div>
           <div><label className={lbl}>{t("Icon danh mục")}</label><input name="icon" defaultValue={c?.icon || ""} className={inp} placeholder={t("Nhập ký tự icon hoặc URL ảnh...")} /></div>
+          <details className="rounded-xl border border-slate-200 px-4 py-3" open={!!c && (!!c.metaTitle || !!c.metaDescription)}>
+            <summary className="cursor-pointer text-sm font-semibold text-slate-700">SEO</summary>
+            <div className="mt-3 space-y-4">
+              <div>
+                <label className={lbl}>{t("Tiêu đề SEO")} <span className="font-normal text-slate-400">({t("tối đa 255 ký tự")})</span></label>
+                <input name="metaTitle" defaultValue={c?.metaTitle || ""} maxLength={255} className={inp} placeholder={c?.name || ""} />
+                <p className="mt-1 text-xs text-slate-400">{t("Hiện ở trang danh sách khi khách lọc theo danh mục này. Để trống = theo mặc định toàn web.")}</p>
+              </div>
+              <div>
+                <label className={lbl}>{t("Mô tả SEO")} <span className="font-normal text-slate-400">({t("tối đa 320 ký tự")})</span></label>
+                <textarea name="metaDescription" defaultValue={c?.metaDescription || ""} maxLength={320} rows={3} className={inp} placeholder={c?.description || ""} />
+              </div>
+            </div>
+          </details>
         </div>
         <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
           <button type="button" onClick={onClose} className="btn-ghost btn-sm !px-5 !py-2.5">{t("Hủy")}</button>

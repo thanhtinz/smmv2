@@ -25,7 +25,7 @@ async function main() {
   (createRequire(import.meta.url)("nodemailer") as any).createTransport = stub;
   ((await import("nodemailer")).default as any).createTransport = stub;
 
-  const { setSetting } = await import("/home/hatch/workspace/smmv2/src/lib/settings");
+  const { setSetting } = await import("../src/lib/settings");
   // Tự đặt trạng thái kiểm chứng + bật mail khách/SMTP giả (DB local).
   for (const [k, v] of Object.entries({
     site_name: "Shop Kiểm Chứng", site_url: "https://kiemchung.example.com/",
@@ -41,7 +41,7 @@ async function main() {
     || await prisma.user.findFirst({ where: { role: "USER" }, select: { id: true, email: true } });
   if (!user) throw new Error("không thấy user mẫu");
 
-  const { sendCustomerMail } = await import("/home/hatch/workspace/smmv2/src/lib/customer-mail");
+  const { sendCustomerMail } = await import("../src/lib/customer-mail");
   const r = await sendCustomerMail(user.id, "order_created", {
     order_code: "PRE120001", product_name: "Sản phẩm kiểm chứng", variant_name: "Gói 1 tháng", quantity: 1, total: "99.000đ",
   });
@@ -55,7 +55,7 @@ async function main() {
   check("không còn link localhost trong thư", !(m?.html || "").includes("localhost") && !(m?.text || "").includes("localhost"));
 
   // siteOrigin (URL quay về thanh toán) phải thắng bằng site_url đã cấu hình.
-  const { siteOrigin } = await import("/home/hatch/workspace/smmv2/src/lib/payments");
+  const { siteOrigin } = await import("../src/lib/payments");
   let origin = "";
   try { origin = await siteOrigin(); } catch (e: any) { origin = `THREW: ${e?.message}`; }
   check("siteOrigin() = domain đã cấu hình (thắng host/env)", origin === "https://kiemchung.example.com", origin);

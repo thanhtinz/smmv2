@@ -212,16 +212,15 @@ export function MobileSideNav({ items, siteName, footer, logoUrl, logoText }: {
         <>
           <div className="fixed inset-0 z-[70] bg-slate-950/50 lg:hidden" onClick={() => setOpen(false)} />
           <div className="fixed inset-y-0 left-0 z-[80] flex w-[280px] max-w-[85vw] flex-col bg-white shadow-2xl lg:hidden">
-            <div className="relative flex h-20 shrink-0 items-center justify-center border-b border-slate-100 px-12">
+            <div className="relative flex h-20 shrink-0 items-center justify-center border-b border-slate-100 px-4">
               {logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={logoUrl} alt={siteName} className="max-h-14 w-auto max-w-[220px] object-contain" />
               ) : (
                 <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-2xl font-black text-white">{logoText || "B"}</span>
               )}
-              <button type="button" onClick={() => setOpen(false)} aria-label={t("Đóng menu")} className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-              </button>
+              {/* KHÔNG còn nút X đóng (lệnh Tín 2026-11-13): chạm ra ngoài
+                  (backdrop ở trên) là đóng, chọn mục menu cũng đóng. */}
             </div>
             <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-3">
               <NavLinks items={items} onNavigate={() => setOpen(false)} />

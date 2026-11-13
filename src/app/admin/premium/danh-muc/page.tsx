@@ -14,7 +14,7 @@ export default async function AdminPremiumCategories({ searchParams }: { searchP
   if (searchParams.status === "on") where.active = true;
   if (searchParams.status === "off") where.active = false;
   const cats = await prisma.premiumCategory.findMany({ where, orderBy: [{ sort: "asc" }, { id: "asc" }], include: { _count: { select: { products: true } } } });
-  const dtos = cats.map((c) => ({ id: c.id, name: c.name, slug: c.slug, description: c.description, icon: c.icon, sort: c.sort, active: c.active, productCount: c._count.products }));
+  const dtos = cats.map((c) => ({ id: c.id, name: c.name, slug: c.slug, description: c.description, icon: c.icon, sort: c.sort, active: c.active, metaTitle: c.metaTitle, metaDescription: c.metaDescription, productCount: c._count.products }));
   return (
     <div>
       <PageHead title={L("Quản lý Danh mục Premium")} desc={L("Quản lý các danh mục sản phẩm Premium")} />

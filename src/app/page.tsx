@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth";
@@ -15,6 +16,34 @@ import { regularCatalogWhere } from "@/lib/order-scope";
 import { productImages } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
+
+/** Ghi đè SEO RIÊNG cho trang chủ (đợt 121 — Cấu hình → tab SEO): admin đặt
+ *  seo_home_title/seo_home_description thì trang chủ dùng đúng bản đó (tiêu
+ *  đề dùng nguyên văn qua `absolute`, không qua mẫu tiêu đề trang con);
+ *  để trống cả hai -> {} để layout dùng mặc định toàn web như cũ. */
+export async function generateMetadata(): Promise<Metadata> {
+  const s = await getSettings().catch(() => null);
+  const title = s?.seo_home_title?.trim() || "";
+  const description = s?.seo_home_description?.trim() || "";
+  if (!title && !description) return {};
+  const { L } = await getServerI18n().catch(() => ({ L: (t: string) => t }));
+  // Có mặt object twitter ở trang con thì Next không kế thừa `card` của layout
+  // mà tự điền "summary" — phải đọc cùng setting twitter_card như layout (đợt 121).
+  const cardType = s?.twitter_card === "summary" ? "summary" : "summary_large_image";
+  return {
+    ...(title ? { title: { absolute: L(title) } } : {}),
+    ...(description ? { description: L(description) } : {}),
+    openGraph: {
+      ...(title ? { title: L(title) } : {}),
+      ...(description ? { description: L(description) } : {}),
+    },
+    twitter: {
+      card: cardType,
+      ...(title ? { title: L(title) } : {}),
+      ...(description ? { description: L(description) } : {}),
+    },
+  };
+}
 
 /** Trang chủ = CỬA HÀNG Premium theo cấu trúc shopkey (lệnh Tín 2026-11-07):
  *  slider hero → khối danh mục → Sản phẩm nổi bật → Sản phẩm bán chạy → Đã xem

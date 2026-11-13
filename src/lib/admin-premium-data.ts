@@ -30,7 +30,7 @@ export async function loadAdminPremiumData(where: any, pageOpts?: { skip?: numbe
     active: p.active, sort: p.sort, orderCount: p.variants.reduce((sum, v) => sum + (orderCountByVariant.get(v.id) || 0), 0),
     variants: p.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, cost: v.cost, warrantyDays: v.warrantyDays, providerCycle: v.providerCycle, providerId: v.providerId, providerGroup: v.providerGroup, providerItemId: v.providerItemId, deliveryType: v.deliveryType, outOfStock: v.outOfStock, stockQty: v.stockQty, active: v.active, sort: v.sort, stockAvailable: stockMap.get(v.id)?.avail || 0, stockTotal: stockMap.get(v.id)?.total || 0 })),
   }));
-  const catDtos: PremiumCategoryDTO[] = categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, description: c.description, icon: c.icon, sort: c.sort, active: c.active, productCount: c._count.products }));
+  const catDtos: PremiumCategoryDTO[] = categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, description: c.description, icon: c.icon, sort: c.sort, active: c.active, metaTitle: c.metaTitle, metaDescription: c.metaDescription, productCount: c._count.products }));
   return { products: dtos, categories: catDtos, providers };
 }
 

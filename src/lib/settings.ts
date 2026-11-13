@@ -512,6 +512,23 @@ If this wasn't you, change your password immediately and enable two-factor authe
   // SEO & đo lường: Google Analytics (GA4 measurement id) + mã xác minh Google Search Console
   ga_id: "",
   gsc_verification: "",
+  // CẤU HÌNH SEO CHUYÊN NGHIỆP (đợt 121 — luật Tín 2026-11-13): mọi trường
+  // quản tại Admin → Cấu hình → tab SEO, layout/robots đọc 100% từ đây —
+  // KHÔNG hardcode thẻ meta trong code. Trống = rơi về hành vi mặc định cũ:
+  // tiêu đề mặc định seo_default_title trống -> "<Tên web> — <tagline>";
+  // mẫu tiêu đề seo_title_template chỉ áp khi chứa "%s" (vị trí tiêu đề con);
+  // og_title/og_description trống -> lần lượt dùng tên web / mô tả mặc định;
+  // seo_indexing "1" = lập chỉ mục bình thường, "0" = chặn toàn bộ (robots
+  // Disallow: / + meta robots noindex — giai đoạn chưa mở web).
+  seo_default_title: "",
+  seo_title_template: "",
+  og_title: "",
+  og_description: "",
+  twitter_card: "summary_large_image", // summary | summary_large_image
+  seo_indexing: "1",
+  // Ghi đè SEO riêng cho TRANG CHỦ (trống = theo mặc định toàn web ở trên).
+  seo_home_title: "",
+  seo_home_description: "",
   // Quản lý ngôn ngữ (Admin → Ngôn ngữ): ngôn ngữ đang bật (JSON mảng mã), ngôn ngữ mặc định
   // cho khách mới, và bản dịch tuỳ chỉnh đè lên từ điển gốc (JSON {lang: {chuỗi Việt: bản dịch}})
   langs_enabled: JSON.stringify(["vi", "en"]),

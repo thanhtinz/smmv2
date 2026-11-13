@@ -216,7 +216,7 @@ export async function adminSavePremiumCategory(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   const slug = String(formData.get("slug") || "").trim().toLowerCase();
   if (!name || !slug) back("/admin/premium/danh-muc", "err", "Thiếu tên hoặc slug");
-  const data = { name, slug, description: String(formData.get("description") || "") || null, icon: String(formData.get("icon") || "").trim() || null, sort: parseInt(String(formData.get("sort") || "0")), active: formData.get("active") === "on" };
+  const data = { name, slug, description: String(formData.get("description") || "") || null, icon: String(formData.get("icon") || "").trim() || null, sort: parseInt(String(formData.get("sort") || "0")), active: formData.get("active") === "on", metaTitle: String(formData.get("metaTitle") || "").trim().slice(0, 255) || null, metaDescription: String(formData.get("metaDescription") || "").trim().slice(0, 320) || null };
   if (id) await prisma.premiumCategory.update({ where: { id }, data });
   else await prisma.premiumCategory.create({ data });
   done("/admin/premium/danh-muc", "Đã lưu danh mục premium");
@@ -734,6 +734,7 @@ export async function adminSaveSettings(formData: FormData) {
     "provider_low_balance_default", "subscription_max_active",
     "auto_refill_window_days", "auto_refill_settle_minutes", "cleanup_retention_days", "usdt_min",
     "points_per_100k", "points_value_vnd", "points_min_redeem", "ga_id", "gsc_verification",
+    "seo_default_title", "seo_title_template", "og_title", "og_description", "twitter_card", "seo_indexing", "seo_home_title", "seo_home_description",
     "catalog_page_size", "history_page_size", "admin_product_page_size", "admin_list_page_size",
     "watermark_enabled", "watermark_text", "watermark_opacity",
     "password_reset_ttl_minutes", "email_verify_ttl_hours", "flash_max_percent",

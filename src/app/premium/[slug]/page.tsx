@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { productImages } from "@/lib/format";
 import { siteBaseUrl } from "@/lib/email-verify";
-import { getSiteUrl } from "@/lib/settings";
+import { getSettings, getSiteUrl } from "@/lib/settings";
 import { PublicFrame } from "@/components/public-frame";
 import { PremiumDetailView } from "@/components/premium-views";
 
@@ -25,11 +25,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const img = productImages(product.images, product.imageUrl)[0];
   const base = (await getSiteUrl().catch(() => "")) || siteBaseUrl();
   const abs = img ? (img.startsWith("http") ? img : base + img) : undefined;
+  // Loại thẻ Twitter theo CẤU HÌNH SEO toàn web (đợt 121) — không cứng riêng.
+  const s = await getSettings().catch(() => null);
+  const twitterCard = s?.twitter_card === "summary" ? "summary" : "summary_large_image";
   return {
     title,
     description,
     openGraph: { title, description, type: "website", ...(abs ? { images: [abs] } : {}) },
-    twitter: { card: "summary_large_image", title, description, ...(abs ? { images: [abs] } : {}) },
+    twitter: { card: twitterCard, title, description, ...(abs ? { images: [abs] } : {}) },
   };
 }
 

@@ -1,4 +1,4 @@
-import { getSettings, siteUrlFromSettings } from "@/lib/settings";
+import { getSettings, normalizeSiteUrl, siteUrlFromSettings } from "@/lib/settings";
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
@@ -183,7 +183,6 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <div><label className="lbl">{L("Khẩu hiệu (tagline)")}</label><input className="inp" name="site_tagline" defaultValue={s.site_tagline} /></div>
           <div><label className="lbl">{L("Logo (để trống dùng chữ viết tắt)")}</label><ImageUpload name="logo_url" defaultValue={s.logo_url} stamp={false} /><p className="mt-1 text-xs text-slate-400">{L("PNG, JPG — hiển thị ở header. Logo là dấu hiệu thương hiệu nên KHÔNG bị đóng dấu mờ.")}</p></div>
           <div><label className="lbl">{L("Logo menu (ảnh ngang — để trống dùng logo nhỏ)")}</label><ImageUpload name="logo_menu_url" defaultValue={s.logo_menu_url} stamp={false} /><p className="mt-1 text-xs text-slate-400">{L("PNG, JPG — hiển thị ở đầu ngăn kéo menu trên điện thoại.")}</p></div>
-          <div><label className="lbl">{L("Favicon")}</label><ImageUpload name="favicon_url" defaultValue={s.favicon_url} stamp={false} previewClass="h-16 w-16" /><p className="mt-1 text-xs text-slate-400">{L("Ảnh vuông (tỉ lệ 1x1) hiển thị trên tab trình duyệt, ICO hoặc PNG.")}</p></div>
           <div className="rounded-xl border border-slate-200 p-4">
             <div className="text-sm font-bold text-slate-800">{L("Đóng dấu mờ (watermark) lên ảnh tải lên")}</div>
             <p className="mt-1 text-xs text-slate-400">{L("Ảnh sản phẩm, banner, ảnh bìa... tải lên qua các ô ảnh trong admin sẽ có thêm bản đã đóng dấu mờ lặp chéo; mặt công khai chỉ hiển thị bản đó. Logo/favicon không bị đóng dấu.")}</p>
@@ -240,23 +239,6 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       </div>
       <div className="space-y-6">
         <section className="card p-6 space-y-4">
-          <div className="font-bold text-slate-900">SEO & Meta Tags</div>
-          <div><label className="lbl">{L("Mô tả SEO (Meta Description)")}</label><textarea className="inp" name="meta_description" rows={3} defaultValue={s.meta_description} placeholder={L("Mô tả ngắn hiển thị trên Google...")} /><p className="mt-1 text-xs text-slate-400">{L("Khuyến nghị tối đa ~160 ký tự.")}</p></div>
-          <div><label className="lbl">{L("Từ khoá SEO (Meta Keywords, cách nhau dấu phẩy)")}</label><input className="inp" name="meta_keywords" defaultValue={s.meta_keywords} /></div>
-          <div><label className="lbl">{L("Ảnh chia sẻ (OG Image)")}</label><ImageUpload name="og_image_url" defaultValue={s.og_image_url} stamp /><p className="mt-1 text-xs text-slate-400">{L("Ảnh hiển thị khi chia sẻ link website lên mạng xã hội (Zalo, Facebook...). Kích thước khuyến nghị: 1200x630.")}</p></div>
-          <div><label className="lbl">{L("Google Analytics — GA4 Measurement ID")}</label><input className="inp" name="ga_id" defaultValue={s.ga_id} placeholder="G-XXXXXXXXXX" /><p className="mt-1 text-xs text-slate-400">{L("Điền ID đo lường GA4, hệ thống tự chèn mã theo dõi vào mọi trang.")}</p></div>
-          <div><label className="lbl">{L("Google Search Console — mã xác minh")}</label><input className="inp" name="gsc_verification" defaultValue={s.gsc_verification} placeholder={L("Mã trong thẻ meta google-site-verification")} /><p className="mt-1 text-xs text-slate-400">{L("Chỉ dán phần mã (content), hệ thống tự sinh thẻ meta xác minh.")}</p></div>
-        </section>
-        <section className="card p-6 space-y-3">
-          <div className="font-bold text-slate-900">{L("Xem trước SEO (Google)")}</div>
-          <div className="rounded-xl border border-slate-200 px-4 py-3">
-            <div className="truncate text-lg leading-snug text-[#1a0dab]">{s.site_name || L("Tên website")}{s.site_tagline ? ` — ${s.site_tagline}` : ""}</div>
-            <div className="truncate text-sm text-[#006621]">{base.replace(/^https?:\/\//, "")}</div>
-            <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-slate-600">{s.meta_description || L("Chưa có mô tả SEO — điền ở thẻ SEO & Meta Tags phía trên để kết quả tìm kiếm hiển thị đẹp hơn.")}</p>
-          </div>
-          <p className="text-xs text-slate-400">{L("Bản xem trước theo giá trị đang lưu hiện tại.")}</p>
-        </section>
-        <section className="card p-6 space-y-4">
           <div className="font-bold text-slate-900">{L("Trang trí mùa lễ hội")}</div>
           <p className="text-xs leading-relaxed text-slate-400">{L("Đến mùa lễ, bật công tắc này là toàn bộ trang khách (trang chủ và khu vực sau khi đăng nhập) có hiệu ứng hạt rơi theo chủ đề đã chọn. Tắt là gỡ sạch hoàn toàn. Khu vực quản trị không hiển thị trang trí.")}</p>
           <div>
@@ -283,6 +265,100 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           </div>
         </section>
               </div>
+    </div>
+  );
+
+  /* ---------------- SEO (đợt 121 — khu cấu hình SEO chuyên nghiệp) ----------------
+   * Toàn bộ thẻ meta của web đọc từ các trường dưới đây (lưu DB) qua layout —
+   * không hardcode trong code. meta_description/meta_keywords/og_image_url/
+   * favicon_url/ga_id/gsc_verification là các khoá CŨ, chỉ chuyển vị trí quản
+   * về tab này; khoá mới của đợt 121: seo_default_title, seo_title_template,
+   * og_title, og_description, twitter_card, seo_indexing, seo_home_title,
+   * seo_home_description. */
+  const canonicalBase = siteUrlFromSettings(s);
+  const canonicalFromDb = normalizeSiteUrl(s.site_url);
+  const seo = (
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+      <div className="space-y-6">
+        <section className="card p-6 space-y-4">
+          <div className="font-bold text-slate-900">{L("Meta mặc định toàn web")}</div>
+          <div><label className="lbl">{L("Tiêu đề mặc định")}</label><input className="inp" name="seo_default_title" defaultValue={s.seo_default_title} placeholder={`${s.site_name || "BNT Shop"} — ${s.site_tagline || ""}`} /><p className="mt-1 text-xs text-slate-400">{L("Dùng cho trang không có tiêu đề riêng. Để trống = tự ghép Tên website + Khẩu hiệu.")}</p></div>
+          <div><label className="lbl">{L("Mẫu tiêu đề trang con")}</label><input className="inp" name="seo_title_template" defaultValue={s.seo_title_template} placeholder="%s — BNT Shop" /><p className="mt-1 text-xs text-slate-400">{L("Dùng %s làm vị trí tiêu đề của trang con, ví dụ \"%s — BNT Shop\" thì trang Sản phẩm hiện \"Tên sản phẩm — BNT Shop\". Để trống = trang con dùng nguyên tiêu đề của chúng.")}</p></div>
+          <div><label className="lbl">{L("Mô tả mặc định (Meta Description)")}</label><textarea className="inp" name="meta_description" rows={3} defaultValue={s.meta_description} placeholder={L("Mô tả ngắn hiển thị trên Google...")} /><p className="mt-1 text-xs text-slate-400">{L("Khuyến nghị tối đa ~160 ký tự. Để trống = dùng Khẩu hiệu (tagline).")}</p></div>
+          <div><label className="lbl">{L("Từ khoá mặc định (Meta Keywords, cách nhau dấu phẩy)")}</label><input className="inp" name="meta_keywords" defaultValue={s.meta_keywords} /></div>
+        </section>
+        <section className="card p-6 space-y-4">
+          <div className="font-bold text-slate-900">{L("Ghi đè SEO cho trang chủ")}</div>
+          <div><label className="lbl">{L("Tiêu đề trang chủ")}</label><input className="inp" name="seo_home_title" defaultValue={s.seo_home_title} /><p className="mt-1 text-xs text-slate-400">{L("Chỉ áp cho trang chủ, dùng nguyên văn (không qua mẫu tiêu đề trang con). Để trống = theo mặc định toàn web.")}</p></div>
+          <div><label className="lbl">{L("Mô tả trang chủ")}</label><textarea className="inp" name="seo_home_description" rows={3} defaultValue={s.seo_home_description} /><p className="mt-1 text-xs text-slate-400">{L("Để trống = theo mô tả mặc định toàn web.")}</p></div>
+          <p className="text-xs text-slate-400">{L("SEO riêng của từng sản phẩm nằm trong form sửa sản phẩm (mục SEO); SEO riêng của danh mục nằm trong form sửa danh mục Premium.")}</p>
+        </section>
+        <section className="card p-6 space-y-3">
+          <div className="font-bold text-slate-900">{L("Xem trước SEO (Google)")}</div>
+          <div className="rounded-xl border border-slate-200 px-4 py-3">
+            <div className="truncate text-lg leading-snug text-[#1a0dab]">{s.seo_home_title || s.seo_default_title || `${s.site_name || L("Tên website")}${s.site_tagline ? ` — ${s.site_tagline}` : ""}`}</div>
+            <div className="truncate text-sm text-[#006621]">{base.replace(/^https?:\/\//, "")}</div>
+            <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-slate-600">{s.seo_home_description || s.meta_description || L("Chưa có mô tả — điền Mô tả mặc định ở thẻ phía trên để kết quả tìm kiếm hiển thị đẹp hơn.")}</p>
+          </div>
+          <p className="text-xs text-slate-400">{L("Bản xem trước theo giá trị đang lưu hiện tại (trang chủ).")}</p>
+        </section>
+      </div>
+      <div className="space-y-6">
+        <section className="card p-6 space-y-4">
+          <div className="font-bold text-slate-900">{L("Chia sẻ OG + Twitter")}</div>
+          <div><label className="lbl">{L("Tiêu đề chia sẻ (OG Title)")}</label><input className="inp" name="og_title" defaultValue={s.og_title} placeholder={s.site_name || "BNT Shop"} /><p className="mt-1 text-xs text-slate-400">{L("Hiện khi chia sẻ link lên Facebook/Zalo/Twitter. Để trống = dùng Tên website.")}</p></div>
+          <div><label className="lbl">{L("Mô tả chia sẻ (OG Description)")}</label><textarea className="inp" name="og_description" rows={3} defaultValue={s.og_description} /><p className="mt-1 text-xs text-slate-400">{L("Để trống = dùng Mô tả mặc định toàn web.")}</p></div>
+          <div><label className="lbl">{L("Ảnh chia sẻ (OG Image)")}</label><ImageUpload name="og_image_url" defaultValue={s.og_image_url} stamp /><p className="mt-1 text-xs text-slate-400">{L("Ảnh hiển thị khi chia sẻ link website lên mạng xã hội (Zalo, Facebook...). Kích thước khuyến nghị: 1200x630. Để trống = dùng logo ngang của web.")}</p></div>
+          <div>
+            <label className="lbl">{L("Loại thẻ Twitter (Twitter Card)")}</label>
+            <select className="inp" name="twitter_card" defaultValue={s.twitter_card === "summary" ? "summary" : "summary_large_image"}>
+              <option value="summary_large_image">{L("Ảnh lớn (summary_large_image)")}</option>
+              <option value="summary">{L("Ảnh nhỏ (summary)")}</option>
+            </select>
+          </div>
+        </section>
+        <section className="card p-6 space-y-4">
+          <div className="font-bold text-slate-900">{L("Favicon & Canonical")}</div>
+          <div><label className="lbl">{L("Favicon")}</label><ImageUpload name="favicon_url" defaultValue={s.favicon_url} stamp={false} previewClass="h-16 w-16" /><p className="mt-1 text-xs text-slate-400">{L("Ảnh vuông (tỉ lệ 1x1) hiển thị trên tab trình duyệt, ICO hoặc PNG. Để trống = dùng favicon BNT Shop gói sẵn.")}</p></div>
+          <div>
+            <label className="lbl">{L("Địa chỉ gốc Canonical")}</label>
+            {canonicalFromDb ? (
+              <>
+                <input className="inp font-mono" readOnly value={canonicalFromDb} />
+                <p className="mt-1 text-xs text-slate-400">{L("Tự sinh theo Liên kết web đã cấu hình ở tab Chung — canonical, thẻ OG và sitemap của toàn web đều lấy gốc này.")}</p>
+              </>
+            ) : canonicalBase ? (
+              <>
+                <input className="inp font-mono" readOnly value={canonicalBase} />
+                <p className="mt-1 text-xs text-amber-600">{L("Chưa cấu hình Liên kết web — gốc này đang tạm lấy từ biến môi trường của máy chủ. Hãy điền Liên kết web ở tab Chung để cố định một gốc chính thức.")}</p>
+              </>
+            ) : (
+              <div className={warnBox}>{L("Chưa cấu hình Liên kết web — canonical/OG/sitemap đang tạm rơi về host của request. Hãy điền Liên kết web ở tab Chung để cố định một gốc chính thức.")}</div>
+            )}
+          </div>
+        </section>
+        <section className="card p-6 space-y-4">
+          <div className="font-bold text-slate-900">{L("Đo lường & xác minh Google")}</div>
+          <div><label className="lbl">{L("Google Analytics — GA4 Measurement ID")}</label><input className="inp" name="ga_id" defaultValue={s.ga_id} placeholder="G-XXXXXXXXXX" /><p className="mt-1 text-xs text-slate-400">{L("Điền ID đo lường GA4, hệ thống tự chèn mã theo dõi vào mọi trang.")}</p></div>
+          <div><label className="lbl">{L("Google Search Console — mã xác minh")}</label><input className="inp" name="gsc_verification" defaultValue={s.gsc_verification} placeholder={L("Mã trong thẻ meta google-site-verification")} /><p className="mt-1 text-xs text-slate-400">{L("Chỉ dán phần mã (content), hệ thống tự sinh thẻ meta xác minh.")}</p></div>
+        </section>
+        <section className="card p-6 space-y-4">
+          <div className="font-bold text-slate-900">{L("Lập chỉ mục & tệp SEO")}</div>
+          <div>
+            <label className="lbl">{L("Cho phép Google lập chỉ mục toàn web")}</label>
+            <select className="inp" name="seo_indexing" defaultValue={s.seo_indexing === "0" ? "0" : "1"}>
+              <option value="1">{L("Bật — lập chỉ mục bình thường")}</option>
+              <option value="0">{L("Tắt — chặn toàn bộ (web chưa mở)")}</option>
+            </select>
+            <p className="mt-1 text-xs text-slate-400">{L("Tắt là robots.txt chặn mọi bot và mọi trang gắn thẻ noindex — dùng khi web chưa chính thức mở, nhớ bật lại khi ra mắt.")}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <a href="/robots.txt" target="_blank" rel="noreferrer" className="btn-ghost btn-sm">{L("Xem robots.txt")}</a>
+            <a href="/sitemap.xml" target="_blank" rel="noreferrer" className="btn-ghost btn-sm">{L("Xem sitemap.xml")}</a>
+          </div>
+          <p className="text-xs text-slate-400">{L("robots.txt và sitemap.xml được sinh tự động theo Liên kết web + công tắc lập chỉ mục ở trên.")}</p>
+        </section>
+      </div>
     </div>
   );
 
@@ -690,6 +766,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       <form id="settings-form" action={adminSaveSettings}>
         <SettingsTabs tabs={[
           { id: "chung", label: L("Chung"), icon: I.gear, content: chung },
+          { id: "seo", label: "SEO", icon: I.globe, content: seo },
           { id: "thanhtoan", label: L("Thanh toán"), icon: I.wallet, content: thanhtoan },
           { id: "email", label: "Email", icon: I.mail, content: email },
           { id: "telegram", label: "Telegram", icon: I.megaphone, content: telegram },

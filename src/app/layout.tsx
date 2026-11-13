@@ -22,16 +22,38 @@ export async function generateMetadata(): Promise<Metadata> {
   // Gốc URL cho metadata (canonical/OG): Liên kết web admin cấu hình thắng
   // env (đợt 120); đợt 121 (SEO chuyên nghiệp) mở rộng tiếp trên nền này.
   const base = siteUrlFromSettings(s);
+  // SEO (đợt 121): MỌI thẻ meta đọc từ CẤU HÌNH SEO trong admin (tab SEO) —
+  // không hardcode nội dung meta ở đây; các chuỗi rơi về dưới đây chỉ là
+  // FALLBACK KỸ THUẬT khi setting trống/đọc lỗi, đúng giá trị mặc định cũ.
+  const siteName = s?.site_name || "BNT Shop";
+  const defaultTitle = s?.seo_default_title?.trim()
+    ? L(s.seo_default_title.trim())
+    : `${siteName} — ${L("Tài khoản Premium & Sản phẩm số")}`;
+  // Mẫu tiêu đề trang con: chỉ áp khi admin có đặt VÀ chứa "%s" (kiểm mềm
+  // phía đọc — mẫu sai định dạng thì bỏ qua, không để Next áp sai toàn site).
+  const titleTemplate = s?.seo_title_template?.trim() && s.seo_title_template.includes("%s")
+    ? s.seo_title_template.trim()
+    : null;
+  const metaDescription = s?.meta_description || s?.site_tagline || "";
+  const ogTitle = s?.og_title?.trim() ? L(s.og_title.trim()) : siteName;
+  const ogDescription = s?.og_description?.trim()
+    ? L(s.og_description.trim())
+    : metaDescription ? L(metaDescription) : undefined;
+  const ogImages = s?.og_image_url ? [s.og_image_url] : [BRAND_FULL_URL];
+  const twitterCard = s?.twitter_card === "summary" ? "summary" : "summary_large_image";
+  // Công tắc lập chỉ mục toàn web (tab SEO): tắt -> mọi trang noindex.
+  const indexingOff = s?.seo_indexing === "0";
   return {
     ...(base ? { metadataBase: new URL(base) } : {}),
-    title: `${s?.site_name || "BNT Shop"} — ${L("Tài khoản Premium & Sản phẩm số")}`,
-    description: L(s?.meta_description || s?.site_tagline || "Tài khoản Premium & Sản phẩm số — tự động 24/7"),
+    title: titleTemplate ? { default: defaultTitle, template: titleTemplate } : defaultTitle,
+    description: L(metaDescription || "Tài khoản Premium & Sản phẩm số — tự động 24/7"),
     keywords: s?.meta_keywords ? s.meta_keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
-    openGraph: { title: s?.site_name || "BNT Shop", siteName: s?.site_name || "BNT Shop", ...(base ? { url: base } : {}), description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, type: "website", images: s?.og_image_url ? [s.og_image_url] : [BRAND_FULL_URL] },
-    twitter: { card: "summary_large_image", title: s?.site_name || "BNT Shop", description: s?.meta_description || s?.site_tagline ? L(s?.meta_description || s?.site_tagline || "") : undefined, images: s?.og_image_url ? [s.og_image_url] : [BRAND_FULL_URL] },
+    openGraph: { title: ogTitle, siteName, ...(base ? { url: base } : {}), description: ogDescription, type: "website", images: ogImages },
+    twitter: { card: twitterCard, title: ogTitle, description: ogDescription, images: ogImages },
+    ...(indexingOff ? { robots: { index: false, follow: false } } : {}),
     alternates: { canonical: "/" },
     manifest: "/manifest.webmanifest",
-    appleWebApp: { capable: true, statusBarStyle: "default", title: s?.site_name || "BNT Shop" },
+    appleWebApp: { capable: true, statusBarStyle: "default", title: siteName },
     icons: { icon: s?.favicon_url || BRAND_FAVICON_URL, apple: s?.favicon_url || BRAND_APPLE_ICON_URL },
   };
 }
