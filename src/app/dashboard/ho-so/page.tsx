@@ -161,10 +161,21 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
                 <div className="font-bold text-slate-900">{(s.pass_name || "").trim() || "Pass"}</div>
                 <div className="mt-3 space-y-1.5 text-sm text-slate-500">
                   <div className="flex justify-between"><span>{L("Trạng thái")}</span>{user.passExpiresAt && user.passExpiresAt > new Date()
-                    ? <Badge cls="bg-emerald-100 text-emerald-700">{L("Đang còn hạn")}</Badge>
+                    ? user.passCancelledAt
+                      ? <Badge cls="bg-amber-100 text-amber-700">{L("Đã huỷ")}</Badge>
+                      : <Badge cls="bg-emerald-100 text-emerald-700">{L("Đang còn hạn")}</Badge>
                     : <Badge cls="bg-slate-100 text-slate-500">{L("Chưa kích hoạt")}</Badge>}</div>
                   {user.passExpiresAt && user.passExpiresAt > new Date() && (
                     <div className="flex justify-between"><span>{L("Hạn dùng tới")}</span><b className="text-slate-800">{dt(user.passExpiresAt)}</b></div>
+                  )}
+                  {user.passExpiresAt && user.passExpiresAt > new Date() && user.passTermMonths && (
+                    <div className="flex justify-between"><span>{L("Kỳ đang dùng")}</span><b className="text-slate-800">{`${num(user.passTermMonths)} ${L("tháng")}`}</b></div>
+                  )}
+                  {user.passExpiresAt && user.passExpiresAt > new Date() && (
+                    <div className="flex justify-between"><span>{L("Tự gia hạn")}</span><b className="text-slate-800">{user.passCancelledAt ? L("Tắt") : user.passAutoRenew ? L("Bật") : L("Tắt")}</b></div>
+                  )}
+                  {user.passExpiresAt && user.passExpiresAt > new Date() && user.passCancelledAt && (
+                    <p className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-[13px] text-amber-800">{L("Đã huỷ — dùng tới")} {dt(user.passExpiresAt)}</p>
                   )}
                   {parseFloat(s.pass_cashback_percent || "0") > 0 && <div className="flex justify-between"><span>{L("Hoàn tiền mỗi đơn")}</span><b className="text-brand-700">{s.pass_cashback_percent}%</b></div>}
                   {parseFloat(s.pass_discount_percent || "0") > 0 && <div className="flex justify-between"><span>{L("Giảm thêm khi thanh toán")}</span><b className="text-brand-700">{s.pass_discount_percent}%</b></div>}

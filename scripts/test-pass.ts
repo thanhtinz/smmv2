@@ -14,6 +14,12 @@
  *  6) Quà tháng: claim tạo đơn Premium 0đ giao thật từ kho (DELIVERED),
  *     không trừ ví, không cashback; nhận lần 2 cùng tháng bị chặn; khách
  *     không có Pass bị chặn.
+ *  7) Đổi gói / huỷ gói / tự gia hạn (lệnh Tín 2026-11-13): đổi kỳ trừ giá
+ *     kỳ mới + cộng dồn hạn + ghi kỳ đang dùng, thiếu ví -> lỗi sạch; huỷ
+ *     giữ nguyên hạn + tắt cưỡng bức tự gia hạn, đổi/mua lại xoá huỷ; cron
+ *     tự gia hạn trừ đúng giá kỳ + nối từ hạn cũ + chống trừ trùng, thiếu
+ *     ví -> 1 thông báo + không thử lại, đã huỷ -> bỏ qua, module tắt ->
+ *     cron không đụng.
  * Chạy: npx tsx scripts/test-pass.ts (cần DATABASE_URL local)
  */
 export {};
@@ -62,6 +68,7 @@ async function main() {
   const U = await mk(`passu${suffix}`, 1_000_000); // thành viên Pass
   const V = await mk(`passv${suffix}`, 1_000_000); // không Pass
   const W = await mk(`passw${suffix}`, 10_000); // ví mỏng
+  const extra: number[] = []; // user của mục 7 (đổi/huỷ/tự gia hạn) — dọn ở finally
 
   try {
     await setPass({
@@ -154,15 +161,120 @@ async function main() {
     const stockLeft = await prisma.premiumStock.count({ where: { variantId: giftVariant.id, status: "AVAILABLE" } });
     check("quà: kho trừ đúng 1 (còn 1)", stockLeft === 1, `left=${stockLeft}`);
 
+    // ---------- 7) Đổi gói / huỷ gói / tự gia hạn (lệnh Tín 2026-11-13) ----------
+    const X = await mk(`passx${suffix}`, 1_000_000); extra.push(X.id);
+    const Y = await mk(`passy${suffix}`, 60_000); extra.push(Y.id);
+    const Z = await mk(`passz${suffix}`, 500_000); extra.push(Z.id);
+    const A = await mk(`passa${suffix}`, 60_000); extra.push(A.id);
+    const C = await mk(`passc${suffix}`, 500_000); extra.push(C.id);
+    const G = await mk(`passg${suffix}`, 500_000); extra.push(G.id);
+    const D = await mk(`passd${suffix}`, 500_000); extra.push(D.id);
+    const stateOf = async (id: number) => (await prisma.user.findUnique({ where: { id }, select: { balance: true, passExpiresAt: true, passTermMonths: true, passCancelledAt: true, passAutoRenew: true } }))!;
+
+    // 7a) Đổi gói: X mua kỳ 1 (50.000), gán hạn còn 10 ngày, đổi sang kỳ 3 (120.000)
+    await passLib.buyPass(X.id, 1);
+    check("mua lần đầu: kỳ đang dùng được ghi nhận = 1", (await stateOf(X.id)).passTermMonths === 1);
+    const xPreset = new Date(Date.now() + 10 * 86400_000);
+    await prisma.user.update({ where: { id: X.id }, data: { passExpiresAt: xPreset } });
+    const switched = await passLib.switchPass(X.id, 3);
+    let xs = await stateOf(X.id);
+    check("đổi gói: trừ đúng giá kỳ mới 120.000", xs.balance === 830_000, `bal=${xs.balance}`);
+    check("đổi gói: hạn = hạn hiện tại + 3 tháng (cộng dồn, không mất ngày)", Math.abs(switched.expiry.getTime() - passLib.addMonths(xPreset, 3).getTime()) < 1000, switched.expiry.toISOString());
+    check("đổi gói: kỳ đang dùng chuyển thành 3", xs.passTermMonths === 3);
+    const switchTxn = await prisma.transaction.findFirst({ where: { userId: X.id, type: "PASS_PURCHASE" }, orderBy: { id: "desc" } });
+    check("đổi gói: sổ PASS_PURCHASE ghi chú 'Đổi gói'", !!switchTxn && (switchTxn.note || "").includes("Đổi gói"), switchTxn?.note || "");
+    let sameTermBlocked = false;
+    try { await passLib.switchPass(X.id, 3); } catch { sameTermBlocked = true; }
+    check("đổi gói: đổi sang đúng kỳ đang dùng bị chặn, ví nguyên", sameTermBlocked && (await stateOf(X.id)).balance === 830_000);
+
+    // Đổi gói khi ví không đủ: Y mua kỳ 1 (còn 10.000), đổi kỳ 3 (120.000) -> lỗi sạch
+    await passLib.buyPass(Y.id, 1);
+    const yExp = (await stateOf(Y.id)).passExpiresAt;
+    let poorSwitchBlocked = false;
+    try { await passLib.switchPass(Y.id, 3); } catch { poorSwitchBlocked = true; }
+    const ys = await stateOf(Y.id);
+    check("đổi gói thiếu ví: lỗi, ví + kỳ + hạn nguyên vẹn", poorSwitchBlocked && ys.balance === 10_000 && ys.passTermMonths === 1 && ys.passExpiresAt?.getTime() === yExp?.getTime());
+
+    // 7b) Huỷ gói: bật tự gia hạn trước để chứng minh huỷ tắt cưỡng bức
+    await passLib.setPassAutoRenew(X.id, true);
+    check("tự gia hạn: bật được khi còn hạn + đã có kỳ", (await stateOf(X.id)).passAutoRenew === true);
+    const xExpBeforeCancel = (await stateOf(X.id)).passExpiresAt;
+    await passLib.cancelPass(X.id);
+    xs = await stateOf(X.id);
+    check("huỷ gói: ghi trạng thái đã huỷ", !!xs.passCancelledAt);
+    check("huỷ gói: tự gia hạn bị tắt cưỡng bức", xs.passAutoRenew === false);
+    check("huỷ gói: hạn giữ nguyên (dùng tiếp tới hết hạn đã trả)", xs.passExpiresAt?.getTime() === xExpBeforeCancel?.getTime());
+    await passLib.cancelPass(X.id);
+    check("huỷ gói: huỷ lần 2 không lỗi (idempotent)", !!(await stateOf(X.id)).passCancelledAt);
+    let renewWhileCancelled = false;
+    try { await passLib.setPassAutoRenew(X.id, true); } catch { renewWhileCancelled = true; }
+    check("huỷ gói: không bật lại được tự gia hạn khi đang huỷ", renewWhileCancelled);
+    // Đổi gói trong lúc đang huỷ -> xoá trạng thái huỷ, hạn cộng tiếp từ hạn trước
+    const reswitched = await passLib.switchPass(X.id, 1);
+    xs = await stateOf(X.id);
+    check("đổi gói khi đang huỷ: xoá trạng thái huỷ + kỳ về 1 + trừ 50.000", !xs.passCancelledAt && xs.passTermMonths === 1 && xs.balance === 780_000, `bal=${xs.balance}`);
+    check("đổi gói khi đang huỷ: hạn cộng từ hạn trước đổi", Math.abs(reswitched.expiry.getTime() - passLib.addMonths(xExpBeforeCancel!, 1).getTime()) < 1000);
+
+    // 7c) Tự gia hạn đủ ví: Z còn hạn 12 giờ
+    await passLib.buyPass(Z.id, 1); // còn 450.000
+    await passLib.setPassAutoRenew(Z.id, true);
+    const zExp = new Date(Date.now() + 12 * 3600_000);
+    await prisma.user.update({ where: { id: Z.id }, data: { passExpiresAt: zExp } });
+    const run1 = await passLib.processPassAutoRenewals();
+    let zs = await stateOf(Z.id);
+    check("tự gia hạn đủ ví: cron báo có gia hạn", run1.renewed >= 1, JSON.stringify(run1));
+    check("tự gia hạn đủ ví: trừ đúng giá kỳ đang dùng 50.000", zs.balance === 400_000, `bal=${zs.balance}`);
+    check("tự gia hạn đủ ví: hạn nối TỪ HẠN CŨ + 1 tháng", Math.abs(zs.passExpiresAt!.getTime() - passLib.addMonths(zExp, 1).getTime()) < 1000, zs.passExpiresAt?.toISOString());
+    const renewTxn = await prisma.transaction.findFirst({ where: { userId: Z.id, type: "PASS_PURCHASE", note: { contains: "Tự gia hạn" } } });
+    check("tự gia hạn: sổ có giao dịch ghi chú 'Tự gia hạn' -50.000", !!renewTxn && renewTxn.amount === -50_000);
+    const renewNoti = await prisma.notification.findFirst({ where: { userId: Z.id, title: { contains: "đã tự gia hạn" } } });
+    check("tự gia hạn: khách nhận thông báo đã tự gia hạn", !!renewNoti);
+    await passLib.processPassAutoRenewals();
+    check("tự gia hạn: chạy cron lần 2 KHÔNG trừ trùng", (await stateOf(Z.id)).balance === 400_000);
+
+    // Ân hạn: G đã hết hạn 12 giờ trước — vẫn gia hạn, nối hạn từ hạn cũ
+    await passLib.buyPass(G.id, 1); // còn 450.000
+    await passLib.setPassAutoRenew(G.id, true);
+    const gExp = new Date(Date.now() - 12 * 3600_000);
+    await prisma.user.update({ where: { id: G.id }, data: { passExpiresAt: gExp } });
+    await passLib.processPassAutoRenewals();
+    const gs = await stateOf(G.id);
+    check("tự gia hạn ân hạn: hết hạn <24h vẫn gia hạn + nối từ hạn cũ", gs.balance === 400_000 && Math.abs(gs.passExpiresAt!.getTime() - passLib.addMonths(gExp, 1).getTime()) < 1000, `bal=${gs.balance}`);
+
+    // Thiếu ví: A còn 10.000, hạn còn 1 giờ -> không trừ, đúng 1 thông báo, không thử lại
+    await passLib.buyPass(A.id, 1); // còn 10.000
+    await passLib.setPassAutoRenew(A.id, true);
+    await prisma.user.update({ where: { id: A.id }, data: { passExpiresAt: new Date(Date.now() + 3600_000) } });
+    await passLib.processPassAutoRenewals();
+    const failNoti1 = await prisma.notification.count({ where: { userId: A.id, title: { contains: "Không đủ số dư để tự gia hạn" } } });
+    check("tự gia hạn thiếu ví: KHÔNG trừ tiền", (await stateOf(A.id)).balance === 10_000);
+    check("tự gia hạn thiếu ví: có đúng 1 thông báo", failNoti1 === 1, `n=${failNoti1}`);
+    await passLib.processPassAutoRenewals();
+    const failNoti2 = await prisma.notification.count({ where: { userId: A.id, title: { contains: "Không đủ số dư để tự gia hạn" } } });
+    check("tự gia hạn thiếu ví: cron chạy lại không thử lại (vẫn 1 thông báo, ví nguyên)", failNoti2 === 1 && (await stateOf(A.id)).balance === 10_000);
+
+    // Đã huỷ: C có autoRenew bật tay + mốc huỷ -> cron bỏ qua hẳn
+    await passLib.buyPass(C.id, 1); // còn 450.000
+    await prisma.user.update({ where: { id: C.id }, data: { passAutoRenew: true, passCancelledAt: new Date(), passExpiresAt: new Date(Date.now() + 3600_000) } });
+    await passLib.processPassAutoRenewals();
+    check("tự gia hạn: thành viên ĐÃ HUỶ không bị gia hạn", (await stateOf(C.id)).balance === 450_000);
+
+    // D: chuẩn bị sẵn cho mục module-tắt bên dưới (còn hạn 1 giờ, tự gia hạn bật)
+    await passLib.buyPass(D.id, 1); // còn 450.000
+    await passLib.setPassAutoRenew(D.id, true);
+    await prisma.user.update({ where: { id: D.id }, data: { passExpiresAt: new Date(Date.now() + 3600_000) } });
+
     // ---------- Tắt tính năng ----------
     await setPass({ pass_enabled: "0" });
+    const offRun = await passLib.processPassAutoRenewals();
+    check("tắt Pass: cron tự gia hạn bỏ qua toàn bộ (D không bị trừ)", offRun.renewed === 0 && offRun.skipped === "disabled" && (await stateOf(D.id)).balance === 450_000, JSON.stringify(offRun));
     check("tắt Pass: không còn giảm giá", (await passLib.passDiscountFor(U.id, "PREMIUM", 100_000)) === 0);
     let buyBlocked = false;
     try { await passLib.buyPass(U.id, 1); } catch { buyBlocked = true; }
     check("tắt Pass: mua bị chặn", buyBlocked);
   } finally {
     // Dọn fixture + khôi phục settings Pass như trước khi test
-    const userIds = [U.id, V.id, W.id];
+    const userIds = [U.id, V.id, W.id, ...extra];
     await prisma.passGiftClaim.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.premiumOrder.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.transaction.deleteMany({ where: { userId: { in: userIds } } });

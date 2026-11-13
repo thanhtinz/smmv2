@@ -7,6 +7,8 @@
  *  - mode "cleanup": dọn toàn bộ dấu vết (xoá settings pass_*, hạn của demo,
  *    lượt nhận + đơn quà 0đ + kho đã giao, giao dịch Pass của demo) — bài FAQ
  *    giữ lại vì là nội dung seed chính thức.
+ *  - mode "member" / "member-cancel" (đợt 115): trạng thái thành viên cho
+ *    scripts/shots-pass-member.mjs — kỳ 3 tháng + tự gia hạn bật, rồi đã huỷ.
  * Chạy: npx tsx scripts/pass-shots-fixture.ts setup|cleanup
  */
 export {};
@@ -42,8 +44,35 @@ async function main() {
       await prisma.post.upsert({ where: { slug }, create: { slug, title, excerpt: title, content, categoryId: faqCat.id, published: true }, update: { categoryId: faqCat.id, published: true } });
     }
     await prisma.passGiftClaim.deleteMany({ where: { userId: demo.id } });
-    await prisma.user.update({ where: { id: demo.id }, data: { passExpiresAt: new Date(Date.now() + 20 * 86400_000) } });
+    await prisma.user.update({ where: { id: demo.id }, data: { passExpiresAt: new Date(Date.now() + 20 * 86400_000), passTermMonths: 1, passCancelledAt: null, passAutoRenew: false, passRenewAttemptFor: null } });
     console.log(JSON.stringify({ giftProduct: prod.name, giftVariant: variant.name }));
+  } else if (mode === "member" || mode === "member-cancel") {
+    // Trạng thái THÀNH VIÊN cho scripts/shots-pass-member.mjs (đợt 115):
+    // member = demo đang dùng kỳ 3 tháng, còn hạn 40 ngày, tự gia hạn BẬT;
+    // member-cancel = thêm mốc đã huỷ (tự gia hạn tắt theo).
+    if (mode === "member") {
+      const prod = await prisma.premiumProduct.findFirst({
+        where: { fulfillment: "AUTO_STOCK", active: true },
+        include: { variants: { where: { active: true }, orderBy: { id: "asc" } } },
+        orderBy: { id: "asc" },
+      });
+      if (!prod || !prod.variants[0]) throw new Error("seed không có sản phẩm AUTO_STOCK cho quà");
+      const variant = prod.variants[0];
+      const avail = await prisma.premiumStock.count({ where: { variantId: variant.id, status: "AVAILABLE" } });
+      if (avail < 2) for (let i = avail; i < 2; i++) await prisma.premiumStock.create({ data: { variantId: variant.id, payload: `PASS-GIFT-DEMO-${Date.now()}-${i}` } });
+      const kv: Record<string, string> = {
+        pass_enabled: "1", pass_price_1m: "49000", pass_price_3m: "129000", pass_price_12m: "399000",
+        pass_cashback_percent: "10", pass_discount_percent: "5", pass_scope: "ALL",
+        pass_gift_product_id: String(prod.id), pass_gift_variant_id: String(variant.id),
+      };
+      for (const [k, v] of Object.entries(kv)) await prisma.setting.upsert({ where: { key: k }, create: { key: k, value: v }, update: { value: v } });
+      await prisma.passGiftClaim.deleteMany({ where: { userId: demo.id } });
+      await prisma.user.update({ where: { id: demo.id }, data: { passExpiresAt: new Date(Date.now() + 40 * 86400_000), passTermMonths: 3, passCancelledAt: null, passAutoRenew: true, passRenewAttemptFor: null } });
+      console.log(JSON.stringify({ member: "term3", giftProduct: prod.name }));
+    } else {
+      await prisma.user.update({ where: { id: demo.id }, data: { passCancelledAt: new Date(), passAutoRenew: false } });
+      console.log("member-cancel ok");
+    }
   } else if (mode === "cleanup") {
     const giftOrders = await prisma.premiumOrder.findMany({ where: { userId: demo.id, total: 0 }, select: { id: true } });
     await prisma.premiumStock.updateMany({ where: { orderId: { in: giftOrders.map((o) => o.id) } }, data: { status: "AVAILABLE", orderId: null } });
@@ -54,7 +83,7 @@ async function main() {
     if (spent._sum.amount) await prisma.user.update({ where: { id: demo.id }, data: { balance: { increment: -spent._sum.amount } } });
     await prisma.transaction.deleteMany({ where: { userId: demo.id, type: { in: ["PASS_PURCHASE", "PASS_CASHBACK"] } } });
     await prisma.notification.deleteMany({ where: { userId: demo.id, title: { contains: "Pass" } } });
-    await prisma.user.update({ where: { id: demo.id }, data: { passExpiresAt: null } });
+    await prisma.user.update({ where: { id: demo.id }, data: { passExpiresAt: null, passTermMonths: null, passCancelledAt: null, passAutoRenew: false, passRenewAttemptFor: null } });
     await prisma.setting.deleteMany({ where: { key: { startsWith: "pass_" } } });
     console.log("cleanup ok");
   } else throw new Error("dùng: setup | cleanup");

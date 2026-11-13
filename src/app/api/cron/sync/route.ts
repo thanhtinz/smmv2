@@ -191,6 +191,16 @@ export async function GET(req: NextRequest) {
     result.ratesError = String(e?.message || e);
   }
 
+  // Pass: TỰ GIA HẠN cho thành viên đã bật (trừ ví theo giá kỳ đang dùng
+  // khi sắp hết hạn / vừa hết hạn trong ân hạn 24 giờ — lib/pass.ts tự giữ
+  // chỗ chống trừ trùng theo từng chu kỳ hạn; module Pass tắt thì bỏ qua).
+  try {
+    const { processPassAutoRenewals } = await import("@/lib/pass");
+    result.passAutoRenew = await processPassAutoRenewals();
+  } catch (e: any) {
+    result.passAutoRenewError = String(e?.message || e);
+  }
+
   // Ghi nhận lần chạy cron cho trang Sức khoẻ hệ thống (Admin → Hệ thống)
   await prisma.apiLog.create({ data: { kind: "cron_sync", ok: true, detail: JSON.stringify({ premiumSynced: result.premiumSynced, premiumFailed: result.premiumFailed }).slice(0, 900) } }).catch(() => {});
   return NextResponse.json(result);

@@ -5,7 +5,7 @@ import { PublicFrame } from "@/components/public-frame";
 import { getServerI18n } from "@/lib/lang-server";
 import { getCurrentUser } from "@/lib/auth";
 import { getPassConfig, passActiveAt, passMonthKey } from "@/lib/pass";
-import { buyPassAction, claimPassGiftAction } from "@/app/actions/pass";
+import { buyPassAction, switchPassAction, cancelPassAction, setPassAutoRenewAction, claimPassGiftAction } from "@/app/actions/pass";
 import { num, dt } from "@/lib/format";
 import { Flash, I } from "@/components/ui";
 import { RichText } from "@/components/rich-text";
@@ -26,6 +26,11 @@ export default async function PassPage({ searchParams }: { searchParams: { msg?:
 
   const user = await getCurrentUser().catch(() => null);
   const active = user ? passActiveAt(user.passExpiresAt) : false;
+  // Trạng thái thành viên (lệnh Tín 2026-11-13): kỳ đang dùng / đã huỷ /
+  // tự gia hạn — khách còn hạn KHÔNG thấy giao diện mua mới nữa.
+  const termMonths = user?.passTermMonths ?? null;
+  const cancelled = active && !!user?.passCancelledAt;
+  const autoRenew = !!user?.passAutoRenew;
 
   // Quà tháng: sản phẩm + gói admin chọn sẵn (chỉ hiện khi còn bán thật)
   let gift: { productName: string; variantName: string } | null = null;
@@ -91,9 +96,11 @@ export default async function PassPage({ searchParams }: { searchParams: { msg?:
             </div>
             {user && (
               <div className="ml-auto rounded-2xl bg-white/15 px-4 py-2.5 text-sm">
-                {active
-                  ? <span>{L("Đang còn hạn tới")} <b>{dt(user.passExpiresAt!)}</b></span>
-                  : <span>{L("Bạn chưa có")} {cfg.name} {L("đang còn hạn")}</span>}
+                {cancelled
+                  ? <span>{L("Đã huỷ — dùng tới")} <b>{dt(user.passExpiresAt!)}</b></span>
+                  : active
+                    ? <span>{L("Đang còn hạn tới")} <b>{dt(user.passExpiresAt!)}</b></span>
+                    : <span>{L("Bạn chưa có")} {cfg.name} {L("đang còn hạn")}</span>}
               </div>
             )}
           </div>
@@ -110,32 +117,98 @@ export default async function PassPage({ searchParams }: { searchParams: { msg?:
           ))}
         </div>
 
-        {/* Giá + mua */}
-        <h2 className="mt-10 text-lg font-black text-slate-900">{L("Chọn kỳ hạn")}</h2>
+        {/* Giá + mua — khách CÒN HẠN thấy trạng thái thành viên: thẻ kỳ
+            đang dùng ghi "Gói đang dùng" + nút Gia hạn gói này, kỳ khác là
+            Đổi sang gói này, kèm khối tóm tắt thành viên bên phải có công
+            tắc Tự gia hạn và nút Huỷ gói (lệnh Tín 2026-11-13). */}
+        <h2 className="mt-10 text-lg font-black text-slate-900">{active ? L("Gia hạn và đổi gói") : L("Chọn kỳ hạn")}</h2>
         {cfg.terms.length === 0 ? (
           <div className="card mt-4 p-8 text-center text-[15px] font-medium text-slate-600">{L("Chưa có kỳ hạn nào đang mở bán.")}</div>
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-            {cfg.terms.map((t) => {
-              const perMonth = Math.round(t.price / t.months);
-              const best = cheapestPerMonth !== null && t.price / t.months === cheapestPerMonth;
-              return (
-                <div key={t.months} className={`card relative flex flex-col p-6 ${best ? "ring-2 ring-brand-500" : ""}`}>
-                  {best && <span className="absolute -top-2.5 left-5 rounded-full bg-brand-600 px-2.5 py-0.5 text-[11px] font-bold text-white">{L("Tiết kiệm nhất")}</span>}
-                  <div className="text-sm font-bold uppercase tracking-wide text-slate-400">{cfg.name} · {num(t.months)} {L("tháng")}</div>
-                  <div className="mt-2 text-3xl font-black text-slate-900">{M(t.price)}</div>
-                  <div className="mt-1 text-sm text-slate-500">{L("Tương đương")} {M(perMonth)}/{L("tháng")}</div>
-                  {user ? (
-                    <form action={buyPassAction} className="mt-5">
-                      <input type="hidden" name="months" value={t.months} />
-                      <button className="btn-primary w-full">{active ? L("Gia hạn") : L("Mua ngay")}</button>
-                    </form>
-                  ) : (
-                    <Link href="/login" className="btn-primary mt-5 w-full text-center">{L("Đăng nhập để mua")}</Link>
-                  )}
+          <div className={active ? "mt-4 grid grid-cols-1 items-start gap-4 lg:grid-cols-3" : ""}>
+            <div className={`grid grid-cols-1 gap-4 ${active ? "sm:grid-cols-2 lg:col-span-2" : "mt-4 md:grid-cols-3"}`}>
+              {cfg.terms.map((t) => {
+                const perMonth = Math.round(t.price / t.months);
+                const best = cheapestPerMonth !== null && t.price / t.months === cheapestPerMonth;
+                const isCurrent = active && termMonths === t.months;
+                return (
+                  <div key={t.months} className={`card relative flex flex-col p-6 ${isCurrent || best ? "ring-2 ring-brand-500" : ""}`}>
+                    {isCurrent
+                      ? <span className="absolute -top-2.5 left-5 rounded-full bg-brand-600 px-2.5 py-0.5 text-[11px] font-bold text-white">{L("Gói đang dùng")}</span>
+                      : best && <span className="absolute -top-2.5 left-5 rounded-full bg-brand-600 px-2.5 py-0.5 text-[11px] font-bold text-white">{L("Tiết kiệm nhất")}</span>}
+                    <div className="text-sm font-bold uppercase tracking-wide text-slate-400">{cfg.name} · {num(t.months)} {L("tháng")}</div>
+                    <div className="mt-2 text-3xl font-black text-slate-900">{M(t.price)}</div>
+                    <div className="mt-1 text-sm text-slate-500">{L("Tương đương")} {M(perMonth)}/{L("tháng")}</div>
+                    {user ? (
+                      active && !isCurrent ? (
+                        <form action={switchPassAction} className="mt-5">
+                          <input type="hidden" name="months" value={t.months} />
+                          <button className="btn-ghost w-full">{L("Đổi sang gói này")}</button>
+                        </form>
+                      ) : (
+                        <form action={buyPassAction} className="mt-5">
+                          <input type="hidden" name="months" value={t.months} />
+                          <button className="btn-primary w-full">{active ? L("Gia hạn gói này") : L("Mua ngay")}</button>
+                        </form>
+                      )
+                    ) : (
+                      <Link href="/login" className="btn-primary mt-5 w-full text-center">{L("Đăng nhập để mua")}</Link>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Tóm tắt thành viên — chỉ khi đang còn hạn */}
+            {active && user && (
+              <div className="card p-6 lg:sticky lg:top-24">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 [&>svg]:h-5 [&>svg]:w-5">{I.star}</span>
+                  <div className="font-bold text-slate-900">{L("Gói hiện tại")}</div>
                 </div>
-              );
-            })}
+                <div className="mt-4 space-y-2 text-sm text-slate-500">
+                  <div className="flex justify-between gap-3"><span>{L("Kỳ đang dùng")}</span><b className="text-slate-800">{termMonths ? `${cfg.name} · ${num(termMonths)} ${L("tháng")}` : cfg.name}</b></div>
+                  <div className="flex justify-between gap-3"><span>{L("Hạn dùng tới")}</span><b className="text-slate-800">{dt(user.passExpiresAt!)}</b></div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span>{L("Trạng thái")}</span>
+                    {cancelled
+                      ? <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">{L("Đã huỷ")}</span>
+                      : <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">{L("Đang còn hạn")}</span>}
+                  </div>
+                  {cancelled && (
+                    <p className="rounded-xl bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-800">{L("Đã huỷ — dùng tới")} {dt(user.passExpiresAt!)}. {L("Mua, gia hạn hoặc đổi gói lại sẽ kích hoạt lại và xoá trạng thái huỷ.")}</p>
+                  )}
+                  <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                    <span>
+                      {L("Tự gia hạn")}
+                      <span className="block text-xs text-slate-400">{L("Tự trừ ví khi sắp hết hạn")}</span>
+                    </span>
+                    {cancelled ? (
+                      <b className="text-slate-400">{L("Tắt")}</b>
+                    ) : (
+                      <form action={setPassAutoRenewAction}>
+                        <input type="hidden" name="on" value={autoRenew ? "0" : "1"} />
+                        <button type="submit" role="switch" aria-checked={autoRenew} aria-label={L("Tự gia hạn")} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${autoRenew ? "bg-brand-600" : "bg-slate-300"}`}>
+                          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${autoRenew ? "left-[22px]" : "left-0.5"}`} />
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+
+                {!cancelled && (
+                  <details className="group mt-5 border-t border-slate-100 pt-4">
+                    <summary className="inline-flex cursor-pointer list-none items-center rounded-xl px-3 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50 [&::-webkit-details-marker]:hidden">{L("Huỷ gói")}</summary>
+                    <div className="mt-3 rounded-2xl bg-red-50 p-4">
+                      <p className="text-[13px] leading-relaxed text-red-800">{L("Huỷ gói: quyền lợi vẫn dùng tiếp tới hết hạn đã trả, không hoàn tiền và tự gia hạn sẽ tắt. Bạn có thể mua, gia hạn hoặc đổi gói lại bất cứ lúc nào.")}</p>
+                      <form action={cancelPassAction} className="mt-3">
+                        <button className="w-full rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-700">{L("Xác nhận huỷ gói")}</button>
+                      </form>
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
           </div>
         )}
         {user && (
@@ -180,6 +253,9 @@ export default async function PassPage({ searchParams }: { searchParams: { msg?:
             <li className="flex gap-2"><span className="shrink-0 text-brand-600 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{L("Đơn bị hoàn tiền sẽ bị thu hồi phần hoàn tiền tương ứng theo tỉ lệ số tiền được hoàn.")}</li>
             {gift && <li className="flex gap-2"><span className="shrink-0 text-brand-600 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{L("Quà tháng nhận tối đa 1 lần mỗi tháng dương lịch, giao qua đơn hàng như đơn mua thường.")}</li>}
             <li className="flex gap-2"><span className="shrink-0 text-brand-600 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{L("Bản thân đơn mua Pass không hưởng giảm thêm và hoàn tiền của Pass.")}</li>
+            <li className="flex gap-2"><span className="shrink-0 text-brand-600 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{L("Đổi gói: trừ ví theo giá kỳ mới tại thời điểm đổi, hạn dùng cộng dồn tiếp từ hạn hiện tại — không mất ngày đã trả.")}</li>
+            <li className="flex gap-2"><span className="shrink-0 text-brand-600 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{L("Tự gia hạn: khi bật, hệ thống tự trừ ví theo giá hiện tại của kỳ đang dùng trước khi hết hạn; số dư không đủ sẽ nhận thông báo và gói hết hạn tự nhiên.")}</li>
+            <li className="flex gap-2"><span className="shrink-0 text-brand-600 [&_svg]:h-4 [&_svg]:w-4">{I.check}</span>{L("Huỷ gói: quyền lợi vẫn dùng tiếp tới hết hạn đã trả, không hoàn tiền; tự gia hạn sẽ tắt khi huỷ.")}</li>
           </ul>
         </div>
 

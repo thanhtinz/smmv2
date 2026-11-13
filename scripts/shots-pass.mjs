@@ -100,8 +100,8 @@ async function main() {
   ok(text.includes("Số dư ví của bạn:"), "hiện số dư ví ở khu vực mua");
   await shot("2026-11-13-pass-page-desktop", true);
 
-  /* ---- 2. Gia hạn qua UI ---- */
-  const clicked = await clickByText("Gia hạn");
+  /* ---- 2. Gia hạn qua UI (đợt 115: nút của kỳ đang dùng là "Gia hạn gói này") ---- */
+  const clicked = await clickByText("Gia hạn gói này");
   ok(clicked, "bấm được nút Gia hạn");
   text = await waitForText("Đã mua Pass 1 tháng");
   const demo2 = await prisma.user.findUnique({ where: { id: demo.id } });

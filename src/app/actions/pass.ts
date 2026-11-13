@@ -1,6 +1,6 @@
 "use server";
 import { requireUser } from "@/lib/auth";
-import { buyPass, claimPassGift } from "@/lib/pass";
+import { buyPass, switchPass, cancelPass, setPassAutoRenew, claimPassGift } from "@/lib/pass";
 import { notifyUser } from "@/lib/notify";
 import { vnd } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -28,6 +28,57 @@ export async function buyPassAction(formData: FormData) {
   } catch (e: any) {
     isErr = true;
     text = String(e?.message || "Mua gói thất bại, vui lòng thử lại");
+  }
+  back(isErr ? "err" : "msg", text);
+}
+
+/** ĐỔI GÓI — lõi ở lib/pass.ts (switchPass): trừ ví giá kỳ mới, hạn cộng
+ *  dồn từ hạn hiện tại, kỳ đang dùng chuyển sang kỳ mới, xoá trạng thái huỷ. */
+export async function switchPassAction(formData: FormData) {
+  const user = await requireUser();
+  const months = parseInt(String(formData.get("months") || ""));
+  let text: string;
+  let isErr = false;
+  try {
+    const r = await switchPass(user.id, months);
+    await notifyUser(user.id, `Đã đổi gói ${r.name}`, `Bạn đã đổi sang kỳ ${months} tháng — hạn dùng mới tới ${r.expiry.toLocaleDateString("vi-VN")}. Số tiền đã trừ: ${vnd(r.price)}.`, "/pass");
+    text = `Đã đổi sang ${r.name} kỳ ${months} tháng — hạn dùng tới ${r.expiry.toLocaleDateString("vi-VN")}`;
+  } catch (e: any) {
+    isErr = true;
+    text = String(e?.message || "Đổi gói thất bại, vui lòng thử lại");
+  }
+  back(isErr ? "err" : "msg", text);
+}
+
+/** HUỶ GÓI — lõi ở lib/pass.ts (cancelPass): quyền lợi dùng tiếp tới hết
+ *  hạn đã trả, không hoàn tiền, tự gia hạn tắt theo. */
+export async function cancelPassAction() {
+  const user = await requireUser();
+  let text: string;
+  let isErr = false;
+  try {
+    const r = await cancelPass(user.id);
+    await notifyUser(user.id, `Đã huỷ ${r.name}`, `${r.name} đã huỷ — quyền lợi vẫn dùng tiếp tới hết hạn ${r.expiresAt.toLocaleDateString("vi-VN")}, không hoàn tiền. Mua, gia hạn hoặc đổi gói lại bất cứ lúc nào để kích hoạt lại.`, "/pass");
+    text = `Đã huỷ ${r.name} — quyền lợi dùng tiếp tới ${r.expiresAt.toLocaleDateString("vi-VN")}`;
+  } catch (e: any) {
+    isErr = true;
+    text = String(e?.message || "Huỷ gói thất bại, vui lòng thử lại");
+  }
+  back(isErr ? "err" : "msg", text);
+}
+
+/** Bật/tắt TỰ GIA HẠN — lõi ở lib/pass.ts (setPassAutoRenew). */
+export async function setPassAutoRenewAction(formData: FormData) {
+  const user = await requireUser();
+  const on = String(formData.get("on") || "") === "1";
+  let text: string;
+  let isErr = false;
+  try {
+    await setPassAutoRenew(user.id, on);
+    text = on ? "Đã bật tự gia hạn — hệ thống sẽ tự trừ ví theo giá kỳ đang dùng khi sắp hết hạn" : "Đã tắt tự gia hạn";
+  } catch (e: any) {
+    isErr = true;
+    text = String(e?.message || "Đổi trạng thái tự gia hạn thất bại, vui lòng thử lại");
   }
   back(isErr ? "err" : "msg", text);
 }

@@ -66,6 +66,10 @@ model User {
   affiliateBalance Int      @default(0) // số dư hoa hồng giới thiệu RIÊNG — rút về ví chính khi đủ mức tối thiểu (affiliate_withdraw_min)
   affiliateEnrolledAt DateTime? // mốc ĐÃ đăng ký tham gia chương trình giới thiệu (null = chưa tham gia -> thấy trang giới thiệu chương trình)
   passExpiresAt DateTime? // hạn gói Pass (thành viên trả phí — lib/pass.ts); null hoặc quá khứ = không còn hạn
+  passTermMonths Int? // kỳ đang dùng của Pass (1/3/12 tháng) — ghi khi mua/đổi gói/tự gia hạn; null = có hạn từ trước khi có tính năng ghi kỳ
+  passCancelledAt DateTime? // mốc khách bấm HUỶ GÓI: quyền lợi dùng tiếp tới hết hạn đã trả, tự gia hạn tắt cưỡng bức; mua/gia hạn/đổi gói lại sẽ xoá mốc này
+  passAutoRenew Boolean @default(false) // TỰ GIA HẠN: cron /api/cron/sync tự trừ ví theo giá kỳ đang dùng khi sắp hết hạn (mặc định TẮT)
+  passRenewAttemptFor DateTime? // giá trị hạn dùng mà vòng tự gia hạn đã thử xử lý — chống trừ trùng + không thử lại vô hạn trong cùng một chu kỳ hết hạn
   webhookUrl     String?    @db.VarChar(255) // URL nhận thông báo trạng thái đơn (Webhook ra hệ thống ngoài của khách)
   termsAcceptedVersion Int  @default(0) // phiên bản điều khoản đã xác nhận (đối chiếu settings terms_version)
   referredById   Int? // người đã giới thiệu tài khoản này
