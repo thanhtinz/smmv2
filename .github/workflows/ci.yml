@@ -65,6 +65,7 @@ jobs:
             test-purchase-adoption \
             test-purchase-pricecap \
             test-purchase-fulfillment-resume \
+            test-std-buy-logfail \
             test-purchase-refund-failclosed \
             test-purchase-refund-concurrent \
             test-purchase-payment \

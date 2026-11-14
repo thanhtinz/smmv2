@@ -344,7 +344,12 @@ export async function runPremiumApiFulfillment(args: {
       codes.push(r.orderCode);
       const d = extractDelivery(r.raw?.data || r.raw).delivery;
       if (d) deliveries.push(d);
-      await prisma.apiLog.create({ data: { kind: "provider_out", ref: order.code, detail: `buy product=${variant.product.providerProductId} cycle=${variant.providerCycle} -> ${r.orderCode}` } });
+      // FULL-AUDIT 3d1309c P2-07: ghi log là phụ — KHÔNG được nằm trong
+      // phần try quyết định thành/bại của lượt mua. Trước bản này
+      // apiLog.create lỗi sau khi provider ĐÃ nhận đơn vẫn rơi vào
+      // catch -> failed++ -> hoàn tiền cho một đơn vị sẽ được giao
+      // (giao hàng miễn phí). Log nay best-effort nuốt lỗi.
+      await prisma.apiLog.create({ data: { kind: "provider_out", ref: order.code, detail: `buy product=${variant.product.providerProductId} cycle=${variant.providerCycle} -> ${r.orderCode}` } }).catch(() => {});
       // Lưu mã NGAY theo từng đơn vị: tiến trình chết giữa vòng thì
       // recovery đếm được phần đã mua qua providerOrderId, không mua lại.
       // Nuốt lỗi ghi ở đây — lần ghi chốt cuối vòng vẫn ghi đủ toàn bộ mã;
@@ -355,7 +360,8 @@ export async function runPremiumApiFulfillment(args: {
       }).catch(() => {});
     } catch (e: any) {
       failed++;
-      await prisma.apiLog.create({ data: { kind: "provider_out", ref: order.code, ok: false, detail: `buy failed: ${String(e?.message || e)}` } });
+      // Log lỗi cũng best-effort: nó lỗi không được phá vỡ vòng mua.
+      await prisma.apiLog.create({ data: { kind: "provider_out", ref: order.code, ok: false, detail: `buy failed: ${String(e?.message || e)}` } }).catch(() => {});
     }
   }
   if (codes.length === 0) {
