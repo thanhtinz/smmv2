@@ -107,8 +107,8 @@ async function main() {
       where: { id: pp4.id },
       data: {
         status: "PROCESSING",
-        paidAt: new Date(Date.now() - 10 * 60000),
-        updatedAt: new Date(Date.now() - 10 * 60000),
+        paidAt: new Date(Date.now() - 15 * 60000),
+        updatedAt: new Date(Date.now() - 15 * 60000), // quá lease 10' (P1-03 nâng từ 3')
         orderCodes: JSON.stringify([firstOrder.code]),
         providerData: JSON.stringify({ receivedVnd: pp4.amount, execution: [{ variantId: variant.id, ok: true, code: firstOrder.code }], creditedTotal: 0 }),
       },

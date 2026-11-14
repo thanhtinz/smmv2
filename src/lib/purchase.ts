@@ -183,8 +183,12 @@ export async function createPurchasePayment(input: {
 }
 
 /** Thời gian coi một phiên PROCESSING là "chết giữa chừng" (luồng thực thi
- *  trước đã dừng) và cho phép luồng khác tiếp quản — P1-01 audit 2026-11-13. */
-const PURCHASE_STALE_MS = 3 * 60 * 1000;
+ *  trước đã dừng) và cho phép luồng khác tiếp quản — P1-01 audit 2026-11-13.
+ *  Nâng 3 -> 10 phút ở P1-03 (audit đợt 2): một dòng gọi nhà cung cấp có
+ *  thể chạy nhiều lệnh tuần tự (timeout tới 30s/lệnh) nên lease 3 phút có
+ *  thể hết khi luồng đầu vẫn đang chạy khoẻ; ý định từng dòng được ghi
+ *  TRƯỚC khi tạo đơn (nhịp tim giữ lease) và đối soát khi tiếp quản. */
+const PURCHASE_STALE_MS = 10 * 60 * 1000;
 
 /** Thực thi giỏ sau khi cổng xác nhận đã trả. paidVnd = số VNĐ cổng xác nhận
  *  thực nhận (null = tin theo số của cổng quốc tế đã khớp ở tầng gọi).
@@ -244,7 +248,7 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
 
   const user = await prisma.user.findUnique({ where: { id: pp.userId } });
   const snapshot = JSON.parse(pp.snapshot) as PurchaseSnapshot;
-  type LineResult = { variantId: number; ok: boolean; code?: string; error?: string; credited?: number };
+  type LineResult = { variantId: number; ok: boolean; code?: string; error?: string; credited?: number; pending?: boolean; startedAt?: number };
   const results: (LineResult | null)[] = Array.isArray(data.execution) ? data.execution : [];
   const okCodes: string[] = results.filter((r): r is LineResult => !!r && r.ok && !!r.code).map((r) => r.code as string);
   let creditedTotal = Number(data.creditedTotal || 0);
@@ -253,8 +257,49 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
     await savePurchaseData(pp.id, { receivedVnd: received, execution: results, creditedTotal });
   };
   for (let idx = 0; idx < snapshot.lines.length; idx++) {
-    if (results[idx]) continue; // dòng đã có kết quả ở lượt chạy trước
     const line = snapshot.lines[idx];
+    const prev = results[idx];
+    if (prev && !prev.pending) continue; // dòng đã có kết quả ở lượt chạy trước
+    if (prev?.pending) {
+      // P1-03 (audit đợt 2): lượt chạy trước đã ghi Ý ĐỊNH nhưng chết trước
+      // khi lưu kết quả — đơn CÓ THỂ đã được tạo rồi. Đối soát trước khi
+      // chạy lại: createPremiumOrder tạo dòng đơn trong MỘT transaction
+      // (cùng trừ kho/hoa hồng) và chỉ gọi nhà cung cấp SAU khi transaction
+      // chốt, nên "có dòng đơn khớp khách + gói + số lượng sinh ra trong
+      // cửa sổ quanh lúc bắt đầu dòng" = đơn đã chốt -> NHẬN LẠI đơn đó
+      // thay vì tạo trùng; không có dòng nào = chưa từng gọi nhà cung cấp
+      // -> chạy lại an toàn.
+      const startedAt = Number(prev.startedAt || 0);
+      const candidates = startedAt ? await prisma.premiumOrder.findMany({
+        where: {
+          userId: pp.userId, variantId: line.variantId, quantity: line.qty,
+          createdAt: { gte: new Date(startedAt - 5000), lte: new Date(startedAt + PURCHASE_STALE_MS + 60000) },
+          ...(okCodes.length ? { code: { notIn: okCodes } } : {}),
+        },
+        orderBy: { createdAt: "asc" }, take: 1,
+      }) : [];
+      if (candidates.length) {
+        const adopted: any = candidates[0];
+        okCodes.push(adopted.code);
+        const diff = line.share - Number(adopted.total || 0);
+        if (diff > 0) {
+          await prisma.$transaction(async (tx) => {
+            await applyBalance(tx, pp.userId, diff, "REFUND", pp.code, `Hoàn chênh lệch giá đơn ${adopted.code} (thanh toán trực tiếp ${pp.code})`);
+          }).catch(() => {});
+          creditedTotal += diff;
+        } else if (diff < 0) {
+          await alertMother("purchase_price_up", "Đơn thanh toán trực tiếp lệch giá tăng", `Phiên ${pp.code}, đơn ${adopted.code}: tổng thực thi ${Number(adopted.total || 0).toLocaleString("vi-VN")}đ > phần đã thu ${line.share.toLocaleString("vi-VN")}đ. Cần đối soát thủ công.`).catch(() => {});
+        }
+        results[idx] = { variantId: line.variantId, ok: true, code: adopted.code };
+        await persistProgress();
+        continue;
+      }
+    }
+    // Ghi Ý ĐỊNH trước khi gây tác dụng phụ (P1-03): tiến trình chết sau
+    // bước này thì lượt tiếp quản đối soát theo nhánh pending ở trên thay
+    // vì tạo đơn trùng. Ghi này cũng là nhịp tim giữ lease (updatedAt).
+    results[idx] = { variantId: line.variantId, ok: false, pending: true, startedAt: Date.now() };
+    await persistProgress();
     try {
       if (!user) throw new Error("Tài khoản không tồn tại");
       // P1-02 (audit đợt 2): giá có thể đã ĐỔI sau lúc khách trả tiền (giá
