@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 /** Widget Liên hệ — quản lý danh sách các kênh liên hệ hiển thị trên website:
  *  thêm/sửa/xoá/bật-tắt từng kênh, kèm ảnh tải lên. Bên dưới là thẻ AI tư vấn
  *  với công tắc tổng của widget liên hệ và nút chat AI trên toàn hệ thống. */
-export default async function AdminContactPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function AdminContactPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();

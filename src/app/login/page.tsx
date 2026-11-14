@@ -8,7 +8,8 @@ import { PasskeyLoginButton } from "@/components/passkey";
 import { authCardCls, authSwitchCardCls, authInpCls, authBtnCls } from "@/lib/auth-ui";
 import { getServerI18n } from "@/lib/lang-server";
 
-export default async function LoginPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function LoginPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const settings = await getSettings().catch(() => null);
   const googleOn = settings?.google_enabled === "1" && !!settings?.google_client_id;
   const passkeyOn = settings?.passkeys_enabled !== "0";

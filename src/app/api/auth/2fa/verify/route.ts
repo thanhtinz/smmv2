@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
   const ip = clientIp(req.headers);
   const ua = req.headers.get("user-agent") || "";
   if (rateLimitExceeded(`2fa|${pending.id}|${ip}`, 10, 5 * 60 * 1000)) {
-    clearPending2fa();
+    await clearPending2fa();
     return NextResponse.json({ ok: false, error: "Nhập sai quá nhiều lần, vui lòng đăng nhập lại" }, { status: 429 });
   }
   const body = await req.json().catch(() => ({}));
   const code = String(body.code || "").trim();
   const user = await prisma.user.findUnique({ where: { id: pending.id } });
   if (!user || !user.totpEnabled || user.status === "BANNED") {
-    clearPending2fa();
+    await clearPending2fa();
     return NextResponse.json({ ok: false, error: "Phiên xác thực không hợp lệ, vui lòng đăng nhập lại" }, { status: 401 });
   }
   const kind = code ? await verifyLoginCode(user, code) : null;
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
   await recordLoginEvent({ userId: user.id, username: user.username, success: true, reason: kind === "totp" ? "Đăng nhập bằng mật khẩu + mã 2FA" : "Đăng nhập bằng mật khẩu + mã dự phòng 2FA", ip, userAgent: ua});
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-  clearPending2fa();
+  await clearPending2fa();
   await createSession({ id: user.id, role: user.role, username: user.username });
   // GĐ3: tính lại điểm rủi ro nền sau đăng nhập
   void (async () => { const { evaluateUserRisk } = await import("@/lib/risk"); await evaluateUserRisk(user.id); })();

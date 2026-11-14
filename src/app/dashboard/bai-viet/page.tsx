@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 
 /* Bài viết nằm TRONG khu khách (lệnh Tín 2026-11-05): khách panel thấy bài của
    panel mình; panel chưa có bài nào thì thấy bài của web mẹ. */
-export default async function DashPostsPage({ searchParams }: { searchParams: { cat?: string; q?: string } }) {
+export default async function DashPostsPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ cat?: string; q?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();

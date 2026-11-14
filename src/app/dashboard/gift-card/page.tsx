@@ -15,9 +15,8 @@ export const dynamic = "force-dynamic";
  *  -> lưới thẻ danh mục (ảnh bìa + tên bên dưới). Catalog rất nhiều danh mục
  *  nên PHÂN TRANG phía máy chủ, bộ lọc đi qua query. 1 danh mục FZR = 1 sản
  *  phẩm (providerProductId = category_id), mệnh giá là các gói giftcards. */
-export default async function GiftCardCatalogPage({ searchParams }: {
-  searchParams: { q?: string; page?: string; fav?: string; ids?: string };
-}) {
+export default async function GiftCardCatalogPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; page?: string; fav?: string; ids?: string }>; }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await catalogPageSize();
   await getCurrentUser();
   const { L } = await getServerI18n();

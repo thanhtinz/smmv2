@@ -11,7 +11,8 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function DepositPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function DepositPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const s = await getSettings();

@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
   const { randomBytes } = await import("crypto");
   const state = randomBytes(24).toString("hex");
   const cookieOpts = { httpOnly: true, maxAge: 600, path: "/", sameSite: "lax" as const, secure: process.env.NODE_ENV === "production" };
-  cookies().set("g_oauth_state", state, cookieOpts);
-  cookies().delete("g_oauth_panel");
+  (await cookies()).set("g_oauth_state", state, cookieOpts);
+  (await cookies()).delete("g_oauth_panel");
   const redirectUri = new URL("/api/auth/google/callback", req.url).toString();
   const u = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   u.searchParams.set("client_id", clientId);

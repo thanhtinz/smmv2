@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 
 /** Quản lý ngôn ngữ của web mẹ: bật/tắt 6 ngôn ngữ, đặt mặc định cho khách mới,
  *  sửa bản dịch trực tiếp (lưu Setting lang_overrides, áp dụng ngay). */
-export default async function AdminLangPage({ searchParams }: { searchParams: { msg?: string; err?: string; lang?: string; q?: string } }) {
+export default async function AdminLangPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; lang?: string; q?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { Ld } = await getServerI18n(null);
   const s = await getSettings();

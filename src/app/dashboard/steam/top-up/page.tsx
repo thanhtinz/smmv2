@@ -15,7 +15,8 @@ export const dynamic = "force-dynamic";
  *  có nhà cung cấp FZR. Chưa đồng bộ gói nào → giữ nguyên khung trang +
  *  thẻ "chưa có dữ liệu". Desktop lg+ chia 2 cột 73/27 (Summary dính) như
  *  trang chi tiết Premium; mobile 1 cột. */
-export default async function SteamTopupPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function SteamTopupPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();

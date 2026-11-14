@@ -13,7 +13,9 @@ import { getServerI18n } from "@/lib/lang-server";
 export const dynamic = "force-dynamic";
 const TX_LABEL: Record<string, string> = { DEPOSIT: "Nạp tiền", SMM_ORDER: "Đặt đơn SMM", PREMIUM_ORDER: "Mua Premium", REFUND: "Hoàn tiền", ADJUST: "Admin điều chỉnh", BONUS: "Thưởng", PANEL_COMMISSION: "Hoa hồng panel con", REFERRAL_COMMISSION: "Hoa hồng giới thiệu", AFFILIATE_WITHDRAW: "Rút hoa hồng về ví" };
 
-export default async function AdminUserDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
+export default async function AdminUserDetail( { params: paramsPromise, searchParams: searchParamsPromise }: { params: Promise<{ id: string }>; searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const params = await paramsPromise;
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld, M } = await getServerI18n(null);
   const me = await getCurrentUser();

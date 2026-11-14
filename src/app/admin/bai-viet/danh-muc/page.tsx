@@ -8,7 +8,8 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPostCategories({ searchParams }: { searchParams: { edit?: string; msg?: string; err?: string } }) {
+export default async function AdminPostCategories( { searchParams: searchParamsPromise }: { searchParams: Promise<{ edit?: string; msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const cats = await prisma.postCategory.findMany({ orderBy: { id: "asc" }, include: { _count: { select: { posts: true } } } });

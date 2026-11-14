@@ -7,7 +7,8 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminUsers({ searchParams }: { searchParams: { q?: string; msg?: string; err?: string } }) {
+export default async function AdminUsers( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld, M } = await getServerI18n(null);
   // Admin quản lý mọi tài khoản của hệ thống.

@@ -66,7 +66,7 @@ export async function setupAction(formData: FormData) {
   // bật 2FA nên không qua cookie chờ 2FA; việc bắt buộc bật 2FA khi vào khu
   // quản trị do enforceAdminSecurity xử lý y như lần đăng nhập đầu của admin
   // chưa enrol — xem lib/auth.ts).
-  await recordLoginEvent({ userId: created.id, username, ip: clientIp(headers()), userAgent: headers().get("user-agent") || "", success: true, reason: "Thiết lập lần đầu — tạo tài khoản quản trị" }).catch(() => {});
+  await recordLoginEvent({ userId: created.id, username, ip: clientIp((await headers())), userAgent: (await headers()).get("user-agent") || "", success: true, reason: "Thiết lập lần đầu — tạo tài khoản quản trị" }).catch(() => {});
   await createSession({ id: created.id, role: created.role, username: created.username });
   redirect("/admin");
 }

@@ -22,7 +22,7 @@ export async function verifyStepUpAction(formData: FormData) {
   const user0 = await getCurrentUser();
   if (!user0) redirect("/login");
   const next = safeNext(String(formData.get("next") || "/"));
-  const ip = clientIp(headers());
+  const ip = clientIp((await headers()));
   if (rateLimitExceeded(`stepup|${user0.id}|${ip}`, 10, 5 * 60 * 1000)) back(next, "Thử lại quá nhiều lần, vui lòng đợi ít phút");
   const user = await prisma.user.findUnique({ where: { id: user0.id } });
   if (!user) redirect("/login");

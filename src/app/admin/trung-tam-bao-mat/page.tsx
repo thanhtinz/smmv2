@@ -28,7 +28,8 @@ function actionBadgeCls(action: string): string {
   return "bg-slate-100 text-slate-600";
 }
 
-export default async function SecurityCenter({ searchParams }: { searchParams: { msg?: string; err?: string; action?: string; actor?: string; page?: string } }) {
+export default async function SecurityCenter( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; action?: string; actor?: string; page?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await adminListPageSize();
   const me = await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
@@ -64,7 +65,7 @@ export default async function SecurityCenter({ searchParams }: { searchParams: {
     prisma.user.count({ where: { riskScore: { gte: riskTh.restrict } } }),
   ]);
   const topRisk = await Promise.all(topRiskRaw.map(async (u) => ({ ...u, restrictedNow: await isRiskRestricted(u.id) })));
-  const cronOnce = cookies().get("smmv2_cron_once")?.value || "";
+  const cronOnce = (await cookies()).get("smmv2_cron_once")?.value || "";
   const sessionRotatedAt = parseInt(s.session_secret_rotated_at || "") || 0;
   const pct2fa = totalUsers > 0 ? Math.round((users2fa / totalUsers) * 100) : 0;
   const lockdownOn = s.emergency_lockdown === "1";

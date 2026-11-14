@@ -131,7 +131,7 @@ export async function mailLang(s?: Record<string, string>): Promise<"vi" | "en">
   const cfg = resolveLangConfig(settings);
   let cookieLang: string | null = null;
   try {
-    cookieLang = cookies().get("smmv2-lang")?.value || null;
+    cookieLang = (await cookies()).get("smmv2-lang")?.value || null;
   } catch { /* ngoài request (cron/test) */ }
   const lang = cookieLang && cfg.enabled.includes(cookieLang) ? cookieLang : cfg.defaultLang;
   return lang === "en" ? "en" : "vi";

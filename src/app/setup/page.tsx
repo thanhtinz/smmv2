@@ -22,7 +22,8 @@ export const dynamic = "force-dynamic";
    kìa"): site chưa có tên hay logo cho tới khi chủ site tự gõ — ô tên
    website mở ra TRỐNG (đọc setting THÔ trong DB, không lấy giá trị dự
    phòng "SMMv2" trong code qua getSettings) và thẻ KHÔNG có ô logo/chữ cái. */
-export default async function SetupPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function SetupPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   if (!(await isSetupNeeded())) redirect("/");
   // Chỉ đọc dòng setting site_name THÔ: bản cài mới chưa hề có dòng này
   // (seed-prod không trồng tên) -> ô nhập trống; tuyệt đối không để giá trị

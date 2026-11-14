@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
  *  /admin/don-premium/[id] như các khu riêng khác, nhưng lọc sẵn về nhóm
  *  topups — đơn khu này TÁCH HẲN khỏi hàng đợi Đơn Premium thường
  *  (lib/order-scope: topups nằm trong DEDICATED_GROUPS). */
-export default async function AdminManualOrders({ searchParams }: { searchParams: { status?: string; q?: string; msg?: string; err?: string } }) {
+export default async function AdminManualOrders( { searchParams: searchParamsPromise }: { searchParams: Promise<{ status?: string; q?: string; msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const { L, Ld, M } = await getServerI18n(null);
   const where: any = { variant: { providerGroup: "manual" } };
   if (searchParams.status) where.status = searchParams.status;

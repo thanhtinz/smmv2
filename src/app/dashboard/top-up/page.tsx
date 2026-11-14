@@ -16,9 +16,8 @@ export const dynamic = "force-dynamic";
  *  Catalog rất nhiều game nên PHÂN TRANG phía máy chủ 24/trang, bộ lọc đi
  *  qua query. 1 category FZR = 1 sản phẩm (providerProductId =
  *  category_id), các gói nạp là các offer của category đó. */
-export default async function TopupCatalogPage({ searchParams }: {
-  searchParams: { q?: string; page?: string; fav?: string; ids?: string };
-}) {
+export default async function TopupCatalogPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; page?: string; fav?: string; ids?: string }>; }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await catalogPageSize();
   await getCurrentUser();
   const { L } = await getServerI18n();

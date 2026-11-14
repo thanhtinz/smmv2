@@ -153,7 +153,8 @@ function SeasonalPreview({ theme }: { theme: SeasonalTheme }) {
  *  Giới thiệu → Pass → Bảo mật → Cron Job → API → AI tư vấn → USDT →
  *  Script/HTML), MỘT nút Lưu cài đặt ở góc phải header cho toàn trang.
  *  (Tab chọn kiểu trang Đăng nhập/Đăng ký đã bỏ — auth chỉ còn MỘT thiết kế.) */
-export default async function AdminSettings({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function AdminSettings( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();

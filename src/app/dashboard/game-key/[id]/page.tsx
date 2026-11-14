@@ -12,10 +12,10 @@ export const dynamic = "force-dynamic";
  *  components/game-key.tsx): bìa lớn + chọn phiên bản (edition = gói
  *  gamekeys của game, giá + tồn kho phía FZR) + tóm tắt đơn, nút Tiếp tục
  *  đặt đơn qua createPremiumOrder. */
-export default async function GameKeyDetailPage({ params, searchParams }: {
-  params: { id: string };
-  searchParams: { msg?: string; err?: string };
-}) {
+export default async function GameKeyDetailPage( { params: paramsPromise, searchParams: searchParamsPromise }: { params: Promise<{ id: string }>;
+  searchParams: Promise<{ msg?: string; err?: string }>; }) {
+  const params = await paramsPromise;
+  const searchParams = await searchParamsPromise;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();

@@ -17,7 +17,8 @@ function safeNext(raw: string | undefined): string {
 /** Xác thực lại (step-up, GĐ2): thao tác nhạy cảm (tiền, cấu hình thanh toán,
  *  khoá khẩn cấp...) cần qua trang này — mật khẩu hiện tại + mã 2FA nếu đã bật.
  *  Qua được thì cookie xác thực có hiệu lực 10 phút. */
-export default async function StepUpPage({ searchParams }: { searchParams: { next?: string; err?: string } }) {
+export default async function StepUpPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ next?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const next = safeNext(searchParams.next);

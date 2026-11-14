@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 const SCOPE_LABEL: Record<string, string> = { ALL: "Mọi đơn", PREMIUM: "Đơn Premium" };
 const fmtDtLocal = (d: Date | null) => (d ? new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
 
-export default async function AdminDiscountCodes({ searchParams }: { searchParams: { edit?: string; q?: string; msg?: string; err?: string } }) {
+export default async function AdminDiscountCodes( { searchParams: searchParamsPromise }: { searchParams: Promise<{ edit?: string; q?: string; msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld, M } = await getServerI18n(null);
   const codes = await prisma.discountCode.findMany({ where: { panelId: null }, orderBy: { id: "desc" }, take: 200 });

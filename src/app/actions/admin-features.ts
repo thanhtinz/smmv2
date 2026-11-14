@@ -176,7 +176,7 @@ export async function saveSecurityPolicyAction(formData: FormData) {
     const v = formData.get(k);
     if (v !== null) { await setSetting(k, String(v).trim()); saved.push(k); }
   }
-  await writeAudit({ actorId: actor.id, actorName: actor.username, role: actor.role, action: "security.policy", targetType: "setting", targetId: "saveSecurityPolicy", detail: `Lưu chính sách bảo mật: ${saved.join(", ")}`, ip: currentIp() });
+  await writeAudit({ actorId: actor.id, actorName: actor.username, role: actor.role, action: "security.policy", targetType: "setting", targetId: "saveSecurityPolicy", detail: `Lưu chính sách bảo mật: ${saved.join(", ")}`, ip: await currentIp() });
   done("/admin/bao-mat", "Đã lưu cấu hình bảo mật");
 }
 

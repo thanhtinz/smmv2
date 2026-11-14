@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
  *  ĐỘNG = tên sản phẩm / mô tả ngắn (hoặc trích nội dung mô tả) — trước
  *  đợt này trang chi tiết không có metadata riêng, kế thừa toàn bộ tiêu
  *  đề/mô tả chung của site từ layout gốc. Ảnh OG giữ ảnh sản phẩm. */
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata( { params: paramsPromise }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await paramsPromise;
   const product = await prisma.premiumProduct.findUnique({
     where: { slug: params.slug },
     select: { name: true, tagline: true, description: true, imageUrl: true, images: true, active: true, panelId: true, metaTitle: true, metaDescription: true },
@@ -39,7 +40,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 /** Chi tiết Premium công khai trong khung cửa hàng cho mọi khách — không còn
  *  chuyển hướng khách đã đăng nhập sang khu khách (đổi khung). Form mua bên
  *  trong tự hiện theo phiên đăng nhập; xem chi tiết không cần đăng nhập. */
-export default async function PremiumDetail({ params, searchParams }: { params: { slug: string }; searchParams: { msg?: string; err?: string } }) {
+export default async function PremiumDetail( { params: paramsPromise, searchParams: searchParamsPromise }: { params: Promise<{ slug: string }>; searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const params = await paramsPromise;
+  const searchParams = await searchParamsPromise;
   return (
     <PublicFrame>
       <main className="flex-1 max-w-5xl mx-auto px-4 py-12 w-full">

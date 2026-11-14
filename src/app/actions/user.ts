@@ -142,7 +142,7 @@ export async function regenApiKeyAction() {
   if (!(await moduleOn("api"))) back("/dashboard/ho-so", "err", "Tính năng API đang tắt");
   if (rateLimitExceeded(`regenkey|${user.id}`, 5, 3600000)) back("/dashboard/ho-so", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   await prisma.user.update({ where: { id: user.id }, data: { apiKey: randomKey(32) } });
-  await writeAudit({ actorId: user.id, actorName: user.username, role: user.role, action: "apikey.regen", targetType: "user", targetId: user.id, detail: "Tạo mới API key (key cũ vô hiệu)", ip: currentIp() });
+  await writeAudit({ actorId: user.id, actorName: user.username, role: user.role, action: "apikey.regen", targetType: "user", targetId: user.id, detail: "Tạo mới API key (key cũ vô hiệu)", ip: await currentIp() });
   back("/dashboard/api", "msg", "Đã tạo API key mới. Key cũ đã bị vô hiệu ngay lập tức.");
 }
 
@@ -169,7 +169,7 @@ export async function saveApiKeyIpsAction(formData: FormData) {
     scope: "mother", panelId: null,
     action: "apikey.ip_whitelist", targetType: "user", targetId: user.id,
     detail: value ? `Đặt whitelist IP cho API key: ${rules.length} dòng` : "Xoá whitelist IP cho API key (không giới hạn)",
-    ip: currentIp(),
+    ip: await currentIp(),
   });
   back("/dashboard/ho-so?tab=api", "msg", value ? "Đã lưu whitelist IP cho API key" : "Đã xoá whitelist IP — API key gọi được từ mọi IP");
 }

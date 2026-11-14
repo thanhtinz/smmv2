@@ -6,7 +6,8 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminEmailMarketing({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function AdminEmailMarketing( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();

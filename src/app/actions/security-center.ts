@@ -28,7 +28,7 @@ export async function toggleLockdownAction(formData: FormData) {
   await writeAudit({
     actorId: admin.id, actorName: admin.username, role: admin.role, scope: "mother", panelId: null,
     action: enable ? "lockdown.on" : "lockdown.off", targetType: "setting", targetId: "emergency_lockdown",
-    detail: enable ? (reason || "Bật khoá khẩn cấp") : "Tắt khoá khẩn cấp", ip: currentIp(),
+    detail: enable ? (reason || "Bật khoá khẩn cấp") : "Tắt khoá khẩn cấp", ip: await currentIp(),
   });
   await alertMother("system", enable ? "KHOÁ KHẨN CẤP ĐÃ BẬT" : "Khoá khẩn cấp đã tắt",
     enable ? `Admin ${admin.username} vừa BẬT khoá khẩn cấp. Lý do: ${reason || "(không ghi)"}. Khách không đăng nhập/đặt hàng được cho tới khi tắt khoá.` : `Admin ${admin.username} vừa TẮT khoá khẩn cấp — hệ thống hoạt động bình thường.`).catch(() => {});
@@ -65,7 +65,7 @@ export async function riskReviewAction(formData: FormData) {
   await writeAudit({
     actorId: admin.id, actorName: admin.username, role: admin.role, scope: "mother", panelId: null,
     action: "risk.review", targetType: "user", targetId: userId,
-    detail: `Duyệt điểm rủi ro cho ${target!.username} (${target!.riskScore} điểm) — gỡ hạn chế tới khi có tín hiệu mới`, ip: currentIp(),
+    detail: `Duyệt điểm rủi ro cho ${target!.username} (${target!.riskScore} điểm) — gỡ hạn chế tới khi có tín hiệu mới`, ip: await currentIp(),
   });
   backTo(formData, "msg", `Đã duyệt ${target!.username} — tài khoản giao dịch lại bình thường cho tới khi có tín hiệu rủi ro mới`);
 }
@@ -88,7 +88,7 @@ export async function riskSaveSettingsAction(formData: FormData) {
   await writeAudit({
     actorId: admin.id, actorName: admin.username, role: admin.role, scope: "mother", panelId: null,
     action: "risk.settings", targetType: "setting", targetId: "risk",
-    detail: `Đổi ngưỡng/trọng số rủi ro: theo dõi ${str(formData, "risk_watch")}, hạn chế ${str(formData, "risk_restrict")}, nghiêm trọng ${str(formData, "risk_critical")}`, ip: currentIp(),
+    detail: `Đổi ngưỡng/trọng số rủi ro: theo dõi ${str(formData, "risk_watch")}, hạn chế ${str(formData, "risk_restrict")}, nghiêm trọng ${str(formData, "risk_critical")}`, ip: await currentIp(),
   });
   back("msg", "Đã lưu cấu hình điểm rủi ro");
 }
@@ -110,7 +110,7 @@ export async function rotateSessionSecretAction() {
   await writeAudit({
     actorId: admin.id, actorName: admin.username, role: admin.role, scope: "mother", panelId: null,
     action: "secret.rotate_session", targetType: "setting", targetId: "session_secret",
-    detail: "Xoay vòng khoá ký phiên — khoá cũ còn hiệu lực 7 ngày cho các phiên đang đăng nhập", ip: currentIp(),
+    detail: "Xoay vòng khoá ký phiên — khoá cũ còn hiệu lực 7 ngày cho các phiên đang đăng nhập", ip: await currentIp(),
   });
   back("msg", "Đã xoay vòng khoá phiên — phiên đang đăng nhập vẫn dùng được (khoá cũ còn hạn 7 ngày), đăng nhập mới ký bằng khoá mới");
 }
@@ -122,14 +122,14 @@ export async function rotateCronSecretAction() {
   await assertStepUp(admin.id, PAGE);
   const fresh = randomBytes(32).toString("hex");
   await setSetting("cron_secret", fresh);
-  cookies().set("smmv2_cron_once", fresh, {
+  (await cookies()).set("smmv2_cron_once", fresh, {
     httpOnly: true, sameSite: "lax", path: "/", maxAge: 300,
     secure: process.env.NODE_ENV === "production",
   });
   await writeAudit({
     actorId: admin.id, actorName: admin.username, role: admin.role, scope: "mother", panelId: null,
     action: "secret.rotate_cron", targetType: "setting", targetId: "cron_secret",
-    detail: "Xoay vòng khoá cron trong cơ sở dữ liệu (giá trị không ghi vào nhật ký)", ip: currentIp(),
+    detail: "Xoay vòng khoá cron trong cơ sở dữ liệu (giá trị không ghi vào nhật ký)", ip: await currentIp(),
   });
   back("msg", "Đã tạo khoá cron mới — sao chép ngay bên dưới, khoá chỉ hiện một lần");
 }
@@ -137,6 +137,6 @@ export async function rotateCronSecretAction() {
 /** Ẩn khoá cron vừa hiện một lần (xoá cookie chứa khoá) */
 export async function clearCronSecretOnceAction() {
   await requireAdmin();
-  cookies().delete("smmv2_cron_once");
+  (await cookies()).delete("smmv2_cron_once");
   back("msg", "Đã ẩn khoá cron");
 }

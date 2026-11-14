@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 /** SEO RIÊNG theo DANH MỤC (đợt 121): khi khách lọc ?cat=<id> và danh mục
  *  đó có metaTitle/metaDescription (sửa ở Admin → Danh mục Premium) thì
  *  trang danh sách dùng đúng bản đó; trống -> {} dùng mặc định toàn web. */
-export async function generateMetadata({ searchParams }: { searchParams: { cat?: string } }): Promise<Metadata> {
+export async function generateMetadata( { searchParams: searchParamsPromise }: { searchParams: Promise<{ cat?: string }> }): Promise<Metadata> {
+  const searchParams = await searchParamsPromise;
   const catId = searchParams.cat ? parseInt(searchParams.cat) : NaN;
   if (!Number.isFinite(catId) || catId <= 0) return {};
   const cat = await prisma.premiumCategory.findUnique({
@@ -41,7 +42,8 @@ export async function generateMetadata({ searchParams }: { searchParams: { cat?:
 /** Shop Premium công khai trong KHUNG CỬA HÀNG cho MỌI khách (kể cả đã đăng
  *  nhập) — không còn chuyển hướng sang /dashboard/premium làm đổi khung giao
  *  diện. Xem/danh sách/chi tiết không cần đăng nhập; mua hàng mới cần. */
-export default async function PremiumPage({ searchParams }: { searchParams: { cat?: string; q?: string; sort?: string; from?: string; to?: string } }) {
+export default async function PremiumPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ cat?: string; q?: string; sort?: string; from?: string; to?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const { L } = await getServerI18n();
   if ((await getSettings()).module_premium === "0") {
     return (

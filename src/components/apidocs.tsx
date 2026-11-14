@@ -52,7 +52,7 @@ async function InfoCards({ endpoint, method, methodDesc, apiKey }: { endpoint: s
 /* ===== Tài liệu API — bố cục kiểu thatim (DEVELOPER CENTER) ===== */
 export async function ApiDocsView({ apiKey }: { apiKey?: string | null }) {
   const { L } = await getServerI18n();
-  const h = headers();
+  const h = await headers();
   const host = h.get("host") || "localhost:3000";
   const proto = h.get("x-forwarded-proto") || (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
   // Địa chỉ API CHUẨN theo tên miền con (đợt 127): api.<miền gốc> suy từ

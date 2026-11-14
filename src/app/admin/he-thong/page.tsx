@@ -7,7 +7,8 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminSystem({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function AdminSystem( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const d30 = new Date(Date.now() - 30 * 86400000);

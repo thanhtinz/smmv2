@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 /** Dọn dẹp hệ thống — quản lý bộ nhớ đệm, dọn các tệp nhật ký rác và tối ưu hệ thống.
  *  Cache ở stack này: cache dựng trang của Next.js + số dư nhà cung cấp lưu đệm trong DB.
  *  Dọn dữ liệu chỉ xoá nhật ký/thông báo cũ — đơn hàng, người dùng, sổ tiền không bao giờ bị xoá. */
-export default async function AdminCleanupPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function AdminCleanupPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const d30 = new Date(Date.now() - 30 * 86400000);

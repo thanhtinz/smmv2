@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 /** Đơn hàng Steam (FIX7 E4): cùng bảng + cùng trang chi tiết /admin/don-premium/[id]
  *  (mọi thao tác đổi trạng thái, kiểm tra lại phía NCC dùng chung một máy) nhưng
  *  lọc sẵn về 2 nhóm steam_topup / steam_gift. */
-export default async function AdminSteamOrders({ searchParams }: { searchParams: { status?: string; q?: string; msg?: string; err?: string } }) {
+export default async function AdminSteamOrders( { searchParams: searchParamsPromise }: { searchParams: Promise<{ status?: string; q?: string; msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const { L, Ld, M } = await getServerI18n(null);
   const where: any = { variant: { providerGroup: { in: ["steam_topup", "steam_gift"] } } };
   if (searchParams.status) where.status = searchParams.status;

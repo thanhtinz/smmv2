@@ -40,7 +40,8 @@ function contactDisplay(c: FloatingContact): string {
  *  subject/category/body từ chi tiết đơn (Báo lỗi đơn / Yêu cầu hoàn tiền)
  *  mở trang là thấy form đã điền sẵn ở cột phụ. Route /dashboard/faq cũ
  *  redirect về đây kèm neo #faq. */
-export default async function TicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string; st?: string; q?: string; subject?: string; category?: string; body?: string } }) {
+export default async function TicketsPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; st?: string; q?: string; subject?: string; category?: string; body?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();

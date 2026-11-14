@@ -16,10 +16,10 @@ export const dynamic = "force-dynamic";
  *  văn bản thật phía FZR của category (note khi đồng bộ) — trang chỉ hiện,
  *  không tự chế. Trường tuỳ chỉnh cũng là định nghĩa thật của NCC lưu kèm
  *  key; khách thấy nhãn admin đã đặt. */
-export default async function TopupDetailPage({ params, searchParams }: {
-  params: { id: string };
-  searchParams: { msg?: string; err?: string };
-}) {
+export default async function TopupDetailPage( { params: paramsPromise, searchParams: searchParamsPromise }: { params: Promise<{ id: string }>;
+  searchParams: Promise<{ msg?: string; err?: string }>; }) {
+  const params = await paramsPromise;
+  const searchParams = await searchParamsPromise;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();

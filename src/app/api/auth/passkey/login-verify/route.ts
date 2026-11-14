@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     include: { user: true },
   });
   if (!passkey || !passkey.user) {
-    clearChallenge();
+    await clearChallenge();
     return fail(401, "Passkey không hợp lệ");
   }
   const user = passkey.user;
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       ip,
       userAgent: ua,
     });
-    clearChallenge();
+    await clearChallenge();
     return fail(403, "Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
   }
 
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         ip,
         userAgent: ua,
       });
-      clearChallenge();
+      await clearChallenge();
       return fail(403, "Địa chỉ IP của bạn đã bị chặn" + (ban.reason ? `: ${ban.reason}` : ""));
     }
   }
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       ip,
       userAgent: ua,
     });
-    clearChallenge();
+    await clearChallenge();
     return fail(403, lockdownMessage(ld.reason));
   }
 
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
   } catch {
     verified = false;
   }
-  clearChallenge();
+  await clearChallenge();
 
   if (!verified) {
     await recordLoginEvent({

@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
  *  trong khung cửa hàng công khai; khách vãng lai dùng được (giỏ lưu
  *  localStorage), thanh toán cần đăng nhập + ví. Giỏ trống KHÔNG còn mục
  *  "Sản phẩm gợi ý" (lệnh Tín 23:40 — bỏ hẳn, kể cả truy vấn dữ liệu gợi ý). */
-export default async function CartPage({ searchParams }: { searchParams?: { purchase?: string } }) {
+export default async function CartPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ purchase?: string }> }) {
+  const searchParams = (await searchParamsPromise) || {};
   const user = await getCurrentUser().catch(() => null);
   const s = await getSettings();
   const sale = s.module_premium === "0" ? null : await getActiveFlashSale("PREMIUM");

@@ -12,10 +12,10 @@ export const dynamic = "force-dynamic";
 
 /** Chi tiết 1 đơn Telegram: khách, người nhận, mã + trạng thái phía FZR,
  *  nút kiểm tra trạng thái theo yêu cầu và trạng thái hoàn tiền. */
-export default async function AdminTelegramOrderDetail({ params, searchParams }: {
-  params: { id: string };
-  searchParams: { msg?: string; err?: string };
-}) {
+export default async function AdminTelegramOrderDetail( { params: paramsPromise, searchParams: searchParamsPromise }: { params: Promise<{ id: string }>;
+  searchParams: Promise<{ msg?: string; err?: string }>; }) {
+  const params = await paramsPromise;
+  const searchParams = await searchParamsPromise;
   const { L, Ld, M } = await getServerI18n();
   const id = parseInt(params.id);
   const o = id ? await prisma.premiumOrder.findUnique({

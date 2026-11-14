@@ -13,9 +13,8 @@ export const dynamic = "force-dynamic";
 /** Lịch sử đơn Steam: cùng khung với lịch sử Telegram (header gradient + 4
  *  thẻ thống kê + thẻ lọc + thẻ đơn), dữ liệu = các đơn Premium mà variant
  *  thuộc nhóm steam_topup / steam_gift. */
-export default async function SteamHistoryPage({ searchParams }: {
-  searchParams: { q?: string; type?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string };
-}) {
+export default async function SteamHistoryPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; type?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string }>; }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await historyPageSize();
   const user = await getCurrentUser();
   if (!user) redirect("/login");

@@ -5,7 +5,8 @@ import { forgotPasswordAction } from "@/app/actions/password-reset";
 import { authCardCls, authSwitchCardCls, authInpCls, authBtnCls } from "@/lib/auth-ui";
 import { getServerI18n } from "@/lib/lang-server";
 
-export default async function ForgotPasswordPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function ForgotPasswordPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const { L, Ld } = await getServerI18n();
   return (
     <AuthShell

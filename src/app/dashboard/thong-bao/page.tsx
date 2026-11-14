@@ -11,7 +11,8 @@ import { getServerI18n } from "@/lib/lang-server";
 export const dynamic = "force-dynamic";
 
 /** Thông báo của khách: đơn hoàn thành / hoàn một phần / huỷ / hoàn tiền — mở trang là đánh dấu đã đọc */
-export default async function NotificationsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function NotificationsPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();

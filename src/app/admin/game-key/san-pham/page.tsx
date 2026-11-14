@@ -18,7 +18,8 @@ const RT = "/admin/game-key/san-pham";
  *  lần đồng bộ gần nhất). Edition admin tự thêm mang dấu CUSTOM — đồng bộ
  *  không ghi đè giá và không tắt. KHÔNG trang cấu hình riêng: tỉ giá +
  *  mọi markup đều ở form nhà cung cấp (Admin → Nhà cung cấp). */
-export default async function AdminGameKeyProducts({ searchParams }: { searchParams: { msg?: string; err?: string; q?: string; page?: string } }) {
+export default async function AdminGameKeyProducts( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; q?: string; page?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const q = (searchParams.q || "").trim();

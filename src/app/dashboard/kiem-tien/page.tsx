@@ -7,7 +7,8 @@ import { affiliateWithdrawMin } from "@/lib/affiliate";
 
 export const dynamic = "force-dynamic";
 
-export default async function EarnPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
+export default async function EarnPage( { searchParams: searchParamsPromise }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const searchParams = await searchParamsPromise;
   const { getSettings, siteUrlFromSettings } = await import("@/lib/settings");
   const settings = await getSettings();
   if (settings.module_affiliate === "0") { const { redirect } = await import("next/navigation"); redirect("/"); }
@@ -25,7 +26,7 @@ export default async function EarnPage({ searchParams }: { searchParams: Record<
       />
     );
   }
-  const h = headers();
+  const h = await headers();
   const host = h.get("host") || "localhost:3000";
   const proto = h.get("x-forwarded-proto") || (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
   // Link giới thiệu dạng trang chủ + ?aff=MÃ (mẫu shopkey): cookie first-touch

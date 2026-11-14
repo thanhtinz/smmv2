@@ -6,7 +6,8 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminLogs({ searchParams }: { searchParams: { kind?: string } }) {
+export default async function AdminLogs( { searchParams: searchParamsPromise }: { searchParams: Promise<{ kind?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L } = await getServerI18n(null);
   const where: any = searchParams.kind ? { kind: searchParams.kind } : {};

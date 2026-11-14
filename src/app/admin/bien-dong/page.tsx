@@ -14,7 +14,8 @@ const TX_LABEL: Record<string, string> = {
 };
 const PER = 30;
 
-export default async function AdminMovements({ searchParams }: { searchParams: { q?: string; type?: string; page?: string; msg?: string; err?: string } }) {
+export default async function AdminMovements( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; type?: string; page?: string; msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld, M } = await getServerI18n(null);
   const page = Math.max(1, parseInt(searchParams.page || "1"));

@@ -6,7 +6,7 @@ import { headers } from "next/headers";
 
 async function clientIp() {
   const { clientIp: ipOf } = await import("@/lib/rate-limit");
-  return ipOf(headers());
+  return ipOf((await headers()));
 }
 async function assertNotBanned() {
   const ip = await clientIp();
@@ -59,7 +59,7 @@ export async function registerAction(formData: FormData) {
   // Mã giới thiệu: ưu tiên mã trong form (?ref= trên link đăng ký); không có thì
   // lấy cookie aff_ref do link ?aff= đặt trước đó (first-touch). Không bao giờ
   // tự ghi đè — tài khoản mới tạo chưa có người giới thiệu nào khác.
-  const ref = (String(formData.get("ref") || "").trim() || cookies().get(AFF_COOKIE_REF)?.value || "").trim().toUpperCase();
+  const ref = (String(formData.get("ref") || "").trim() || (await cookies()).get(AFF_COOKIE_REF)?.value || "").trim().toUpperCase();
   const referrer = ref ? await prisma.user.findUnique({ where: { refCode: ref }, select: { id: true } }) : null;
   const user = await prisma.user.create({
     data: {
@@ -85,7 +85,7 @@ export async function loginAction(formData: FormData) {
   const login = String(formData.get("login") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
   const ip = await clientIp();
-  const ua = headers().get("user-agent") || "";
+  const ua = (await headers()).get("user-agent") || "";
   const ev = (input: { userId?: number | null; success: boolean; reason?: string }) =>
     recordLoginEvent({ username: login, ip, userAgent: ua, ...input });
   try { await assertNotBanned(); } catch (e: any) {

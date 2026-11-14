@@ -73,7 +73,7 @@ export async function siteOrigin(): Promise<string> {
   const s = await getSettings().catch(() => null);
   const configured = normalizeSiteUrl(s?.site_url);
   if (configured) return configured;
-  const h = headers();
+  const h = await headers();
   const rawHost = (h.get("x-forwarded-host") || h.get("host") || "").split(",")[0].trim();
   const host = rawHost.split(":")[0].toLowerCase();
   if (host === "localhost" || host.startsWith("127.")) return `http://${rawHost}`;

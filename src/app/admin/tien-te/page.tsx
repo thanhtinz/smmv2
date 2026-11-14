@@ -16,7 +16,8 @@ const CURRENCIES = [
 
 /** Quản lý tiền tệ — tỉ giá quy đổi HIỂN THỊ cho khách chọn ngoại tệ ở nút Cài đặt.
  *  Tiền thật trong hệ thống luôn là VNĐ; tỉ giá ở đây chỉ đổi cách khách nhìn thấy giá. */
-export default async function AdminCurrencyPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function AdminCurrencyPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();

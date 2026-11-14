@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Next 15: serverComponentsExternalPackages -> serverExternalPackages (top-level)
+  serverExternalPackages: ["@node-rs/argon2"],
   experimental: {
     serverActions: { bodySizeLimit: "4mb" },
-    // GĐ2: @node-rs/argon2 là binary napi — để ngoài bundle webpack, Node nạp trực tiếp từ node_modules lúc chạy
-    serverComponentsExternalPackages: ["@node-rs/argon2"],
   },
   poweredByHeader: false,
   async headers() {

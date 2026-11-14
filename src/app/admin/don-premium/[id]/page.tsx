@@ -8,7 +8,9 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPremiumOrderDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
+export default async function AdminPremiumOrderDetail( { params: paramsPromise, searchParams: searchParamsPromise }: { params: Promise<{ id: string }>; searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const params = await paramsPromise;
+  const searchParams = await searchParamsPromise;
   const { L, Ld, M } = await getServerI18n(null);
   const o = await prisma.premiumOrder.findUnique({
     where: { id: parseInt(params.id) },

@@ -7,7 +7,8 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminStock({ searchParams }: { searchParams: { msg?: string; err?: string; variant?: string; status?: string } }) {
+export default async function AdminStock( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; variant?: string; status?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const variants = await prisma.premiumVariant.findMany({

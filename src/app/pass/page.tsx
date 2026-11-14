@@ -24,7 +24,8 @@ export const dynamic = "force-dynamic";
  *  hình → tab Pass của admin; kỳ nào giá 0đ thì không hiện, quyền lợi
  *  nào 0% thì không dựng thẻ. FAQ từ Bài viết slug "pass-faq".
  *  Pass tắt trong cấu hình -> trang không tồn tại (về trang chủ). */
-export default async function PassPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function PassPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const { L, Ld, M } = await getServerI18n();
   const cfg = await getPassConfig();
   if (!cfg.enabled) redirect("/");

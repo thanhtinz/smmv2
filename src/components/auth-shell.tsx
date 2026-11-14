@@ -20,7 +20,7 @@ import { wideLogoUrl } from "@/lib/brand";
  * lập lần đầu (guardSetupDone) giữ nguyên như PublicFrame ở cả hai khung.
  */
 export async function AuthShell(props: { children: React.ReactNode; switchCard?: React.ReactNode; skipSetupGate?: boolean }) {
-  const host = (headers().get("host") || "").split(":")[0].toLowerCase();
+  const host = ((await headers()).get("host") || "").split(":")[0].toLowerCase();
   const parts = host.split(".");
   const onAdminHost = parts.length > 2 && parts[0] === "admin";
 

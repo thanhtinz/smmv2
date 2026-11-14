@@ -16,9 +16,8 @@ export const dynamic = "force-dynamic";
  *  phân trang) nhưng CHỈ đơn thuộc nhóm manual: khu Manual Services tách HẲN khỏi
  *  Premium (lệnh chủ 2026-11-08 "không có cái nào chung cái nào hết") nên
  *  đơn của nó không còn hiện ở Đơn Premium thường (lib/order-scope). */
-export default async function ManualHistoryPage({ searchParams }: {
-  searchParams: { q?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string };
-}) {
+export default async function ManualHistoryPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string }>; }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await historyPageSize();
   const user = await getCurrentUser();
   if (!user) redirect("/login");

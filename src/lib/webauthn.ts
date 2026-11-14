@@ -104,7 +104,7 @@ export async function saveChallenge(
     );
     return;
   }
-  cookies().set(PASSKEY_CHALLENGE_COOKIE, token, opts);
+  (await cookies()).set(PASSKEY_CHALLENGE_COOKIE, token, opts);
 }
 
 /** Đọc + kiểm chứng challenge: chữ ký, hạn 5 phút và purpose phải khớp.
@@ -120,7 +120,7 @@ export async function readChallenge(
   let token: string | undefined;
   if (typeof reqOrPurpose === "string" || maybePurpose === undefined) {
     try {
-      token = cookies().get(PASSKEY_CHALLENGE_COOKIE)?.value;
+      token = (await cookies()).get(PASSKEY_CHALLENGE_COOKIE)?.value;
     } catch {
       token = undefined;
     }
@@ -157,9 +157,9 @@ export async function readChallenge(
 
 /** Xoá cookie challenge sau khi dùng xong (đăng ký / đăng nhập thành công
  *  hay thất bại đều nên xoá để challenge không dùng lại được). */
-export function clearChallenge(): void {
+export async function clearChallenge(): Promise<void> {
   try {
-    cookies().delete(PASSKEY_CHALLENGE_COOKIE);
+    (await cookies()).delete(PASSKEY_CHALLENGE_COOKIE);
   } catch {
     /* ngoài request context thì không có gì để xoá */
   }

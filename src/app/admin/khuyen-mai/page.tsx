@@ -11,7 +11,8 @@ import { getServerI18n } from "@/lib/lang-server";
 export const dynamic = "force-dynamic";
 
 /** Khuyến mãi của web mẹ: thưởng nạp theo mốc, hoa hồng giới thiệu, mã giảm giá. */
-export default async function AdminPromotions({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function AdminPromotions( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld, M } = await getServerI18n(null);
   const s = await getSettings();

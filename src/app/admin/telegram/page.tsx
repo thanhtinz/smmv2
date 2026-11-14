@@ -12,9 +12,8 @@ export const dynamic = "force-dynamic";
 /** Đơn Telegram (khu riêng Admin → Telegram): thống kê + lọc + danh sách.
  *  Bản ghi vẫn là PremiumOrder với providerGroup telegram_* — trang này là
  *  góc nhìn quản lý riêng, không lẫn với đơn Premium thường. */
-export default async function AdminTelegramOrdersPage({ searchParams }: {
-  searchParams: { q?: string; type?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string };
-}) {
+export default async function AdminTelegramOrdersPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; type?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string }>; }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await adminListPageSize();
   const { L, M, Ld } = await getServerI18n();
   const base = telegramOrderWhere();

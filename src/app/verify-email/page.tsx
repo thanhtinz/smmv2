@@ -7,7 +7,8 @@ import { I } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-export default async function VerifyEmailPage({ searchParams }: { searchParams: { token?: string } }) {
+export default async function VerifyEmailPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ token?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const result = searchParams.token ? await verifyEmailByToken(searchParams.token) : "invalid";
   const { L } = await getServerI18n();
   return (

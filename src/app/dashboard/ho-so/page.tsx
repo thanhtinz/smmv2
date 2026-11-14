@@ -29,7 +29,8 @@ function parseUaLabel(ua?: string | null): string | null {
 
 /** Tài khoản — bố cục theo panel mẫu: đầu trang avatar + huy hiệu, 4 thẻ nhỏ,
  *  3 tab Hồ sơ cá nhân | Kết nối API | Bảo mật & Phiên đăng nhập. */
-export default async function ProfilePage({ searchParams }: { searchParams: { msg?: string; err?: string; tab?: string; bat2fa?: string } }) {
+export default async function ProfilePage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; tab?: string; bat2fa?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { L, Ld, M } = await getServerI18n();
@@ -48,7 +49,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
     getSession(),
     prisma.userPasskey.findMany({ where: { userId: user.id }, orderBy: { id: "desc" } }),
   ]);
-  const myIp = currentIp();
+  const myIp = await currentIp();
   const adminMust2fa = searchParams.bat2fa === "1" || ((user.role === "ADMIN" || user.role === "STAFF") && s.admin_2fa_required !== "0");
   const initials = (user.fullName || user.username).trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const endpoint = `${subUrlFromSettings(s, "api") || siteUrlFromSettings(s)}/api/v2`;

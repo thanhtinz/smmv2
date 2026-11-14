@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
  *  Chưa đồng bộ game nào → giữ khung trang + thẻ "chưa có dữ liệu".
  *  Desktop lg+ chia 2 cột 73/27 (Summary dính) như trang chi tiết Premium;
  *  mobile 1 cột. */
-export default async function SteamGiftPage({ searchParams }: { searchParams: { msg?: string; err?: string; game?: string } }) {
+export default async function SteamGiftPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; game?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();

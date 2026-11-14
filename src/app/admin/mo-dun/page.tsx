@@ -37,7 +37,8 @@ const MODULES: Mod[] = [
 ];
 
 /** Mô-đun — chỗ bật/tắt từng mảng chức năng của hệ thống, danh sách phẳng một thẻ. */
-export default async function AdminModules({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function AdminModules( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();

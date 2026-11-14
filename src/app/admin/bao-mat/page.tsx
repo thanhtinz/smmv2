@@ -9,7 +9,8 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminSecurity({ searchParams }: { searchParams: { msg?: string; err?: string; fail?: string } }) {
+export default async function AdminSecurity( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; fail?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const onlyFail = searchParams.fail === "1";
@@ -19,7 +20,7 @@ export default async function AdminSecurity({ searchParams }: { searchParams: { 
     prisma.apiLog.findMany({ where: { kind: { in: ["bulk_price", "email_marketing", "cleanup", "price_change"] } }, orderBy: { id: "desc" }, take: 15 }),
     prisma.loginEvent.findMany({ where: onlyFail ? { success: false } : {}, orderBy: { id: "desc" }, take: 50 }),
   ]);
-  const myIp = currentIp();
+  const myIp = await currentIp();
   const KIND_LABEL: Record<string, string> = { bulk_price: "Chỉnh giá hàng loạt", email_marketing: "Gửi email marketing", cleanup: "Dọn dẹp hệ thống", price_change: "Nguồn đổi giá vốn" };
   return (
     <div>

@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 
 /** Shop Premium TRONG khu khách — cùng khung dashboard với SMM (sidebar + header),
  *  dùng chung nội dung với trang công khai qua PremiumShopView. */
-export default async function DashboardPremiumPage({ searchParams }: { searchParams: { cat?: string; q?: string; sort?: string; from?: string; to?: string } }) {
+export default async function DashboardPremiumPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ cat?: string; q?: string; sort?: string; from?: string; to?: string }> }) {
+  const searchParams = await searchParamsPromise;
   if ((await getSettings()).module_premium === "0") {
     const user = await getCurrentUser();
     const { L } = await getServerI18n();

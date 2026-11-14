@@ -19,9 +19,8 @@ export const dynamic = "force-dynamic";
  *  như ảnh mẫu (tài liệu FZR: category không có offer khả dụng vốn bị
  *  lược khỏi danh sách nguồn — dải này bắt trường hợp gói bị tắt về sau).
  *  Phân trang phía máy chủ 24/trang. 1 category = 1 sản phẩm. */
-export default async function ManualCatalogPage({ searchParams }: {
-  searchParams: { q?: string; page?: string; fav?: string; ids?: string };
-}) {
+export default async function ManualCatalogPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; page?: string; fav?: string; ids?: string }>; }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await catalogPageSize();
   await getCurrentUser();
   const { L } = await getServerI18n();

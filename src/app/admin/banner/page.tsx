@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
  *  ngữ nào, hero trang chủ chạy banner của ngôn ngữ đó; ngôn ngữ chưa có
  *  banner thì tạm dùng bộ của ngôn ngữ còn lại, chưa có banner nào thì
  *  trang chủ giữ slide tự tạo từ danh mục. */
-export default async function AdminBannerPage({ searchParams }: { searchParams: { msg?: string; err?: string; edit?: string } }) {
+export default async function AdminBannerPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; edit?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const banners = await prisma.homeBanner.findMany({ orderBy: [{ sort: "asc" }, { id: "asc" }] });

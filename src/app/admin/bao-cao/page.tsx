@@ -23,7 +23,8 @@ const CHANNELS = [
 /** Báo cáo & báo tin của web mẹ: thống kê thu nhập / bán chạy / top khách,
  *  cấu hình gửi qua Email + Telegram + Discord (bật tắt từng kênh, chọn sự kiện),
  *  báo cáo ngày tự động + gửi ngay. */
-export default async function AdminReportPage({ searchParams }: { searchParams: { msg?: string; err?: string; mlog?: string } }) {
+export default async function AdminReportPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; mlog?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();

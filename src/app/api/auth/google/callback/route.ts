@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (s.google_enabled !== "1" || !s.google_client_id || !s.google_client_secret) return fail("Đăng nhập Google đang tắt");
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state");
-  if (!code || !state || state !== cookies().get("g_oauth_state")?.value) return fail("Phiên đăng nhập Google không hợp lệ, thử lại");
+  if (!code || !state || state !== (await cookies()).get("g_oauth_state")?.value) return fail("Phiên đăng nhập Google không hợp lệ, thử lại");
   try {
     const redirectUri = new URL("/api/auth/google/callback", req.url).toString();
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
       if (await prisma.user.findUnique({ where: { username } })) username = (base + randomKey(4)).toLowerCase().slice(0, 30);
       // Gắn người giới thiệu từ cookie first-touch aff_ref (link ?aff= đã đi qua trước đó)
       const { AFF_COOKIE_REF } = await import("@/lib/affiliate");
-      const affCode = (cookies().get(AFF_COOKIE_REF)?.value || "").trim().toUpperCase();
+      const affCode = ((await cookies()).get(AFF_COOKIE_REF)?.value || "").trim().toUpperCase();
       const referrer = affCode ? await prisma.user.findUnique({ where: { refCode: affCode }, select: { id: true } }) : null;
       user = await prisma.user.create({
         data: {

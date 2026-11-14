@@ -6,9 +6,9 @@ import { tr, trd, formatMoney, CURRENCIES } from "./i18n";
 
 /** Ngôn ngữ hiển thị đọc phía SERVER từ cookie smmv2-lang (DisplaySettings ghi đồng thời
  *  vào localStorage + cookie này). Mặc định "en" như lựa chọn mặc định phía khách. */
-export function getLang(): string {
+export async function getLang(): Promise<string> {
   try {
-    return cookies().get("smmv2-lang")?.value || "en";
+    return (await cookies()).get("smmv2-lang")?.value || "en";
   } catch {
     return "en";
   }
@@ -30,9 +30,9 @@ export type ServerI18n = {
 };
 
 /** Tiền tệ hiển thị từ cookie smmv2-cur (DisplaySettings ghi đồng thời localStorage + cookie). */
-export function getCur(): string {
+export async function getCur(): Promise<string> {
   try {
-    const v = cookies().get("smmv2-cur")?.value || "";
+    const v = (await cookies()).get("smmv2-cur")?.value || "";
     return CURRENCIES.some((c) => c.key === v) ? v : "VND";
   } catch {
     return "VND";
@@ -62,11 +62,11 @@ export async function getServerI18n(_panelRaw?: string | null): Promise<ServerI1
   const cfg = await loadCfg();
   let cookieLang: string | null = null;
   try {
-    cookieLang = cookies().get("smmv2-lang")?.value || null;
+    cookieLang = (await cookies()).get("smmv2-lang")?.value || null;
   } catch { /* ngoài request */ }
   const lang = cookieLang && cfg.enabled.includes(cookieLang) ? cookieLang : cfg.defaultLang;
   const ov = cfg.overrides[lang];
-  const cur = getCur();
+  const cur = await getCur();
   const rates = await loadRates();
   return {
     lang,

@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
  *  /admin/don-premium/[id] như các khu riêng khác, nhưng lọc sẵn về nhóm
  *  gamekeys — đơn khu này không lẫn vào hàng đợi Đơn Premium thường
  *  (lib/order-scope). */
-export default async function AdminGameKeyOrders({ searchParams }: { searchParams: { status?: string; q?: string; msg?: string; err?: string } }) {
+export default async function AdminGameKeyOrders( { searchParams: searchParamsPromise }: { searchParams: Promise<{ status?: string; q?: string; msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const { L, Ld, M } = await getServerI18n(null);
   const where: any = { variant: { providerGroup: "gamekeys" } };
   if (searchParams.status) where.status = searchParams.status;

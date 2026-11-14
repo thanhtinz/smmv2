@@ -20,6 +20,6 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const q = String(body?.q || "").trim().slice(0, 300);
   if (q.length < 2) return NextResponse.json({ error: "Hãy mô tả nhu cầu dài hơn một chút" }, { status: 400 });
-  const { mode, picks } = await findServices({ q, lang: getLang() });
+  const { mode, picks } = await findServices({ q, lang: await getLang() });
   return NextResponse.json({ mode, picks });
 }

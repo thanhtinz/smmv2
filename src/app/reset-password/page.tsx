@@ -8,7 +8,8 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function ResetPasswordPage({ searchParams }: { searchParams: { token?: string; msg?: string; err?: string } }) {
+export default async function ResetPasswordPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ token?: string; msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const { L, Ld } = await getServerI18n();
   const token = searchParams.token || "";
   // Chỉ KIỂM TRA (không tiêu thụ) khi render — token chỉ bị dùng khi gửi form.

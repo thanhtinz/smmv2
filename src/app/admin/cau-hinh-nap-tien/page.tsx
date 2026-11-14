@@ -67,7 +67,8 @@ function PurposeTicks({ walletKey, walletOn, directKey, directOn, walletDesc, di
 const fmtRate = (v: number) => (v > 0 ? v.toLocaleString("vi-VN") : "—");
 
 /** Cấu hình các phương thức nạp tiền của web mẹ: SePay (chỉ ngân hàng — MoMo đã bỏ hẳn 2026-11-10), USDT, PayPal, Stripe. */
-export default async function AdminMethodConfig({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function AdminMethodConfig( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();

@@ -11,7 +11,9 @@ import { requireModuleOn } from "@/lib/modules";
 
 export const dynamic = "force-dynamic";
 
-export default async function TicketDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
+export default async function TicketDetail( { params: paramsPromise, searchParams: searchParamsPromise }: { params: Promise<{ id: string }>; searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const params = await paramsPromise;
+  const searchParams = await searchParamsPromise;
   await requireModuleOn("tickets");
   const user = await getCurrentUser();
   if (!user) redirect("/login");

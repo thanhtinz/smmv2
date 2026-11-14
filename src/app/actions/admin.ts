@@ -31,7 +31,7 @@ const retTo = (formData: FormData) => {
 
 /* GĐ2: ghi audit bất biến cho thao tác nhạy cảm của admin web mẹ */
 async function auditAdmin(actor: { id: number; username: string; role: string }, action: string, targetType: string, targetId: string | number, detail?: string) {
-  await writeAudit({ actorId: actor.id, actorName: actor.username, role: actor.role, action, targetType, targetId, detail: detail ?? null, ip: currentIp() });
+  await writeAudit({ actorId: actor.id, actorName: actor.username, role: actor.role, action, targetType, targetId, detail: detail ?? null, ip: await currentIp() });
 }
 
 /* ---------- Người dùng ---------- */

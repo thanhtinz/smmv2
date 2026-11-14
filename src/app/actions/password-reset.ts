@@ -16,7 +16,7 @@ const GENERIC_OK = "Nếu email này có trong hệ thống, chúng tôi đã g�
  *  không có tài khoản, bị chặn spam hay không) — không lộ thông tin tồn tại. */
 export async function forgotPasswordAction(formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
-  const ip = clientIp(headers());
+  const ip = clientIp((await headers()));
   // Giới hạn phát hành token bằng chính rate-limit.ts của hệ thống (theo IP +
   // theo email); vượt hạn thì bỏ qua lặng lẽ, câu trả lời không thay đổi.
   const overIp = rateLimitExceeded(`pwreset-ip|${ip}`, 10, 3600000);
@@ -33,7 +33,7 @@ export async function resetPasswordAction(formData: FormData) {
   const token = String(formData.get("token") || "");
   const password = String(formData.get("password") || "");
   const confirm = String(formData.get("confirmPassword") || "");
-  const ip = clientIp(headers());
+  const ip = clientIp((await headers()));
   const self = (key: "msg" | "err", text: string): never =>
     redirect(`/reset-password?token=${encodeURIComponent(token)}&${key}=${encodeURIComponent(text)}`);
   if (rateLimitExceeded(`pwreset-confirm|${ip}`, 10, 5 * 60 * 1000))

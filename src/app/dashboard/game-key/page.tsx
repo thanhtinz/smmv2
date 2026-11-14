@@ -16,9 +16,8 @@ export const dynamic = "force-dynamic";
  *  rất nhiều game nên PHÂN TRANG phía máy chủ, bộ lọc đi qua query. Nền
  *  tảng/vùng là dữ liệu thật phía FZR đã đồng bộ (providerPlatform/
  *  providerRegion) — danh sách lọc lấy từ chính các giá trị đang có. */
-export default async function GameKeyCatalogPage({ searchParams }: {
-  searchParams: { q?: string; platform?: string; region?: string; page?: string; fav?: string; ids?: string };
-}) {
+export default async function GameKeyCatalogPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; platform?: string; region?: string; page?: string; fav?: string; ids?: string }>; }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await catalogPageSize();
   await getCurrentUser();
   const { L } = await getServerI18n();

@@ -14,10 +14,10 @@ export const dynamic = "force-dynamic";
  *  / note_product của NCC + thẻ NOTE là info của category; phải: tóm tắt
  *  đơn dính, trường replenishment nằm trong tóm tắt). Dịch vụ không còn
  *  gói nào đang bán -> trạng thái tạm không khả dụng, không đặt được. */
-export default async function ManualDetailPage({ params, searchParams }: {
-  params: { id: string };
-  searchParams: { msg?: string; err?: string };
-}) {
+export default async function ManualDetailPage( { params: paramsPromise, searchParams: searchParamsPromise }: { params: Promise<{ id: string }>;
+  searchParams: Promise<{ msg?: string; err?: string }>; }) {
+  const params = await paramsPromise;
+  const searchParams = await searchParamsPromise;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();

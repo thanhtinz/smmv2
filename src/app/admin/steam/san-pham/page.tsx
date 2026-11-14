@@ -18,7 +18,8 @@ const RT = "/admin/steam/san-pham";
  *  form nhà cung cấp — Admin → Nhà cung cấp).
  *  Sửa ở đây ghi vào đúng PremiumProduct/PremiumVariant trang khách đọc. */
 
-export default async function AdminSteamProducts({ searchParams }: { searchParams: { msg?: string; err?: string; tpage?: string; gpage?: string; gq?: string } }) {
+export default async function AdminSteamProducts( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; tpage?: string; gpage?: string; gq?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await adminProductPageSize();
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);

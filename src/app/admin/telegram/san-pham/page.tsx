@@ -20,7 +20,8 @@ const RT = "/admin/telegram/san-pham";
  *  form thêm gói nằm ở ĐẦU mỗi tab; thẻ đồng bộ & markup phủ cả 2 nhóm nên
  *  ở ngoài, phía trên tab. */
 
-export default async function AdminTelegramProducts({ searchParams }: { searchParams: { msg?: string; err?: string; spage?: string; ppage?: string; tab?: string } }) {
+export default async function AdminTelegramProducts( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; spage?: string; ppage?: string; tab?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await adminProductPageSize();
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);

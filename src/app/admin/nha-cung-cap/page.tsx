@@ -11,7 +11,8 @@ import { adminFzrAssignmentAction, adminTelegramTestAction, adminFzrWebhookTestA
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminProviders({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
+export default async function AdminProviders( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const [providers, totalProducts, enabledProducts] = await Promise.all([

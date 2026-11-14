@@ -13,9 +13,8 @@ export const dynamic = "force-dynamic";
 
 /** Lịch sử đơn Telegram của khách: thẻ thống kê + bộ lọc (tìm kiếm / loại /
  *  trạng thái / khoảng ngày) + bảng đơn, phân trang như các trang lịch sử khác. */
-export default async function TelegramHistoryPage({ searchParams }: {
-  searchParams: { q?: string; type?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string };
-}) {
+export default async function TelegramHistoryPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; type?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string }>; }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await historyPageSize();
   const user = await getCurrentUser();
   if (!user) redirect("/login");

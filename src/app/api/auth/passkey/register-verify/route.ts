@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
   const saved = await readChallenge(req, "pk-reg");
   if (!saved || saved.uid !== user.id) {
-    clearChallenge();
+    await clearChallenge();
     return NextResponse.json(
       { ok: false, error: "Phiên đăng ký passkey đã hết hạn, vui lòng thử lại" },
       { status: 400 },
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   } catch {
     verified = false;
   }
-  clearChallenge();
+  await clearChallenge();
   if (!verified || !registrationInfo) {
     return NextResponse.json({ ok: false, error: "Không xác minh được passkey, vui lòng thử lại" }, { status: 400 });
   }

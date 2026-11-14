@@ -5,8 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 /* Phục vụ ảnh từ MediaAsset (DB). Mặc định trả BẢN ĐÃ ĐÓNG DẤU (nếu có) —
    mặt công khai không bao giờ nhận bản gốc của ảnh sản phẩm/banner.
    Bản gốc (?o=1) chỉ trả cho ADMIN đã đăng nhập. */
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const id = Number((await params).id);
   if (!Number.isInteger(id) || id <= 0) return new NextResponse("Not found", { status: 404 });
   const row = await prisma.mediaAsset.findUnique({ where: { id } }).catch(() => null);
   if (!row) return new NextResponse("Not found", { status: 404 });

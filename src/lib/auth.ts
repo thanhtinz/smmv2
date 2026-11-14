@@ -26,9 +26,9 @@ export const SESSION_COOKIE = "smmv2_session";
  *  host demo dạng <tên>.vercel.app, miền suy ra chính là host đó nên
  *  hành vi tương đương cookie theo host như trước. */
 const COOKIE_SUB_PREFIXES = ["api", "admin", "webhook", "dashboard", "doc", "www"];
-export function sharedCookieDomain(): string | undefined {
+export async function sharedCookieDomain(): Promise<string | undefined> {
   try {
-    const host = (headers().get("host") || "").split(":")[0].toLowerCase();
+    const host = ((await headers()).get("host") || "").split(":")[0].toLowerCase();
     if (!host || host === "localhost" || /^[\d.]+$/.test(host)) return undefined;
     const parts = host.split(".");
     if (parts.length < 2) return undefined;
@@ -80,8 +80,8 @@ export async function createSession(user: SessionUser) {
     let ip = "?";
     let ua = "";
     try {
-      ip = clientIp(headers());
-      ua = headers().get("user-agent") || "";
+      ip = clientIp(await headers());
+      ua = (await headers()).get("user-agent") || "";
     } catch { /* ngoài request context */ }
     await prisma.userSession.create({
       data: {
@@ -107,8 +107,8 @@ export async function createSession(user: SessionUser) {
     .setIssuedAt()
     .setExpirationTime(`${days}d`)
     .sign((await getSessionSecrets()).current);
-  const sessionDomain = sharedCookieDomain();
-  cookies().set(SESSION_COOKIE, token, {
+  const sessionDomain = (await sharedCookieDomain());
+  (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
@@ -126,15 +126,15 @@ export async function destroySession() {
   } catch { /* bỏ qua lỗi thu hồi khi đăng xuất */ }
   // Xoá cookie phải kèm ĐÚNG miền đã đặt (đợt 127): cookie đặt trên
   // ".<miền gốc>" mà xoá không kèm miền thì trình duyệt không gỡ.
-  const domain = sharedCookieDomain();
+  const domain = (await sharedCookieDomain());
   if (domain) {
-    cookies().delete({ name: SESSION_COOKIE, path: "/", domain });
-    cookies().delete({ name: PENDING_2FA_COOKIE, path: "/", domain });
-    cookies().delete({ name: STEPUP_COOKIE, path: "/", domain });
+    (await cookies()).delete({ name: SESSION_COOKIE, path: "/", domain });
+    (await cookies()).delete({ name: PENDING_2FA_COOKIE, path: "/", domain });
+    (await cookies()).delete({ name: STEPUP_COOKIE, path: "/", domain });
   } else {
-    cookies().delete(SESSION_COOKIE);
-    cookies().delete(PENDING_2FA_COOKIE);
-    cookies().delete(STEPUP_COOKIE);
+    (await cookies()).delete(SESSION_COOKIE);
+    (await cookies()).delete(PENDING_2FA_COOKIE);
+    (await cookies()).delete(STEPUP_COOKIE);
   }
 }
 
@@ -147,8 +147,8 @@ export async function createStepUp(userId: number) {
     .setIssuedAt()
     .setExpirationTime("10m")
     .sign(secret);
-  const stepupDomain = sharedCookieDomain();
-  cookies().set(STEPUP_COOKIE, token, {
+  const stepupDomain = (await sharedCookieDomain());
+  (await cookies()).set(STEPUP_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
@@ -159,7 +159,7 @@ export async function createStepUp(userId: number) {
 }
 
 export async function hasStepUp(userId: number): Promise<boolean> {
-  const token = cookies().get(STEPUP_COOKIE)?.value;
+  const token = (await cookies()).get(STEPUP_COOKIE)?.value;
   if (!token) return false;
   try {
     const { payload } = await jwtVerify(token, secret);
@@ -186,8 +186,8 @@ export async function createPending2fa(user: { id: number; username: string }) {
     .setIssuedAt()
     .setExpirationTime("5m")
     .sign(secret);
-  const pendingDomain = sharedCookieDomain();
-  cookies().set(PENDING_2FA_COOKIE, token, {
+  const pendingDomain = (await sharedCookieDomain());
+  (await cookies()).set(PENDING_2FA_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
@@ -198,7 +198,7 @@ export async function createPending2fa(user: { id: number; username: string }) {
 }
 
 export async function getPending2fa(): Promise<{ id: number; username: string } | null> {
-  const token = cookies().get(PENDING_2FA_COOKIE)?.value;
+  const token = (await cookies()).get(PENDING_2FA_COOKIE)?.value;
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret);
@@ -209,16 +209,16 @@ export async function getPending2fa(): Promise<{ id: number; username: string } 
   }
 }
 
-export function clearPending2fa() {
-  cookies().delete(PENDING_2FA_COOKIE);
+export async function clearPending2fa() {
+  (await cookies()).delete(PENDING_2FA_COOKIE);
 }
 
 /* ---------- Bảo mật Enterprise GĐ1: whitelist IP + bắt buộc 2FA cho khu quản trị ---------- */
 
 /** IP hiện tại của request (qua proxy tin cậy) — chỉ dùng trong request context */
-export function currentIp(): string {
+export async function currentIp(): Promise<string> {
   try {
-    return clientIp(headers());
+    return clientIp(await headers());
   } catch {
     return "?";
   }
@@ -229,7 +229,7 @@ export function currentIp(): string {
 export async function adminIpBlocked(): Promise<{ blocked: boolean; ip: string; list: string[] }> {
   const s = await getSettings().catch(() => null);
   const list = (s?.admin_ip_whitelist || "").split(/[\n,]+/).map((x) => x.trim()).filter(Boolean);
-  const ip = currentIp();
+  const ip = await currentIp();
   if (!list.length) return { blocked: false, ip, list };
   return { blocked: !list.includes(ip), ip, list };
 }
@@ -257,7 +257,7 @@ export async function enforceAdminSecurity(user: { role: string; totpEnabled: bo
 }
 
 export async function getSession(): Promise<SessionUser | null> {
-  const token = cookies().get(SESSION_COOKIE)?.value;
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   // GĐ3: verify bằng khoá hiện hành trước, không khớp thì thử khoá cũ (còn hạn 7 ngày sau xoay vòng)
   const { current, prev } = await getSessionSecrets();

@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 
 const RT = "/admin/premium";
 
-export default async function AdminPremiumProducts({ searchParams }: { searchParams: { q?: string; cat?: string; status?: string; page?: string; msg?: string; err?: string } }) {
+export default async function AdminPremiumProducts( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; cat?: string; status?: string; page?: string; msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await adminProductPageSize();
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);

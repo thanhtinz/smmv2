@@ -11,9 +11,8 @@ export const dynamic = "force-dynamic";
 
 const STATUS_OPTS: [string, string][] = [["", "Tất cả"], ["PENDING", "Chờ xử lý"], ["APPROVED", "Đã hoàn thành"], ["REJECTED", "Đã từ chối"]];
 
-export default async function AdminDeposits({ searchParams }: {
-  searchParams: { msg?: string; err?: string; q?: string; status?: string; method?: string; from?: string; to?: string; sort?: string; dir?: string; page?: string };
-}) {
+export default async function AdminDeposits( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; q?: string; status?: string; method?: string; from?: string; to?: string; sort?: string; dir?: string; page?: string }>; }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await adminListPageSize();
   await requireAdminPage();
   const { L, Ld, M } = await getServerI18n(null);

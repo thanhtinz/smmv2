@@ -8,11 +8,12 @@ import { RegisterForm } from "@/components/register-form";
 import { authCardCls, authSwitchCardCls } from "@/lib/auth-ui";
 import { getServerI18n } from "@/lib/lang-server";
 
-export default async function RegisterPage({ searchParams }: { searchParams: { msg?: string; err?: string; ref?: string; aff?: string } }) {
+export default async function RegisterPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; ref?: string; aff?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const { cookies } = await import("next/headers");
   const { AFF_COOKIE_REF } = await import("@/lib/affiliate");
   // ?ref= / ?aff= trên URL thắng; không có thì dùng cookie first-touch aff_ref.
-  const ref = (searchParams.ref || searchParams.aff || cookies().get(AFF_COOKIE_REF)?.value || "").trim().toUpperCase();
+  const ref = (searchParams.ref || searchParams.aff || (await cookies()).get(AFF_COOKIE_REF)?.value || "").trim().toUpperCase();
   const referrer = ref ? await prisma.user.findUnique({ where: { refCode: ref }, select: { username: true } }) : null;
   const settings = await getSettings().catch(() => null);
   // Công tắc module Đăng ký (đợt 126): tắt thì trang đăng ký bị chặn ở

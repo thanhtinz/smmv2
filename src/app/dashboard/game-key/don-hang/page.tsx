@@ -14,9 +14,8 @@ export const dynamic = "force-dynamic";
  *  (thẻ header gradient -> 4 thẻ thống kê -> thẻ lọc có nhãn -> thẻ đơn ->
  *  phân trang) nhưng CHỈ đơn thuộc nhóm gamekeys: khu Game Key tách riêng,
  *  đơn của nó không lẫn vào Đơn Premium thường (lib/order-scope). */
-export default async function GameKeyHistoryPage({ searchParams }: {
-  searchParams: { q?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string };
-}) {
+export default async function GameKeyHistoryPage( { searchParams: searchParamsPromise }: { searchParams: Promise<{ q?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string }>; }) {
+  const searchParams = await searchParamsPromise;
   const PAGE_SIZE = await historyPageSize();
   const user = await getCurrentUser();
   if (!user) redirect("/login");

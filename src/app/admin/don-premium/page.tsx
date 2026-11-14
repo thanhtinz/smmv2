@@ -7,7 +7,8 @@ import { regularPremiumWhere } from "@/lib/order-scope";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPremiumOrders({ searchParams }: { searchParams: { status?: string; q?: string; msg?: string; err?: string } }) {
+export default async function AdminPremiumOrders( { searchParams: searchParamsPromise }: { searchParams: Promise<{ status?: string; q?: string; msg?: string; err?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const { L, Ld, M } = await getServerI18n(null);
   // Hàng đợi này chỉ chứa đơn Premium THƯỜNG (tách khu): đơn Telegram/Steam
   // xử lý ở khu admin riêng của chúng. Chỉ lọc DANH SÁCH — trang chi tiết

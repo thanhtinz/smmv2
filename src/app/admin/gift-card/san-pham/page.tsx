@@ -17,7 +17,8 @@ const RT = "/admin/gift-card/san-pham";
  *  phía FZR tại lần đồng bộ gần nhất). Mệnh giá admin tự thêm mang dấu
  *  CUSTOM — đồng bộ không ghi đè giá và không tắt. KHÔNG trang cấu hình
  *  riêng: tỉ giá + mọi markup đều ở form nhà cung cấp (Admin → Nhà cung cấp). */
-export default async function AdminGiftCardProducts({ searchParams }: { searchParams: { msg?: string; err?: string; q?: string; page?: string } }) {
+export default async function AdminGiftCardProducts( { searchParams: searchParamsPromise }: { searchParams: Promise<{ msg?: string; err?: string; q?: string; page?: string }> }) {
+  const searchParams = await searchParamsPromise;
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const q = (searchParams.q || "").trim();
