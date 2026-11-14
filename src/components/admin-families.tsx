@@ -117,7 +117,7 @@ export function AreaSyncCard({ provider, groups, returnTo }: {
         </span>
       </div>
       <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
-        Đồng bộ chỉ kéo các nhóm của khu này ({groups.map((g) => FZR_GROUP_LABELS[g] || g).join(", ")}) — catalog của khu khác không bị đụng. Markup chung và markup theo từng nhóm được cấu hình tại Admin → Nhà cung cấp, cùng chỗ với API key và tỉ giá.
+        Chỉ đồng bộ các nhóm của khu này ({groups.map((g) => FZR_GROUP_LABELS[g] || g).join(", ")}) — markup và tỉ giá cấu hình tại Admin → Nhà cung cấp.
       </p>
       <div className="mt-3.5">
         <form action={famSyncArea}>

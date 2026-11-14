@@ -28,7 +28,6 @@ export default async function AdminGameKeyProducts( { searchParams: searchParams
     <div>
       <PageHead
         title={L("Sản phẩm Game Key")}
-        desc={L("Mỗi game là một sản phẩm theo Game ID của FazerCards; các phiên bản (edition) là các key bán của game đó. Sửa giá/tên/bật tắt tại đây áp dụng ngay cho trang Mua game.")}
       />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
@@ -43,7 +42,7 @@ export default async function AdminGameKeyProducts( { searchParams: searchParams
         <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
           <span className="text-brand-600">{I.key}</span>
           <h2 className="text-[15px] font-bold text-slate-800">Game Key</h2>
-          <span className="text-xs text-slate-400">Nền tảng / vùng / AppID lấy từ FazerCards khi đồng bộ, admin sửa tay được</span>
+          
         </div>
         <GameKeyAddForm returnTo={RT} platformOptions={platformOptions} regionOptions={regionOptions} />
         <BulkAddPanel group="gamekeys" returnTo={RT} />
@@ -119,7 +118,7 @@ export default async function AdminGameKeyProducts( { searchParams: searchParams
       </section>
 
       <p className="px-1 text-xs leading-relaxed text-slate-400">
-        Quyền sở hữu khi đồng bộ FZR: gói do đồng bộ tạo có thể bị ghi đè giá (khi nhà cung cấp bật Tự cập nhật giá), ghi đè tên/ảnh (khi bật Đồng bộ nội dung) và được bật lại nếu FZR còn bán; gói gắn nhãn “Tự thêm” do admin tạo thì đồng bộ không đụng vào. Nền tảng/vùng/AppID admin đã sửa tay ở form lưu game cũng được giữ nguyên qua các đợt đồng bộ. Tồn kho hiển thị là số phía FZR tại lần đồng bộ gần nhất — khi đặt đơn FZR kiểm tra tồn kho thật và trả lỗi dứt khoát nếu hết, đơn sẽ được hoàn tiền tự động.
+        Gói gắn nhãn “Tự thêm” và các trường admin đã sửa tay không bị đồng bộ ghi đè.
       </p>
     </div>
   );

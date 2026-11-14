@@ -44,7 +44,7 @@ export default async function AdminTelegramProducts( { searchParams: searchParam
       <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
         <span className="text-amber-500">{I.star}</span>
         <h2 className="text-[15px] font-bold text-slate-800">Gói Stars</h2>
-        <span className="text-xs text-slate-400">Mua sao Telegram theo số lượng — giá mỗi sao chốt tươi theo báo giá FZR tại lúc mua</span>
+        <span className="text-xs text-slate-400">Giá mỗi sao chốt theo báo giá FZR tại lúc mua</span>
         {(stars?.product ?? starsPackages[0]?.product) && (
           <span className="ml-auto shrink-0">
             <ProductSyncButton productId={(stars?.product ?? starsPackages[0]?.product)!.id} bound={!!(stars?.product ?? starsPackages[0]?.product)!.providerProductId} returnTo={rtStars} className="" />
@@ -79,10 +79,7 @@ export default async function AdminTelegramProducts( { searchParams: searchParam
       )}
       <div className="border-t border-slate-100 px-5 pb-1 pt-4">
         <h3 className="text-sm font-bold text-slate-800">Danh sách gói sao</h3>
-        <p className="mt-1 text-xs leading-relaxed text-slate-400">
-          Đây là các gói khách chọn trong mục “Chọn gói sao” của trang đặt đơn. Giá tính tiền thật của mỗi gói vẫn chốt theo
-          báo giá FZR tại lúc mua (giá mỗi sao × số sao của gói) — giá ghi ở từng gói dưới đây chỉ là giá hiển thị.
-        </p>
+        <p className="mt-1 text-xs leading-relaxed text-slate-400">Giá ghi ở từng gói chỉ là giá hiển thị — giá tính tiền chốt theo báo giá FZR tại lúc mua.</p>
       </div>
       {starsPackages.length ? (
         <>
@@ -104,7 +101,7 @@ export default async function AdminTelegramProducts( { searchParams: searchParam
       <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
         <span className="text-brand-600">{I.gem}</span>
         <h2 className="text-[15px] font-bold text-slate-800">Gói Premium</h2>
-        <span className="text-xs text-slate-400">Các gói theo tháng — giá bán sửa ở đây là giá trang khách tính tiền</span>
+        
         {premium[0]?.product && (
           <span className="ml-auto shrink-0">
             <ProductSyncButton productId={premium[0].product.id} bound={!!premium[0].product.providerProductId} returnTo={rtPremium} className="" />
@@ -132,7 +129,6 @@ export default async function AdminTelegramProducts( { searchParams: searchParam
     <div>
       <PageHead
         title={L("Sản phẩm Telegram")}
-        desc={L("Hai họ gói Telegram theo nhà cung cấp: Stars và Premium. Sửa giá/tên/bật tắt tại đây áp dụng ngay cho trang đặt đơn Telegram.")}
       />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 

@@ -37,7 +37,7 @@ export default async function AdminTelegramOrderDetail( { params: paramsPromise,
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHead title={`${L("Đơn Telegram")} ${o.code}`} desc={L("Chi tiết đơn và trạng thái phía nhà cung cấp.")} />
+      <PageHead title={`${L("Đơn Telegram")} ${o.code}`} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <div className="card p-5">
         <Row k={L("Khách hàng")}>{o.user.username} · {o.user.email}</Row>

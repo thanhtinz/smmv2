@@ -30,7 +30,6 @@ export default async function AdminManualProducts( { searchParams: searchParamsP
     <div>
       <PageHead
         title={L("Sản phẩm Manual Services")}
-        desc={L("Mỗi dịch vụ thủ công là một sản phẩm theo Service ID của FazerCards; các gói là các offer của dịch vụ đó. Trường người mua chỉ có ở dịch vụ replenishment — sửa nhãn hiển thị tại đây, key gửi đơn giữ nguyên.")}
       />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 

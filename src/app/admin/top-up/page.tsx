@@ -19,7 +19,7 @@ export default async function AdminTopupOrders( { searchParams: searchParamsProm
   const orders = await prisma.premiumOrder.findMany({ where, orderBy: { id: "desc" }, take: 50, include: { variant: { include: { product: true } }, user: true } });
   return (
     <div>
-      <PageHead title={L("Đơn hàng Top-Up")} desc={L("Đơn Chờ giao = khách đã trả tiền, cần xử lý. Đơn Bảo hành = khách báo lỗi, cần đổi/hoàn.")} />
+      <PageHead title={L("Đơn hàng Top-Up")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form className="flex flex-wrap gap-2 mb-5">
         <input className="inp min-w-[220px] flex-1" name="q" placeholder={L("Mã đơn / username...")} defaultValue={searchParams.q || ""} />

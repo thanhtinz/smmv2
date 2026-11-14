@@ -116,6 +116,23 @@ async function main() {
   await evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((x) => x.innerText.trim() === 'Đóng'); if (b) b.click(); return true; })()`);
   await sleep(800);
 
+  // P3: ra cac khu FZR (san pham + don hang) — render + tach nguon (khong Thatim)
+  const areas = [
+    ["game-key", "game key"], ["gift-card", "gift card"], ["top-up", "top-up"],
+    ["steam", "steam"], ["telegram", "telegram"], ["manual-services", "thủ công"],
+  ];
+  for (const [slug, kw] of areas) {
+    await navigate(`${BASE}/admin/${slug}/san-pham`, 3000);
+    t = (await bodyText()).toLowerCase();
+    ok(t.includes(kw) && !t.includes("application error"), `R9-${slug}: trang sản phẩm khu render`);
+    ok(!t.includes("thatim"), `R10-${slug}: khu FZR không lẫn nguồn ThaTim`);
+    await shot(`2026-11-14-rebuild-p3-${slug}-products`);
+    await navigate(`${BASE}/admin/${slug}`, 3000);
+    t = (await bodyText()).toLowerCase();
+    ok(!t.includes("application error") && (t.includes("đơn") || t.includes(kw)), `R11-${slug}: trang đơn hàng khu render`);
+  }
+  await shot("2026-11-14-rebuild-p3-orders-last");
+
   await navigate(`${BASE}/admin/cau-hinh`, 3000);
   const inpH = await evaluate(`(() => { const el = document.querySelector('.admin-scope input.inp, .admin-scope .inp'); return el ? Math.round(el.getBoundingClientRect().height) : 0; })()`);
   ok(inpH === 40, `R5: ô nhập admin cao đúng 40px (đo=${inpH})`);

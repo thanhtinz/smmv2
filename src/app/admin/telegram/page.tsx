@@ -53,7 +53,7 @@ export default async function AdminTelegramOrdersPage( { searchParams: searchPar
   return (
     <div>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
-      <PageHead title={L("Đơn Telegram")} desc={L("Đơn Stars và Premium Telegram của toàn hệ thống.")} />
+      <PageHead title={L("Đơn Telegram")} />
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Stat icon={I.send} label={L("Đơn hôm nay")} value={String(todayCount)} />
         <Stat icon={I.check} label={L("Đã hoàn thành")} value={String(doneCount)} />

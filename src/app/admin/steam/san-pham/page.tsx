@@ -39,7 +39,6 @@ export default async function AdminSteamProducts( { searchParams: searchParamsPr
     <div>
       <PageHead
         title={L("Sản phẩm Steam")}
-        desc={L("Hai họ gói Steam theo nhà cung cấp: Top-Up theo mệnh giá và Game gift theo appid. Sửa giá/tên/bật tắt tại đây áp dụng ngay cho trang đặt hàng Steam.")}
       />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
@@ -55,7 +54,7 @@ export default async function AdminSteamProducts( { searchParams: searchParamsPr
         <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
           <span className="text-brand-600">{I.wallet}</span>
           <h2 className="text-[15px] font-bold text-slate-800">Gói Top-Up</h2>
-          <span className="text-xs text-slate-400">Mệnh giá USD cố định — giá bán sửa ở đây là giá trang khách tính tiền</span>
+          
           {topup[0]?.product && (
             <span className="ml-auto shrink-0">
               <ProductSyncButton productId={topup[0].product.id} bound={!!topup[0].product.providerProductId} returnTo={RT} className="" />
@@ -93,7 +92,7 @@ export default async function AdminSteamProducts( { searchParams: searchParamsPr
         <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
           <span className="text-brand-600">{I.gamepad}</span>
           <h2 className="text-[15px] font-bold text-slate-800">Game gift</h2>
-          <span className="text-xs text-slate-400">Mỗi game 1 sản phẩm theo App ID — giá bán chốt tươi theo offer rẻ nhất phía FZR tại lúc mua</span>
+          <span className="text-xs text-slate-400">Giá bán chốt theo offer rẻ nhất phía FZR tại lúc mua</span>
         </div>
         <SteamGiftAddForm returnTo={RT} />
         <BulkAddPanel group="steam_gift" returnTo={RT} />

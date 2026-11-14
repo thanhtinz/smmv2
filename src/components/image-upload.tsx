@@ -33,7 +33,7 @@ export function UploadButton({ onUploaded, stamp = true }: { onUploaded: (url: s
           }
         }}
       />
-      <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => ref.current?.click()}>
+      <button type="button" className="btn-ghost btn-sm whitespace-nowrap" disabled={busy} onClick={() => ref.current?.click()}>
         {busy ? t("Đang tải…") : t("Tải ảnh lên")}
       </button>
     </span>
@@ -112,7 +112,7 @@ export function ImageUpload({
             data-upload-input
             onChange={(e) => pick(e.target.files?.[0] || null)}
           />
-          <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => fileRef.current?.click()}>
+          <button type="button" className="btn-ghost btn-sm whitespace-nowrap" disabled={busy} onClick={() => fileRef.current?.click()}>
             {busy ? t("Đang tải…") : t("Tải ảnh lên")}
           </button>
           <input

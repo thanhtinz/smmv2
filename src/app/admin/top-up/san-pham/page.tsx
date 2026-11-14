@@ -30,7 +30,6 @@ export default async function AdminTopupProducts( { searchParams: searchParamsPr
     <div>
       <PageHead
         title={L("Sản phẩm Top-Up")}
-        desc={L("Mỗi danh mục nạp là một sản phẩm theo Category ID của FazerCards; các gói nạp là các offer của danh mục đó. Trường người mua do nhà cung cấp định nghĩa — sửa nhãn hiển thị tại đây, key gửi đơn giữ nguyên.")}
       />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
@@ -45,7 +44,7 @@ export default async function AdminTopupProducts( { searchParams: searchParamsPr
         <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
           <span className="text-brand-600">{I.money}</span>
           <h2 className="text-[15px] font-bold text-slate-800">Top-Up</h2>
-          <span className="text-xs text-slate-400">Danh mục / gói nạp / trường người mua lấy từ dữ liệu FazerCards khi đồng bộ</span>
+          
         </div>
         <TopupAddForm returnTo={RT} />
         <BulkAddPanel group="topups" returnTo={RT} />

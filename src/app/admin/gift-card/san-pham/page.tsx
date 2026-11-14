@@ -27,7 +27,6 @@ export default async function AdminGiftCardProducts( { searchParams: searchParam
     <div>
       <PageHead
         title={L("Sản phẩm Gift Card")}
-        desc={L("Mỗi danh mục thẻ là một sản phẩm theo Category ID của FazerCards; các mệnh giá là các offer bán của danh mục đó. Sửa giá/tên/bật tắt tại đây áp dụng ngay cho trang Mua gift card.")}
       />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
@@ -42,7 +41,7 @@ export default async function AdminGiftCardProducts( { searchParams: searchParam
         <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
           <span className="text-brand-600">{I.gift}</span>
           <h2 className="text-[15px] font-bold text-slate-800">Gift Card</h2>
-          <span className="text-xs text-slate-400">Mệnh giá / tồn kho lấy từ dữ liệu FazerCards khi đồng bộ</span>
+          
         </div>
         <GiftCardAddForm returnTo={RT} />
         <BulkAddPanel group="giftcards" returnTo={RT} />
