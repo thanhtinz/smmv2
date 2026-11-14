@@ -12,6 +12,7 @@ import {
   providerBuyProduct, findPremiumOrderInHistory, extractDelivery,
 } from "./provider";
 import { executeFzrPremiumOrder, pollFzrPremiumOrder, refreshFzrQuotePrice, parseBuyerInfoLines } from "./fzr-orders";
+import { creditOrderRefund, refundableOf } from "./refund-ledger";
 import { claimVariantStock, restoreVariantStock, variantSoldOut, OUT_OF_STOCK_ERROR, notifyStockCrossing } from "./variant-stock";
 import { passDiscountFor, creditPassCashback, clawbackPassCashback } from "./pass";
 import { sendCustomerMail } from "./customer-mail";
@@ -359,13 +360,17 @@ export async function runPremiumApiFulfillment(args: {
   }
   if (codes.length === 0) {
     // Provider từ chối toàn bộ -> hoàn tiền đủ + trả kho số lượng đã trừ
+    let credited = 0;
     await prisma.$transaction(async (tx) => {
       await restoreVariantStock(tx, variant.id, quantity);
-      await applyBalance(tx, user.id, total, "REFUND", order.code, "Nhà cung cấp từ chối đơn premium — hoàn tiền");
+      credited = await creditOrderRefund(tx, order, total, {
+        reason: "Nhà cung cấp từ chối đơn premium — hoàn tiền",
+        units: quantity,
+      });
       await tx.premiumOrder.update({ where: { id: order.id }, data: { status: "REFUNDED" } });
     });
-    await clawbackReferralCommission(user.id, total, order.code);
-    await clawbackPassCashback(user.id, total, order.code);
+    await clawbackReferralCommission(user.id, credited, order.code);
+    await clawbackPassCashback(user.id, credited, order.code);
     void sendCustomerMail(user.id, "order_refunded", {
       order_code: order.code, product_name: variant.product.name,
       refund_amount: vnd(total), balance: await balanceText(user.id),
@@ -374,12 +379,16 @@ export async function runPremiumApiFulfillment(args: {
   }
   if (failed > 0) {
     const refundAmt = Math.floor((total * failed) / quantity);
+    let credited = 0;
     await prisma.$transaction(async (tx) => {
       await restoreVariantStock(tx, variant.id, failed);
-      await applyBalance(tx, user.id, refundAmt, "REFUND", order.code, `Hoàn ${failed} đơn vị provider không nhận`);
+      credited = await creditOrderRefund(tx, order, refundAmt, {
+        reason: `Hoàn ${failed} đơn vị provider không nhận`,
+        units: failed,
+      });
     });
-    await clawbackReferralCommission(user.id, refundAmt, order.code);
-    await clawbackPassCashback(user.id, refundAmt, order.code);
+    await clawbackReferralCommission(user.id, credited, order.code);
+    await clawbackPassCashback(user.id, credited, order.code);
     void sendCustomerMail(user.id, "order_refunded", {
       order_code: order.code, product_name: variant.product.name,
       refund_amount: vnd(refundAmt), balance: await balanceText(user.id),
@@ -560,6 +569,7 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
     // Claim REFUNDED trong transaction trước khi cộng tiền — đồng bộ chạy trùng
     // với admin bấm huỷ tay thì chỉ một đường hoàn được tiền.
     let claimed = false;
+    let syncCredited = 0;
     await prisma.$transaction(async (tx) => {
       const claim = await tx.premiumOrder.updateMany({
         where: { id: order.id, status: { in: ["PENDING", "PARTIAL", "DELIVERED", "COMPLETED", "WARRANTY"] } },
@@ -567,16 +577,21 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
       });
       if (claim.count === 0) return;
       claimed = true;
-      // Đơn chưa giao (PENDING) bị huỷ -> trả kho số lượng đã trừ khi đặt
-      if (order.status === "PENDING") await restoreVariantStock(tx, order.variantId, order.quantity);
-      await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Nhà cung cấp huỷ đơn premium — hoàn tiền");
+      // Đơn chưa giao (PENDING) bị huỷ -> trả kho phần đơn vị chưa hoàn/trả;
+      // tiền qua sổ hoàn (P2-01): chỉ hoàn phần net chưa hoàn trước đó.
+      const remainingUnits = order.status === "PENDING" ? Math.max(0, order.quantity - (order.refundedUnits || 0)) : 0;
+      if (remainingUnits > 0) await restoreVariantStock(tx, order.variantId, remainingUnits);
+      syncCredited = await creditOrderRefund(tx, order, refundableOf(order), {
+        reason: "Nhà cung cấp huỷ đơn premium — hoàn tiền",
+        units: remainingUnits,
+      });
     });
-    if (claimed) {
-      await clawbackReferralCommission(order.userId, order.total, order.code);
-      await clawbackPassCashback(order.userId, order.total, order.code);
+    if (claimed && syncCredited > 0) {
+      await clawbackReferralCommission(order.userId, syncCredited, order.code);
+      await clawbackPassCashback(order.userId, syncCredited, order.code);
       void sendCustomerMail(order.userId, "order_refunded", {
         order_code: order.code, product_name: variant?.product.name || "",
-        refund_amount: vnd(order.total), balance: await balanceText(order.userId),
+        refund_amount: vnd(syncCredited), balance: await balanceText(order.userId),
       });
     }
   }

@@ -455,6 +455,11 @@ model PremiumOrder {
   promoCode     String?            @db.VarChar(40)
   promoDiscount Int                @default(0)
   passDiscount  Int                @default(0) // giảm thêm của Pass — áp SAU flash + mã giảm giá (lib/pass.ts)
+  // Sổ hoàn tiền của đơn (full-audit 3d1309c P2-01): tổng đã hoàn + số đơn vị
+  // đã hoàn/trả kho — MỌI đường hoàn (FZR thực thi/poll, NCC chuẩn, admin huỷ)
+  // ghi qua lib/refund-ledger để tổng REFUND của một đơn không bao giờ vượt total.
+  refundedAmount Int               @default(0)
+  refundedUnits  Int               @default(0)
   deliveryData  String?            @db.Text // nội dung đã giao (kho hoặc admin nhập)
   warrantyUntil DateTime?
   adminNote     String?            @db.Text

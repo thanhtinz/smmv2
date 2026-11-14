@@ -5,6 +5,7 @@ import { notifyUser } from "./notify";
 import { alertMother } from "./alerts";
 import { awardPointsForPremiumOrder } from "./points";
 import { restoreVariantStock } from "./variant-stock";
+import { creditOrderRefund, refundableOf } from "./refund-ledger";
 import {
   FzrError, FZR_LABELS,
   fzrUsdToVnd, fzrUsdCostVnd, fzrOrderStatus, fzrOrderIdOf, extractFzrDelivery, fzrDeliveryOrRaw,
@@ -45,6 +46,7 @@ export async function refundFzrPremiumOrder(
   reason: string
 ): Promise<boolean> {
   let claimed = false;
+  let credited = 0;
   await prisma.$transaction(async (tx) => {
     const claim = await tx.premiumOrder.updateMany({
       where: { id: order.id, status: { in: ["PENDING", "PARTIAL", "DELIVERED", "COMPLETED", "WARRANTY"] } },
@@ -52,15 +54,26 @@ export async function refundFzrPremiumOrder(
     });
     if (claim.count === 0) return;
     claimed = true;
-    // Đơn chưa giao (PENDING) bị hoàn/huỷ -> trả kho số lượng đã trừ khi đặt
-    if (order.status === "PENDING") await restoreVariantStock(tx, order.variantId, order.quantity);
-    await applyBalance(tx, order.userId, order.total, "REFUND", order.code, reason);
+    // Sổ hoàn (P2-01): đọc lại TRONG transaction rồi chỉ hoàn phần NET
+    // chưa hoàn — đơn từng hoàn một phần ở bước thực thi chỉ nhận nốt
+    // phần còn lại, tổng REFUND không bao giờ vượt total. Trả kho cũng
+    // chỉ trả số đơn vị chưa từng hoàn/trả trước đó.
+    const cur = await tx.premiumOrder.findUnique({ where: { id: order.id } });
+    if (!cur) return;
+    const remainingUnits = order.status === "PENDING"
+      ? Math.max(0, cur.quantity - (cur.refundedUnits || 0))
+      : 0;
+    if (remainingUnits > 0) await restoreVariantStock(tx, cur.variantId, remainingUnits);
+    credited = await creditOrderRefund(tx, cur, refundableOf(cur), {
+      reason,
+      units: remainingUnits,
+    });
   });
-  if (claimed) {
-    await clawbackReferralCommission(order.userId, order.total, order.code);
-    await clawbackPassCashback(order.userId, order.total, order.code);
+  if (claimed && credited > 0) {
+    await clawbackReferralCommission(order.userId, credited, order.code);
+    await clawbackPassCashback(order.userId, credited, order.code);
     await notifyUser(order.userId, "Đơn Premium đã được hoàn tiền", `Đơn ${order.code}: ${reason}`, "/dashboard/don-premium");
-    void mailOrderRefunded(order, order.total);
+    void mailOrderRefunded(order, credited);
   }
   return claimed;
 }
@@ -352,13 +365,21 @@ export async function executeFzrPremiumOrder(args: {
   if (firstError && succeeded < units) {
     const failedUnits = units - succeeded;
     const refundAmt = Math.floor((order.total * failedUnits) / units);
+    // Qua sổ hoàn (P2-01): ghi refundedAmount/refundedUnits cùng
+    // transaction cộng ví — các đường hoàn sau chỉ hoàn phần còn lại.
+    let credited = 0;
     await prisma.$transaction(async (tx) => {
       await restoreVariantStock(tx, order.variantId, failedUnits);
-      await applyBalance(tx, order.userId, refundAmt, "REFUND", order.code, `Hoàn ${failedUnits} lượt FZR không thực thi được`);
+      credited = await creditOrderRefund(tx, order, refundAmt, {
+        reason: `Hoàn ${failedUnits} lượt FZR không thực thi được`,
+        units: failedUnits,
+      });
     });
-    await clawbackReferralCommission(order.userId, refundAmt, order.code);
-    await clawbackPassCashback(order.userId, refundAmt, order.code);
-    void mailOrderRefunded(order, refundAmt);
+    if (credited > 0) {
+      await clawbackReferralCommission(order.userId, credited, order.code);
+      await clawbackPassCashback(order.userId, credited, order.code);
+      void mailOrderRefunded(order, credited);
+    }
   }
 
   const rawStored = units === 1 ? raws[0] : raws;

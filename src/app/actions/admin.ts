@@ -527,7 +527,11 @@ export async function adminPremiumOrderAction(formData: FormData) {
     if (order.status === "REFUNDED" || order.status === "CANCELED") back(path, "err", "Đơn đã kết thúc — không hoàn tiền thêm được");
     // Claim chuyển trạng thái sang REFUNDED TRƯỚC trong transaction: huỷ lần hai
     // (hoặc hai người cùng huỷ) sẽ claim trượt và không cộng tiền lần nữa.
+    // Số tiền hoàn qua SỔ HOÀN (full-audit P2-01): chỉ hoàn phần net chưa
+    // hoàn — đơn từng hoàn một phần (FZR nhiều lượt) không bị hoàn lại toàn bộ.
+    const { creditOrderRefund, refundableOf } = await import("@/lib/refund-ledger");
     let claimed = false;
+    let credited = 0;
     await prisma.$transaction(async (tx) => {
       const claim = await tx.premiumOrder.updateMany({
         where: { id, status: { in: ["PENDING", "PARTIAL", "DELIVERED", "COMPLETED", "WARRANTY"] } },
@@ -535,13 +539,20 @@ export async function adminPremiumOrderAction(formData: FormData) {
       });
       if (claim.count === 0) return;
       claimed = true;
-      // Đơn chưa giao (PENDING) bị huỷ -> trả kho số lượng đã trừ khi đặt
-      if (order.status === "PENDING") await restoreVariantStock(tx, order.variantId, order.quantity);
-      await applyBalance(tx, order.userId, order.total, "REFUND", order.code, "Admin huỷ đơn premium — hoàn tiền");
+      const cur = await tx.premiumOrder.findUnique({ where: { id } });
+      if (!cur) return;
+      const remainingUnits = order.status === "PENDING" ? Math.max(0, cur.quantity - (cur.refundedUnits || 0)) : 0;
+      if (remainingUnits > 0) await restoreVariantStock(tx, cur.variantId, remainingUnits);
+      credited = await creditOrderRefund(tx, cur, refundableOf(cur), {
+        reason: "Admin huỷ đơn premium — hoàn tiền",
+        units: remainingUnits,
+      });
     });
     if (!claimed) back(path, "err", "Đơn đã kết thúc — không hoàn tiền thêm được");
-    await clawbackReferralCommission(order.userId, order.total, order.code);
-    await clawbackPassCashback(order.userId, order.total, order.code);
+    if (credited > 0) {
+      await clawbackReferralCommission(order.userId, credited, order.code);
+      await clawbackPassCashback(order.userId, credited, order.code);
+    }
     // Đợt 119: mail hoàn tiền cho khách (admin huỷ đơn).
     {
       const { sendCustomerMail } = await import("@/lib/customer-mail");
@@ -549,7 +560,7 @@ export async function adminPremiumOrderAction(formData: FormData) {
       const u = await prisma.user.findUnique({ where: { id: order.userId }, select: { balance: true } }).catch(() => null);
       void sendCustomerMail(order.userId, "order_refunded", {
         order_code: order.code, product_name: order.variant.product.name,
-        refund_amount: vnd(order.total), balance: vnd(u?.balance ?? 0),
+        refund_amount: vnd(credited), balance: vnd(u?.balance ?? 0),
       });
     }
     done(path, "Đã huỷ đơn và hoàn tiền");
