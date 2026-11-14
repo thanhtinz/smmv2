@@ -257,6 +257,58 @@ export async function adminProviderCatalogSearch(providerId: number, q: string):
   }
 }
 
+/** Chu kỳ (gói) của ĐÚNG một sản phẩm trong catalog NCC chuẩn — form Gói
+ *  bán dùng để liệt kê các gói nguồn của sản phẩm đã gắn, khỏi đoán id. */
+export async function adminProviderProductCycles(providerId: number, providerProductId: string): Promise<
+  | { ok: true; name: string; currency: string; cycles: { cycle: number; label: string | null; priceRaw: number }[] }
+  | { ok: false; error: string }
+> {
+  await requireAdmin();
+  const provider = await prisma.provider.findUnique({ where: { id: providerId } });
+  if (!provider) return { ok: false, error: "Không tìm thấy nhà cung cấp" };
+  if (provider.driver === "FZR") return { ok: false, error: "Nhà cung cấp FZR không dùng chu kỳ kiểu này" };
+  const pid = String(providerProductId || "").trim();
+  if (!pid) return { ok: false, error: "Chưa gắn sản phẩm nguồn" };
+  try {
+    const raw = await providerProductCategoriesRaw(provider);
+    const products = normalizeProducts(raw);
+    const found = products.find((p) => p.providerProductId === pid);
+    if (!found) return { ok: false, error: "Sản phẩm nguồn không còn trong catalog của nhà cung cấp" };
+    return {
+      ok: true,
+      name: found.name,
+      currency: provider.currency,
+      cycles: found.variants.map((v) => ({ cycle: v.cycle, label: v.label ?? null, priceRaw: v.priceRaw })),
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Không gọi được nhà cung cấp" };
+  }
+}
+
+/** Gắn sản phẩm nguồn cho một sản phẩm Premium (bước 1 của khung "Tìm gói
+ *  từ nguồn" ở form Gói bán): sản phẩm chuyển sang đấu API qua NCC chuẩn
+ *  với đúng mã sản phẩm phía NCC; chu kỳ của từng gói chọn riêng sau đó. */
+export async function adminSetProductSource(productId: number, providerId: number, providerProductId: string): Promise<
+  | { ok: true }
+  | { ok: false; error: string }
+> {
+  await requireAdmin();
+  const pid = String(providerProductId || "").trim().slice(0, 50);
+  if (!productId || !providerId || !pid) return { ok: false, error: "Thiếu sản phẩm, nhà cung cấp hoặc mã sản phẩm nguồn" };
+  const [product, provider] = await Promise.all([
+    prisma.premiumProduct.findUnique({ where: { id: productId }, select: { id: true } }),
+    prisma.provider.findUnique({ where: { id: providerId }, select: { driver: true } }),
+  ]);
+  if (!product) return { ok: false, error: "Không tìm thấy sản phẩm" };
+  if (!provider) return { ok: false, error: "Không tìm thấy nhà cung cấp" };
+  if (provider.driver !== "STANDARD") return { ok: false, error: "Chỉ gắn được sản phẩm nguồn của nhà cung cấp chuẩn (kiểu ThaTim)" };
+  await prisma.premiumProduct.update({
+    where: { id: productId },
+    data: { fulfillment: "API", providerId, providerProductId: pid },
+  });
+  return { ok: true };
+}
+
 /* ---------- Premium ---------- */
 export async function adminSavePremiumCategory(formData: FormData) {
   await requireAdmin();
@@ -300,6 +352,24 @@ export async function adminSaveProduct(formData: FormData) {
   await requireAdmin();
   const rt = retTo(formData);
   const id = parseInt(String(formData.get("id") || "0"));
+  // Hình thức giao + ánh xạ nguồn (lệnh Tín 2026-11-13 tối): sản phẩm đấu
+  // qua NCC chuẩn kiểu ThaTim (driver STANDARD) KHÔNG chọn hình thức giao ở
+  // form sản phẩm — cứ gắn NCC chuẩn là sản phẩm đấu API, việc chọn sản
+  // phẩm/chu kỳ nguồn làm ở form Gói bán. Máy chủ tự ép ở đây (không tin
+  // field ẩn phía khách) và khi sửa mà không đổi NCC thì giữ nguyên
+  // providerProductId đã gắn từ bước gói.
+  const formProviderId = formData.get("providerId") ? parseInt(String(formData.get("providerId"))) || null : null;
+  const formProvider = formProviderId ? await prisma.provider.findUnique({ where: { id: formProviderId }, select: { driver: true } }) : null;
+  const isStandardSource = formProvider?.driver === "STANDARD" && !!formProviderId;
+  const effFulfillment = isStandardSource ? "API" : String(formData.get("fulfillment") || "MANUAL");
+  let effProviderProductId: string | null = null;
+  if (effFulfillment === "API") {
+    effProviderProductId = String(formData.get("providerProductId") || "") || null;
+    if (isStandardSource && !effProviderProductId && id) {
+      const cur = await prisma.premiumProduct.findUnique({ where: { id }, select: { providerId: true, providerProductId: true } });
+      if (cur?.providerId === formProviderId) effProviderProductId = cur.providerProductId;
+    }
+  }
   const data: any = {
     categoryId: parseInt(String(formData.get("categoryId"))),
     name: String(formData.get("name") || "").trim(),
@@ -307,9 +377,9 @@ export async function adminSaveProduct(formData: FormData) {
     tagline: String(formData.get("tagline") || "") || null,
     description: String(formData.get("description") || "") || null,
     color: String(formData.get("color") || "#3178fc"),
-    fulfillment: String(formData.get("fulfillment") || "MANUAL"),
-    providerId: String(formData.get("fulfillment")) === "API" && formData.get("providerId") ? parseInt(String(formData.get("providerId"))) : null,
-    providerProductId: String(formData.get("fulfillment")) === "API" ? String(formData.get("providerProductId") || "") || null : null,
+    fulfillment: effFulfillment,
+    providerId: effFulfillment === "API" ? formProviderId : null,
+    providerProductId: effProviderProductId,
     customFields: normalizePremiumFieldsJson(String(formData.get("customFields") || "")),
     buyNote: String(formData.get("buyNote") || "").trim().slice(0, 500) || null,
     images: (() => { const list = formData.getAll("images").map((v) => String(v).trim()).filter(Boolean).slice(0, 10); return list.length ? JSON.stringify(list) : null; })(),

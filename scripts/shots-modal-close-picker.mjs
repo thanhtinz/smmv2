@@ -4,9 +4,14 @@
  *  Các dòng kiểm chứng:
  *   T1 ProviderModal: sửa tên NCC -> Lưu -> popup ĐÓNG + tên mới hiện.
  *   T2 PremiumCategoryModal: thêm danh mục -> Lưu -> popup ĐÓNG + hiện ở bảng.
- *   T3 ProductModal + picker: giao=API -> chọn NCC -> tìm "netflix" trong
- *      catalog nguồn -> bấm chọn -> ID tự điền 101 + tên tự điền -> Lưu ->
- *      popup ĐÓNG + sản phẩm hiện ở danh sách. (2 ảnh chụp picker)
+ *   T3 ProductModal (luồng ThaTim mới, lệnh Tín 2026-11-13 tối): gắn NCC
+ *      STANDARD -> ô chọn hình thức giao BIẾN MẤT (tự ép API) + hiện ghi
+ *      chú chọn gói ở Gói bán + KHÔNG còn picker ở form sản phẩm -> Lưu ->
+ *      popup ĐÓNG + sản phẩm hiện ở danh sách.
+ *   T6 VariantsModal: khung "Tìm gói từ nguồn" -> tìm "netflix" -> chọn
+ *      Netflix (gắn sản phẩm nguồn 101) -> chu kỳ hiện -> bấm "1 Tháng" ->
+ *      form thêm gói tự điền tên/chu kỳ/giá -> Thêm gói -> popup ĐÓNG +
+ *      gói có trong modal. (2 ảnh chụp)
  *   T4 VariantsModal: thêm gói -> popup ĐÓNG; mở lại, xoá trắng tên gói ->
  *      Lưu -> popup GIỮ NGUYÊN + báo lỗi "Thiếu tên gói hoặc giá".
  *   T5 Editor Liên hệ: thêm liên hệ -> Lưu -> popup ĐÓNG + thẻ hiện.
@@ -137,42 +142,73 @@ async function main() {
   text = await bodyText();
   ok(text.includes("Danh Mục Kiểm Tra"), "T2: danh mục mới hiện trong bảng");
 
-  /* ---- T3: ProductModal + picker từ nguồn ---- */
+  /* ---- T3: ProductModal — gắn NCC ThaTim thì KHÔNG chọn hình thức giao ---- */
+  const suffix = String(Date.now()).slice(-6);
+  const testName = `Nguồn Test ${suffix}`;
   await navigate(`${BASE}/admin/premium`, 3000);
   await clickBtnText("+ Thêm sản phẩm mới");
   await sleep(900);
   ok(await modalOpen(), "T3: modal sản phẩm mở");
   await evaluate(`(() => { const s = [...document.querySelectorAll('summary')].find((x) => x.innerText.includes('Cài đặt nâng cao')); if (!s) throw new Error('không thấy khối nâng cao'); s.click(); return true; })()`);
   await sleep(500);
-  await setVal(byName("fulfillment"), "API");
-  await sleep(700);
-  text = await bodyText();
-  ok(text.includes("Chọn nhà cung cấp ở trên trước"), "T3: chưa chọn NCC thì picker hiện lời nhắc");
-  await setVal(byName("providerId"), "1");
-  await sleep(500);
-  ok(await evaluate(`!!document.querySelector('input[placeholder*="Tìm theo tên trong catalog"]')`), "T3: đã chọn NCC thì ô tìm từ nguồn hiện");
-  await setVal(`document.querySelector('input[placeholder*="Tìm theo tên trong catalog"]')`, "netflix");
-  await clickBtnText("Tìm");
-  await sleep(3000);
-  const pickListText = await evaluate(`(() => { const ov = [...document.querySelectorAll('div')].find((d) => (d.className || '').includes('backdrop-blur') && d.className.includes('fixed')); const list = ov ? [...ov.querySelectorAll('div')].find((d) => (d.className || '').includes('max-h-52')) : null; return list ? list.innerText : ''; })()`);
-  ok(pickListText.includes("Netflix Premium 4K"), "T3: kết quả tìm có Netflix Premium 4K từ nguồn");
-  ok(!pickListText.includes("Spotify Premium"), "T3: kết quả đã lọc đúng từ khoá (không có Spotify)");
-  await shot("2026-11-13-picker-results");
-  await evaluate(`(() => { const ov = [...document.querySelectorAll('div')].find((d) => (d.className || '').includes('backdrop-blur') && d.className.includes('fixed')); const b = ov ? [...ov.querySelectorAll('button')].find((x) => x.innerText.includes('Netflix Premium 4K')) : null; if (!b) throw new Error('không thấy dòng Netflix'); b.click(); return true; })()`);
-  await sleep(600);
-  ok((await evaluate(`document.querySelector('[name="providerProductId"]').value`)) === "101", "T3: mã NCC tự điền = 101");
-  ok((await evaluate(`document.querySelector('[name="name"]').value`)) === "Netflix Premium 4K", "T3: tên sản phẩm tự điền từ nguồn");
-  text = await bodyText();
-  ok(text.includes("Đã chọn"), "T3: hiện dòng xác nhận đã chọn");
-  await shot("2026-11-13-picker-picked");
+  ok(await evaluate(`!!document.querySelector('select[name="fulfillment"]')`), "T3: chưa gắn nguồn thì vẫn có ô chọn hình thức giao");
   const catVal = await evaluate(`(() => { const s = document.querySelector('[name="categoryId"]'); const o = [...s.options].find((x) => x.value !== ''); return o ? o.value : ''; })()`);
   await setVal(byName("categoryId"), catVal);
+  await setVal(byName("name"), testName);
+  await setVal(byName("providerId"), "1");
+  await sleep(600);
+  ok(!(await evaluate(`!!document.querySelector('select[name="fulfillment"]')`)), "T3: gắn NCC ThaTim thì ô chọn hình thức giao BIẾN MẤT");
+  ok((await evaluate(`(document.querySelector('input[name="fulfillment"]') || {}).value || ''`)) === "API", "T3: hình thức giao tự ép = API (field ẩn)");
+  text = await bodyText();
+  ok(text.includes("mở Gói bán của sản phẩm để tìm và chọn các gói từ nguồn"), "T3: hiện ghi chú chọn gói ở form Gói bán");
+  ok(!(await evaluate(`!!document.querySelector('input[placeholder*="Tìm theo tên trong catalog"]')`)), "T3: form sản phẩm KHÔNG còn khung tìm từ nguồn");
   await clickBtnText("Lưu sản phẩm");
   await sleep(4000);
   ok(!(await modalOpen()), "T3: popup ĐÓNG sau khi lưu sản phẩm");
-  await navigate(`${BASE}/admin/premium?q=netflix`, 3000);
+  await navigate(`${BASE}/admin/premium?q=${suffix}`, 3000);
   text = await bodyText();
-  ok(text.includes("Netflix Premium 4K"), "T3: sản phẩm mới hiện trong danh sách (lọc q=netflix)");
+  ok(text.includes(testName), "T3: sản phẩm mới hiện trong danh sách");
+  writeFileSync("/tmp/source-test-suffix.txt", suffix);
+
+  /* ---- T6: VariantsModal — tìm gói từ nguồn ---- */
+  const goiBtn = (label) => evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((x) => /gói/.test(x.innerText) && x.closest('tr') && x.closest('tr').innerText.includes(${JSON.stringify(testName)})); if (!b) throw new Error('không thấy nút Gói: ' + ${JSON.stringify(label)}); b.click(); return true; })()`);
+  await goiBtn("T6 mở lần 1");
+  await sleep(1200);
+  ok(await modalOpen(), "T6: modal Gói bán mở");
+  text = await bodyText();
+  ok(text.includes("TÌM GÓI TỪ NGUỒN"), "T6: khung tìm gói từ nguồn hiện");
+  await setVal(`document.querySelector('input[placeholder*="Tìm theo tên trong catalog"]')`, "netflix");
+  await clickBtnText("Tìm");
+  await sleep(3000);
+  const srcListText = await evaluate(`(() => { const ov = [...document.querySelectorAll('div')].find((d) => (d.className || '').includes('backdrop-blur') && d.className.includes('fixed')); const list = ov ? [...ov.querySelectorAll('div')].find((d) => (d.className || '').includes('max-h-52')) : null; return list ? list.innerText : ''; })()`);
+  ok(srcListText.includes("Netflix Premium 4K"), "T6: kết quả tìm có Netflix Premium 4K từ nguồn");
+  ok(!srcListText.includes("Spotify Premium"), "T6: kết quả đã lọc đúng từ khoá (không có Spotify)");
+  await shot("2026-11-13-variant-source-picker");
+  await evaluate(`(() => { const ov = [...document.querySelectorAll('div')].find((d) => (d.className || '').includes('backdrop-blur') && d.className.includes('fixed')); const b = ov ? [...ov.querySelectorAll('button')].find((x) => x.innerText.includes('Netflix Premium 4K')) : null; if (!b) throw new Error('không thấy dòng Netflix'); b.click(); return true; })()`);
+  await sleep(1500);
+  text = await bodyText();
+  ok(text.includes("Đã gắn sản phẩm nguồn"), "T6: đã gắn sản phẩm nguồn sau khi chọn");
+  ok(text.includes("1 Tháng · 39.000 VND"), "T6: chu kỳ 1 Tháng hiện kèm giá nguồn");
+  ok(text.includes("1 Năm · 399.000 VND"), "T6: chu kỳ 1 Năm hiện kèm giá nguồn");
+  await evaluate(`(() => { const ov = [...document.querySelectorAll('div')].find((d) => (d.className || '').includes('backdrop-blur') && d.className.includes('fixed')); const b = ov ? [...ov.querySelectorAll('button')].find((x) => x.innerText.includes('1 Tháng ·')) : null; if (!b) throw new Error('không thấy chip chu kỳ 1 Tháng'); b.click(); return true; })()`);
+  await sleep(600);
+  const addFormVal = (field) => evaluate(`(() => { const i = document.querySelector('input[placeholder*="Tên gói (VD: 1 Tháng)"]'); const f = i ? i.closest('form') : null; if (!f) return ''; if (${JSON.stringify(field)} === 'name') return i.value; const el = f.querySelector('[name="' + ${JSON.stringify(field)} + '"]'); return el ? el.value : ''; })()`);
+  ok((await addFormVal("name")) === "1 Tháng", "T6: tên gói tự điền = '1 Tháng'");
+  ok((await addFormVal("providerCycle")) === "1", "T6: chu kỳ NCC tự điền = 1");
+  ok((await addFormVal("price")) === "39000", "T6: giá bán tự điền = 39000");
+  ok((await addFormVal("cost")) === "39000", "T6: giá vốn tự điền = 39000");
+  await shot("2026-11-13-variant-cycle-picked");
+  await clickBtnText("+ Thêm gói");
+  await sleep(3500);
+  ok(!(await modalOpen()), "T6: popup ĐÓNG sau khi thêm gói từ nguồn");
+  await navigate(`${BASE}/admin/premium?q=${suffix}`, 3000);
+  await goiBtn("T6 mở lần 2");
+  await sleep(1200);
+  const variantNames6 = await evaluate(`(() => { const ov = [...document.querySelectorAll('div')].find((d) => (d.className || '').includes('backdrop-blur')); return ov ? [...ov.querySelectorAll('form [name="name"]')].map((i) => i.value) : []; })()`);
+  ok(variantNames6.includes("1 Tháng"), "T6: gói '1 Tháng' đã có trong modal");
+  await clickBtnText("Đóng");
+  await sleep(600);
+  await navigate(`${BASE}/admin/premium?q=netflix`, 3000);
 
   /* ---- T4: VariantsModal thêm -> đóng; sửa lỗi -> giữ ---- */
   await evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((x) => /gói/.test(x.innerText) && x.closest('tr') && x.closest('tr').innerText.includes('Netflix Premium 4K')); if (!b) throw new Error('không thấy nút Gói'); b.click(); return true; })()`);

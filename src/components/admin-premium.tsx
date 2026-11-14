@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Modal, Switch } from "@/components/admin-catalog";
 import { PremiumFieldsEditor } from "@/components/client";
 import { RichTextEditor, ImagesField } from "@/components/rich-editor";
-import { adminSavePremiumCategory, adminDeletePremiumCategory, adminTogglePremiumCategory, adminSaveProduct, adminDeleteProduct, adminToggleProduct, adminSaveVariant, adminDeleteVariant, adminProviderCatalogSearch } from "@/app/actions/admin";
+import { adminSavePremiumCategory, adminDeletePremiumCategory, adminTogglePremiumCategory, adminSaveProduct, adminDeleteProduct, adminToggleProduct, adminSaveVariant, adminDeleteVariant, adminProviderCatalogSearch, adminProviderProductCycles, adminSetProductSource } from "@/app/actions/admin";
 import { fzrPickSearch } from "@/app/actions/admin-families";
 import { num, parsePremiumFields } from "@/lib/format";
 import { useLang } from "@/components/lang";
@@ -132,7 +132,7 @@ export type PremiumProductDTO = {
   metaTitle: string | null; metaDescription: string | null;
   active: boolean; sort: number; orderCount: number; variants: PremiumVariantDTO[];
 };
-export type PremiumProviderOpt = { id: number; name: string; driver: string };
+export type PremiumProviderOpt = { id: number; name: string; driver: string; currency: string; exchangeRate: number };
 
 export function ProductModal({ product, categories, providers, onClose, returnTo = "/admin/premium" }: { product?: PremiumProductDTO; categories: PremiumCategoryDTO[]; providers: PremiumProviderOpt[]; onClose: () => void; returnTo?: string }) {
   const { t } = useLang();
@@ -157,6 +157,9 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
   const [fzrGroup, setFzrGroup] = useState<"gamekeys" | "giftcards">("gamekeys");
   const selectedProvider = providers.find((pr) => String(pr.id) === providerId);
   const isFzrProvider = selectedProvider?.driver === "FZR";
+  // NCC chuẩn kiểu ThaTim: sản phẩm tự đấu API, KHÔNG chọn hình thức giao ở
+  // đây — chọn sản phẩm/chu kỳ nguồn ở form Gói bán (lệnh Tín 2026-11-13).
+  const isStandardProvider = selectedProvider?.driver === "STANDARD";
   const changeProvider = (v: string) => {
     setProviderId(v);
     setProviderProductId("");
@@ -169,17 +172,10 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
     if (!selectedProvider || pickBusy) return;
     setPickBusy(true); setPickError(""); setPickNote("");
     try {
-      if (isFzrProvider) {
-        const r = await fzrPickSearch(fzrGroup, pickQ, 1);
-        if (!r.ok) { setPickError(r.error || t("Không tìm được sản phẩm")); setPickItems(null); return; }
-        setPickItems((r.items || []).map((it) => ({ id: it.id, name: it.name, sub: [it.extra, it.extra2].filter(Boolean).join(" · "), price: it.priceUsd ? `$${it.priceUsd}` : "" })));
-        if (r.hasMore) setPickNote(t("Còn thêm kết quả — gõ từ khoá cụ thể hơn để thu hẹp."));
-      } else {
-        const r = await adminProviderCatalogSearch(selectedProvider.id, pickQ);
-        if (!r.ok) { setPickError(r.error || t("Không tìm được sản phẩm")); setPickItems(null); return; }
-        setPickItems(r.items.map((it) => ({ id: it.id, name: it.name, sub: it.category, price: it.cycles[0] ? `${it.cycles[0].priceRaw.toLocaleString("vi-VN")} ${it.currency}` : "" })));
-        if (r.total > r.items.length) setPickNote(t("Hiện 50 kết quả đầu trong tổng số khớp — gõ thêm từ khoá để thu hẹp."));
-      }
+      const r = await fzrPickSearch(fzrGroup, pickQ, 1);
+      if (!r.ok) { setPickError(r.error || t("Không tìm được sản phẩm")); setPickItems(null); return; }
+      setPickItems((r.items || []).map((it) => ({ id: it.id, name: it.name, sub: [it.extra, it.extra2].filter(Boolean).join(" · "), price: it.priceUsd ? `$${it.priceUsd}` : "" })));
+      if (r.hasMore) setPickNote(t("Còn thêm kết quả — gõ từ khoá cụ thể hơn để thu hẹp."));
     } catch {
       setPickError(t("Không gọi được nhà cung cấp"));
       setPickItems(null);
@@ -223,38 +219,45 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
           <div><label className={lbl}>{t("Mô tả ngắn")}</label><textarea name="tagline" rows={2} defaultValue={p?.tagline || ""} className={inp} placeholder={t("Mô tả ngắn gọn về sản phẩm...")} /></div>
           <div><label className={lbl}>{t("Mô tả chi tiết")}</label><RichTextEditor name="description" defaultValue={p?.description} minHeight={160} /></div>
           <div><label className={lbl}>{t("Lưu ý khi mua")}</label><textarea name="buyNote" rows={2} defaultValue={p?.buyNote || ""} className={inp} placeholder={t("Các lưu ý quan trọng cho khách hàng...")} /></div>
-          <details className="rounded-xl border border-slate-200 px-4 py-3" open={!!p && (p.fulfillment !== "MANUAL" || !!p.warrantyInfo || !!p.usageGuide)}>
+          <details className="rounded-xl border border-slate-200 px-4 py-3" open={!!p && (p.fulfillment !== "MANUAL" || !!p.providerId || !!p.warrantyInfo || !!p.usageGuide)}>
             <summary className="cursor-pointer text-sm font-semibold text-slate-700">{t("Cài đặt nâng cao: hình thức giao, bảo hành, trường tuỳ chỉnh")}</summary>
             <div className="mt-3 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>{t("Hình thức giao")}</label>
-                  <select name="fulfillment" value={fulfillment} onChange={(e) => setFulfillment(e.target.value)} className={inp}>
-                    <option value="AUTO_STOCK">{t("Kho tự động (giao ngay)")}</option>
-                    <option value="MANUAL">{t("Thủ công (nâng cấp chính chủ)")}</option>
-                    <option value="API">{t("Đấu API nhà cung cấp")}</option>
+                  <label className={lbl}>{t("Nhà cung cấp")}</label>
+                  <select name="providerId" value={providerId} onChange={(e) => changeProvider(e.target.value)} className={inp}>
+                    <option value="">{t("Không gắn nguồn")}</option>
+                    {providers.map((pr) => <option key={pr.id} value={pr.id}>{pr.name}</option>)}
                   </select>
                 </div>
                 <div><label className={lbl}>{t("Màu nhận diện")}</label><input name="color" type="color" defaultValue={p?.color || "#3178fc"} className="h-[42px] w-full cursor-pointer rounded-xl border border-slate-300 bg-white px-1.5 py-1.5" /></div>
               </div>
-              {fulfillment === "API" && (
+              {isStandardProvider ? (
+                <>
+                  <input type="hidden" name="fulfillment" value="API" />
+                  <input type="hidden" name="providerProductId" value={providerProductId} />
+                  <p className="rounded-lg bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700">
+                    {t("Đấu API qua")} {selectedProvider?.name} — {t("mở Gói bán của sản phẩm để tìm và chọn các gói từ nguồn.")}
+                  </p>
+                </>
+              ) : (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className={lbl}>{t("Nhà cung cấp")}</label>
-                    <select name="providerId" value={providerId} onChange={(e) => changeProvider(e.target.value)} className={inp}>
-                      <option value="">{t("Chọn nhà cung cấp")}</option>
-                      {providers.map((pr) => <option key={pr.id} value={pr.id}>{pr.name}</option>)}
+                    <label className={lbl}>{t("Hình thức giao")}</label>
+                    <select name="fulfillment" value={fulfillment} onChange={(e) => setFulfillment(e.target.value)} className={inp}>
+                      <option value="AUTO_STOCK">{t("Kho tự động (giao ngay)")}</option>
+                      <option value="MANUAL">{t("Thủ công (nâng cấp chính chủ)")}</option>
+                      <option value="API">{t("Đấu API nhà cung cấp")}</option>
                     </select>
                   </div>
-                  <div><label className={lbl}>{t("ID sản phẩm tại NCC")}</label><input name="providerProductId" value={providerProductId} onChange={(e) => { setProviderProductId(e.target.value); setPickedName(""); }} className={inp} placeholder={t("Chọn từ nguồn bên dưới hoặc gõ mã")} /></div>
+                  {fulfillment === "API" && (
+                    <div><label className={lbl}>{t("ID sản phẩm tại NCC")}</label><input name="providerProductId" value={providerProductId} onChange={(e) => { setProviderProductId(e.target.value); setPickedName(""); }} className={inp} placeholder={t("Chọn từ nguồn bên dưới hoặc gõ mã")} /></div>
+                  )}
                 </div>
               )}
-              {fulfillment === "API" && (
+              {fulfillment === "API" && isFzrProvider && selectedProvider && (
                 <div className="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-3">
                   <div className="text-[11px] font-bold uppercase tracking-wide text-brand-700">{t("Tìm sản phẩm từ nguồn")}</div>
-                  {!selectedProvider ? (
-                    <p className="mt-1.5 text-xs text-slate-400">{t("Chọn nhà cung cấp ở trên trước — hệ thống lấy catalog thật của họ để bạn tìm và chọn, khỏi phải nhớ mã sản phẩm.")}</p>
-                  ) : (
                     <>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {isFzrProvider && (
@@ -293,7 +296,6 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
                         </p>
                       )}
                     </>
-                  )}
                 </div>
               )}
               <div><label className={lbl}>{t("Thông tin bảo hành")}</label><RichTextEditor name="warrantyInfo" defaultValue={p?.warrantyInfo} minHeight={100} /></div>
@@ -331,9 +333,79 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
 
 const PROVIDER_GROUPS = ["gamekeys", "giftcards", "topups", "manual", "telegram_stars", "telegram_premium", "steam_topup", "steam_gift"];
 
+type SourceCycle = { cycle: number; label: string | null; priceRaw: number };
+type SourceProduct = { id: string; name: string; category: string; cycles: SourceCycle[] };
+
 export function VariantsModal({ product, onClose, providers = [], returnTo = "/admin/premium" }: { product: PremiumProductDTO; onClose: () => void; providers?: PremiumProviderOpt[]; returnTo?: string }) {
   const { t, td } = useLang();
   const small = "rounded-lg border border-slate-300 px-2 py-1.5 text-sm w-full";
+  // Tìm gói từ nguồn (lệnh Tín 2026-11-13 tối): sản phẩm gắn NCC chuẩn kiểu
+  // ThaTim thì gói bán chọn từ catalog nguồn — bước 1 gắn sản phẩm nguồn
+  // (lưu vào sản phẩm), bước 2 bấm chu kỳ để điền sẵn form thêm gói.
+  const srcProvider = providers.find((pr) => pr.id === product.providerId) || null;
+  const isStandardSrc = srcProvider?.driver === "STANDARD";
+  const [srcPid, setSrcPid] = useState(product.providerProductId || "");
+  const [srcName, setSrcName] = useState("");
+  const [fQ, setFQ] = useState("");
+  const [fBusy, setFBusy] = useState(false);
+  const [fError, setFError] = useState("");
+  const [fNote, setFNote] = useState("");
+  const [fProducts, setFProducts] = useState<SourceProduct[] | null>(null);
+  const [fCycles, setFCycles] = useState<SourceCycle[] | null>(null);
+  const [fPicked, setFPicked] = useState("");
+  const [addName, setAddName] = useState("");
+  const [addPrice, setAddPrice] = useState("");
+  const [addCost, setAddCost] = useState("");
+  const [addCycle, setAddCycle] = useState("");
+  const toVnd = (raw: number) => (!srcProvider || srcProvider.currency === "VND" ? Math.round(raw) : Math.round(raw * (srcProvider.exchangeRate || 1)));
+  const fmtSrc = (raw: number) => `${raw.toLocaleString("vi-VN")} ${srcProvider?.currency || ""}`;
+  const loadCycles = async (pid: string) => {
+    if (!srcProvider) return;
+    setFBusy(true); setFError("");
+    try {
+      const r = await adminProviderProductCycles(srcProvider.id, pid);
+      if (!r.ok) { setFError(r.error); setFCycles(null); return; }
+      setSrcName(r.name);
+      setFCycles(r.cycles);
+    } catch { setFError(t("Không gọi được nhà cung cấp")); }
+    finally { setFBusy(false); }
+  };
+  const autoLoaded = useRef(false);
+  useEffect(() => {
+    if (isStandardSrc && srcPid && !autoLoaded.current) { autoLoaded.current = true; void loadCycles(srcPid); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const searchSourceProducts = async () => {
+    if (!srcProvider || fBusy) return;
+    setFBusy(true); setFError(""); setFNote("");
+    try {
+      const r = await adminProviderCatalogSearch(srcProvider.id, fQ);
+      if (!r.ok) { setFError(r.error); setFProducts(null); return; }
+      setFProducts(r.items.map((it) => ({ id: it.id, name: it.name, category: it.category, cycles: it.cycles })));
+      if (r.total > r.items.length) setFNote(t("Hiện 50 kết quả đầu trong tổng số khớp — gõ thêm từ khoá để thu hẹp."));
+    } catch { setFError(t("Không gọi được nhà cung cấp")); setFProducts(null); }
+    finally { setFBusy(false); }
+  };
+  const pickSourceProduct = async (it: SourceProduct) => {
+    if (!srcProvider || fBusy) return;
+    setFBusy(true); setFError("");
+    try {
+      const r = await adminSetProductSource(product.id, srcProvider.id, it.id);
+      if (!r.ok) { setFError(r.error); return; }
+      setSrcPid(it.id); setSrcName(it.name); setFCycles(it.cycles); setFProducts(null);
+      setFNote(t("Đã gắn sản phẩm nguồn — chọn chu kỳ bên dưới để điền vào form thêm gói."));
+    } catch { setFError(t("Không gắn được sản phẩm nguồn")); }
+    finally { setFBusy(false); }
+  };
+  const pickSourceCycle = (c: SourceCycle) => {
+    const vnd = toVnd(c.priceRaw);
+    setAddCycle(String(c.cycle));
+    setAddName(c.label || `${c.cycle} tháng`);
+    setAddCost(String(vnd));
+    if (!addPrice) setAddPrice(String(vnd));
+    setFPicked(`${c.label || `${c.cycle} tháng`} · ${fmtSrc(c.priceRaw)}`);
+  };
+  const changeSourceProduct = () => { setSrcPid(""); setSrcName(""); setFCycles(null); setFProducts(null); setFPicked(""); setFNote(""); setFError(""); };
   // Hàng 3: ánh xạ NCC theo gói (FIX7 E2) — đồng bộ FZR ghi sẵn 3 trường này;
   // nay admin sửa tay được để tự dựng sản phẩm API (Telegram/Steam/...) hoặc
   // gỡ ánh xạ. Nhóm có datalist gợi ý các nhóm chuẩn, vẫn gõ tự do được.
@@ -399,15 +471,78 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
         </div>
         <div className="mt-4 border-t border-slate-100 pt-4">
           <div className="mb-2 text-sm font-bold text-slate-700">{t("Thêm gói mới")}</div>
+          {isStandardSrc && (
+            <div className="mb-3 rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-3">
+              <div className="text-[11px] font-bold uppercase tracking-wide text-brand-700">{t("Tìm gói từ nguồn")} — {srcProvider?.name}</div>
+              {!srcPid ? (
+                <>
+                  <p className="mt-1.5 text-xs text-slate-400">{t("Tìm và chọn sản phẩm nguồn trước — các chu kỳ của nó sẽ thành các gói bán.")}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <input value={fQ} onChange={(e) => setFQ(e.target.value)} placeholder={t("Tìm theo tên trong catalog của nhà cung cấp...")} className={`${inp} min-w-[200px] flex-1 !py-2 text-[13px]`}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void searchSourceProducts(); } }} />
+                    <button type="button" onClick={() => void searchSourceProducts()} disabled={fBusy} className="btn-primary btn-row !px-3.5 disabled:opacity-50">{fBusy ? t("Đang gọi...") : t("Tìm")}</button>
+                  </div>
+                  {fProducts && (
+                    fProducts.length === 0
+                      ? <p className="mt-2 text-xs text-slate-400">{t("Không có sản phẩm nào khớp trong catalog của nhà cung cấp.")}</p>
+                      : (
+                        <div className="mt-2 max-h-52 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                          {fProducts.map((it) => (
+                            <button key={it.id} type="button" onClick={() => void pickSourceProduct(it)} disabled={fBusy}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-brand-50 disabled:opacity-50">
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-[13px] font-bold text-slate-800">{it.name}</span>
+                                <span className="block text-[11px] text-slate-400">{t("Mã")}: {it.id} · {it.category} · {it.cycles.length} {t("chu kỳ")}</span>
+                              </span>
+                              {it.cycles[0] && <span className="shrink-0 text-[12px] font-bold text-slate-500">{fmtSrc(it.cycles[0].priceRaw)}</span>}
+                            </button>
+                          ))}
+                        </div>
+                      )
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                    <span className="font-semibold text-slate-600">{t("Sản phẩm nguồn")}: {srcName || srcPid} ({t("mã")} {srcPid})</span>
+                    <button type="button" onClick={changeSourceProduct} className="font-semibold text-blue-600 hover:text-blue-800">{t("Đổi sản phẩm nguồn")}</button>
+                    {!fCycles && !fBusy && <button type="button" onClick={() => void loadCycles(srcPid)} className="font-semibold text-blue-600 hover:text-blue-800">{t("Tải các chu kỳ")}</button>}
+                  </div>
+                  {fBusy && <p className="mt-1.5 text-xs text-slate-400">{t("Đang gọi nhà cung cấp...")}</p>}
+                  {fCycles && (
+                    fCycles.length === 0
+                      ? <p className="mt-2 text-xs text-slate-400">{t("Sản phẩm nguồn không có chu kỳ nào.")}</p>
+                      : (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {fCycles.map((c) => (
+                            <button key={c.cycle} type="button" onClick={() => pickSourceCycle(c)}
+                              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${addCycle === String(c.cycle) ? "border-brand-500 bg-brand-50 text-brand-700" : "border-brand-200 bg-white text-slate-700 hover:bg-brand-50"}`}>
+                              {c.label || `${c.cycle} tháng`} · {fmtSrc(c.priceRaw)}
+                            </button>
+                          ))}
+                        </div>
+                      )
+                  )}
+                  {fPicked && (
+                    <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                      {t("Đã chọn gói nguồn")}: {fPicked} — {t("đã điền vào form thêm gói bên dưới, kiểm tra giá rồi bấm Thêm gói.")}
+                    </p>
+                  )}
+                </>
+              )}
+              {fError && <p className="mt-1.5 text-xs font-semibold text-rose-600">{fError}</p>}
+              {fNote && <p className="mt-1.5 text-xs text-slate-400">{fNote}</p>}
+            </div>
+          )}
           <form action={adminSaveVariant} className="rounded-xl border border-dashed border-slate-300 p-3">
             <input type="hidden" name="productId" value={product.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <input name="name" required className={small} placeholder={t("Tên gói (VD: 1 Tháng)")} />
-              <input name="price" type="number" min={0} required className={small} placeholder={t("Giá bán")} />
-              <input name="cost" type="number" min={0} className={small} placeholder={t("Giá vốn")} />
+              <input name="name" required value={addName} onChange={(e) => setAddName(e.target.value)} className={small} placeholder={t("Tên gói (VD: 1 Tháng)")} />
+              <input name="price" type="number" min={0} required value={addPrice} onChange={(e) => setAddPrice(e.target.value)} className={small} placeholder={t("Giá bán")} />
+              <input name="cost" type="number" min={0} value={addCost} onChange={(e) => setAddCost(e.target.value)} className={small} placeholder={t("Giá vốn")} />
               <input name="warrantyDays" type="number" min={0} className={small} placeholder={t("BH (ngày)")} />
-              <input name="providerCycle" type="number" min={0} className={small} placeholder={t("Chu kỳ NCC (tháng)")} />
+              <input name="providerCycle" type="number" min={0} value={addCycle} onChange={(e) => setAddCycle(e.target.value)} className={small} placeholder={t("Chu kỳ NCC (tháng)")} />
               <input name="sort" type="number" defaultValue={0} className={small} placeholder={t("Thứ tự")} />
               <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="active" defaultChecked className="h-4 w-4" /> {t("Đang bán")}</label>
               <button className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">{t("+ Thêm gói")}</button>
