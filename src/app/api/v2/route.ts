@@ -12,20 +12,33 @@ import { ipAllowed } from "@/lib/ip-match";
 
 /**
  * API cho đại lý (reseller) — API SẢN PHẨM SỐ (Premium).
- * Endpoint: POST /api/v2  (key, action, ...)
+ * Endpoint: /api/v2  (key, action, ...)
  * action: products | category | buy | premium_status | history
  * Các action dịch vụ SMM (services/add/status/orders/cancel/refill/balance)
  * đã gỡ (lệnh Tín 2026-11-12 — web tách thành Digital Shop thuần, SMM làm
  * web riêng).
+ *
+ * AN TOÀN METHOD (P1-02 audit 2026-11-13): action GHI (buy) CHỈ nhận POST
+ * và CHỈ đọc tham số từ body/header — GET với action=buy bị chặn 405, tránh
+ * mua hàng/trừ tiền qua một request GET và tránh key + tham số mua lọt vào
+ * access log qua query string. Action ĐỌC (products/category/premium_status/
+ * history) nhận cả GET lẫn POST như cũ. Key gửi được qua body (key=...) hoặc
+ * header X-API-Key / Authorization: Bearer.
  */
 export const dynamic = "force-dynamic";
 
-async function handle(req: NextRequest) {
+const WRITE_ACTIONS = new Set(["buy"]);
+
+async function handle(req: NextRequest, method: string) {
   const params = new URLSearchParams(await req.text().catch(() => ""));
   const q = req.nextUrl.searchParams;
-  const get = (k: string) => params.get(k) || q.get(k) || "";
-  const key = get("key");
-  const action = get("action");
+  const action = params.get("action") || q.get("action") || "";
+  // Action ghi: bỏ qua toàn bộ query string (chỉ body + header có hiệu lực).
+  const get = (k: string) => (WRITE_ACTIONS.has(action) ? params.get(k) : params.get(k) || q.get(k)) || "";
+  const key = get("key") || req.headers.get("x-api-key") || (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (WRITE_ACTIONS.has(action) && method !== "POST") {
+    return NextResponse.json({ error: `Method not allowed: action '${action}' requires POST` }, { status: 405 });
+  }
   // Giới hạn tần suất: theo IP và theo API key (chống spam/khuếch đại tải)
   if (rateLimitExceeded(`v2ip|${clientIp(req.headers)}`, 600, 60000)) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
@@ -309,8 +322,8 @@ async function handle(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  return handle(req);
+  return handle(req, "POST");
 }
 export async function GET(req: NextRequest) {
-  return handle(req);
+  return handle(req, "GET");
 }

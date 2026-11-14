@@ -124,7 +124,7 @@ export async function GET(req: NextRequest) {
   // Thanh toán trực tiếp mua giỏ: quét phiên quá hạn + hỏi lại BoltUtil cho
   // phiên đang chờ (poll là đường dự phòng khi webhook trễ/mất).
   try {
-    const { expireStalePurchases, settleBoltPurchase } = await import("@/lib/purchase");
+    const { expireStalePurchases, settleBoltPurchase, recoverStuckPurchases } = await import("@/lib/purchase");
     const stale = await prisma.purchasePayment.findMany({ where: { status: "PENDING", method: "BOLTUTIL" }, take: 10, orderBy: { id: "asc" }, select: { id: true, code: true } });
     let polled = 0;
     if (stale.length) {
@@ -138,7 +138,10 @@ export async function GET(req: NextRequest) {
       }
     }
     const expired = await expireStalePurchases();
-    (result as any).purchases = { polled, expired };
+    // P1-01: phiên PROCESSING kẹt (tiến trình thực thi chết giữa chừng) —
+    // chạy tiếp từ tiến độ đã lưu, không tạo trùng đơn.
+    const recovered = await recoverStuckPurchases().catch(() => 0);
+    (result as any).purchases = { polled, expired, recovered };
   } catch { /* lỗi phiên mua không chặn các job khác */ }
 
   if (req.nextUrl.searchParams.get("services") === "1") {

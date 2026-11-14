@@ -76,13 +76,21 @@ export async function resetPasswordByToken(
   const chk = await checkPasswordResetToken(token);
   if (chk.state !== "ok") return chk.state;
   const newHash = await hashPassword(newPassword);
+  // P2-06 (audit 2026-11-13): tiêu thụ token bằng CLAIM NGUYÊN TỬ ngay trong
+  // transaction — điều kiện where gồm đúng hash token + hạn còn hiệu lực, nên
+  // hai request đồng thời cùng một token chỉ MỘT cái thắng; cái thua trả
+  // "invalid" thay vì cùng đặt lại mật khẩu hai lần.
+  let claimed = false;
   await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: chk.userId },
+    const claim = await tx.user.updateMany({
+      where: { id: chk.userId, passwordResetToken: sha256Hex(token), passwordResetExpiry: { gt: new Date() } },
       data: { passwordHash: newHash, passwordResetToken: null, passwordResetExpiry: null, sessionVersion: { increment: 1 } },
     });
+    if (claim.count !== 1) return;
+    claimed = true;
     await tx.userSession.updateMany({ where: { userId: chk.userId, revokedAt: null }, data: { revokedAt: new Date() } });
   });
+  if (!claimed) return "invalid";
   const u = await prisma.user.findUnique({ where: { id: chk.userId }, select: { username: true, role: true } }).catch(() => null);
   await writeAudit({
     actorId: chk.userId,

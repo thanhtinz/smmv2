@@ -23,22 +23,39 @@ export async function hashBackupCodes(codes: string[]): Promise<string> {
 
 /** Kiểm mã dự phòng: khớp thì xoá hash đó khỏi DB (không dùng lại được) */
 export async function consumeBackupCode(userId: number, backupCodesJson: string | null, code: string): Promise<boolean> {
-  if (!backupCodesJson) return false;
-  let hashes: string[] = [];
-  try {
-    hashes = JSON.parse(backupCodesJson) as string[];
-  } catch {
-    return false;
-  }
-  if (!Array.isArray(hashes) || !hashes.length) return false;
   const norm = normalizeBackupCode(code);
   if (!norm) return false;
-  for (let i = 0; i < hashes.length; i++) {
-    if (await bcrypt.compare(norm, hashes[i])) {
-      const rest = hashes.filter((_, j) => j !== i);
-      await prisma.user.update({ where: { id: userId }, data: { backupCodes: JSON.stringify(rest) } });
-      return true;
+  // P2-02 (audit 2026-11-13): ghi lại danh sách bằng CAS (updateMany với
+  // điều kiện backupCodes = đúng chuỗi JSON vừa đọc) — hai lần đăng nhập
+  // đồng thời bằng mã dự phòng không thể cùng thành công, và không ghi đè
+  // mất mã do request song song vừa tiêu thụ. Thua CAS thì đọc lại danh
+  // sách mới nhất và thử lại một lần (mã kia có thể vẫn còn nguyên).
+  let currentJson = backupCodesJson;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (!currentJson) return false;
+    let hashes: string[] = [];
+    try {
+      hashes = JSON.parse(currentJson) as string[];
+    } catch {
+      return false;
     }
+    if (!Array.isArray(hashes) || !hashes.length) return false;
+    let matched = false;
+    for (let i = 0; i < hashes.length; i++) {
+      if (await bcrypt.compare(norm, hashes[i])) {
+        const rest = hashes.filter((_, j) => j !== i);
+        const cas = await prisma.user.updateMany({
+          where: { id: userId, backupCodes: currentJson },
+          data: { backupCodes: JSON.stringify(rest) },
+        });
+        if (cas.count === 1) return true;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) return false;
+    const fresh = await prisma.user.findUnique({ where: { id: userId }, select: { backupCodes: true } }).catch(() => null);
+    currentJson = fresh?.backupCodes ?? null;
   }
   return false;
 }

@@ -144,9 +144,13 @@ systemctl restart smmv2
 # ---------- 10. Caddy ----------
 step "Cấu hình Caddy cho $DOMAIN"
 sed "s|__DOMAIN__|$DOMAIN|g" "$APP_DIR/deploy/Caddyfile" > /etc/caddy/Caddyfile
-caddy validate --config /etc/caddy/Caddyfile || true
+# P3-04 (audit 2026-11-13): KHÔNG nuốt lỗi ở các bước bảo mật — Caddyfile sai
+# mà vẫn báo cài thành công sẽ để web chạy cấu hình cũ/sập âm thầm. Script
+# chạy set -e nên bỏ "|| true" là đủ để dừng cài kèm lỗi rõ.
+caddy validate --config /etc/caddy/Caddyfile
 systemctl enable caddy
 systemctl restart caddy
+systemctl is-active caddy > /dev/null
 
 # ---------- 11. Cron: đồng bộ đơn mỗi 10 phút + sao lưu 03:30 ----------
 step "Cài cron đồng bộ đơn + sao lưu"
@@ -161,7 +165,10 @@ step "Mở tường lửa (SSH, 80, 443)"
 ufw allow OpenSSH > /dev/null || ufw allow 22 > /dev/null
 ufw allow 80 > /dev/null
 ufw allow 443 > /dev/null
-ufw --force enable > /dev/null || true
+# P3-04: bật tường lửa lỗi là phải dừng cài (không "|| true") + kiểm chứng
+# trạng thái active sau khi bật.
+ufw --force enable > /dev/null
+ufw status | grep -qi "Status: active"
 
 # ---------- Xong ----------
 sleep 3

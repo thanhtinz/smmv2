@@ -181,20 +181,35 @@ export async function createPurchasePayment(input: {
   return prisma.purchasePayment.findUnique({ where: { id: pp.id } });
 }
 
+/** Thời gian coi một phiên PROCESSING là "chết giữa chừng" (luồng thực thi
+ *  trước đã dừng) và cho phép luồng khác tiếp quản — P1-01 audit 2026-11-13. */
+const PURCHASE_STALE_MS = 3 * 60 * 1000;
+
 /** Thực thi giỏ sau khi cổng xác nhận đã trả. paidVnd = số VNĐ cổng xác nhận
  *  thực nhận (null = tin theo số của cổng quốc tế đã khớp ở tầng gọi).
  *  finalIfUnderpaid: "wait" (SePay — khách có thể chuyển thêm cho đủ) hoặc
- *  "wallet" (BoltUtil — phiên đã chốt, thiếu thì hoàn phần đã nhận vào ví). */
+ *  "wallet" (BoltUtil — phiên đã chốt, thiếu thì hoàn phần đã nhận vào ví).
+ *
+ *  PHỤC HỒI (P1-01 audit 2026-11-13): claim chuyển phiên sang PROCESSING
+ *  (chưa phải EXECUTED), tiến độ TỪNG DÒNG được lưu ngay sau khi dòng đó xử
+ *  lý xong. Tiến trình chết giữa chừng thì phiên kẹt ở PROCESSING quá hạn —
+ *  lần gọi sau (webhook/poll/cron recoverStuckPurchases) tiếp quản và chỉ
+ *  chạy các dòng CHƯA có kết quả, không tạo trùng đơn, không bồi hoàn hai
+ *  lần. Mọi dòng xong mới chốt EXECUTED. */
 export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: number | null; finalIfUnderpaid?: "wait" | "wallet" } = {}): Promise<{ ok: boolean; reason: string }> {
   const pp = await prisma.purchasePayment.findUnique({ where: { id: ppId } });
   if (!pp) return { ok: false, reason: "not_found" };
   if (pp.status === "EXECUTED") return { ok: true, reason: "already" };
-  if (pp.status !== "PENDING" && pp.status !== "EXPIRED") return { ok: false, reason: `status_${pp.status.toLowerCase()}` };
+  const resuming = pp.status === "PROCESSING";
+  if (resuming && Date.now() - pp.updatedAt.getTime() < PURCHASE_STALE_MS) return { ok: false, reason: "processing" };
+  if (pp.status !== "PENDING" && pp.status !== "EXPIRED" && !resuming) return { ok: false, reason: `status_${pp.status.toLowerCase()}` };
 
   const data = parsePurchaseData(pp);
   let received = Number(data.receivedVnd || 0);
-  if (opts.paidVnd != null && opts.paidVnd > 0) received += opts.paidVnd;
-  if (received > 0 && received < pp.amount) {
+  // Tiếp quản phiên PROCESSING: số đã nhận lấy từ tiến độ đã lưu, KHÔNG cộng
+  // lại paidVnd của cổng (tránh tính trùng số tiền cổng báo lại).
+  if (!resuming && opts.paidVnd != null && opts.paidVnd > 0) received += opts.paidVnd;
+  if (!resuming && received > 0 && received < pp.amount) {
     if (opts.finalIfUnderpaid === "wallet") {
       await prisma.$transaction(async (tx) => {
         const claim = await tx.purchasePayment.updateMany({ where: { id: pp.id, status: { in: ["PENDING", "EXPIRED"] } }, data: { status: "FAILED", paidAt: new Date() } });
@@ -209,22 +224,36 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
     return { ok: false, reason: "underpaid" };
   }
 
-  // Claim nguyên tử: chỉ một luồng (webhook / poll / return) được thực thi.
+  // Claim nguyên tử: chỉ một luồng (webhook / poll / return / cron) được
+  // thực thi; luồng tiếp quản phải thắng được điều kiện updatedAt quá hạn.
   const claimed = await prisma.$transaction(async (tx) => {
-    const claim = await tx.purchasePayment.updateMany({ where: { id: pp.id, status: { in: ["PENDING", "EXPIRED"] } }, data: { status: "EXECUTED", paidAt: new Date() } });
+    const claim = resuming
+      ? await tx.purchasePayment.updateMany({ where: { id: pp.id, status: "PROCESSING", updatedAt: { lt: new Date(Date.now() - PURCHASE_STALE_MS) } }, data: { updatedAt: new Date() } })
+      : await tx.purchasePayment.updateMany({ where: { id: pp.id, status: { in: ["PENDING", "EXPIRED"] } }, data: { status: "PROCESSING", paidAt: new Date() } });
     if (claim.count !== 1) return false;
-    const excess = received - pp.amount;
-    if (excess > 0) await applyBalance(tx, pp.userId, excess, "REFUND", pp.code, `Thanh toán trực tiếp ${pp.code} thừa tiền — hoàn phần thừa vào ví`);
+    if (!resuming) {
+      const excess = received - pp.amount;
+      if (excess > 0) await applyBalance(tx, pp.userId, excess, "REFUND", pp.code, `Thanh toán trực tiếp ${pp.code} thừa tiền — hoàn phần thừa vào ví`);
+    }
     return true;
   });
   if (!claimed) return { ok: true, reason: "raced" };
+  // Lưu ngay số đã nhận để luồng tiếp quản (nếu có) đọc lại đúng.
+  await savePurchaseData(pp.id, { receivedVnd: received });
 
   const user = await prisma.user.findUnique({ where: { id: pp.userId } });
   const snapshot = JSON.parse(pp.snapshot) as PurchaseSnapshot;
-  const okCodes: string[] = [];
-  const results: { variantId: number; ok: boolean; code?: string; error?: string; credited?: number }[] = [];
-  let creditedTotal = 0;
-  for (const line of snapshot.lines) {
+  type LineResult = { variantId: number; ok: boolean; code?: string; error?: string; credited?: number };
+  const results: (LineResult | null)[] = Array.isArray(data.execution) ? data.execution : [];
+  const okCodes: string[] = results.filter((r): r is LineResult => !!r && r.ok && !!r.code).map((r) => r.code as string);
+  let creditedTotal = Number(data.creditedTotal || 0);
+  const persistProgress = async () => {
+    await prisma.purchasePayment.update({ where: { id: pp.id }, data: { orderCodes: JSON.stringify(okCodes) } });
+    await savePurchaseData(pp.id, { receivedVnd: received, execution: results, creditedTotal });
+  };
+  for (let idx = 0; idx < snapshot.lines.length; idx++) {
+    if (results[idx]) continue; // dòng đã có kết quả ở lượt chạy trước
+    const line = snapshot.lines[idx];
     try {
       if (!user) throw new Error("Tài khoản không tồn tại");
       const order: any = await createPremiumOrder({
@@ -243,7 +272,7 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
         }).catch(() => {});
         creditedTotal += diff;
       }
-      results.push({ variantId: line.variantId, ok: true, code: order.code });
+      results[idx] = { variantId: line.variantId, ok: true, code: order.code };
     } catch (e: any) {
       // Đã trả tiền mà không đặt được dòng này -> bồi hoàn phần tiền của dòng vào ví
       const msg = String(e?.message || "Đặt đơn thất bại").slice(0, 200);
@@ -251,15 +280,31 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
         await applyBalance(tx, pp.userId, line.share, "REFUND", pp.code, `Bồi hoàn dòng không đặt được — thanh toán trực tiếp ${pp.code}`);
       }).catch(() => {});
       creditedTotal += line.share;
-      results.push({ variantId: line.variantId, ok: false, error: msg, credited: line.share });
+      results[idx] = { variantId: line.variantId, ok: false, error: msg, credited: line.share };
     }
+    await persistProgress();
   }
-  await prisma.purchasePayment.update({ where: { id: pp.id }, data: { orderCodes: JSON.stringify(okCodes) } });
-  await savePurchaseData(pp.id, { receivedVnd: received, execution: results });
+  // Mọi dòng đã có kết quả mới chốt EXECUTED.
+  await prisma.purchasePayment.updateMany({ where: { id: pp.id, status: "PROCESSING" }, data: { status: "EXECUTED" } });
   if (creditedTotal > 0) {
     await notifyUser(pp.userId, "Một phần đơn được hoàn vào ví", `Thanh toán ${pp.code}: ${creditedTotal.toLocaleString("vi-VN")}đ đã cộng vào ví của bạn (dòng không đặt được hoặc chênh lệch giá).`, "/dashboard/don-premium");
   }
-  return { ok: true, reason: "executed" };
+  return { ok: true, reason: resuming ? "executed_resumed" : "executed" };
+}
+
+/** Cron phục hồi: quét các phiên PROCESSING quá hạn (tiến trình thực thi
+ *  trước đã chết giữa chừng) và chạy tiếp từ tiến độ đã lưu — P1-01. */
+export async function recoverStuckPurchases(): Promise<number> {
+  const stale = await prisma.purchasePayment.findMany({
+    where: { status: "PROCESSING", updatedAt: { lt: new Date(Date.now() - PURCHASE_STALE_MS) } },
+    select: { id: true }, take: 10, orderBy: { updatedAt: "asc" },
+  });
+  let n = 0;
+  for (const row of stale) {
+    const r = await settlePurchasePayment(row.id).catch(() => ({ ok: false, reason: "error" }));
+    if (r.ok) n++;
+  }
+  return n;
 }
 
 /** Phiên BOLTUTIL chốt trạng thái: đối soát như settleBoltutilDeposit nhưng

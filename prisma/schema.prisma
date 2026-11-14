@@ -532,7 +532,7 @@ model PurchasePayment {
   user         User      @relation(fields: [userId], references: [id])
   method       String    @db.VarChar(12) // SEPAY | BOLTUTIL | STRIPE | PAYPAL
   amount       Int // VNĐ phải trả (tổng giỏ tại thời điểm tạo)
-  status       String    @default("PENDING") @db.VarChar(12) // PENDING | EXECUTED | EXPIRED | CANCELED | FAILED
+  status       String    @default("PENDING") @db.VarChar(12) // PENDING | PROCESSING | EXECUTED | EXPIRED | CANCELED | FAILED
   providerRef  String?   @unique @db.VarChar(120) // bolt:<code> | Stripe session id | PayPal order id
   providerData String?   @db.Text // JSON: dữ liệu hiển thị bước thanh toán + kết quả thực thi
   snapshot     String    @db.Text // JSON: { lines: [{variantId, qty, custom, buyerInfo, share}], promo }

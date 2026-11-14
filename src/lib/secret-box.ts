@@ -1,6 +1,9 @@
 /** Mã hoá các khoá bí mật lưu trong bảng Setting (secret cổng thanh toán, token
  *  bot, khoá API...) bằng AES-256-GCM với khoá APP_ENC_KEY trong .env.
- *  - Chưa đặt APP_ENC_KEY: giữ nguyên dạng rõ (tương thích bản đang chạy).
+ *  - P3-01 (audit 2026-11-13): môi trường production mà CHƯA đặt APP_ENC_KEY
+ *    thì encryptSecret NÉM LỖI — thà lưu khoá bí mật lỗi công khai còn hơn âm
+ *    thầm lưu dạng rõ vào DB. Ngoài production (dev/test) vẫn giữ fallback
+ *    dạng rõ cho tiện phát triển.
  *  - Giá trị cũ dạng rõ vẫn đọc được (chỉ giá trị có tiền tố "enc:" mới giải mã).
  *  - Từ nay mọi lần lưu qua setSetting() đều tự mã hoá. */
 
@@ -23,7 +26,13 @@ export function isSecretSettingKey(key: string): boolean {
 }
 
 export function encryptSecret(value: string): string {
-  if (!KEY || !value || value.startsWith("enc:")) return value;
+  if (!KEY) {
+    if (value && !value.startsWith("enc:") && process.env.NODE_ENV === "production") {
+      throw new Error("Thiếu APP_ENC_KEY trong .env — không lưu khoá bí mật dạng rõ ở production. Hãy đặt APP_ENC_KEY (base64 của 32 byte) rồi thử lại.");
+    }
+    return value;
+  }
+  if (!value || value.startsWith("enc:")) return value;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const crypto = require("crypto") as typeof import("crypto");

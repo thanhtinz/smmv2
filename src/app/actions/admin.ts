@@ -823,6 +823,20 @@ export async function adminSaveSettings(formData: FormData) {
   if (SENSITIVE_KEYS.some((k) => { const v = formData.get(k); return v !== null && String(v).trim() !== ""; })) {
     await assertStepUp(actor.id, "/admin/cau-hinh");
   }
+  // P2-08 (audit 2026-11-13): HTML tuỳ chỉnh ở <head>/<body> được render
+  // nguyên văn ra mọi trang (ngang quyền chèn script) — ĐỔI giá trị (kể cả
+  // đổi từ rỗng lên có nội dung) phải xác thực lại step-up như khoá bí mật,
+  // và ghi một dòng audit riêng cho lần đổi này (điều kiện của SENSITIVE_KEYS
+  // ở trên chỉ bắt khi giá trị gửi lên khác rỗng nên không đủ cho khoá này).
+  let customHtmlChanged = false;
+  {
+    const cur = await getSettings();
+    for (const k of ["custom_head_html", "custom_body_html"] as const) {
+      const v = formData.get(k);
+      if (v !== null && String(v).trim() !== String(cur[k] || "").trim()) customHtmlChanged = true;
+    }
+    if (customHtmlChanged) await assertStepUp(actor.id, "/admin/cau-hinh");
+  }
   // Liên kết web (đợt 120): kiểm tra hợp lệ PHÍA MÁY CHỦ trước khi lưu bất
   // cứ thứ gì — giá trị lạ (không phải URL http/https đầy đủ) thì từ chối
   // cả lượt lưu kèm thông báo rõ, không để lọt vào DB rồi thành liên kết
@@ -892,6 +906,10 @@ export async function adminSaveSettings(formData: FormData) {
     await syncAllEffectiveRates();
   }
   await auditAdmin(actor, "settings.update", "setting", "adminSaveSettings", `Lưu ${savedKeys.length} mục cấu hình`);
+  if (customHtmlChanged) {
+    const after = await getSettings();
+    await auditAdmin(actor, "settings.custom_html", "setting", "custom_html", `Đổi HTML tuỳ chỉnh: head ${String(after.custom_head_html || "").length} ký tự · body ${String(after.custom_body_html || "").length} ký tự (đã qua step-up)`);
+  }
   done("/admin/cau-hinh", "Đã lưu cấu hình");
 }
 

@@ -93,8 +93,14 @@ export async function createSession(user: SessionUser) {
       },
     });
   } catch (e) {
-    console.error("[auth] không tạo được UserSession:", e);
-    sid = undefined;
+    // P2-05 (audit 2026-11-13): FAIL-CLOSED — không tạo được dòng UserSession
+    // thì KHÔNG phát hành JWT "mồ côi" (không sid = không bị kiểm tra thu hồi
+    // ở getCurrentUser, thoát khỏi quản lý thiết bị/đăng xuất từ xa). Đăng
+    // nhập lỗi công khai còn hơn cấp một phiên không kiểm soát được.
+    console.error("[auth] không tạo được UserSession — huỷ đăng nhập (fail-closed):", e);
+    const { alertMother } = await import("@/lib/alerts").catch(() => ({ alertMother: null as any }));
+    if (alertMother) await alertMother("system_error", "Lỗi tạo phiên đăng nhập", `Không tạo được UserSession cho user #${user.id} (${user.username}) — đăng nhập đã bị huỷ theo fail-closed.`).catch(() => {});
+    throw new Error("Không tạo được phiên đăng nhập, vui lòng thử lại");
   }
   const token = await new SignJWT({ uid: user.id, role: user.role, username: user.username, sv: dbUser?.sessionVersion ?? 0, ...(sid ? { sid } : {}), ...(user.authMethod === "passkey" ? { amr: "passkey" } : {}) })
     .setProtectedHeader({ alg: "HS256" })

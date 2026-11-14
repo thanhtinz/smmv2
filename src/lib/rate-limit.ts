@@ -1,6 +1,10 @@
 /** Giới hạn tần suất theo khoá (IP / tài khoản / API key) bằng bộ nhớ trong
  *  tiến trình — đủ cho mô hình chạy 1 tiến trình trên VPS. Trả về true khi
- *  yêu cầu này VƯỢT giới hạn và phải bị chặn. */
+ *  yêu cầu này VƯỢT giới hạn và phải bị chặn.
+ *  LƯU Ý (P3-02 audit 2026-11-13): bộ đếm KHÔNG chia sẻ giữa các tiến trình —
+ *  nếu sau này chạy nhiều instance sau load balancer thì giới hạn thực tế
+ *  nhân lên theo số instance; khi đó phải chuyển sang store dùng chung
+ *  (Redis/DB) trước khi scale out. */
 
 type Store = Map<string, number[]>;
 const g = globalThis as unknown as { __smmRateLimit?: Store };

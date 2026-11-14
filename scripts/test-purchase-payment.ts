@@ -14,7 +14,8 @@
  */
 import { prisma } from "../src/lib/db";
 import { getSettings, setSetting } from "../src/lib/settings";
-import { createPurchasePayment, expireStalePurchases } from "../src/lib/purchase";
+import { createPurchasePayment, expireStalePurchases, settlePurchasePayment } from "../src/lib/purchase";
+import { createPremiumOrder } from "../src/lib/orders";
 
 const BASE = "http://127.0.0.1:3000";
 const SECRET = "test_pp_secret_2026";
@@ -94,6 +95,39 @@ async function main() {
     const codes2: string[] = JSON.parse(pp2Now!.orderCodes || "[]");
     createdOrders.push(...codes2);
     ok(pp2Now!.status === "EXECUTED" && codes2.length === 1, `phiên 2 EXECUTED + 1 đơn: ${JSON.stringify(codes2)}`);
+
+    /* 5) P1-01: phiên chết giữa chừng ở PROCESSING (đã xong dòng 1/2) ->
+       tiếp quản chạy nốt dòng còn lại, KHÔNG tạo trùng đơn dòng đã xong;
+       phiên PROCESSING còn tươi -> không luồng nào được chen vào. */
+    const pp4: any = await createPurchasePayment({ userId: demo.id, method: "SEPAY", lines: [{ variantId: variant.id, qty: 1, custom: {}, buyerInfo: demo.email }, { variantId: variant.id, qty: 1, custom: {}, buyerInfo: demo.email }], promoCode: "" });
+    createdPP.push(pp4.id);
+    const firstOrder: any = await createPremiumOrder({ user: demo as any, variantId: variant.id, quantity: 1, buyerInfo: demo.email, externalPaid: { method: "SEPAY", ref: pp4.code } });
+    createdOrders.push(firstOrder.code);
+    await prisma.purchasePayment.update({
+      where: { id: pp4.id },
+      data: {
+        status: "PROCESSING",
+        paidAt: new Date(Date.now() - 10 * 60000),
+        updatedAt: new Date(Date.now() - 10 * 60000),
+        orderCodes: JSON.stringify([firstOrder.code]),
+        providerData: JSON.stringify({ receivedVnd: pp4.amount, execution: [{ variantId: variant.id, ok: true, code: firstOrder.code }], creditedTotal: 0 }),
+      },
+    });
+    const balBeforeResume = (await prisma.user.findUnique({ where: { id: demo.id } }))!.balance;
+    const r5 = await settlePurchasePayment(pp4.id);
+    ok(r5.ok && r5.reason === "executed_resumed", `tiếp quản phiên kẹt -> executed_resumed: ${JSON.stringify(r5)}`);
+    const pp4Now = await prisma.purchasePayment.findUnique({ where: { id: pp4.id } });
+    const codes4: string[] = JSON.parse(pp4Now!.orderCodes || "[]");
+    createdOrders.push(...codes4.filter((c) => c !== firstOrder.code));
+    ok(pp4Now!.status === "EXECUTED" && codes4.length === 2 && codes4[0] === firstOrder.code, `phiên kẹt EXECUTED + đủ 2 mã đơn, đơn đầu giữ nguyên: ${JSON.stringify(codes4)}`);
+    ok(await prisma.premiumOrder.count({ where: { code: { in: codes4 } } }) === 2, "đúng 2 PremiumOrder (không tạo trùng dòng đã xong)");
+    ok((await prisma.user.findUnique({ where: { id: demo.id } }))!.balance === balBeforeResume, "tiếp quản không trừ/hoàn ví sai");
+    const pp5: any = await createPurchasePayment({ userId: demo.id, method: "SEPAY", lines: [{ variantId: variant.id, qty: 1, custom: {}, buyerInfo: demo.email }], promoCode: "" });
+    createdPP.push(pp5.id);
+    await prisma.purchasePayment.update({ where: { id: pp5.id }, data: { status: "PROCESSING", providerData: JSON.stringify({ receivedVnd: pp5.amount }) } });
+    const r5b = await settlePurchasePayment(pp5.id);
+    ok(!r5b.ok && r5b.reason === "processing", `PROCESSING còn tươi -> bị chặn đúng: ${JSON.stringify(r5b)}`);
+    ok(!(await prisma.purchasePayment.findUnique({ where: { id: pp5.id } }))!.orderCodes, "phiên còn tươi không sinh đơn nào");
 
     /* 4) Hết hạn -> EXPIRED, không đơn */
     const pp3: any = await createPurchasePayment({ userId: demo.id, method: "SEPAY", lines: [{ variantId: variant.id, qty: 1, custom: {}, buyerInfo: demo.email }], promoCode: "" });

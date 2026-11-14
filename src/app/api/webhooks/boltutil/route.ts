@@ -55,6 +55,12 @@ export async function POST(req: NextRequest) {
 
   let processed = false;
   let note = "không khớp yêu cầu nạp nào";
+  // P2-01 (audit 2026-11-13): lỗi TẠM THỜI (exception khi settle, hoặc phiên
+  // mua đang PROCESSING ở luồng khác) phải được xử lý lại — nhả claim
+  // WebhookReceipt và trả HTTP 500 để BoltUtil gửi lại event này. Kết quả
+  // CUỐI (không khớp phiên nào / trạng thái chưa chốt / đã cộng tiền) vẫn
+  // giữ receipt + 200 như cũ: sự kiện cuối tiếp theo mang eventId mới.
+  let retryable = false;
   try {
     if (externalOrderId) {
       const dep = await prisma.deposit.findUnique({ where: { externalId: `bolt:${externalOrderId}` } });
@@ -71,11 +77,18 @@ export async function POST(req: NextRequest) {
           const r = await settleBoltPurchase(pp.id, payload);
           processed = r.ok;
           note = `purchase ${pp.code}: ${r.reason}`;
+          if (!r.ok && r.reason === "processing") retryable = true;
         }
       }
     }
   } catch (e: any) {
     note = `lỗi xử lý: ${String(e?.message || e).slice(0, 200)}`;
+    retryable = true;
+  }
+  if (retryable) {
+    if (eventId) await prisma.webhookReceipt.delete({ where: { ref: `bolt:${eventId}`.slice(0, 120) } }).catch(() => {});
+    await log(false, false, `${note} — nhả receipt, trả 500 để BoltUtil gửi lại`);
+    return NextResponse.json({ ok: false, error: "processing failed, retry" }, { status: 500 });
   }
   await log(true, processed, note);
   return NextResponse.json({ ok: true, processed });

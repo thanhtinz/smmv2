@@ -1,19 +1,20 @@
 services:
   db:
-    image: mariadb:11
+    image: postgres:16
     environment:
-      MARIADB_DATABASE: smmv2
-      MARIADB_ROOT_PASSWORD: smmv2-root-pass
+      POSTGRES_DB: smmv2
+      POSTGRES_USER: smmv2
+      POSTGRES_PASSWORD: <redacted>
     ports:
-      - "127.0.0.1:3306:3306"
+      - "127.0.0.1:5432:5432"
     volumes:
-      - smmv2-db:/var/lib/mysql
+      - smmv2-db:/var/lib/postgresql/data
   app:
     build: .
     environment:
-      DATABASE_URL: "mysql://root:smmv2-root-pass@db:3306/smmv2"
-      AUTH_SECRET: "doi-chuoi-nay-thanh-ngau-nhien-dai-32-ky-tu"
-      CRON_SECRET: "doi-chuoi-nay-nua"
+      DATABASE_URL: "postgresql://smmv2:smmv2-pass@db:5432/smmv2"
+      AUTH_SECRET: "<redacted>
+      CRON_SECRET: "<redacted>
       NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
     ports:
       - "127.0.0.1:3000:3000"

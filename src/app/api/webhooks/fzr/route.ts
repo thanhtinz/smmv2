@@ -80,7 +80,20 @@ export async function POST(req: NextRequest) {
   }
 
   // Khử trùng theo event_id: FZR thử lại lượt giao lỗi với CÙNG event_id.
+  // P2-03 (audit 2026-11-13): claim NGUYÊN TỬ bằng WebhookReceipt TRƯỚC khi
+  // xử lý (bản ghi log cũ kiểm tra sau-xử-lý nên hai lượt giao đồng thời cùng
+  // event_id đều lọt qua). Lượt nào xử lý lỗi sẽ NHẢ claim + trả 500 để FZR
+  // gửi lại (1/5/30 phút theo tài liệu); lớp kiểm tra log cũ giữ làm lớp hai
+  // cho các sự kiện đã xử lý từ trước đợt sửa này.
+  let claimed = false;
   if (eventId) {
+    try {
+      await prisma.webhookReceipt.create({ data: { ref: `fzr:${eventId}`.slice(0, 120) } });
+      claimed = true;
+    } catch {
+      await log(true, false, "trùng event_id (receipt) — bỏ qua");
+      return NextResponse.json({ ok: true, deduped: true });
+    }
     const prior = await prisma.apiLog.findFirst({
       where: { kind: "fzr_webhook", ref: eventId.slice(0, 90) },
       select: { detail: true },
@@ -93,6 +106,7 @@ export async function POST(req: NextRequest) {
 
   let processed = false;
   let note = "không khớp đơn nào";
+  let failed = false;
   try {
     if (eventType === "webhook.test") {
       // Sự kiện thử từ POST /account/webhook/test — chỉ xác nhận đã nhận.
@@ -152,6 +166,13 @@ export async function POST(req: NextRequest) {
     }
   } catch (e: any) {
     note = `lỗi xử lý: ${String(e?.message || e).slice(0, 200)}`;
+    failed = true;
+  }
+  if (failed) {
+    // Nhả claim để lượt gửi lại của FZR được xử lý lại từ đầu.
+    if (claimed) await prisma.webhookReceipt.delete({ where: { ref: `fzr:${eventId}`.slice(0, 120) } }).catch(() => {});
+    await log(false, false, `${note} — nhả receipt, trả 500 để FZR gửi lại`);
+    return NextResponse.json({ ok: false, error: "processing failed, retry" }, { status: 500 });
   }
   await log(true, processed, note);
   return NextResponse.json({ ok: true, processed });
