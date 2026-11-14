@@ -133,7 +133,11 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
                 <p className="mt-1 text-xs text-slate-400">{t("URL API của FazerCards cố định — mọi khu Telegram / Steam dùng chung địa chỉ này.")}</p>
               </div>
             ) : (
-              <div><label className={lbl}>URL API *</label><input name="apiUrl" required value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} autoComplete="off" className={inp} placeholder="https://api.example.com" /></div>
+              <div>
+                <label className={lbl}>URL API *</label>
+                <input name="apiUrl" required value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} autoComplete="off" className={inp} placeholder="https://api.example.com" />
+                <p className="mt-1 text-xs text-slate-400">{t("Dán link API dạng .../api/v2 — hệ thống tự suy ra link sản phẩm .../api/product.")}</p>
+              </div>
             )}
             <div>
               <label className={lbl}>API Key {p ? "" : "*"}</label>

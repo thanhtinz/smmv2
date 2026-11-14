@@ -63,9 +63,12 @@ export async function providerBalance(provider: Provider): Promise<{ raw: number
  * (Đã đối chiếu tài liệu + trang api-docs thật của thatim.vn ngày 2026-11-04.)
  * ===================================================================== */
 
-/** Suy endpoint sản phẩm từ apiUrl SMM: .../api/v2 -> .../api/product */
+/** Suy endpoint sản phẩm từ apiUrl SMM: .../api/v2 -> .../api/product.
+ *  Nếu admin dán thẳng link sản phẩm (.../api/product) thì dùng nguyên —
+ *  tránh lỗi suy thành .../api/product/api/product (404) như ca Thatim 2026-11-13. */
 export function productEndpoint(provider: Provider): string {
   const u = provider.apiUrl.replace(/\/+$/, "");
+  if (u.endsWith("/api/product")) return u;
   if (u.endsWith("/api/v2")) return `${u.slice(0, -"/v2".length)}/product`;
   if (u.endsWith("/api")) return `${u}/product`;
   return `${u}/api/product`;
