@@ -4,7 +4,7 @@
 #
 #  Cách chạy (trên VPS, quyền root):
 #    git clone https://github.com/thanhtinz/bntshop.git
-#    cd smmv2
+#    cd bntshop
 #    sudo DOMAIN=tenmien.com bash deploy/install.sh
 #
 #  Biến môi trường tuỳ chọn:

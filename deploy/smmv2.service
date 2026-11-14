@@ -1,5 +1,5 @@
 [Unit]
-Description=SMMv2 (Next.js) — website SMM + Premium
+Description=BNT Shop (Next.js) — cửa hàng sản phẩm số
 After=network.target postgresql.service
 Wants=postgresql.service
 
