@@ -127,7 +127,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, fi
           <div>
             <label className="lbl">{t("Email / tài khoản của bạn để bàn giao *")}</label>
             <input className="inp" name="buyerInfo" required placeholder={t("Vd: email nhận gói / tài khoản cần nâng cấp")} />
-            <p className="mt-1.5 text-xs text-slate-400">{fulfillment === "API" ? t("Thông tin này được gửi kèm đơn sang nhà cung cấp để bàn giao gói.") : t("Gói này được nâng cấp trực tiếp lên tài khoản của bạn — chỉ cần email, không cần mật khẩu.")}</p>
+            <p className="mt-1.5 text-xs text-slate-400">{fulfillment === "API" ? t("Thông tin này dùng để bàn giao gói cho bạn.") : t("Gói này được nâng cấp trực tiếp lên tài khoản của bạn — chỉ cần email, không cần mật khẩu.")}</p>
           </div>
         ) : (
           <div>
@@ -168,7 +168,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, fi
                       <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="text-xs text-slate-500">
                           {x.warrantyDays ? <>{t("Bảo hành")} {x.warrantyDays} {t("ngày")}</> : t("Không bảo hành")}
-                          {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? <>{t(" · Còn ")}{x.stock}{t(" trong kho")}</> : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
+                          {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? <>{t(" · Còn ")}{x.stock}{t(" trong kho")}</> : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao tự động") : t(" · Giao thủ công")}
                           {x.stockQty != null && fulfillment !== "AUTO_STOCK" && !x.soldOut ? <>{t(" · Còn ")}{x.stockQty}{t(" trong kho")}</> : null}
                         </span>
                         {x.delivery && <DeliveryBadge type={x.delivery} t={t} />}
@@ -230,7 +230,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, fi
             <div className="flex items-baseline justify-between border-t border-slate-200/70 pt-2"><span className="font-semibold text-slate-700">{t("Tổng cộng")}</span><span className="text-xl font-extrabold text-rose-600">{m(grandTotal)}</span></div>
           </div>
           <div className="text-xs text-slate-400">
-            {fulfillment === "AUTO_STOCK" ? <>{t("Kho hàng:")} {v?.stock || 0} {t("sản phẩm")}</> : fulfillment === "API" ? t("Giao tự động qua nhà cung cấp") : t("Nâng cấp thủ công trên tài khoản của bạn")}
+            {fulfillment === "AUTO_STOCK" ? <>{t("Kho hàng:")} {v?.stock || 0} {t("sản phẩm")}</> : fulfillment === "API" ? t("Giao tự động") : t("Nâng cấp thủ công trên tài khoản của bạn")}
           </div>
           <div className="flex gap-2">
             <button className="btn-primary flex-1 !py-3">{t("Đặt hàng ngay")}</button>
@@ -257,7 +257,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, fi
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
               {x.warrantyDays ? <>{t("Bảo hành")} {x.warrantyDays} {t("ngày")}</> : t("Không bảo hành")}
-              {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? <>{t(" · Còn ")}{x.stock}{t(" trong kho")}</> : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao qua nhà cung cấp") : t(" · Giao thủ công")}
+              {fulfillment === "AUTO_STOCK" ? (x.stock > 0 ? <>{t(" · Còn ")}{x.stock}{t(" trong kho")}</> : t(" · Hết kho — giao tay")) : fulfillment === "API" ? t(" · Giao tự động") : t(" · Giao thủ công")}
             </div>
           </button>
         ))}
@@ -302,7 +302,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, fi
         <div>
           <label className="lbl">{t("Email / tài khoản của bạn để bàn giao *")}</label>
           <input className="inp" name="buyerInfo" required placeholder={t("Vd: email nhận gói / tài khoản cần nâng cấp")} />
-          <p className="text-xs text-slate-400 mt-1.5">{fulfillment === "API" ? t("Thông tin này được gửi kèm đơn sang nhà cung cấp để bàn giao gói.") : t("Gói này được nâng cấp trực tiếp lên tài khoản của bạn — chỉ cần email, không cần mật khẩu.")}</p>
+          <p className="text-xs text-slate-400 mt-1.5">{fulfillment === "API" ? t("Thông tin này dùng để bàn giao gói cho bạn.") : t("Gói này được nâng cấp trực tiếp lên tài khoản của bạn — chỉ cần email, không cần mật khẩu.")}</p>
         </div>
       )}
       {!activeFields?.length && fulfillment === "AUTO_STOCK" && (

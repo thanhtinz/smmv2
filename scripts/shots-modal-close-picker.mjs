@@ -200,6 +200,7 @@ async function main() {
   await evaluate(`(() => { const ov = [...document.querySelectorAll('div')].find((d) => (d.className || '').includes('backdrop-blur') && d.className.includes('fixed')); const b = ov ? [...ov.querySelectorAll('button')].find((x) => x.innerText.includes('1 tháng ·')) : null; if (!b) throw new Error('không thấy chip chu kỳ 1 tháng'); b.click(); return true; })()`);
   await sleep(600);
   const addFormVal = (field) => evaluate(`(() => { const i = document.querySelector('input[placeholder*="Tên gói (VD: 1 Tháng)"]'); const f = i ? i.closest('form') : null; if (!f) return ''; if (${JSON.stringify(field)} === 'name') return i.value; const el = f.querySelector('[name="' + ${JSON.stringify(field)} + '"]'); return el ? el.value : ''; })()`);
+  ok((await bodyText()).includes("Đấu với gói nguồn"), "T6: form thêm gói hiện rõ sẽ đấu với gói nguồn nào");
   ok((await addFormVal("name")) === "1 tháng", "T6: tên gói tự điền = '1 tháng'");
   ok((await addFormVal("providerCycle")) === "1", "T6: chu kỳ NCC tự điền = 1");
   ok((await addFormVal("price")) === "39000", "T6: giá bán tự điền = 39000");
@@ -213,6 +214,9 @@ async function main() {
   await sleep(1200);
   const variantNames6 = await evaluate(`(() => { const ov = [...document.querySelectorAll('div')].find((d) => (d.className || '').includes('backdrop-blur')); return ov ? [...ov.querySelectorAll('form [name="name"]')].map((i) => i.value) : []; })()`);
   ok(variantNames6.includes("1 tháng"), "T6: gói '1 tháng' đã có trong modal");
+  const rowMap6 = await evaluate(`(() => { const f = [...document.querySelectorAll('form')].find((x) => { const nm = x.querySelector('[name="name"]'); return nm && nm.value === '1 tháng'; }); return f ? f.innerText : ''; })()`);
+  ok(rowMap6.includes("Đấu với gói nguồn") && rowMap6.includes("Nâng cấp chính chủ"), "T6: gói đã thêm hiện rõ đấu với gói nguồn nào (kèm ghi chú nguồn)");
+  await shot("2026-11-13-variant-row-source-map");
   await clickBtnText("Đóng");
   await sleep(600);
 

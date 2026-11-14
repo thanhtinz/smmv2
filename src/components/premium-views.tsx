@@ -389,7 +389,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
     };
     return [prod, crumbs];
   })() : null;
-  const fulfillmentTag = product.fulfillment === "AUTO_STOCK" ? L("Giao ngay") : product.fulfillment === "API" ? L("Giao qua đối tác") : L("Nâng cấp chính chủ");
+  const fulfillmentTag = product.fulfillment === "AUTO_STOCK" ? L("Giao ngay") : product.fulfillment === "API" ? L("Giao tự động") : L("Nâng cấp chính chủ");
   const prices = product.variants.map((v) => v.price).filter((x) => x > 0);
 
   return (

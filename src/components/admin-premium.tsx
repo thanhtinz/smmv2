@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Modal, Switch } from "@/components/admin-catalog";
 import { PremiumFieldsEditor } from "@/components/client";
@@ -420,66 +420,101 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
     setFPicked(`${c.label || `${c.cycle} tháng`} · ${fmtSrc(c.priceRaw)}${c.note ? ` — ${c.note}` : ""}`);
   };
   const changeSourceProduct = () => { setSrcPid(""); setSrcName(""); setFCycles(null); setFProducts(null); setFPicked(""); setFNote(""); setFError(""); setAddNote(""); setPickedKey(""); };
-  // Hàng 3: ánh xạ NCC theo gói (FIX7 E2) — đồng bộ FZR ghi sẵn 3 trường này;
-  // nay admin sửa tay được để tự dựng sản phẩm API (Telegram/Steam/...) hoặc
-  // gỡ ánh xạ. Nhóm có datalist gợi ý các nhóm chuẩn, vẫn gõ tự do được.
+  // Ô nhập có nhãn nhỏ phía trên — form gói trước đây chỉ có placeholder nên
+  // nhìn tùm lum (lệnh Tín 2026-11-13: dọn lại chỗ thêm gói cho gọn).
+  const fld = (label: string, children: ReactNode) => (
+    <label className="block min-w-0">
+      <span className="mb-1 block text-[11px] font-semibold text-slate-500">{label}</span>
+      {children}
+    </label>
+  );
+  const monthLabel = (m: number) => (m > 0 && m % 12 === 0 ? `${m / 12} ${t("năm")}` : `${m} ${t("tháng")}`);
+  // Dòng đấu nguồn của một gói đã lưu (lệnh Tín 2026-11-13: thêm gói rồi
+  // phải hiện rõ nó đấu với gói nào bên nguồn).
+  const mapTextFor = (v: PremiumVariantDTO): { text: string; warn: boolean } | null => {
+    if (v.providerGroup || v.providerItemId) return { warn: false, text: `${t("Đấu với gói nguồn")}: ${[v.providerGroup, v.providerItemId].filter(Boolean).join(" · ")}` };
+    if (isStandardSrc || product.providerProductId) {
+      if (v.providerCycle) return { warn: false, text: `${t("Đấu với gói nguồn")}: ${srcName || `#${product.providerProductId}`} · ${monthLabel(v.providerCycle)}${v.providerNote ? ` · ${v.providerNote}` : ""}` };
+      return { warn: true, text: t("Chưa đấu chu kỳ nguồn") };
+    }
+    return null;
+  };
+  // Ánh xạ NCC theo gói (FIX7 E2) — đồng bộ FZR ghi sẵn các trường này; nay
+  // admin sửa tay được để tự dựng sản phẩm API hoặc gỡ ánh xạ. Nhóm có
+  // datalist gợi ý các nhóm chuẩn, vẫn gõ tự do được. Nằm trong khối gập
+  // "Đấu nguồn & tuỳ chọn thêm" của mỗi form gói.
   const mapRow = (v?: PremiumVariantDTO) => (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
-      <label className="flex items-center gap-1.5 text-xs text-slate-500">{t("NCC của gói")}
+    <div className="flex flex-wrap items-end gap-2">
+      <label className="block">
+        <span className="mb-1 block text-[11px] font-semibold text-slate-500">{t("NCC của gói")}</span>
         <select name="providerId" defaultValue={v?.providerId ?? ""} className={`${small} !w-auto`}>
           <option value="">{t("Không thuộc NCC")}</option>
           {providers.map((pr) => <option key={pr.id} value={pr.id}>{pr.name}</option>)}
         </select>
       </label>
-      <input name="providerGroup" defaultValue={v?.providerGroup ?? ""} list={`pgroups-${product.id}`} className={`${small} !w-44`} placeholder={t("Nhóm NCC của gói")} title="providerGroup" />
-      <input name="providerItemId" defaultValue={v?.providerItemId ?? ""} className={`${small} !w-40`} placeholder={t("ID gói tại NCC")} title="providerItemId" />
+      {fld(t("Nhóm NCC của gói"), <input name="providerGroup" defaultValue={v?.providerGroup ?? ""} list={`pgroups-${product.id}`} className={`${small} !w-44`} placeholder="providerGroup" />)}
+      {fld(t("ID gói tại NCC"), <input name="providerItemId" defaultValue={v?.providerItemId ?? ""} className={`${small} !w-40`} placeholder="providerItemId" />)}
       <datalist id={`pgroups-${product.id}`}>{PROVIDER_GROUPS.map((g) => <option key={g} value={g} />)}</datalist>
     </div>
+  );
+  // Khối gập chung: chu kỳ nguồn + thứ tự + giao hàng + kho + ánh xạ NCC.
+  const extraOptions = (v?: PremiumVariantDTO) => (
+    <details className="mt-2.5">
+      <summary className="cursor-pointer text-xs font-semibold text-slate-500">{t("Đấu nguồn & tuỳ chọn thêm")}</summary>
+      <div className="mt-2 space-y-2.5 rounded-lg bg-slate-50 p-2.5">
+        <div className="flex flex-wrap items-end gap-2">
+          {fld(t("Chu kỳ NCC (tháng)"), v
+            ? <input name="providerCycle" type="number" min={0} defaultValue={v.providerCycle ?? ""} className={`${small} !w-36`} />
+            : <input name="providerCycle" type="number" min={0} value={addCycle} onChange={(e) => setAddCycle(e.target.value)} className={`${small} !w-36`} />)}
+          {fld(t("Thứ tự"), <input name="sort" type="number" defaultValue={v ? v.sort : 0} className={`${small} !w-24`} />)}
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold text-slate-500">{t("Loại giao hàng")}</span>
+            <select name="deliveryType" defaultValue={v?.deliveryType ?? ""} className={`${small} !w-auto`}>
+              <option value="">{t("Mặc định theo hình thức giao")}</option>
+              <option value="FAST">{t("Giao nhanh")}</option>
+              <option value="SLOW">{t("Giao chậm")}</option>
+            </select>
+          </label>
+          {product.fulfillment !== "AUTO_STOCK" && (
+            <>
+              {fld(t("Số lượng kho"), <input name="stockQty" type="number" min={0} defaultValue={v?.stockQty ?? ""} className={`${small} !w-36`} placeholder={t("Trống = không giới hạn")} />)}
+              <label className="flex items-center gap-2 pb-1.5 text-sm text-slate-600"><input type="checkbox" name="outOfStock" defaultChecked={v?.outOfStock ?? false} className="h-4 w-4" /> {t("Hết hàng (chặn đặt)")}</label>
+            </>
+          )}
+        </div>
+        {mapRow(v)}
+      </div>
+    </details>
   );
   return (
     <Modal title={`${t("Gói bán")} — ${product.name}`} onClose={onClose} wide>
       <div className="max-h-[66vh] overflow-y-auto px-6 py-5">
         <div className="space-y-3">
-          {product.variants.map((v) => (
+          {product.variants.map((v) => {
+            const mapInfo = mapTextFor(v);
+            return (
             <form key={v.id} action={adminSaveVariant} className="rounded-xl border border-slate-200 p-3">
               <input type="hidden" name="id" value={v.id} />
               <input type="hidden" name="productId" value={product.id} />
               <input type="hidden" name="returnTo" value={returnTo} />
+              {mapInfo && (
+                <div className={`mb-2.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${mapInfo.warn ? "bg-amber-50 text-amber-700" : "bg-brand-50 text-brand-700"}`}>{mapInfo.text}</div>
+              )}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <input name="name" defaultValue={v.name} className={small} placeholder={t("Tên gói")} />
-                <input name="price" type="number" min={0} defaultValue={v.price} className={small} placeholder={t("Giá bán")} />
-                <input name="cost" type="number" min={0} defaultValue={v.cost} className={small} placeholder={t("Giá vốn")} />
-                <input name="warrantyDays" type="number" min={0} defaultValue={v.warrantyDays} className={small} placeholder={t("BH (ngày)")} />
-                <input name="providerCycle" type="number" min={0} defaultValue={v.providerCycle ?? ""} className={small} placeholder={t("Chu kỳ NCC (tháng)")} />
-                <input name="sort" type="number" defaultValue={v.sort} className={small} placeholder={t("Thứ tự")} />
+                {fld(t("Tên gói"), <input name="name" defaultValue={v.name} className={small} placeholder={t("Tên gói")} />)}
+                {fld(t("Giá bán"), <input name="price" type="number" min={0} defaultValue={v.price} className={small} placeholder={t("Giá bán")} />)}
+                {fld(t("Giá vốn"), <input name="cost" type="number" min={0} defaultValue={v.cost} className={small} placeholder={t("Giá vốn")} />)}
+                {fld(t("BH (ngày)"), <input name="warrantyDays" type="number" min={0} defaultValue={v.warrantyDays} className={small} placeholder={t("BH (ngày)")} />)}
+              </div>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="active" defaultChecked={v.active} className="h-4 w-4" /> {t("Đang bán")}</label>
-                <div className="flex items-center gap-2">
-                  <button className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">{t("Lưu")}</button>
-                  <button formAction={adminDeleteVariant} onClick={(e) => { if (!confirm(`${t("Xoá gói")} "${v.name}"?`)) e.preventDefault(); }} className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">{t("Xoá gói")}</button>
-                  {product.fulfillment === "AUTO_STOCK"
-                    ? <span className="text-xs text-slate-400">{`${t("Kho:")} ${v.stockAvailable}/${v.stockTotal}`}</span>
-                    : <span className="text-xs text-slate-400">{v.stockQty == null ? t("Kho: không giới hạn") : `${t("Kho:")} ${v.stockQty}`}</span>}
-                </div>
+                <button className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">{t("Lưu")}</button>
+                <button formAction={adminDeleteVariant} onClick={(e) => { if (!confirm(`${t("Xoá gói")} "${v.name}"?`)) e.preventDefault(); }} className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">{t("Xoá gói")}</button>
+                {product.fulfillment === "AUTO_STOCK"
+                  ? <span className="text-xs text-slate-400">{`${t("Kho:")} ${v.stockAvailable}/${v.stockTotal}`}</span>
+                  : <span className="text-xs text-slate-400">{v.stockQty == null ? t("Kho: không giới hạn") : `${t("Kho:")} ${v.stockQty}`}</span>}
               </div>
-              {/* Hàng 2: loại giao hàng + kho số lượng + cờ hết hàng (AUTO_STOCK
-                  theo dõi bằng dòng kho nên chỉ hiện loại giao hàng). */}
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <label className="flex items-center gap-1.5 text-xs text-slate-500">{t("Loại giao hàng")}
-                  <select name="deliveryType" defaultValue={v.deliveryType ?? ""} className={`${small} !w-auto`}>
-                    <option value="">{t("Mặc định theo hình thức giao")}</option>
-                    <option value="FAST">{t("Giao nhanh")}</option>
-                    <option value="SLOW">{t("Giao chậm")}</option>
-                  </select>
-                </label>
-                {product.fulfillment !== "AUTO_STOCK" && (
-                  <>
-                    <input name="stockQty" type="number" min={0} defaultValue={v.stockQty ?? ""} className={`${small} !w-40`} placeholder={t("Số lượng kho — để trống = không giới hạn")} title={t("Số lượng kho — để trống = không giới hạn")} />
-                    <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="outOfStock" defaultChecked={v.outOfStock} className="h-4 w-4" /> {t("Hết hàng (chặn đặt)")}</label>
-                  </>
-                )}
-              </div>
-              {mapRow(v)}
-              {v.providerNote && <p className="mt-1.5 text-xs text-slate-400">{t("Ghi chú gói tại NCC")}: {v.providerNote}</p>}
+              {extraOptions(v)}
               {/* Trường tuỳ chỉnh RIÊNG của gói (lệnh Tín 2026-11-13): khách
                   mua gói này thì điền các trường này; gói để trống thì dùng
                   trường của sản phẩm. */}
@@ -488,7 +523,8 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
                 <div className="mt-2"><PremiumFieldsEditor initial={parsePremiumFields(v.customFields)} /></div>
               </details>
             </form>
-          ))}
+            );
+          })}
           {product.variants.length === 0 && <div className="py-4 text-center text-sm text-slate-400">{t("Chưa có gói nào — thêm gói đầu tiên ở dưới.")}</div>}
         </div>
         <div className="mt-4 border-t border-slate-100 pt-4">
@@ -560,38 +596,27 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
           <form action={adminSaveVariant} className="rounded-xl border border-dashed border-slate-300 p-3">
             <input type="hidden" name="productId" value={product.id} />
             <input type="hidden" name="returnTo" value={returnTo} />
+            {isStandardSrc && srcPid && addCycle && (
+              <div className="mb-2.5 rounded-lg bg-brand-50 px-2.5 py-1.5 text-xs font-semibold text-brand-700">
+                {t("Đấu với gói nguồn")}: {srcName || `#${srcPid}`} · {addName}{addNote ? ` · ${addNote}` : ""}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <input name="name" required value={addName} onChange={(e) => setAddName(e.target.value)} className={small} placeholder={t("Tên gói (VD: 1 Tháng)")} />
-              <input name="price" type="number" min={0} required value={addPrice} onChange={(e) => setAddPrice(e.target.value)} className={small} placeholder={t("Giá bán")} />
-              <input name="cost" type="number" min={0} value={addCost} onChange={(e) => setAddCost(e.target.value)} className={small} placeholder={t("Giá vốn")} />
-              <input name="warrantyDays" type="number" min={0} className={small} placeholder={t("BH (ngày)")} />
-              <input name="providerCycle" type="number" min={0} value={addCycle} onChange={(e) => setAddCycle(e.target.value)} className={small} placeholder={t("Chu kỳ NCC (tháng)")} />
-              <input name="sort" type="number" defaultValue={0} className={small} placeholder={t("Thứ tự")} />
+              {fld(t("Tên gói"), <input name="name" required value={addName} onChange={(e) => setAddName(e.target.value)} className={small} placeholder={t("Tên gói (VD: 1 Tháng)")} />)}
+              {fld(t("Giá bán"), <input name="price" type="number" min={0} required value={addPrice} onChange={(e) => setAddPrice(e.target.value)} className={small} placeholder={t("Giá bán")} />)}
+              {fld(t("Giá vốn"), <input name="cost" type="number" min={0} value={addCost} onChange={(e) => setAddCost(e.target.value)} className={small} placeholder={t("Giá vốn")} />)}
+              {fld(t("BH (ngày)"), <input name="warrantyDays" type="number" min={0} className={small} placeholder={t("BH (ngày)")} />)}
+            </div>
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
               <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="active" defaultChecked className="h-4 w-4" /> {t("Đang bán")}</label>
-              <button className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">{t("+ Thêm gói")}</button>
+              <button className="ml-auto rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">{t("+ Thêm gói")}</button>
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1.5 text-xs text-slate-500">{t("Loại giao hàng")}
-                <select name="deliveryType" defaultValue="" className={`${small} !w-auto`}>
-                  <option value="">{t("Mặc định theo hình thức giao")}</option>
-                  <option value="FAST">{t("Giao nhanh")}</option>
-                  <option value="SLOW">{t("Giao chậm")}</option>
-                </select>
-              </label>
-              {product.fulfillment !== "AUTO_STOCK" && (
-                <>
-                  <input name="stockQty" type="number" min={0} className={`${small} !w-40`} placeholder={t("Số lượng kho — để trống = không giới hạn")} title={t("Số lượng kho — để trống = không giới hạn")} />
-                  <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="outOfStock" className="h-4 w-4" /> {t("Hết hàng (chặn đặt)")}</label>
-                </>
-              )}
-            </div>
-            {mapRow()}
+            {extraOptions()}
             <input type="hidden" name="providerNote" value={addNote} />
-            {addNote && <p className="mt-2 text-xs text-slate-400">{t("Ghi chú gói tại NCC")}: {addNote}</p>}
-            <div className="mt-3">
-              <div className="mb-1.5 text-xs font-semibold text-slate-500">{t("Trường tuỳ chỉnh của gói này — khách điền khi mua gói này")}</div>
-              <PremiumFieldsEditor initial={[]} />
-            </div>
+            <details className="mt-2.5">
+              <summary className="cursor-pointer text-xs font-semibold text-slate-500">{t("Trường tuỳ chỉnh của gói này — khách điền khi mua gói này")}</summary>
+              <div className="mt-2"><PremiumFieldsEditor initial={[]} /></div>
+            </details>
           </form>
           <div className="mt-4 flex items-center justify-between">
             <Link href="/admin/kho-premium" className="text-sm font-semibold text-blue-600 hover:text-blue-800">{t("Mở Kho tài khoản để nhập kho →")}</Link>

@@ -216,7 +216,7 @@ export async function PremiumInfoSections({ product }: {
   };
 }) {
   const { L, Ld } = await getServerI18n();
-  const fulfillmentLabel = product.fulfillment === "AUTO_STOCK" ? L("Giao ngay tự động từ kho") : product.fulfillment === "API" ? L("Giao tự động qua nhà cung cấp") : L("Nâng cấp chính chủ / giao thủ công");
+  const fulfillmentLabel = product.fulfillment === "AUTO_STOCK" ? L("Giao ngay tự động từ kho") : product.fulfillment === "API" ? L("Giao tự động") : L("Nâng cấp chính chủ / giao thủ công");
   const maxWarranty = Math.max(0, ...product.variants.map((v) => v.warrantyDays || 0));
   const warrantySection = (
     <section className="card p-6">
