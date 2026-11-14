@@ -13,7 +13,8 @@
  *  - refunded -> REFUNDED + hoàn đúng 1 lần: gửi lại bằng event_id MỚI vẫn
  *    không hoàn lần 2 (chống trùng ở tầng tiền — khác khử trùng event_id).
  *  - Sự kiện completed đến SAU khi đơn đã refund -> KHÔNG thụt lùi.
- *  - partial -> DELIVERED + nội dung đã giao + ghi chú admin MỘT PHẦN.
+ *  - partial -> PARTIAL (P2-07) + nội dung đã giao + ghi chú MỘT PHẦN;
+ *    completed đến sau mới sang DELIVERED.
  *  - GET /orders/{id} lỗi -> vẫn áp trạng thái từ sự kiện nhưng
  *    allowRawDelivery=false: đơn DELIVERED mà KHÔNG có nội dung giao.
  *  - manual_service.chat.waiting_reply -> báo khách NCC đang chờ phản hồi.
@@ -84,6 +85,9 @@ async function main() {
       update: { apiUrl: MOCK, apiKey: "fc_test_mock", driver: "FZR", active: true },
     });
     const provider: any = await prisma.provider.findUnique({ where: { id: PROVIDER_ID } });
+    // Dọn receipt của chính suite này từ các lần chạy trước — event_id cố
+    // định, không dọn là lượt đầu bị dedupe oan (giống test-fzr-webhook).
+    await prisma.webhookReceipt.deleteMany({ where: { ref: { startsWith: "fzr:evt-rw-" } } }).catch(() => {});
     await syncFzrCatalog(provider, {});
     await setSetting("fzr_webhook_secret", SECRET);
 
@@ -135,12 +139,17 @@ async function main() {
     const afterB2: any = await prisma.premiumOrder.findUnique({ where: { id: oB.id } });
     check("completed đến sau refund -> đơn giữ REFUNDED + tiền nguyên + không nhận mã muộn", rLate.status === 200 && afterB2.status === "REFUNDED" && (await freshDemo()).balance === balAfterBuyB + oB.total && !(afterB2.deliveryData || "").includes("LATE-CODE"), afterB2.status);
 
-    // 4) partial -> DELIVERED + nội dung đã giao + ghi chú admin đối soát tay
+    // 4) partial -> PARTIAL (P2-07: trạng thái thật, giữ nội dung đã giao +
+    //    ghi chú MỘT PHẦN), rồi completed mới sang DELIVERED.
     const oD: any = await buyManual();
     await flip(oD.providerOrderId, "partial", ["PART-1"]);
     const rD = await postWebhook(evt("evt-rw-d1", oD.providerOrderId, "partial"));
     const afterD: any = await prisma.premiumOrder.findUnique({ where: { id: oD.id } });
-    check("partial -> DELIVERED + nội dung đã giao + ghi chú MỘT PHẦN", rD.status === 200 && afterD.status === "DELIVERED" && (afterD.deliveryData || "").includes("PART-1") && /MỘT PHẦN/.test(afterD.adminNote || ""), afterD.status);
+    check("partial -> PARTIAL + nội dung đã giao + ghi chú MỘT PHẦN", rD.status === 200 && afterD.status === "PARTIAL" && (afterD.deliveryData || "").includes("PART-1") && /MỘT PHẦN/.test(afterD.adminNote || ""), afterD.status);
+    await flip(oD.providerOrderId, "completed", ["PART-1", "PART-2"]);
+    const rD2 = await postWebhook(evt("evt-rw-d2", oD.providerOrderId, "completed"));
+    const afterD2: any = await prisma.premiumOrder.findUnique({ where: { id: oD.id } });
+    check("completed sau partial -> DELIVERED", rD2.status === 200 && afterD2.status === "DELIVERED", afterD2.status);
 
     // 5) GET /orders/{id} lỗi (đơn không tồn tại phía mock) -> vẫn áp trạng
     //    thái từ sự kiện, nhưng allowRawDelivery=false: không nội dung giao,

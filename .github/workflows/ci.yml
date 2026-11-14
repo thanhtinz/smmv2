@@ -1,0 +1,76 @@
+# CI (audit đợt 2 — P3-03): mọi push/PR vào main phải qua typecheck+build
+# và nhóm test tiền/webhook/đơn trên PostgreSQL thật trước khi coi là xanh.
+# Giá trị bí mật trong file này CHỈ dùng cho môi trường CI dùng-một-lần,
+# không phải khoá production.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bntshop_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/bntshop_ci
+      AUTH_SECRET: ci-only-secret-not-used-in-production
+      APP_ENC_KEY: ci-only-enc-key-not-used-in-production
+      AI_SERVICE_TOKEN: ci-test-token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Cài dependencies
+        run: npm ci
+      - name: Tạo schema + dữ liệu mẫu
+        run: |
+          npx prisma db push
+          npm run db:seed
+      - name: Build (kèm typecheck)
+        run: npm run build
+      - name: Khởi động server cho nhóm test HTTP
+        run: |
+          npm run start > server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -s -o /dev/null http://127.0.0.1:3000/ && break
+            sleep 2
+          done
+          curl -s -o /dev/null -w "server: %{http_code}\n" http://127.0.0.1:3000/
+      - name: Nhóm test tiền / webhook / đơn / AI
+        run: |
+          set -e
+          for t in \
+            test-ai-auth \
+            test-ai-knowledge \
+            test-purchase-price \
+            test-purchase-recovery2 \
+            test-purchase-payment \
+            test-sepay-purchase-retry \
+            test-fzr \
+            test-fzr-partial \
+            test-fzr-race \
+            test-fzr-webhook \
+            test-boltutil \
+            test-webhook
+          do
+            echo "=== $t ==="
+            npx tsx "scripts/$t.ts"
+          done
