@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       let r;
       try {
         const { settlePurchasePayment } = await import("@/lib/purchase");
-        r = await settlePurchasePayment(hit.id, { paidVnd: amount, finalIfUnderpaid: "wait" });
+        r = await settlePurchasePayment(hit.id, { paidVnd: amount, paidTxRef: txId, finalIfUnderpaid: "wait" });
       } catch (e) {
         // P2-01 (audit đợt 2): lỗi TẠM THỜI lúc thực thi (DB timeout, lỗi
         // hạ tầng) không được giữ claim — NHẢ receipt + trả 500 để SePay

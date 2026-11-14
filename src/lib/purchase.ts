@@ -201,12 +201,72 @@ const PURCHASE_STALE_MS = 10 * 60 * 1000;
  *  lần gọi sau (webhook/poll/cron recoverStuckPurchases) tiếp quản và chỉ
  *  chạy các dòng CHƯA có kết quả, không tạo trùng đơn, không bồi hoàn hai
  *  lần. Mọi dòng xong mới chốt EXECUTED. */
-export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: number | null; finalIfUnderpaid?: "wait" | "wallet" } = {}): Promise<{ ok: boolean; reason: string }> {
+/** Ghi nhận một khoản cổng báo cho phiên (full-audit a75d260 P2-03):
+ *  có txRef thì insert dòng PurchasePaymentReceipt trong cùng
+ *  transaction với phép increment — txRef đã ghi thì KHÔNG cộng lại
+ *  (webhook retry sau lỗi tạm, receipt PUR bị nhả, gọi lại settle vẫn
+ *  an toàn). Trả tổng đã nhận MỚI nhất. */
+async function recordPurchaseReceipt(ppId: number, userId: number, paidVnd: number, txRef?: string | null, legacyJsonReceived = 0): Promise<number> {
+  const cur0 = await prisma.purchasePayment.findUnique({ where: { id: ppId }, select: { receivedVnd: true } });
+  if ((cur0?.receivedVnd || 0) === 0 && legacyJsonReceived > 0) {
+    await prisma.purchasePayment.updateMany({ where: { id: ppId, receivedVnd: 0 }, data: { receivedVnd: legacyJsonReceived } });
+  }
+  // Postgres: một statement lỗi (trùng unique) làm ABORT cả transaction
+  // nên không bắt lỗi insert ngay trong tx — kiểm tra tồn tại trước,
+  // và nếu vẫn thua race ở bước create thì bắt ở NGOÀI transaction rồi
+  // đọc lại tổng hiện tại (khoản đã được lượt thắng ghi nhận).
+  try {
+    return await prisma.$transaction(async (tx) => {
+      if (txRef) {
+        const existing = await tx.purchasePaymentReceipt.findUnique({
+          where: { purchasePaymentId_txRef: { purchasePaymentId: ppId, txRef } },
+        });
+        if (existing) {
+          const cur = await tx.purchasePayment.findUnique({ where: { id: ppId }, select: { receivedVnd: true } });
+          return cur?.receivedVnd || 0;
+        }
+        await tx.purchasePaymentReceipt.create({ data: { purchasePaymentId: ppId, txRef, amount: paidVnd } });
+      }
+      const upd = await tx.purchasePayment.update({ where: { id: ppId }, data: { receivedVnd: { increment: paidVnd } } });
+      return upd.receivedVnd;
+    });
+  } catch {
+    const cur = await prisma.purchasePayment.findUnique({ where: { id: ppId }, select: { receivedVnd: true } });
+    return cur?.receivedVnd || 0;
+  }
+}
+
+/** Quét hoàn tiền thừa của phiên (full-audit a75d260 P2-03): phần
+ *  receivedVnd vượt amount mà chưa hoàn (theo cột excessCreditedVnd)
+ *  được cộng vào ví đúng một lần bằng CAS trên chính marker — lượt
+ *  settle thắng/thua claim hay lượt đến giữa lúc thực thi đều có thể
+ *  gọi; ai gọi trước thì hoàn, các lượt sau thấy due = 0. */
+async function creditPurchaseExcess(ppId: number): Promise<number> {
+  let credited = 0;
+  await prisma.$transaction(async (tx) => {
+    const fresh = await tx.purchasePayment.findUnique({
+      where: { id: ppId },
+      select: { amount: true, receivedVnd: true, excessCreditedVnd: true, userId: true, code: true },
+    });
+    if (!fresh) return;
+    const due = (fresh.receivedVnd || 0) - fresh.amount - (fresh.excessCreditedVnd || 0);
+    if (due <= 0) return;
+    const cas = await tx.purchasePayment.updateMany({
+      where: { id: ppId, excessCreditedVnd: fresh.excessCreditedVnd },
+      data: { excessCreditedVnd: fresh.excessCreditedVnd + due },
+    });
+    if (cas.count === 0) return;
+    await applyBalance(tx, fresh.userId, due, "REFUND", fresh.code, `Thanh toán trực tiếp ${fresh.code} thừa tiền — hoàn phần thừa vào ví`);
+    credited = due;
+  });
+  return credited;
+}
+
+export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: number | null; paidTxRef?: string | null; finalIfUnderpaid?: "wait" | "wallet" } = {}): Promise<{ ok: boolean; reason: string }> {
   const pp = await prisma.purchasePayment.findUnique({ where: { id: ppId } });
   if (!pp) return { ok: false, reason: "not_found" };
   if (pp.status === "EXECUTED") return { ok: true, reason: "already" };
   const resuming = pp.status === "PROCESSING";
-  if (resuming && Date.now() - pp.updatedAt.getTime() < PURCHASE_STALE_MS) return { ok: false, reason: "processing" };
   if (pp.status !== "PENDING" && pp.status !== "EXPIRED" && !resuming) return { ok: false, reason: `status_${pp.status.toLowerCase()}` };
 
   const data = parsePurchaseData(pp);
@@ -219,19 +279,21 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
   // đúng tổng của cả hai giao dịch. Phiên cũ (tạo trước khi có cột) lấy
   // số trong JSON làm nền một lần. Tiếp quản phiên PROCESSING: KHÔNG
   // cộng lại paidVnd của cổng (tránh tính trùng số cổng báo lại).
+  // FULL-AUDIT a75d260 P2-03: ghi nhận khoản TRƯỚC mọi quyết định
+  // claim/thực thi, theo txRef (mỗi giao dịch cộng đúng một lần). Lượt
+  // đến khi phiên đang PROCESSING khoẻ cũng ghi nhận được tiền rồi
+  // mới trả "processing" — trước đây khoản đó biến mất khỏi sổ. Tiếp
+  // quản PROCESSING mà không có txRef thì không cộng lại (an toàn
+  // với các caller cũ).
   let received: number;
-  if (!resuming && opts.paidVnd != null && opts.paidVnd > 0) {
-    const legacy = Number(data.receivedVnd || 0);
-    if ((pp.receivedVnd || 0) === 0 && legacy > 0) {
-      await prisma.purchasePayment.updateMany({ where: { id: pp.id, receivedVnd: 0 }, data: { receivedVnd: legacy } });
-    }
-    const upd = await prisma.purchasePayment.update({
-      where: { id: pp.id },
-      data: { receivedVnd: { increment: opts.paidVnd } },
-    });
-    received = upd.receivedVnd;
+  if (opts.paidVnd != null && opts.paidVnd > 0 && (!resuming || opts.paidTxRef)) {
+    received = await recordPurchaseReceipt(pp.id, pp.userId, opts.paidVnd, opts.paidTxRef, Number(data.receivedVnd || 0));
   } else {
     received = Math.max(pp.receivedVnd || 0, Number(data.receivedVnd || 0));
+  }
+  if (resuming && Date.now() - pp.updatedAt.getTime() < PURCHASE_STALE_MS) {
+    if (opts.paidTxRef) await creditPurchaseExcess(pp.id);
+    return { ok: false, reason: "processing" };
   }
   if (!resuming && received > 0 && received < pp.amount) {
     if (opts.finalIfUnderpaid === "wallet") {
@@ -255,13 +317,17 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
       ? await tx.purchasePayment.updateMany({ where: { id: pp.id, status: "PROCESSING", updatedAt: { lt: new Date(Date.now() - PURCHASE_STALE_MS) } }, data: { updatedAt: new Date() } })
       : await tx.purchasePayment.updateMany({ where: { id: pp.id, status: { in: ["PENDING", "EXPIRED"] } }, data: { status: "PROCESSING", paidAt: new Date() } });
     if (claim.count !== 1) return false;
-    if (!resuming) {
-      const excess = received - pp.amount;
-      if (excess > 0) await applyBalance(tx, pp.userId, excess, "REFUND", pp.code, `Thanh toán trực tiếp ${pp.code} thừa tiền — hoàn phần thừa vào ví`);
-    }
     return true;
   });
-  if (!claimed) return { ok: true, reason: "raced" };
+  if (!claimed) {
+    // Lượt thua claim vẫn phải quét hoàn thừa cho khoản mình vừa ghi
+    // nhận (P2-03): tiền thừa không thuộc về lượt thắng nữa.
+    await creditPurchaseExcess(pp.id);
+    return { ok: true, reason: "raced" };
+  }
+  // Hoàn thừa theo TỔNG MỚI NHẤT (không dùng received chụp lúc vào
+  // hàm — khoản của webhook song song có thể ghi sau đó).
+  await creditPurchaseExcess(pp.id);
   // Lưu ngay số đã nhận để luồng tiếp quản (nếu có) đọc lại đúng.
   await savePurchaseData(pp.id, { receivedVnd: received });
 
@@ -499,6 +565,9 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
     await notifyUser(pp.userId, "Một phần đơn được hoàn vào ví", `Thanh toán ${pp.code}: ${creditedTotal.toLocaleString("vi-VN")}đ đã cộng vào ví của bạn (dòng không đặt được hoặc chênh lệch giá).`, "/dashboard/don-premium");
   }
   if (stillPending) return { ok: true, reason: "refund_pending" };
+  // Quét hoàn thừa lần cuối: khoản ghi nhận trong lúc thực thi (webhook
+  // song song) được hoàn tại đây nếu các lượt kia chưa quét.
+  await creditPurchaseExcess(pp.id);
   return { ok: true, reason: resuming ? "executed_resumed" : "executed" };
 }
 

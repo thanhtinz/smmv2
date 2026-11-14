@@ -374,6 +374,21 @@ model PanelPremiumPrice {
 // trong CÙNG transaction ở refundOnce (lib/purchase) nên hai lượt settle
 // chạy song song không thể cùng cộng một khoản hoàn: một lượt thắng
 // claim, lượt còn lại nhận unique-violation và coi như đã hoàn.
+// Sổ ghi nhận từng khoản cổng báo cho một phiên mua (full-audit
+// a75d260 P2-03): mỗi txRef chỉ được cộng vào receivedVnd ĐÚNG một
+// lần — webhook retry sau lỗi tạm (receipt PUR bị nhả) hay hai
+// webhook khác giao dịch tới đồng thời đều không cộng trùng/mất.
+model PurchasePaymentReceipt {
+  id                Int      @id @default(autoincrement())
+  purchasePaymentId Int
+  txRef             String   @db.VarChar(80)
+  amount            Int
+  createdAt         DateTime @default(now())
+
+  @@unique([purchasePaymentId, txRef])
+  @@index([purchasePaymentId])
+}
+
 model PurchaseRefundClaim {
   id                Int      @id @default(autoincrement())
   purchasePaymentId Int
@@ -570,6 +585,11 @@ model PurchasePayment {
   // JSON, hai webhook SePay một phần tới đồng thời cùng đọc giá trị cũ
   // rồi ghi đè lên nhau, làm thất lạc một phần tiền khách đã chuyển.
   receivedVnd  Int       @default(0)
+  // Phần tiền thừa đã hoàn vào ví (VNĐ) — marker cho sweep hoàn thừa
+  // nguyên tử (full-audit a75d260 P2-03): tổng đã nhận trừ amount trừ
+  // excessCreditedVnd là phần thừa còn phải hoàn, CAS trên chính cột
+  // này để nhiều lượt settle đồng thời không hoàn trùng.
+  excessCreditedVnd Int  @default(0)
   snapshot     String    @db.Text // JSON: { lines: [{variantId, qty, custom, buyerInfo, share}], promo }
   orderCodes   String?   @db.Text // JSON mảng mã đơn Premium đã tạo
   expiresAt    DateTime?
