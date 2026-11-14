@@ -338,13 +338,19 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
         promoCode: snapshot.promo || undefined,
         externalPaid: { method: pp.method, ref: pp.code },
         purchaseRef: { paymentId: pp.id, lineNo: idx },
+        // TÁI-AUDIT P2-02: trần = phần đã thu của dòng — createPremiumOrder
+        // tự chốt bên trong (kiểm tổng cuối + đọc lại giá trong transaction
+        // tạo đơn), nên giá đổi ở BẤT KỲ điểm nào trước khi đơn chốt đều
+        // bị chặn và dòng rơi vào nhánh bồi hoàn ví ở catch dưới.
+        maxTotal: line.share,
       });
       okCodes.push(order.code);
       // Giá chốt lúc thực thi THẤP hơn phần đã trả của dòng -> hoàn chênh lệch vào ví
       const diff = line.share - Number(order.total || 0);
       if (diff < 0) {
-        // Đã chặn trước bằng tính-lại ở trên; chỉ còn cửa sổ race rất hẹp
-        // (giá đổi đúng giữa hai bước) — báo admin đối soát, không im lặng.
+        // TÁI-AUDIT P2-02: trần maxTotal trong createPremiumOrder khiến
+        // tổng thực thi KHÔNG THỂ vượt phần đã thu ở đường này — nhánh này
+        // chỉ còn là lưới an toàn cuối, vẫn báo admin đối soát, không im lặng.
         await alertMother("purchase_price_up", "Đơn thanh toán trực tiếp lệch giá tăng", `Phiên ${pp.code}, đơn ${order.code}: tổng thực thi ${Number(order.total || 0).toLocaleString("vi-VN")}đ > phần đã thu ${line.share.toLocaleString("vi-VN")}đ. Cần đối soát thủ công.`).catch(() => {});
       }
       if (diff > 0) {

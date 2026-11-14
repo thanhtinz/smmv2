@@ -41,6 +41,11 @@ export async function createPremiumOrder(input: {
   // lib/purchase.ts đặt — ghi thẳng vào dòng đơn trong cùng transaction
   // tạo đơn để recovery nhận lại đúng đơn của đúng phiên/dòng.
   purchaseRef?: { paymentId: number; lineNo: number };
+  // Trần tổng tiền ĐÃ THU của dòng (tái-audit P2-02): chỉ lib/purchase.ts
+  // đặt (= phần tiền dòng đã thu). createPremiumOrder tự chốt: tổng thực
+  // thi cuối cùng mà VƯỢT trần thì ném lỗi TRƯỚC mọi tác dụng phụ — hết
+  // cửa sổ race giữa bước kiểm giá riêng và bước tạo đơn.
+  maxTotal?: number;
   // QUÀ THÁNG của Pass (lib/pass.ts): đơn 0đ — không trừ ví, không tính
   // giảm Pass / cashback / hoa hồng (tổng chốt 0đ), nhưng vẫn đi ĐÚNG đường
   // kho + giao hàng như đơn thường. Chỉ actions/pass.ts được đặt cờ này.
@@ -151,10 +156,26 @@ export async function createPremiumOrder(input: {
     if (passDiscount > 0) total -= passDiscount;
   }
 
+  // TÁI-AUDIT P2-02: chốt trần NGAY TẠI ĐÂY — sau khi `total` đã chốt
+  // (giá gốc → flash → mã giảm → Pass) và TRƯỚC mọi tác dụng phụ. Đơn
+  // thanh toán trực tiếp không bao giờ được thực thi vượt phần đã thu.
+  if (input.maxTotal != null && total > input.maxTotal) {
+    throw new Error(`Giá gói đã tăng sau khi thanh toán (${input.maxTotal.toLocaleString("vi-VN")}đ → ${total.toLocaleString("vi-VN")}đ)`);
+  }
+
   // Đợt 111: ghi lại lần trừ kho của đơn này (before/after) để bắn cảnh báo
   // kho SAU khi transaction chốt — chỉ khi lần trừ vừa vượt mốc hết/sắp hết.
   let stockMove: { before: number; after: number } | null = null;
   const created = await prisma.$transaction(async (tx) => {
+    // TÁI-AUDIT P2-02 (lớp trong transaction): đọc lại giá gốc của gói
+    // BẰNG CHÍNH transaction sắp tạo đơn — giá đổi sau lần đọc đầu (kể cả
+    // đổi đúng giữa chừng) thì huỷ toàn bộ transaction, không tạo đơn.
+    if (input.maxTotal != null) {
+      const fresh = await tx.premiumVariant.findUnique({ where: { id: variant.id }, select: { price: true, active: true } });
+      if (!fresh || !fresh.active || fresh.price !== variant.price) {
+        throw new Error("Giá gói đã thay đổi trong lúc đặt đơn");
+      }
+    }
     // Trừ kho số lượng NGUYÊN TỬ cùng transaction với tiền: thiếu kho -> ném
     // lỗi, cả tiền lẫn đơn rollback (không bán vượt, không trừ tiền oan).
     const move = await claimVariantStock(tx, variant, variant.product.fulfillment, input.quantity);
