@@ -163,7 +163,10 @@ async function main() {
     createdOrderIds.push(ghost.id);
     const rG = await postWebhook(evt("evt-rw-g1", "ord_manual_ghost", "completed"), true);
     const afterG: any = await prisma.premiumOrder.findUnique({ where: { id: ghost.id } });
-    check("GET chi tiết lỗi -> vẫn áp trạng thái sự kiện (DELIVERED)", rG.status === 200 && rG.json?.processed === true && afterG.status === "DELIVERED", afterG.status);
+    // Full-audit 6750109 P2-01: GET chi tiết lỗi -> KHÔNG áp trạng thái
+    // của sự kiện đơn lẻ lên đơn (có thể là 1 trong nhiều đơn con);
+    // đơn giữ PENDING chờ cron poll đối soát đủ các đơn con.
+    check("GET chi tiết lỗi -> KHÔNG chốt trạng thái từ sự kiện đơn lẻ (giữ PENDING)", rG.status === 200 && rG.json?.processed === true && afterG.status === "PENDING", afterG.status);
     check("fallback KHÔNG đổ nội dung thô/decoy vào nội dung giao", !afterG.deliveryData && !(afterG.deliveryData || "").includes("DECOY-CODE"), JSON.stringify(afterG.deliveryData));
 
     // 6) manual_service.chat.waiting_reply -> báo khách NCC đang chờ phản hồi
