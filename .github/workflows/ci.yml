@@ -72,6 +72,7 @@ jobs:
             test-fzr-partial \
             test-fzr-race \
             test-fzr-refund-ledger \
+            test-fzr-mixed-status \
             test-fzr-webhook \
             test-boltutil \
             test-webhook

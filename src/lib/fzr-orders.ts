@@ -514,7 +514,97 @@ export async function applyFzrOrderStatus(
     return updated;
   }
 
-  if (allCompleted || delivery) {
+  // Full-audit 3d1309c P2-02: trạng thái TRỘN ở mức lượt — trước bản này
+  // [completed, cancelled] rơi xuống nhánh DELIVERED chỉ vì trích được
+  // nội dung của lượt completed: đơn hiện "giao đủ", phần bị huỷ không
+  // được hoàn. Nay xử lý theo từng lượt:
+  //  - Trộn ĐÃ KẾT THÚC (completed + refunded/cancelled, không còn lượt
+  //    đang chạy): PARTIAL + giữ nội dung phần completed + hoàn phần
+  //    lượt bị huỷ theo CÔNG THỨC QUYỀN LỢI LUỸ KẾ trên sổ hoàn — số
+  //    được hoàn của mọi lượt chết (gồm lượt lỗi ngay từ bước thực thi,
+  //    vốn không có trạng thái phía provider) là floor(total x
+  //    entitledUnits / quantity); mỗi lượt poll chỉ cộng PHẦN CHÊNH so
+  //    với refundedAmount đã ghi, và ghi sổ bằng CAS trên chính giá trị
+  //    refundedAmount nên poll lặp/đua nhau không cộng hai lần.
+  if (badTerminal > 0 && completedCount > 0 && completedCount + badTerminal === n) {
+    const MIXED_NOTE = "FZR: đơn có lượt bị nhà cung cấp huỷ/hoàn — phần đã giao giữ nguyên, phần huỷ đã hoàn theo tỉ lệ, đối soát phần còn lại bằng tay";
+    const claim = await prisma.premiumOrder.updateMany({
+      where: { id: order.id, status: "PENDING" },
+      data: {
+        status: "PARTIAL",
+        deliveryData: nextDelivery,
+        providerRaw: JSON.stringify(rawStored),
+        ...((current.adminNote || "").includes(MIXED_NOTE)
+          ? {}
+          : { adminNote: [current.adminNote, MIXED_NOTE].filter(Boolean).join(" · ").slice(0, 900) }),
+      },
+    });
+    if (claim.count === 0 && current.status === "PARTIAL") {
+      await prisma.premiumOrder.updateMany({
+        where: { id: order.id, status: "PARTIAL" },
+        data: { deliveryData: nextDelivery, providerRaw: JSON.stringify(rawStored) },
+      });
+    }
+    if (claim.count > 0) {
+      await notifyUser(order.userId, "Đơn đang được giao một phần", `Đơn ${order.code}: một phần nội dung đã giao — xem trong chi tiết đơn, phần còn lại đang được xử lý tiếp`, "/dashboard/don-premium");
+      await alertMother("fzr_partial", `Đơn FZR trộn completed + huỷ: ${order.code}`, `Đơn ${order.code} có ${badTerminal}/${n} lượt bị FazerCards huỷ/hoàn. Phần completed đã giao ở trạng thái PARTIAL; phần huỷ được hoàn theo tỉ lệ qua sổ hoàn.`).catch(() => {});
+    }
+    const entitledUnits = (order.quantity - n) + badTerminal;
+    const entitledAmt = Math.floor((order.total * entitledUnits) / Math.max(1, order.quantity));
+    let credited = 0;
+    await prisma.$transaction(async (tx) => {
+      const fresh = await tx.premiumOrder.findUnique({ where: { id: order.id } });
+      if (!fresh) return;
+      const add = entitledAmt - (fresh.refundedAmount || 0);
+      if (add <= 0) return;
+      const cas = await tx.premiumOrder.updateMany({
+        where: { id: order.id, refundedAmount: fresh.refundedAmount },
+        data: { refundedAmount: entitledAmt, refundedUnits: Math.max(entitledUnits, fresh.refundedUnits || 0) },
+      });
+      if (cas.count === 0) return;
+      const addUnits = entitledUnits - (fresh.refundedUnits || 0);
+      if (addUnits > 0) await restoreVariantStock(tx, fresh.variantId, addUnits);
+      await applyBalance(tx, fresh.userId, add, "REFUND", fresh.code, `Hoàn ${badTerminal} lượt FZR bị huỷ/hoàn`);
+      credited = add;
+    });
+    if (credited > 0) {
+      await clawbackReferralCommission(order.userId, credited, order.code);
+      await clawbackPassCashback(order.userId, credited, order.code);
+      void mailOrderRefunded(order, credited);
+    }
+    return (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
+  }
+
+  //  - Trộn CÒN ĐANG CHẠY (completed + processing, chưa lượt nào chết):
+  //    PARTIAL với nội dung phần đã xong — KHÔNG chốt DELIVERED, KHÔNG
+  //    hoàn; lượt poll sau sẽ chốt (đủ completed -> DELIVERED, có lượt
+  //    chết -> nhánh trộn kết thúc ở trên).
+  if (badTerminal === 0 && completedCount > 0 && completedCount < n) {
+    const INFLIGHT_NOTE = "FZR: một số lượt còn đang xử lý phía nhà cung cấp — đã ghi phần giao được, chờ chốt ở lượt đồng bộ sau";
+    const claim = await prisma.premiumOrder.updateMany({
+      where: { id: order.id, status: "PENDING" },
+      data: {
+        status: "PARTIAL",
+        deliveryData: nextDelivery,
+        providerRaw: JSON.stringify(rawStored),
+        ...((current.adminNote || "").includes(INFLIGHT_NOTE)
+          ? {}
+          : { adminNote: [current.adminNote, INFLIGHT_NOTE].filter(Boolean).join(" · ").slice(0, 900) }),
+      },
+    });
+    if (claim.count === 0) {
+      if (current.status !== "PARTIAL") return (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
+      await prisma.premiumOrder.updateMany({
+        where: { id: order.id, status: "PARTIAL" },
+        data: { deliveryData: nextDelivery, providerRaw: JSON.stringify(rawStored) },
+      });
+      return (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
+    }
+    await notifyUser(order.userId, "Đơn đang được giao một phần", `Đơn ${order.code}: một phần nội dung đã giao — xem trong chi tiết đơn, phần còn lại đang được xử lý tiếp`, "/dashboard/don-premium");
+    return (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
+  }
+
+  if (allCompleted || (delivery && badTerminal === 0)) {
     const claim = await prisma.premiumOrder.updateMany({
       where: { id: order.id, status: { in: [...fromStatuses] } },
       data: {
