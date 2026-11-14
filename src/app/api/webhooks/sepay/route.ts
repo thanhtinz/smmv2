@@ -13,6 +13,13 @@ import { genCode } from "@/lib/format";
  */
 export const dynamic = "force-dynamic";
 
+// Lease của claim receipt PUR:<txId> (full-audit 3d1309c P2-03): claim
+// quá 10 phút mà phiên chưa chốt được coi là MỒ CÔI (process bị kill sau
+// khi tạo receipt, trước settle — catch nhả receipt không chạy được khi
+// bị kill) và được một lượt retry tiếp quản bằng CAS. Cùng họ lease 10
+// phút với PURCHASE_STALE_MS của lib/purchase.
+const PURCHASE_RECEIPT_LEASE_MS = 10 * 60 * 1000;
+
 export async function POST(req: NextRequest) {
   const settings = await getSettings();
   const motherSecret = settings.sepay_secret || process.env.SEPAY_WEBHOOK_SECRET || "";
@@ -58,9 +65,29 @@ export async function POST(req: NextRequest) {
     }) : [];
     const hit = purchases.find((p) => normP.includes(p.code.toUpperCase()));
     if (hit) {
+      const receiptRef = `PUR:${txId}`;
+      let claimed = false;
       try {
-        await prisma.webhookReceipt.create({ data: { ref: `PUR:${txId}` } });
+        await prisma.webhookReceipt.create({ data: { ref: receiptRef } });
+        claimed = true;
       } catch {
+        // Trùng claim: hoặc lượt gốc còn đang chạy (claim tươi -> chặn
+        // như cũ), hoặc claim MỒ CÔI quá lease + phiên chưa chốt -> CAS
+        // làm mới createdAt để tiếp quản; chỉ một lượt retry thắng CAS.
+        const oldReceipt = await prisma.webhookReceipt.findUnique({ where: { ref: receiptRef } });
+        const settleable = hit.status === "PENDING" || hit.status === "EXPIRED" || hit.status === "PROCESSING";
+        if (oldReceipt && settleable && Date.now() - oldReceipt.createdAt.getTime() > PURCHASE_RECEIPT_LEASE_MS) {
+          const cas = await prisma.webhookReceipt.updateMany({
+            where: { ref: receiptRef, createdAt: oldReceipt.createdAt },
+            data: { createdAt: new Date() },
+          });
+          if (cas.count === 1) {
+            claimed = true;
+            await prisma.apiLog.create({ data: { kind: "webhook", ref: txId, ok: true, detail: `purchase=${hit.code} tiếp quản receipt mồ côi (claim cũ ${Math.round((Date.now() - oldReceipt.createdAt.getTime()) / 60000)} phút)` } }).catch(() => {});
+          }
+        }
+      }
+      if (!claimed) {
         return NextResponse.json({ success: true, skipped: "duplicate purchase tx" });
       }
       // PROCESSING cũng phải tới được settle (P2-01 audit đợt 2): settle tự

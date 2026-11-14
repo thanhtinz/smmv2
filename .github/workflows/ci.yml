@@ -68,6 +68,7 @@ jobs:
             test-purchase-refund-failclosed \
             test-purchase-payment \
             test-sepay-purchase-retry \
+            test-sepay-purchase-orphan \
             test-fzr \
             test-fzr-partial \
             test-fzr-race \
