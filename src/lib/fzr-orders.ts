@@ -425,6 +425,16 @@ export async function applyFzrOrderStatus(
   if (current.status === "REFUNDED" || current.status === "CANCELED") return saveRawOnly();
   if (current.status === "DELIVERED" || current.status === "COMPLETED") return saveRawOnly();
   if (opts.fromWebhook && current.status !== "PENDING" && current.status !== "PARTIAL") return saveRawOnly();
+  // P2-02 (audit đợt 2): CAS — mọi chuyển trạng thái bên dưới đi qua
+  // updateMany CÓ ĐIỀU KIỆN trạng thái hiện tại. Cron poll và webhook có
+  // thể áp trạng thái cho cùng một đơn cùng lúc; chỉ MỘT lượt thắng
+  // claim, lượt thua (count=0) đọc lại rồi dừng. Trước bản vá, hai lượt
+  // cùng qua guard đọc-trước rồi cùng ghi: điểm cộng 2 lần, thông báo
+  // và mail giao hàng gửi 2 lần.
+  // PremiumOrderStatus không có PROCESSING — đơn FZR nằm ở PENDING cho
+  // tới khi được áp trạng thái, nên cả hai đường đều claim từ 2 trạng
+  // thái này (khớp đúng guard phía trên).
+  const fromStatuses = ["PENDING", "PARTIAL"] as const;
 
   const n = statuses.length;
   const badTerminal = statuses.filter((st) => st === "refunded" || st === "cancelled").length;
@@ -450,8 +460,12 @@ export async function applyFzrOrderStatus(
   // giao" CHỈ chạy khi đơn hoàn tất sang DELIVERED ở lượt áp sau.
   if (partial && !allCompleted) {
     const PARTIAL_NOTE = "FZR: đơn giao MỘT PHẦN (partial) — đối soát phần còn lại bằng tay theo dữ liệu thô phía nhà cung cấp";
-    const updated = await prisma.premiumOrder.update({
-      where: { id: order.id },
+    // Claim CHUYỂN TRẠNG THÁI chỉ từ PENDING: chỉ lượt thắng mới chạy
+    // thông báo/cảnh báo. Đơn đã PARTIAL từ trước (poll lặp) chỉ làm
+    // mới nội dung đã giao, không hiệu ứng — gộp chung một claim từ
+    // [PENDING, PARTIAL] sẽ cho cả hai lượt đua cùng "thắng".
+    const claim = await prisma.premiumOrder.updateMany({
+      where: { id: order.id, status: "PENDING" },
       data: {
         status: "PARTIAL",
         deliveryData: nextDelivery,
@@ -463,6 +477,15 @@ export async function applyFzrOrderStatus(
           : { adminNote: [current.adminNote, PARTIAL_NOTE].filter(Boolean).join(" · ").slice(0, 900) }),
       },
     });
+    if (claim.count === 0) {
+      if (current.status !== "PARTIAL") return (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
+      await prisma.premiumOrder.updateMany({
+        where: { id: order.id, status: "PARTIAL" },
+        data: { deliveryData: nextDelivery, providerRaw: JSON.stringify(rawStored) },
+      });
+      return (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
+    }
+    const updated = (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
     if (current.status !== "PARTIAL") {
       await notifyUser(order.userId, "Đơn đang được giao một phần", `Đơn ${order.code}: một phần nội dung đã giao — xem trong chi tiết đơn, phần còn lại đang được xử lý tiếp`, "/dashboard/don-premium");
       await alertMother("fzr_partial", `Đơn FZR giao một phần: ${order.code}`, `Đơn ${order.code} được FazerCards báo giao một phần (partial). Nội dung đã giao nằm trong chi tiết đơn; phần còn lại xử lý tay.`).catch(() => {});
@@ -471,14 +494,18 @@ export async function applyFzrOrderStatus(
   }
 
   if (allCompleted || delivery) {
-    const updated = await prisma.premiumOrder.update({
-      where: { id: order.id },
+    const claim = await prisma.premiumOrder.updateMany({
+      where: { id: order.id, status: { in: [...fromStatuses] } },
       data: {
         status: "DELIVERED",
         deliveryData: nextDelivery,
         providerRaw: JSON.stringify(rawStored),
       },
     });
+    // Thua claim = lượt song song đã chuyển trạng thái và chạy hiệu ứng
+    // (điểm/thông báo/mail) rồi — dừng tại đây, không chạy lần hai.
+    if (claim.count === 0) return (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
+    const updated = (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
     await awardPointsForPremiumOrder(updated);
     await notifyUser(order.userId, "Đơn Premium đã được giao", `Đơn ${order.code} đã giao — xem nội dung trong chi tiết đơn`, "/dashboard/don-premium");
     // Đơn đã DELIVERED/COMPLETED đã bị chặn ở guard đầu hàm nên tới được
