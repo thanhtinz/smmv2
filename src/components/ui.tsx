@@ -6,9 +6,9 @@ export function Badge({ children, cls }: { children: ReactNode; cls: string }) {
 }
 export function PageHead({ title, desc, children }: { title: string; desc?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+    <div className="page-head flex flex-wrap items-start justify-between gap-3 mb-6">
       <div className="flex items-start gap-3">
-        <span className="mt-1 hidden h-10 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-brand-500 to-brand-700 sm:block" />
+        <span className="ph-bar mt-1 hidden h-10 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-brand-500 to-brand-700 sm:block" />
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
           {desc && <p className="text-sm text-slate-500 mt-1">{desc}</p>}
@@ -32,10 +32,10 @@ const STAT_TONES: Record<string, { tile: string; bar: string }> = {
 export function Stat({ label, value, sub, icon, tone = "brand" }: { label: string; value: string; sub?: ReactNode; icon: ReactNode; tone?: string }) {
   const t = STAT_TONES[tone] || STAT_TONES.brand;
   return (
-    <div className="card relative overflow-hidden p-4 sm:p-5">
-      <span className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${t.bar}`} />
+    <div className="card stat-card relative overflow-hidden p-4 sm:p-5">
+      <span className={`stat-bar absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${t.bar}`} />
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:gap-4">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg sm:h-11 sm:w-11 ${t.tile}`}>{icon}</div>
+        <div className={`stat-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg sm:h-11 sm:w-11 ${t.tile}`}>{icon}</div>
         <div className="min-w-0">
           <div className="text-[11px] font-semibold uppercase leading-snug tracking-wide text-slate-500 sm:text-xs">{label}</div>
           <div className="whitespace-nowrap text-[clamp(15px,4.2vw,20px)] font-extrabold leading-snug text-slate-900">{value}</div>

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { I } from "@/components/ui";
 import { useLang } from "@/components/lang";
 
@@ -9,10 +9,9 @@ export type AdminNavItem = { href: string; label: string; icon: string; badge?: 
 export type AdminNavEntry = AdminNavItem | { group: string; icon: string; children: AdminNavItem[] };
 
 /** LUẬT HIGHLIGHT DUY NHẤT (lệnh Tín 2026-11-07 23:12): toàn menu admin
- *  chỉ MỘT lá được tô gradient. Khớp đúng path thắng; nếu không, tiền tố dài
- *  nhất thắng (trang con tô lá tổ tiên gần nhất); "/admin" chỉ khớp đúng.
- *  Trước đây các cặp anh em kiểu /admin/premium + /admin/premium/danh-muc
- *  cùng khớp tiền tố nên sáng 2 lá một lúc. */
+ *  chỉ MỘT lá được tô. Khớp đúng path thắng; nếu không, tiền tố dài nhất
+ *  thắng (trang con tô lá tổ tiên gần nhất); "/admin" chỉ khớp đúng.
+ *  Giữ nguyên khi rebuild giao diện theo mockup (2026-11-14). */
 function leafScore(pathname: string, href: string): number {
   if (href === "/admin") return pathname === href ? 5000 + href.length : 0;
   if (pathname === href) return 5000 + href.length;
@@ -33,127 +32,93 @@ function navWinner(entries: AdminNavEntry[], pathname: string): AdminNavItem | n
   return best;
 }
 
-/** Màu riêng cho từng icon trên nền sidebar navy — nhìn phát biết mục nào. */
-const ICON_COLORS: Record<string, string> = {
-  home: "text-sky-400", cart: "text-sky-400", list: "text-cyan-400", layers: "text-teal-400",
-  server: "text-indigo-400", percent: "text-lime-400", money: "text-amber-400", gem: "text-fuchsia-400",
-  box: "text-violet-400", wallet: "text-emerald-400", landmark: "text-teal-300", gift: "text-pink-400",
-  file: "text-orange-300", mail: "text-blue-300", megaphone: "text-yellow-400", users: "text-violet-300",
-  chart: "text-cyan-300", shield: "text-red-400", panels: "text-indigo-300", ticket: "text-rose-400",
-  clock: "text-slate-300", cpu: "text-emerald-300", key: "text-amber-300", gear: "text-slate-300",
-  bell: "text-amber-400", globe: "text-cyan-300", gamepad: "text-sky-300",
-  share: "text-blue-400", zap: "text-yellow-300", wrench: "text-orange-400", receipt: "text-emerald-300",
-  code: "text-lime-300", link: "text-cyan-400", inbox: "text-teal-300", tag: "text-rose-300",
-  star: "text-amber-300", phone: "text-green-400", book: "text-orange-200", sliders: "text-indigo-300",
-  monitor: "text-slate-200", lock: "text-red-300", fingerprint: "text-purple-300", history: "text-slate-300",
-  trash: "text-rose-300", refresh: "text-cyan-300", db: "text-blue-300", send: "text-sky-400",
-};
-const GROUP_TILES: Record<string, string> = {
-  wallet: "bg-gradient-to-br from-emerald-500 to-teal-600",
-  megaphone: "bg-gradient-to-br from-amber-500 to-orange-600",
-  gear: "bg-gradient-to-br from-indigo-500 to-slate-600",
-  cart: "bg-gradient-to-br from-sky-500 to-blue-600",
-  gem: "bg-gradient-to-br from-fuchsia-500 to-violet-600",
-  file: "bg-gradient-to-br from-orange-500 to-amber-600",
-  users: "bg-gradient-to-br from-violet-500 to-purple-600",
-  gamepad: "bg-gradient-to-br from-slate-600 to-slate-800",
-  key: "bg-gradient-to-br from-amber-500 to-yellow-600",
-};
-
-function Leaf({ it, active, sub = false }: { it: AdminNavItem; active: boolean; sub?: boolean }) {
+/** Lá menu theo mockup đã duyệt: phẳng, icon xám, mục thắng = nền brand
+ *  đặc + chữ trắng; badge = pill mềm (trên nền active thì trắng mờ). */
+function Leaf({ it, active, onNavigate }: { it: AdminNavItem; active: boolean; onNavigate?: () => void }) {
   const Icon = (I as any)[it.icon] || I.home;
   return (
     <Link
       href={it.href}
-      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
-        active ? "bg-gradient-to-r from-brand-600 to-brand-500 text-white font-semibold shadow-md shadow-brand-900/40" : "text-slate-300 hover:bg-white/10 hover:text-white"
-      } ${sub ? "py-2 text-[13px]" : ""}`}
+      onClick={onNavigate}
+      className={`flex h-[38px] items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] transition ${
+        active ? "bg-brand-600 font-semibold text-white shadow-sm" : "font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+      }`}
     >
-      <span className={`shrink-0 ${active ? "text-white" : ICON_COLORS[it.icon] || "text-slate-300"}`}>{Icon}</span>
-      <span className="truncate">{it.label}</span>
+      <span className={`flex shrink-0 items-center [&>svg]:h-[18px] [&>svg]:w-[18px] ${active ? "text-white" : "text-slate-400"}`}>{Icon}</span>
+      <span className="min-w-0 flex-1 truncate">{it.label}</span>
       {!!it.badge && it.badge > 0 && (
-        <span className="ml-auto min-w-[20px] rounded-full bg-gradient-to-r from-rose-500 to-red-500 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white shadow">{it.badge}</span>
+        <span className={`rounded-full px-1.5 py-px text-[11px] font-bold ${active ? "bg-white/25 text-white" : "bg-brand-50 text-brand-700"}`}>{it.badge}</span>
       )}
     </Link>
   );
 }
 
-function Group({ entry, winner }: { entry: { group: string; icon: string; children: AdminNavItem[] }; winner: AdminNavItem | null }) {
-  const { t } = useLang();
-  const Icon = (I as any)[entry.icon] || I.list;
-  const containsWinner = entry.children.some((c) => c === winner);
-  const [open, setOpen] = useState(containsWinner);
-  // Nhóm chứa lá đang xem thì tự mở (kể cả khi điều hướng phía client).
-  // Nút cha KHÔNG nhuộm màu active — chỉ lá thắng mới được tô (luật duy nhất).
-  useEffect(() => { if (containsWinner) setOpen(true); }, [containsWinner]);
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition text-slate-300 hover:bg-white/10 hover:text-white"
-      >
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white shadow ${GROUP_TILES[entry.icon] || "bg-gradient-to-br from-slate-500 to-slate-600"}`}>{Icon}</span>
-        <span className="truncate font-medium">{t(entry.group)}</span>
-        <svg viewBox="0 0 24 24" className={`ml-auto h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-      </button>
-      {open && (
-        <div className="ml-[21px] mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
-          {entry.children.map((c) => (
-            <Leaf key={c.href} it={c} active={c === winner} sub />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function NavBody({ siteName, logoUrl, entries, pathname, onNavigate, siteUrl }: { siteName: string; logoUrl: string; entries: AdminNavEntry[]; pathname: string; onNavigate?: () => void; siteUrl?: string }) {
+function NavBody({ siteName, logoUrl, entries, pathname, onNavigate, siteUrl, userName, userRole }: {
+  siteName: string; logoUrl: string; entries: AdminNavEntry[]; pathname: string;
+  onNavigate?: () => void; siteUrl?: string; userName?: string; userRole?: string;
+}) {
   const { t } = useLang();
   const winner = navWinner(entries, pathname);
+  const initial = (userName || "A").slice(0, 1).toUpperCase();
   return (
     <>
-      <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-white/10 px-5">
-        {/* Logo nhỏ + tên (biến thể hẹp): admin tự tải → BNT Shop gói sẵn.
-            Logo nền trắng nên đặt trong ô trắng bo góc cho khớp sidebar tối. */}
+      <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-slate-100 px-5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logoUrl} alt={siteName} className="h-9 w-9 shrink-0 rounded-xl bg-white object-contain ring-1 ring-white/25" />
-        <span className="truncate font-extrabold text-white">
-          {siteName} <span className="font-medium text-slate-400">/ Admin</span>
-        </span>
+        <img src={logoUrl} alt={siteName} className="h-8 w-8 shrink-0 rounded-lg object-contain" />
+        <span className="min-w-0 flex-1 truncate text-[15px] font-extrabold tracking-tight text-slate-900">{siteName}</span>
+        <span className="rounded-md bg-brand-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700">Admin</span>
       </div>
-      {/* Chỉ bấm vào LINK mới đóng ngăn kéo mobile: trước đây onClick gắn cả
-          nav nên bấm nút mở NHÓM cũng nổi bọt lên đây -> ngăn kéo đóng ngay,
-          không mở được trang trong nhóm (lỗi Tín báo 2026-11-08). */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3" onClick={onNavigate ? (e) => { if ((e.target as HTMLElement).closest("a")) onNavigate(); } : undefined}>
-        {entries.map((e) =>
-          "group" in e ? <Group key={e.group} entry={e} winner={winner} /> : <Leaf key={e.href} it={e} active={e === winner} />
+      <nav className="flex-1 overflow-y-auto px-3 pb-6">
+        {entries.map((e, i) =>
+          "group" in e ? (
+            <div key={e.group}>
+              <p className="px-2 pb-1.5 pt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400">{t(e.group)}</p>
+              <div className="space-y-0.5">
+                {e.children.map((c) => (
+                  <Leaf key={c.href} it={c} active={c === winner} onNavigate={onNavigate} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div key={e.href} className={i === 0 ? "pt-3" : "pt-1"}>
+              <Leaf it={e} active={e === winner} onNavigate={onNavigate} />
+            </div>
+          )
         )}
       </nav>
-      <div className="shrink-0 border-t border-white/10 p-3">
+      <div className="shrink-0 border-t border-slate-100 p-3">
         {/* Về website phải là URL TUYỆT ĐỐI của miền gốc (đợt 127): trên
-            host admin.<gốc>, href "/" bị middleware viết lại vào /admin
-            nên bấm không ra khỏi khu quản trị được. */}
-        <Link href={siteUrl || "/"} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white">
-          <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /></svg>
+            host admin.<gốc>, href "/" bị middleware viết lại vào /admin. */}
+        <Link href={siteUrl || "/"} onClick={onNavigate} className="mb-2 flex h-[38px] items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
+          <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /></svg>
           <span>{t("Về website")}</span>
         </Link>
+        <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white">{initial}</span>
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="truncate text-[13px] font-semibold text-slate-800">{userName}</p>
+            <p className="text-[11px] text-slate-400">{userRole === "ADMIN" ? t("Quản trị viên") : t("Nhân viên")}</p>
+          </div>
+          <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+        </div>
       </div>
     </>
   );
 }
 
-export default function AdminNav({ siteName, logoUrl, entries, siteUrl }: { siteName: string; logoUrl: string; entries: AdminNavEntry[]; siteUrl?: string }) {
+export default function AdminNav({ siteName, logoUrl, entries, siteUrl, userName, userRole }: {
+  siteName: string; logoUrl: string; entries: AdminNavEntry[]; siteUrl?: string; userName?: string; userRole?: string;
+}) {
   const { t } = useLang();
   const pathname = usePathname() || "/admin";
   const [open, setOpen] = useState(false);
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-50 hidden w-[260px] flex-col bg-[#081c36] text-slate-300 lg:flex">
-        <NavBody siteName={siteName} logoUrl={logoUrl} entries={entries} pathname={pathname} siteUrl={siteUrl} />
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-[248px] flex-col border-r border-slate-200 bg-white lg:flex">
+        <NavBody siteName={siteName} logoUrl={logoUrl} entries={entries} pathname={pathname} siteUrl={siteUrl} userName={userName} userRole={userRole} />
       </aside>
-      {/* Điện thoại: nút burger cố định ở góc trái thanh trên + ngăn kéo trượt chứa toàn bộ menu
-          (thay thanh menu footer dưới đáy đã bỏ). Layout chừa ml cho logo để không đè nút. */}
+      {/* Điện thoại: nút burger cố định góc trái thanh trên + ngăn kéo trượt
+          (chỉ bấm LINK mới đóng ngăn kéo). */}
       <button type="button" onClick={() => setOpen(true)} aria-label={t("Mở menu")}
         className="fixed left-3 top-[13px] z-[60] flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 lg:hidden">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
@@ -161,8 +126,8 @@ export default function AdminNav({ siteName, logoUrl, entries, siteUrl }: { site
       {open && (
         <>
           <div className="fixed inset-0 z-[70] bg-slate-950/50 lg:hidden" onClick={() => setOpen(false)} />
-          <div className="fixed inset-y-0 left-0 z-[80] flex w-[280px] max-w-[85vw] flex-col bg-[#081c36] text-slate-300 shadow-2xl lg:hidden">
-            <NavBody siteName={siteName} logoUrl={logoUrl} entries={entries} pathname={pathname} onNavigate={() => setOpen(false)} siteUrl={siteUrl} />
+          <div className="fixed inset-y-0 left-0 z-[80] flex w-[280px] max-w-[85vw] flex-col bg-white shadow-2xl lg:hidden">
+            <NavBody siteName={siteName} logoUrl={logoUrl} entries={entries} pathname={pathname} onNavigate={() => setOpen(false)} siteUrl={siteUrl} userName={userName} userRole={userRole} />
           </div>
         </>
       )}

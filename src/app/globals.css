@@ -378,6 +378,31 @@ html[data-font="rounded"] body { font-family: Verdana, Geneva, "Segoe UI", sans-
 .dark .admin-scope .hover\:bg-white:hover { background-color: #ffffff; }
 .dark .admin-scope .hover\:text-slate-900:hover { color: #0f172a; }
 
+/* ===== REBUILD ADMIN theo mockup trumapi/CMSNT (Tín duyệt 2026-11-14) =====
+   Hệ hình ảnh mới CHỈ áp trong .admin-scope — phía khách giữ nguyên:
+   thẻ trắng viền mảnh + bóng rất nhẹ, ô nhập 40px bo 8px vòng focus brand,
+   nút bo 8px màu brand đặc (không gradient), đầu trang không vạch trang trí,
+   thẻ số liệu ô icon nền tint mềm, header bảng xám nhạt chữ hoa nhỏ. */
+.admin-scope .card { border-color: rgb(226 232 240 / 0.8); box-shadow: 0 1px 2px rgb(16 24 40 / 0.05); }
+.admin-scope .inp { height: 2.5rem; border-radius: 0.5rem; padding: 0 0.75rem; font-size: 0.875rem; }
+.admin-scope textarea.inp { height: auto; padding: 0.5rem 0.75rem; }
+.admin-scope select.inp { height: 2.5rem; }
+.admin-scope select.inp[class~="!py-2"] { height: 2.375rem; }
+.admin-scope .inp:focus { border-color: rgb(var(--b500)); outline: none; box-shadow: 0 0 0 4px rgb(var(--b100) / 0.55); }
+.admin-scope .btn { border-radius: 0.5rem; }
+.admin-scope .btn-primary { background-image: none; background-color: rgb(var(--b600)); box-shadow: none; }
+.admin-scope .btn-primary:hover { background-color: rgb(var(--b700)); filter: none; }
+.admin-scope .lbl { font-size: 12.5px; font-weight: 600; color: #475569; }
+.admin-scope .th { background: #f8fafc; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #94a3b8; }
+.admin-scope .td { font-size: 13.5px; color: #475569; }
+.admin-scope .page-head .ph-bar { display: none; }
+.admin-scope .page-head h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
+.admin-scope .page-head p { font-size: 13px; }
+.admin-scope .stat-card .stat-bar { display: none; }
+.admin-scope .stat-card .stat-tile { background-image: none; background-color: rgb(var(--b50)); color: rgb(var(--b600)); box-shadow: none; }
+.admin-scope input.inp[type="date"], .admin-scope input.inp[type="time"], .admin-scope input.inp[type="datetime-local"],
+.admin-scope input.inp[type="month"], .admin-scope input.inp[type="week"] { height: 2.5rem; }
+
 /* Chống "chớp dịch": ngôn ngữ khác tiếng Việt thì ẩn trang tới khi lớp hiển thị dịch xong
    lượt đầu (script tiền vẽ gắn cờ data-i18n-pending, DisplayEngine gỡ cờ; hẹn giờ dự phòng 1.6s). */
 html[data-i18n-pending="1"] body { opacity: 0; }

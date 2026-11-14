@@ -170,10 +170,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const initial = (user.username || "A").slice(0, 1).toUpperCase();
   return (
     <LangProvider lang={i18n.lang} ov={i18n.cfg.overrides[i18n.lang]} cur={i18n.cur} rates={i18n.rates}>
-    <div className="admin-scope min-h-screen bg-[#f4f6fb]">
-      <AdminNav siteName={s.site_name} logoUrl={headerLogoUrl(s.logo_url)} entries={entries} siteUrl={siteUrlFromSettings(s)} />
-      <div className="flex min-h-screen flex-col lg:pl-[260px]">
-        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
+    <div className="admin-scope min-h-screen bg-[#f5f7fa]">
+      <AdminNav siteName={s.site_name} logoUrl={headerLogoUrl(s.logo_url)} entries={entries} siteUrl={siteUrlFromSettings(s)} userName={user.username} userRole={user.role} />
+      <div className="flex min-h-screen flex-col lg:pl-[248px]">
+        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
             {/* Header admin mobile: CHỈ một logo ngang (cùng luật header
                 mobile phía khách, lệnh Tín 2026-11-13) — bỏ ô icon vuông. */}
@@ -187,7 +187,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
                   <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
                 </span>
-                <input name="q" placeholder={L("Tìm kiếm đơn hàng, username...")} className="inp !rounded-full !pl-10" />
+                <input name="q" placeholder={L("Tìm kiếm đơn hàng, username...")} className="inp !pl-10" />
               </div>
             </form>
             <div className="ml-auto flex items-center gap-2.5">
@@ -204,7 +204,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 lg:px-6">{children}</main>
+        <main className="mx-auto w-full min-w-0 max-w-[1240px] flex-1 px-4 py-6 lg:px-6">{children}</main>
         <footer className="pb-6 text-center text-xs text-slate-400">© {new Date().getFullYear()} {s.site_name} · Admin Panel</footer>
       </div>
     </div>
