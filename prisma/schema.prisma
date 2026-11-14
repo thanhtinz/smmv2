@@ -565,6 +565,11 @@ model PurchasePayment {
   status       String    @default("PENDING") @db.VarChar(12) // PENDING | PROCESSING | EXECUTED | EXPIRED | CANCELED | FAILED
   providerRef  String?   @unique @db.VarChar(120) // bolt:<code> | Stripe session id | PayPal order id
   providerData String?   @db.Text // JSON: dữ liệu hiển thị bước thanh toán + kết quả thực thi
+  // Tổng tiền cổng đã báo nhận (VNĐ) — cột số riêng để cộng NGUYÊN TỬ ở
+  // DB (full-audit 6750109 P2-02): trước đây nằm trong providerData
+  // JSON, hai webhook SePay một phần tới đồng thời cùng đọc giá trị cũ
+  // rồi ghi đè lên nhau, làm thất lạc một phần tiền khách đã chuyển.
+  receivedVnd  Int       @default(0)
   snapshot     String    @db.Text // JSON: { lines: [{variantId, qty, custom, buyerInfo, share}], promo }
   orderCodes   String?   @db.Text // JSON mảng mã đơn Premium đã tạo
   expiresAt    DateTime?

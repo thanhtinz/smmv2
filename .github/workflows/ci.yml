@@ -71,6 +71,7 @@ jobs:
             test-purchase-payment \
             test-sepay-purchase-retry \
             test-sepay-purchase-orphan \
+            test-purchase-sepay-concurrent \
             test-fzr \
             test-fzr-partial \
             test-fzr-race \

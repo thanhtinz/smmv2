@@ -210,10 +210,29 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
   if (pp.status !== "PENDING" && pp.status !== "EXPIRED" && !resuming) return { ok: false, reason: `status_${pp.status.toLowerCase()}` };
 
   const data = parsePurchaseData(pp);
-  let received = Number(data.receivedVnd || 0);
-  // Tiếp quản phiên PROCESSING: số đã nhận lấy từ tiến độ đã lưu, KHÔNG cộng
-  // lại paidVnd của cổng (tránh tính trùng số tiền cổng báo lại).
-  if (!resuming && opts.paidVnd != null && opts.paidVnd > 0) received += opts.paidVnd;
+  // FULL-AUDIT 6750109 P2-02: số đã nhận cộng NGUYÊN TỬ ở cột
+  // receivedVnd bằng UPDATE ... SET = receivedVnd + paidVnd của DB —
+  // hai webhook SePay một phần tới đồng thời cho cùng một phiên không
+  // còn cùng đọc giá trị cũ trong JSON rồi ghi đè lên nhau (trước đây
+  // hai chuyển khoản 50% + 50% có thể chỉ ghi nhận 50%). Giá trị trả về
+  // của UPDATE là tổng MỚI sau cộng, nên lượt thắng claim thực thi thấy
+  // đúng tổng của cả hai giao dịch. Phiên cũ (tạo trước khi có cột) lấy
+  // số trong JSON làm nền một lần. Tiếp quản phiên PROCESSING: KHÔNG
+  // cộng lại paidVnd của cổng (tránh tính trùng số cổng báo lại).
+  let received: number;
+  if (!resuming && opts.paidVnd != null && opts.paidVnd > 0) {
+    const legacy = Number(data.receivedVnd || 0);
+    if ((pp.receivedVnd || 0) === 0 && legacy > 0) {
+      await prisma.purchasePayment.updateMany({ where: { id: pp.id, receivedVnd: 0 }, data: { receivedVnd: legacy } });
+    }
+    const upd = await prisma.purchasePayment.update({
+      where: { id: pp.id },
+      data: { receivedVnd: { increment: opts.paidVnd } },
+    });
+    received = upd.receivedVnd;
+  } else {
+    received = Math.max(pp.receivedVnd || 0, Number(data.receivedVnd || 0));
+  }
   if (!resuming && received > 0 && received < pp.amount) {
     if (opts.finalIfUnderpaid === "wallet") {
       await prisma.$transaction(async (tx) => {
