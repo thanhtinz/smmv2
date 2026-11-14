@@ -69,12 +69,20 @@ const CORS_HEADERS: Record<string, string> = {
  *  'unsafe-inline' khỏi script-src. Chế độ qua biến môi trường CSP_MODE:
  *  mặc định "report" (chỉ báo cáo, không chặn — dùng để rà soát false
  *  positive trên luồng thật), đặt "enforce" để khoá thật. style-src giữ
- *  'unsafe-inline' đợt này (Tailwind/inline style khắp nơi). */
+ *  'unsafe-inline' đợt này (Tailwind/inline style khắp nơi).
+ *  TÁI-AUDIT P3-01 (2026-11-14): script-src BỎ `https:` mở — chỉ còn
+ *  ALLOWLIST host script bên thứ ba mà web THẬT SỰ nạp: Google Analytics
+ *  (googletagmanager + google-analytics) và reCAPTCHA (google.com +
+ *  gstatic). Thanh toán Stripe/PayPal chạy bằng redirect sang trang của
+ *  cổng (không nhúng SDK) nên không cần host script. Thêm host mới =
+ *  sửa danh sách này một cách có chủ đích. style-src cũng bỏ `https:`
+ *  (web không nạp CSS ngoài; font/ảnh giữ https: vì ảnh sản phẩm và font
+ *  dữ liệu đến từ nhiều nguồn hợp lệ). */
 function cspHeader(nonce: string): { key: string; value: string } {
   const value = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' https:`,
-    "style-src 'self' 'unsafe-inline' https:",
+    `script-src 'self' 'nonce-${nonce}' https://www.googletagmanager.com https://www.google-analytics.com https://www.google.com https://www.gstatic.com`,
+    "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https:",
     "connect-src 'self' https:",
