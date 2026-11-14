@@ -65,6 +65,7 @@ jobs:
             test-purchase-adoption \
             test-purchase-pricecap \
             test-purchase-fulfillment-resume \
+            test-purchase-refund-failclosed \
             test-purchase-payment \
             test-sepay-purchase-retry \
             test-fzr \

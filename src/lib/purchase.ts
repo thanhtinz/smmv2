@@ -256,6 +256,28 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
     await prisma.purchasePayment.update({ where: { id: pp.id }, data: { orderCodes: JSON.stringify(okCodes) } });
     await savePurchaseData(pp.id, { receivedVnd: received, execution: results, creditedTotal });
   };
+  // TÁI-AUDIT 0e15517 P2-B: hoàn tiền vào ví phải FAIL-CLOSED + idempotent.
+  // Khoá sổ duy nhất cho mỗi (phiên, dòng, loại hoàn) ghi ở Transaction.ref:
+  // tra sổ trước khi cộng — đã có giao dịch mang khoá này nghĩa là lượt
+  // trước ĐÃ cộng thành công (nhưng có thể chết trước khi lưu tiến độ),
+  // tuyệt đối không cộng lần hai. Transaction hoàn lỗi thì trả false để
+  // nơi gọi GIỮ dòng ở trạng thái pending và KHÔNG chốt phiên EXECUTED —
+  // bản cũ nuốt lỗi bằng .catch(() => {}) rồi vẫn ghi credited + EXECUTED
+  // khiến khoản hoàn biến mất khỏi mọi đường tự động.
+  const refundOnce = async (idx: number, kind: "DIFF" | "FULL", amount: number, note: string): Promise<boolean> => {
+    if (amount <= 0) return true;
+    const ref = `PUR${pp.id}L${idx}${kind === "DIFF" ? "D" : "F"}`;
+    try {
+      const done = await prisma.transaction.findFirst({ where: { userId: pp.userId, type: "REFUND", ref }, select: { id: true } });
+      if (done) return true;
+      await prisma.$transaction(async (tx) => {
+        await applyBalance(tx, pp.userId, amount, "REFUND", ref, note);
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  };
   for (let idx = 0; idx < snapshot.lines.length; idx++) {
     const line = snapshot.lines[idx];
     const prev = results[idx];
@@ -311,9 +333,14 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
         okCodes.push(adopted.code);
         const diff = line.share - Number(adopted.total || 0);
         if (diff > 0) {
-          await prisma.$transaction(async (tx) => {
-            await applyBalance(tx, pp.userId, diff, "REFUND", pp.code, `Hoàn chênh lệch giá đơn ${adopted.code} (thanh toán trực tiếp ${pp.code})`);
-          }).catch(() => {});
+          const refunded = await refundOnce(idx, "DIFF", diff, `Hoàn chênh lệch giá đơn ${adopted.code} (thanh toán trực tiếp ${pp.code})`);
+          if (!refunded) {
+            // Hoàn ví lỗi (P2-B): giữ dòng pending — lượt recovery sau
+            // nhận lại đúng đơn này theo khoá và thử lại phần hoàn.
+            results[idx] = { variantId: line.variantId, ok: false, pending: true, startedAt: Date.now() };
+            await persistProgress();
+            continue;
+          }
           creditedTotal += diff;
         } else if (diff < 0) {
           await alertMother("purchase_price_up", "Đơn thanh toán trực tiếp lệch giá tăng", `Phiên ${pp.code}, đơn ${adopted.code}: tổng thực thi ${Number(adopted.total || 0).toLocaleString("vi-VN")}đ > phần đã thu ${line.share.toLocaleString("vi-VN")}đ. Cần đối soát thủ công.`).catch(() => {});
@@ -367,28 +394,44 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
         await alertMother("purchase_price_up", "Đơn thanh toán trực tiếp lệch giá tăng", `Phiên ${pp.code}, đơn ${order.code}: tổng thực thi ${Number(order.total || 0).toLocaleString("vi-VN")}đ > phần đã thu ${line.share.toLocaleString("vi-VN")}đ. Cần đối soát thủ công.`).catch(() => {});
       }
       if (diff > 0) {
-        await prisma.$transaction(async (tx) => {
-          await applyBalance(tx, pp.userId, diff, "REFUND", pp.code, `Hoàn chênh lệch giá đơn ${order.code} (thanh toán trực tiếp ${pp.code})`);
-        }).catch(() => {});
+        const refunded = await refundOnce(idx, "DIFF", diff, `Hoàn chênh lệch giá đơn ${order.code} (thanh toán trực tiếp ${pp.code})`);
+        if (!refunded) {
+          // Hoàn ví lỗi (P2-B): đơn đã tạo là thật — giữ dòng pending,
+          // lượt sau nhận lại theo khoá và chỉ thử lại phần hoàn.
+          results[idx] = { variantId: line.variantId, ok: false, pending: true, startedAt: Date.now() };
+          await persistProgress();
+          continue;
+        }
         creditedTotal += diff;
       }
       results[idx] = { variantId: line.variantId, ok: true, code: order.code };
     } catch (e: any) {
       // Đã trả tiền mà không đặt được dòng này -> bồi hoàn phần tiền của dòng vào ví
       const msg = String(e?.message || "Đặt đơn thất bại").slice(0, 200);
-      await prisma.$transaction(async (tx) => {
-        await applyBalance(tx, pp.userId, line.share, "REFUND", pp.code, `Bồi hoàn dòng không đặt được — thanh toán trực tiếp ${pp.code}`);
-      }).catch(() => {});
+      const refunded = await refundOnce(idx, "FULL", line.share, `Bồi hoàn dòng không đặt được — thanh toán trực tiếp ${pp.code}`);
+      if (!refunded) {
+        // Chưa hoàn được thì KHÔNG ghi nhận đã bồi hoàn (P2-B): giữ dòng
+        // pending để recovery thử lại — hoặc tạo đơn lại, hoặc hoàn ví.
+        results[idx] = { variantId: line.variantId, ok: false, pending: true, startedAt: Date.now() };
+        await persistProgress();
+        continue;
+      }
       creditedTotal += line.share;
       results[idx] = { variantId: line.variantId, ok: false, error: msg, credited: line.share };
     }
     await persistProgress();
   }
-  // Mọi dòng đã có kết quả mới chốt EXECUTED.
-  await prisma.purchasePayment.updateMany({ where: { id: pp.id, status: "PROCESSING" }, data: { status: "EXECUTED" } });
+  // Mọi dòng đã có kết quả MỚI chốt EXECUTED (P2-B): còn dòng pending
+  // (hoàn ví lỗi đang chờ thử lại) thì phiên giữ PROCESSING — cron
+  // recoverStuckPurchases tiếp quản khi quá hạn lease.
+  const stillPending = results.some((r) => r?.pending);
+  if (!stillPending) {
+    await prisma.purchasePayment.updateMany({ where: { id: pp.id, status: "PROCESSING" }, data: { status: "EXECUTED" } });
+  }
   if (creditedTotal > 0) {
     await notifyUser(pp.userId, "Một phần đơn được hoàn vào ví", `Thanh toán ${pp.code}: ${creditedTotal.toLocaleString("vi-VN")}đ đã cộng vào ví của bạn (dòng không đặt được hoặc chênh lệch giá).`, "/dashboard/don-premium");
   }
+  if (stillPending) return { ok: true, reason: "refund_pending" };
   return { ok: true, reason: resuming ? "executed_resumed" : "executed" };
 }
 
