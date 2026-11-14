@@ -446,6 +446,12 @@ export async function applyFzrOrderStatus(
   if (current.status === "REFUNDED" || current.status === "CANCELED") return saveRawOnly();
   if (current.status === "DELIVERED" || current.status === "COMPLETED") return saveRawOnly();
   if (opts.fromWebhook && current.status !== "PENDING" && current.status !== "PARTIAL") return saveRawOnly();
+  // Full-audit 6750109 P2-01 (lớp 2): bộ trạng thái phải ĐỦ số đơn con
+  // của đơn. Một mảng thiếu (vd chỉ trạng thái của 1 event đơn con)
+  // không bao giờ được dùng để chốt tổng — trả đơn nguyên trạng, chờ
+  // lượt đối soát đủ (poll/webhook lấy đủ chi tiết mọi đơn con).
+  const childCount = (current.providerOrderId || "").split(",").map((x) => x.trim()).filter(Boolean).length;
+  if (childCount > 0 && statuses.length < childCount) return current;
   // P2-02 (audit đợt 2): CAS — mọi chuyển trạng thái bên dưới đi qua
   // updateMany CÓ ĐIỀU KIỆN trạng thái hiện tại. Cron poll và webhook có
   // thể áp trạng thái cho cùng một đơn cùng lúc; chỉ MỘT lượt thắng

@@ -140,11 +140,19 @@ export async function POST(req: NextRequest) {
           } catch { /* rơi xuống đường áp trạng thái từ sự kiện */ }
         }
         if (!applied) {
-          const status = fzrOrderStatus({ status: data?.status });
-          await applyFzrOrderStatus(order as any, [status], [{ id: providerOrderId, status: data?.status }], { fromWebhook: true, allowRawDelivery: false });
+          // Full-audit 6750109 P2-01: KHÔNG áp trạng thái của MỘT đơn con
+          // lên cả đơn cha. Đơn nhiều lượt (Telegram Premium) có nhiều
+          // providerOrderId; trước bản này fallback truyền mảng 1 phần
+          // tử vào applyFzrOrderStatus và hàm coi đó là toàn bộ đơn —
+          // một event completed chốt DELIVERED cả đơn, một event
+          // cancelled hoàn tiền toàn bộ. Nay: ghi nhận sự kiện, KHÔNG
+          // đổi trạng thái; cron poll (quét đơn PENDING/PARTIAL có
+          // providerOrderId) đối soát lại bằng GET đủ mọi đơn con.
         }
         processed = true;
-        note = `đã áp trạng thái ${String(data?.status || "")} cho đơn ${order.code}`;
+        note = applied
+          ? `đã áp trạng thái ${String(data?.status || "")} cho đơn ${order.code}`
+          : `chưa áp trạng thái (không lấy được chi tiết đủ các đơn con) — cron đối soát sau cho đơn ${order.code}`;
       }
     } else if (providerOrderId && (eventType === "manual_service.chat.message" || eventType === "manual_service.chat.waiting_reply")) {
       const order = await findOrderByProviderId(providerOrderId);
