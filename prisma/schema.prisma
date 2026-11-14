@@ -378,6 +378,18 @@ model PanelPremiumPrice {
 // a75d260 P2-03): mỗi txRef chỉ được cộng vào receivedVnd ĐÚNG một
 // lần — webhook retry sau lỗi tạm (receipt PUR bị nhả) hay hai
 // webhook khác giao dịch tới đồng thời đều không cộng trùng/mất.
+// Claim cộng điểm thưởng (full-audit a75d260 P3-03): mỗi ref (theo
+// đơn) chỉ cộng điểm ĐÚNG một lần ở tầng DB — trước đây award() chỉ
+// findFirst ApiLog rồi mới insert trong transaction, hai lượt đồng
+// bộ chạy đồng thời cùng qua được và cộng điểm hai lần.
+model PointsAwardClaim {
+  id        Int      @id @default(autoincrement())
+  ref       String   @unique @db.VarChar(80)
+  userId    Int
+  points    Int
+  createdAt DateTime @default(now())
+}
+
 model PurchasePaymentReceipt {
   id                Int      @id @default(autoincrement())
   purchasePaymentId Int
