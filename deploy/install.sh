@@ -12,7 +12,7 @@
 #    GITHUB_TOKEN  token GitHub nếu repo là private và máy chưa clone sẵn
 #    REPO          mặc định https://github.com/thanhtinz/bntshop.git
 #
-#  Script làm hết: swap, Node 20, PostgreSQL, Caddy (HTTPS tự động),
+#  Script làm hết: swap, Node 24, PostgreSQL, Caddy (HTTPS tự động),
 #  systemd, cron đồng bộ đơn + sao lưu hằng ngày.
 # ============================================================
 set -euo pipefail
@@ -54,10 +54,10 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq curl git ca-certificates gnupg ufw openssl > /dev/null
 
-# ---------- 3. Node.js 20 LTS ----------
-if ! command -v node >/dev/null || [ "$(node -v | cut -d. -f1 | tr -d v)" -lt 20 ]; then
-  step "Cài Node.js 20"
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - > /dev/null 2>&1
+# ---------- 3. Node.js 24 LTS ----------
+if ! command -v node >/dev/null || [ "$(node -v | cut -d. -f1 | tr -d v)" -lt 24 ]; then
+  step "Cài Node.js 24"
+  curl -fsSL https://deb.nodesource.com/setup_24.x | bash - > /dev/null 2>&1
   apt-get install -y -qq nodejs > /dev/null
 fi
 echo "Node: $(node -v) · npm: $(npm -v)"
