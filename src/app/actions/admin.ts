@@ -573,7 +573,18 @@ export async function adminPremiumOrderAction(formData: FormData) {
   const status = String(formData.get("status") || order.status) as any;
   if (!["PENDING", "PARTIAL", "DELIVERED", "COMPLETED", "WARRANTY"].includes(status)) back(path, "err", "Trạng thái không hợp lệ — muốn hoàn tiền hãy dùng nút Huỷ đơn");
   const adminNote = String(formData.get("adminNote") || "") || order.adminNote;
-  await prisma.premiumOrder.update({ where: { id }, data: { status, deliveryData, adminNote } });
+  // CAS lạc quan (full-audit 3d1309c P2-05): ghi CÓ ĐIỀU KIỆN trên đúng
+  // (status, updatedAt) đã đọc ở đầu request. Trước bản này nhánh cập
+  // nhật thường ghi vô điều kiện theo id — một request đọc đơn còn sống,
+  // bị request Huỷ (đã hoàn tiền + REFUNDED) chạy xen vào, rồi vẫn ghi
+  // DELIVERED/PENDING đè lên: đơn đã hoàn tiền bị "hồi sinh" và có thể
+  // bị huỷ/hoàn lần hai. Nay mọi ghi xen giữa đều làm CAS trượt
+  // (updatedAt đổi sau mỗi lần ghi) -> báo tải lại, không ghi đè.
+  const cas = await prisma.premiumOrder.updateMany({
+    where: { id, status: order.status, updatedAt: order.updatedAt },
+    data: { status, deliveryData, adminNote },
+  });
+  if (cas.count === 0) back(path, "err", "Đơn vừa bị thay đổi bởi thao tác khác — tải lại trang để xem trạng thái mới nhất");
   // Đợt 119: admin vừa chuyển đơn sang Đã giao/Hoàn thành (từ trạng thái
   // chưa giao) -> mail cho khách kèm nội dung đã giao.
   if ((status === "DELIVERED" || status === "COMPLETED") && order.status !== "DELIVERED" && order.status !== "COMPLETED") {
