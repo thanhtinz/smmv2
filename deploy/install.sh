@@ -96,11 +96,24 @@ mkdir -p "$APP_DIR"
 if [ -n "$SRC_DIR" ] && [ "$SRC_DIR" != "$APP_DIR" ]; then
   cp -a "$SRC_DIR/." "$APP_DIR/"
 elif [ ! -f "$APP_DIR/package.json" ]; then
-  CLONE_URL="$REPO"
+  # P3-03 (full-audit 6750109): KHÔNG ghép token vào URL clone — git
+  # sẽ lưu URL đó thành remote.origin.url trong .git/config và token
+  # nằm lại trên VPS. Truyền credential qua http.extraheader của
+  # RIÊNG lệnh clone (cấu hình -c không ghi vào .git/config), xong
+  # đặt lại origin sạch và kiểm tra token không còn trong .git/config.
   if [ -n "${GITHUB_TOKEN:-}" ]; then
-    CLONE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/thanhtinz/bntshop.git"
+    AUTH_B64="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 | tr -d '\n')"
+    sudo -u "$APP_USER" -H git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH_B64" clone "$REPO" "$APP_DIR"
+    unset AUTH_B64
+  else
+    sudo -u "$APP_USER" -H git clone "$REPO" "$APP_DIR"
   fi
-  sudo -u "$APP_USER" -H git clone "$CLONE_URL" "$APP_DIR"
+  if [ -n "${GITHUB_TOKEN:-}" ] && [ -d "$APP_DIR/.git" ]; then
+    sudo -u "$APP_USER" git -C "$APP_DIR" remote set-url origin "$REPO" 2>/dev/null || true
+    if grep -qs "$GITHUB_TOKEN" "$APP_DIR/.git/config"; then
+      echo "LOI: GITHUB_TOKEN van con trong .git/config — huy cai dat" >&2; exit 1
+    fi
+  fi
 fi
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
