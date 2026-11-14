@@ -382,6 +382,20 @@ model PanelPremiumPrice {
 // đơn) chỉ cộng điểm ĐÚNG một lần ở tầng DB — trước đây award() chỉ
 // findFirst ApiLog rồi mới insert trong transaction, hai lượt đồng
 // bộ chạy đồng thời cùng qua được và cộng điểm hai lần.
+// Bộ đếm rate-limit DÙNG CHUNG ở DB (full-audit a75d260 P3-02):
+// cửa sổ cố định theo (key, bucketStart), increment nguyên tử bằng
+// INSERT ... ON CONFLICT — nhiều instance cùng chia một quota cho
+// các giới hạn bảo mật (reset mật khẩu, 2FA, API, step-up). Lớp
+// in-memory trong lib/rate-limit.ts vẫn chạy làm lớp phụ.
+model RateLimitBucket {
+  key         String   @db.VarChar(160)
+  bucketStart DateTime
+  count       Int      @default(0)
+
+  @@id([key, bucketStart])
+  @@index([bucketStart])
+}
+
 model PointsAwardClaim {
   id        Int      @id @default(autoincrement())
   ref       String   @unique @db.VarChar(80)

@@ -7,7 +7,7 @@ import { applyFlashAmount, flashPercentForProduct } from "@/lib/flash";
 import { variantSoldOut, isQtyTracked, resolveDeliveryType } from "@/lib/variant-stock";
 import { FZR_LABELS } from "@/lib/fzr";
 import { moduleOn } from "@/lib/modules";
-import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
+import { rateLimitExceeded, rateLimitExceededShared, clientIp } from "@/lib/rate-limit";
 import { ipAllowed } from "@/lib/ip-match";
 
 /**
@@ -47,10 +47,10 @@ async function handle(req: NextRequest, method: string) {
     return NextResponse.json({ error: `Method not allowed: action '${action}' requires POST` }, { status: 405 });
   }
   // Giới hạn tần suất: theo IP và theo API key (chống spam/khuếch đại tải)
-  if (rateLimitExceeded(`v2ip|${clientIp(req.headers)}`, 600, 60000)) {
+  if (rateLimitExceeded(`v2ip|${clientIp(req.headers)}`, 600, 60000) || (await rateLimitExceededShared(`v2ip|${clientIp(req.headers)}`, 600, 60000))) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
-  if (key && rateLimitExceeded(`v2key|${key}`, 300, 60000)) {
+  if (key && (rateLimitExceeded(`v2key|${key}`, 300, 60000) || (await rateLimitExceededShared(`v2key|${key}`, 300, 60000)))) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
   const user = await userByApiKey(key);

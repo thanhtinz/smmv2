@@ -72,6 +72,7 @@ jobs:
             test-purchase-refund-concurrent \
             test-passkey-challenge \
             test-points-award-race \
+            test-rate-limit-shared \
             test-purchase-payment \
             test-sepay-purchase-retry \
             test-sepay-purchase-orphan \

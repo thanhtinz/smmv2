@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { getPending2fa, clearPending2fa, createSession } from "@/lib/auth";
 import { verifyLoginCode } from "@/lib/twofa";
 import { recordLoginEvent } from "@/lib/login-events";
-import { clientIp, rateLimitExceeded } from "@/lib/rate-limit";
+import { clientIp, rateLimitExceeded, rateLimitExceededShared } from "@/lib/rate-limit";
 
 /** Bước 2 của đăng nhập: kiểm mã TOTP / mã dự phòng từ cookie chờ (hạn 5 phút).
  *  Đúng mã mới tạo phiên thật + ghi LoginEvent thành công; sai mã ghi sự kiện
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   if (!pending) return NextResponse.json({ ok: false, error: "Phiên xác thực đã hết hạn, vui lòng đăng nhập lại" }, { status: 401 });
   const ip = clientIp(req.headers);
   const ua = req.headers.get("user-agent") || "";
-  if (rateLimitExceeded(`2fa|${pending.id}|${ip}`, 10, 5 * 60 * 1000)) {
+  if (rateLimitExceeded(`2fa|${pending.id}|${ip}`, 10, 5 * 60 * 1000) || (await rateLimitExceededShared(`2fa|${pending.id}|${ip}`, 10, 5 * 60 * 1000))) {
     await clearPending2fa();
     return NextResponse.json({ ok: false, error: "Nhập sai quá nhiều lần, vui lòng đăng nhập lại" }, { status: 429 });
   }

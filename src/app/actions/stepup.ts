@@ -5,7 +5,7 @@ import { getCurrentUser, createStepUp } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
 import { verifyLoginCode } from "@/lib/twofa";
 import { headers } from "next/headers";
-import { clientIp, rateLimitExceeded } from "@/lib/rate-limit";
+import { clientIp, rateLimitExceeded, rateLimitExceededShared } from "@/lib/rate-limit";
 
 function back(next: string, text: string): never {
   redirect(`/step-up?next=${encodeURIComponent(next)}&err=${encodeURIComponent(text)}`);
@@ -23,7 +23,7 @@ export async function verifyStepUpAction(formData: FormData) {
   if (!user0) redirect("/login");
   const next = safeNext(String(formData.get("next") || "/"));
   const ip = clientIp((await headers()));
-  if (rateLimitExceeded(`stepup|${user0.id}|${ip}`, 10, 5 * 60 * 1000)) back(next, "Thử lại quá nhiều lần, vui lòng đợi ít phút");
+  if (rateLimitExceeded(`stepup|${user0.id}|${ip}`, 10, 5 * 60 * 1000) || (await rateLimitExceededShared(`stepup|${user0.id}|${ip}`, 10, 5 * 60 * 1000))) back(next, "Thử lại quá nhiều lần, vui lòng đợi ít phút");
   const user = await prisma.user.findUnique({ where: { id: user0.id } });
   if (!user) redirect("/login");
   const password = String(formData.get("password") || "");

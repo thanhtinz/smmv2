@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { generateTotpSecret, otpauthUri, verifyTotp } from "@/lib/totp";
 import { userTotpSecret, storeTotpSecret, verifyLoginCode, regenerateBackupCodes } from "@/lib/twofa";
-import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
+import { rateLimitExceeded, rateLimitExceededShared, clientIp } from "@/lib/rate-limit";
 import { verifyPassword } from "@/lib/password";
 import QRCode from "qrcode";
 
@@ -16,7 +16,7 @@ import QRCode from "qrcode";
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "Chưa đăng nhập" }, { status: 401 });
-  if (rateLimitExceeded(`2fa-manage|${user.id}|${clientIp(req.headers)}`, 20, 10 * 60 * 1000)) {
+  if (rateLimitExceeded(`2fa-manage|${user.id}|${clientIp(req.headers)}`, 20, 10 * 60 * 1000) || (await rateLimitExceededShared(`2fa-manage|${user.id}|${clientIp(req.headers)}`, 20, 10 * 60 * 1000))) {
     return NextResponse.json({ ok: false, error: "Thao tác quá nhiều lần, thử lại sau" }, { status: 429 });
   }
   const body = await req.json().catch(() => ({}));

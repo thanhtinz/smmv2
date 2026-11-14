@@ -2,7 +2,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requestPasswordReset, resetPasswordByToken } from "@/lib/password-reset";
-import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
+import { rateLimitExceeded, rateLimitExceededShared, clientIp } from "@/lib/rate-limit";
 import { passwordError } from "@/lib/security";
 import { getSettings } from "@/lib/settings";
 
@@ -19,8 +19,8 @@ export async function forgotPasswordAction(formData: FormData) {
   const ip = clientIp((await headers()));
   // Giới hạn phát hành token bằng chính rate-limit.ts của hệ thống (theo IP +
   // theo email); vượt hạn thì bỏ qua lặng lẽ, câu trả lời không thay đổi.
-  const overIp = rateLimitExceeded(`pwreset-ip|${ip}`, 10, 3600000);
-  const overMail = rateLimitExceeded(`pwreset-mail|${email}`, 3, 3600000);
+  const overIp = rateLimitExceeded(`pwreset-ip|${ip}`, 10, 3600000) || (await rateLimitExceededShared(`pwreset-ip|${ip}`, 10, 3600000));
+  const overMail = rateLimitExceeded(`pwreset-mail|${email}`, 3, 3600000) || (await rateLimitExceededShared(`pwreset-mail|${email}`, 3, 3600000));
   if (!overIp && !overMail && /^\S+@\S+\.\S+$/.test(email)) {
     await requestPasswordReset(email).catch(() => null);
   }
@@ -36,7 +36,7 @@ export async function resetPasswordAction(formData: FormData) {
   const ip = clientIp((await headers()));
   const self = (key: "msg" | "err", text: string): never =>
     redirect(`/reset-password?token=${encodeURIComponent(token)}&${key}=${encodeURIComponent(text)}`);
-  if (rateLimitExceeded(`pwreset-confirm|${ip}`, 10, 5 * 60 * 1000))
+  if (rateLimitExceeded(`pwreset-confirm|${ip}`, 10, 5 * 60 * 1000) || (await rateLimitExceededShared(`pwreset-confirm|${ip}`, 10, 5 * 60 * 1000)))
     back("/login", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   if (confirm && confirm !== password) self("err", "Mật khẩu nhập lại không khớp, vui lòng kiểm tra lại.");
   const pwErr = passwordError(password, await getSettings());
