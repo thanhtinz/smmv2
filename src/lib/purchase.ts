@@ -269,10 +269,22 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
       // cửa sổ quanh lúc bắt đầu dòng" = đơn đã chốt -> NHẬN LẠI đơn đó
       // thay vì tạo trùng; không có dòng nào = chưa từng gọi nhà cung cấp
       // -> chạy lại an toàn.
+      // TÁI-AUDIT P2-01 (2026-11-14): nhận lại theo KHOÁ LIÊN KẾT trước —
+      // đơn do chính phiên này tạo mang purchasePaymentId + purchaseLineNo
+      // (duy nhất), không thể nhầm sang đơn của phiên khác dù trùng khách/
+      // gói/số lượng/thời gian. Đường cửa sổ thời gian theo thuộc tính
+      // chung chỉ còn làm DỰ PHÒNG cho đơn tạo TRƯỚC đợt vá này (chưa có
+      // khoá — purchasePaymentId IS NULL; đơn của phiên khác LUÔN có khoá
+      // nên không lọt vào dự phòng) và đơn nhận qua dự phòng được GHI NGAY
+      // khoá của phiên này để từ đó về sau đi đường khoá.
+      const keyed = await prisma.premiumOrder.findFirst({
+        where: { purchasePaymentId: pp.id, purchaseLineNo: idx },
+      });
       const startedAt = Number(prev.startedAt || 0);
-      const candidates = startedAt ? await prisma.premiumOrder.findMany({
+      const candidates = keyed ? [keyed] : startedAt ? await prisma.premiumOrder.findMany({
         where: {
           userId: pp.userId, variantId: line.variantId, quantity: line.qty,
+          purchasePaymentId: null,
           createdAt: { gte: new Date(startedAt - 5000), lte: new Date(startedAt + PURCHASE_STALE_MS + 60000) },
           ...(okCodes.length ? { code: { notIn: okCodes } } : {}),
         },
@@ -280,6 +292,9 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
       }) : [];
       if (candidates.length) {
         const adopted: any = candidates[0];
+        if (!keyed) {
+          await prisma.premiumOrder.update({ where: { id: adopted.id }, data: { purchasePaymentId: pp.id, purchaseLineNo: idx } }).catch(() => {});
+        }
         okCodes.push(adopted.code);
         const diff = line.share - Number(adopted.total || 0);
         if (diff > 0) {
@@ -322,6 +337,7 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
         buyerInfo: line.buyerInfo || undefined,
         promoCode: snapshot.promo || undefined,
         externalPaid: { method: pp.method, ref: pp.code },
+        purchaseRef: { paymentId: pp.id, lineNo: idx },
       });
       okCodes.push(order.code);
       // Giá chốt lúc thực thi THẤP hơn phần đã trả của dòng -> hoàn chênh lệch vào ví

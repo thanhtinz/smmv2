@@ -440,6 +440,13 @@ model PremiumOrder {
   providerId    Int?
   provider      Provider?          @relation(fields: [providerId], references: [id])
   providerOrderId String?          @db.VarChar(60) // order_code phía nhà cung cấp (kiểu ThaTim: _8488103)
+  // Liên kết PHIÊN THANH TOÁN TRỰC TIẾP (tái-audit P2-01 2026-11-14):
+  // đơn do settlePurchasePayment tạo thì ghi id phiên + số dòng; cặp này
+  // DUY NHẤT (Postgres cho nhiều NULL nên đơn thường không va nhau) —
+  // recovery chỉ nhận lại đơn theo đúng cặp khoá này, hết nhận nhầm theo
+  // thuộc tính chung (cùng khách/gói/số lượng/cửa sổ thời gian).
+  purchasePaymentId Int?
+  purchaseLineNo    Int?
   providerRaw   String?            @db.Text // JSON thô đơn phía nhà cung cấp (driver FZR: đơn không có schema cố định — giữ nguyên để đối soát + trích nội dung giao)
   panelId       Int? // đơn mua qua panel con — chủ panel hưởng commission
   panel         ChildPanel?        @relation(fields: [panelId], references: [id])
@@ -456,6 +463,7 @@ model PremiumOrder {
 
   manualChat ManualChatMessage[]
 
+  @@unique([purchasePaymentId, purchaseLineNo])
   @@index([userId, createdAt])
   @@index([status])
 }

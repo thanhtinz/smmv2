@@ -37,6 +37,10 @@ export async function createPremiumOrder(input: {
   // transaction KHÔNG trừ số dư; mọi cơ chế còn lại (kho, flash, promo,
   // referral, giao API) giữ nguyên như mua bằng ví.
   externalPaid?: { method: string; ref: string };
+  // Khoá liên kết phiên thanh toán trực tiếp (tái-audit P2-01): chỉ
+  // lib/purchase.ts đặt — ghi thẳng vào dòng đơn trong cùng transaction
+  // tạo đơn để recovery nhận lại đúng đơn của đúng phiên/dòng.
+  purchaseRef?: { paymentId: number; lineNo: number };
   // QUÀ THÁNG của Pass (lib/pass.ts): đơn 0đ — không trừ ví, không tính
   // giảm Pass / cashback / hoa hồng (tổng chốt 0đ), nhưng vẫn đi ĐÚNG đường
   // kho + giao hàng như đơn thường. Chỉ actions/pass.ts được đặt cờ này.
@@ -174,6 +178,8 @@ export async function createPremiumOrder(input: {
         providerId: variant.product.providerId,
         commission,
         buyerInfo,
+        purchasePaymentId: input.purchaseRef?.paymentId,
+        purchaseLineNo: input.purchaseRef?.lineNo,
         warrantyUntil: variant.warrantyDays
           ? new Date(Date.now() + variant.warrantyDays * 86400000)
           : null,
