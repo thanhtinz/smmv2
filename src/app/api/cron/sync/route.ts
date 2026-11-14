@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
   // Driver FZR poll bằng GET /orders/{id} (tối đa 50 đơn/vòng, bỏ qua đơn < 1 phút);
   // chuẩn ThaTim giữ nguyên đường history cũ.
   const preOrders = await prisma.premiumOrder.findMany({
-    where: { providerId: { not: null }, providerOrderId: { not: null }, status: "PENDING" },
+    where: { providerId: { not: null }, providerOrderId: { not: null }, status: { in: ["PENDING", "PARTIAL"] } },
     take: 100,
     orderBy: { updatedAt: "asc" },
     include: { provider: { select: { driver: true } } },

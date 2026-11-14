@@ -47,7 +47,7 @@ export async function refundFzrPremiumOrder(
   let claimed = false;
   await prisma.$transaction(async (tx) => {
     const claim = await tx.premiumOrder.updateMany({
-      where: { id: order.id, status: { in: ["PENDING", "DELIVERED", "COMPLETED", "WARRANTY"] } },
+      where: { id: order.id, status: { in: ["PENDING", "PARTIAL", "DELIVERED", "COMPLETED", "WARRANTY"] } },
       data: { status: target, adminNote: [order.adminNote, reason].filter(Boolean).join(" · ").slice(0, 900) },
     });
     if (claim.count === 0) return;
@@ -369,11 +369,15 @@ export async function executeFzrPremiumOrder(args: {
     data: {
       providerOrderId: ids.length ? ids.join(",") : order.providerOrderId,
       providerRaw: JSON.stringify(rawStored),
-      ...(st === "completed" || delivery
-        ? { status: "DELIVERED" as const, deliveryData: fzrDeliveryOrRaw(raws[0]) }
-        : {}),
-      ...(notes.length || (firstError && succeeded < units)
-        ? { adminNote: [order.adminNote, ...notes, ...(firstError && succeeded < units ? [`FZR: ${succeeded}/${units} lượt đã thực thi, phần còn lại đã hoàn tiền`] : [])].filter(Boolean).join(" · ").slice(0, 900) }
+      // P2-07: phản hồi tạo đơn đã báo "partial" -> PARTIAL ngay từ đầu
+      // (không DELIVERED + điểm như trước); nội dung giao một phần vẫn lưu.
+      ...(st === "partial"
+        ? { status: "PARTIAL" as const, deliveryData: fzrDeliveryOrRaw(raws[0]) }
+        : st === "completed" || delivery
+          ? { status: "DELIVERED" as const, deliveryData: fzrDeliveryOrRaw(raws[0]) }
+          : {}),
+      ...(notes.length || (firstError && succeeded < units) || st === "partial"
+        ? { adminNote: [order.adminNote, ...notes, ...(firstError && succeeded < units ? [`FZR: ${succeeded}/${units} lượt đã thực thi, phần còn lại đã hoàn tiền`] : []), ...(st === "partial" ? ["FZR: đơn giao MỘT PHẦN (partial) ngay ở phản hồi tạo đơn — đối soát phần còn lại bằng tay"] : [])].filter(Boolean).join(" · ").slice(0, 900) }
         : {}),
     },
   });
@@ -383,6 +387,9 @@ export async function executeFzrPremiumOrder(args: {
     await notifyUser(order.userId, "Đơn Premium đã được giao", `Đơn ${order.code} đã giao — xem nội dung trong chi tiết đơn`, "/dashboard/don-premium");
     void mailOrderDelivered(updated, updated.deliveryData || "");
   }
+  if (updated.status === "PARTIAL") {
+    await alertMother("fzr_partial", `Đơn FZR giao một phần: ${order.code}`, `Đơn ${order.code} được FazerCards báo giao một phần (partial) ngay khi tạo đơn. Nội dung đã giao nằm trong chi tiết đơn; phần còn lại xử lý tay.`).catch(() => {});
+  }
   return updated;
 }
 
@@ -391,13 +398,17 @@ export async function executeFzrPremiumOrder(args: {
  * đơn của mình — HÀM DÙNG CHUNG cho cron poll và webhook, để hai đường không bao
  * giờ lệch nhau:
  *  - mọi phần refunded/cancelled -> hoàn tiền qua claim nguyên tử (REFUNDED/CANCELED);
- *  - mọi phần completed, hoặc trích được nội dung giao, hoặc có phần "partial"
- *    -> DELIVERED (+ điểm + thông báo); partial kèm ghi chú + cảnh báo admin để
- *    đối soát phần còn lại bằng tay (không tự hoàn theo tỉ lệ — toán payload
- *    không có tài liệu);
+ *  - có phần "partial" mà CHƯA đủ completed -> PARTIAL (trạng thái riêng từ
+ *    P2-07 audit 2026-11-13, Tín chốt): lưu phần nội dung đã giao, kèm ghi
+ *    chú + cảnh báo admin để đối soát phần còn lại bằng tay (không tự hoàn
+ *    theo tỉ lệ — toán payload không có tài liệu); CHƯA cộng điểm, CHƯA gửi
+ *    thông báo/mail "đã giao" — các thứ đó chỉ chạy khi đơn sang DELIVERED;
+ *  - mọi phần completed, hoặc trích được nội dung giao (và không partial)
+ *    -> DELIVERED (+ điểm + thông báo);
  *  - còn lại -> chỉ cập nhật providerRaw.
- * Chuyển trạng thái chỉ đi tới: đơn đã REFUNDED/CANCELED không bao giờ bị đổi;
- * webhook (fromWebhook) đến sau khi đơn đã giao/kết thúc cũng chỉ ghi raw.
+ * Chuyển trạng thái chỉ đi tới: đơn đã REFUNDED/CANCELED/DELIVERED/COMPLETED
+ * không bao giờ bị đổi lùi; webhook (fromWebhook) chỉ áp cho đơn PENDING
+ * hoặc PARTIAL (đơn giao một phần vẫn phải nhận được lượt hoàn tất sau đó).
  */
 export async function applyFzrOrderStatus(
   order: PremiumOrder,
@@ -412,7 +423,8 @@ export async function applyFzrOrderStatus(
     return (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
   };
   if (current.status === "REFUNDED" || current.status === "CANCELED") return saveRawOnly();
-  if (opts.fromWebhook && current.status !== "PENDING") return saveRawOnly();
+  if (current.status === "DELIVERED" || current.status === "COMPLETED") return saveRawOnly();
+  if (opts.fromWebhook && current.status !== "PENDING" && current.status !== "PARTIAL") return saveRawOnly();
 
   const n = statuses.length;
   const badTerminal = statuses.filter((st) => st === "refunded" || st === "cancelled").length;
@@ -428,30 +440,50 @@ export async function applyFzrOrderStatus(
   const delivery = deliveries.length ? deliveries.join("\n---\n") : null;
   const completedCount = statuses.filter((st) => st === "completed").length;
   const partial = statuses.includes("partial");
-  if ((n > 0 && completedCount === n) || delivery || partial) {
+  const allCompleted = n > 0 && completedCount === n;
+  // allowRawDelivery=false (webhook không lấy được chi tiết đơn): KHÔNG đổ
+  // JSON thô của envelope webhook vào nội dung giao cho khách.
+  const nextDelivery = delivery || (opts.allowRawDelivery === false ? current.deliveryData : fzrDeliveryOrRaw(raws[0])) || current.deliveryData;
+
+  // P2-07: giao MỘT PHẦN — trạng thái riêng PARTIAL. Lưu phần đã giao cho
+  // khách xem, báo admin đối soát phần còn lại; điểm + thông báo/mail "đã
+  // giao" CHỈ chạy khi đơn hoàn tất sang DELIVERED ở lượt áp sau.
+  if (partial && !allCompleted) {
+    const PARTIAL_NOTE = "FZR: đơn giao MỘT PHẦN (partial) — đối soát phần còn lại bằng tay theo dữ liệu thô phía nhà cung cấp";
+    const updated = await prisma.premiumOrder.update({
+      where: { id: order.id },
+      data: {
+        status: "PARTIAL",
+        deliveryData: nextDelivery,
+        providerRaw: JSON.stringify(rawStored),
+        // Cron poll lặp lại trạng thái partial nhiều lần — ghi chú chỉ
+        // thêm MỘT lần, tránh phình tới giới hạn 900 ký tự.
+        ...((current.adminNote || "").includes(PARTIAL_NOTE)
+          ? {}
+          : { adminNote: [current.adminNote, PARTIAL_NOTE].filter(Boolean).join(" · ").slice(0, 900) }),
+      },
+    });
+    if (current.status !== "PARTIAL") {
+      await notifyUser(order.userId, "Đơn đang được giao một phần", `Đơn ${order.code}: một phần nội dung đã giao — xem trong chi tiết đơn, phần còn lại đang được xử lý tiếp`, "/dashboard/don-premium");
+      await alertMother("fzr_partial", `Đơn FZR giao một phần: ${order.code}`, `Đơn ${order.code} được FazerCards báo giao một phần (partial). Nội dung đã giao nằm trong chi tiết đơn; phần còn lại xử lý tay.`).catch(() => {});
+    }
+    return updated;
+  }
+
+  if (allCompleted || delivery) {
     const updated = await prisma.premiumOrder.update({
       where: { id: order.id },
       data: {
         status: "DELIVERED",
-        // allowRawDelivery=false (webhook không lấy được chi tiết đơn): KHÔNG
-        // đổ JSON thô của envelope webhook vào nội dung giao cho khách.
-        deliveryData: delivery || (opts.allowRawDelivery === false ? current.deliveryData : fzrDeliveryOrRaw(raws[0])) || current.deliveryData,
+        deliveryData: nextDelivery,
         providerRaw: JSON.stringify(rawStored),
-        ...(partial
-          ? { adminNote: [current.adminNote, "FZR: đơn giao MỘT PHẦN (partial) — đối soát phần còn lại bằng tay theo dữ liệu thô phía nhà cung cấp"].filter(Boolean).join(" · ").slice(0, 900) }
-          : {}),
       },
     });
     await awardPointsForPremiumOrder(updated);
     await notifyUser(order.userId, "Đơn Premium đã được giao", `Đơn ${order.code} đã giao — xem nội dung trong chi tiết đơn`, "/dashboard/don-premium");
-    // Mail chỉ bắn khi đơn thật sự CHUYỂN sang đã giao ở lần áp trạng thái
-    // này (đồng bộ lại đơn đã giao không gửi trùng).
-    if (current.status !== "DELIVERED" && current.status !== "COMPLETED") {
-      void mailOrderDelivered(updated, updated.deliveryData || "");
-    }
-    if (partial) {
-      await alertMother("fzr_partial", `Đơn FZR giao một phần: ${order.code}`, `Đơn ${order.code} được FazerCards báo giao một phần (partial). Nội dung đã giao nằm trong chi tiết đơn; phần còn lại xử lý tay.`).catch(() => {});
-    }
+    // Đơn đã DELIVERED/COMPLETED đã bị chặn ở guard đầu hàm nên tới được
+    // đây luôn là lần CHUYỂN sang đã giao thật — gửi mail giao hàng 1 lần.
+    void mailOrderDelivered(updated, updated.deliveryData || "");
     return updated;
   }
   return saveRawOnly();

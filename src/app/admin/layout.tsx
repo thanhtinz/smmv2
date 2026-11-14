@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   await enforceAdminSecurity(user);
   const s = await getSettings();
   const [prePending, depPending, ticketOpen] = await Promise.all([
-    prisma.premiumOrder.count({ where: { ...regularPremiumWhere(), status: { in: ["PENDING", "WARRANTY"] } } }),
+    prisma.premiumOrder.count({ where: { ...regularPremiumWhere(), status: { in: ["PENDING", "PARTIAL", "WARRANTY"] } } }),
     prisma.deposit.count({ where: { status: "PENDING" } }),
     prisma.ticket.count({ where: { status: "OPEN" } }),
   ]);

@@ -27,7 +27,7 @@ export default async function AdminTelegramOrdersPage({ searchParams }: {
   ]);
   const q = (searchParams.q || "").trim();
   const type = ["telegram_stars", "telegram_premium"].includes(searchParams.type || "") ? searchParams.type! : "";
-  const status = ["PENDING", "DELIVERED", "COMPLETED", "WARRANTY", "CANCELED", "REFUNDED"].includes(searchParams.status || "") ? searchParams.status! : "";
+  const status = ["PENDING", "PARTIAL", "DELIVERED", "COMPLETED", "WARRANTY", "CANCELED", "REFUNDED"].includes(searchParams.status || "") ? searchParams.status! : "";
   const fromD = searchParams.from ? new Date(`${searchParams.from}T00:00:00`) : null;
   const toD = searchParams.to ? new Date(`${searchParams.to}T23:59:59`) : null;
   const where: any = {

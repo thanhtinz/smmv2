@@ -31,7 +31,7 @@ export default async function TopupHistoryPage({ searchParams }: {
   ]);
 
   const q = (searchParams.q || "").trim();
-  const status = ["PENDING", "DELIVERED", "COMPLETED", "WARRANTY", "CANCELED", "REFUNDED"].includes(searchParams.status || "") ? searchParams.status! : "";
+  const status = ["PENDING", "PARTIAL", "DELIVERED", "COMPLETED", "WARRANTY", "CANCELED", "REFUNDED"].includes(searchParams.status || "") ? searchParams.status! : "";
   const fromD = searchParams.from ? new Date(`${searchParams.from}T00:00:00`) : null;
   const toD = searchParams.to ? new Date(`${searchParams.to}T23:59:59`) : null;
   const where: any = {

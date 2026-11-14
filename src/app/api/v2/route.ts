@@ -283,7 +283,9 @@ async function handle(req: NextRequest, method: string) {
         variant: o.variant.name,
         quantity: o.quantity,
         price: o.total,
-        ...(delivered && o.deliveryData ? { delivery: o.deliveryData } : {}),
+        // PARTIAL (giao một phần): vẫn trả phần nội dung ĐÃ giao kèm trạng
+        // thái PARTIAL để đại lý biết đơn chưa hoàn tất.
+        ...((delivered || o.status === "PARTIAL") && o.deliveryData ? { delivery: o.deliveryData } : {}),
         ...(o.warrantyUntil ? { warranty_until: o.warrantyUntil.toISOString() } : {}),
         created_at: o.createdAt.toISOString(),
       });

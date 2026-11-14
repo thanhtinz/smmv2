@@ -418,6 +418,7 @@ model PremiumStock {
 
 enum PremiumOrderStatus {
   PENDING // chờ admin giao (thủ công)
+  PARTIAL // giao một phần (FZR báo partial) — chưa cộng điểm, chưa tính đã giao
   DELIVERED // đã giao (tự động hoặc admin vừa giao)
   COMPLETED
   WARRANTY // đang bảo hành / đổi acc

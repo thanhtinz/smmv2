@@ -530,7 +530,7 @@ export async function adminPremiumOrderAction(formData: FormData) {
     let claimed = false;
     await prisma.$transaction(async (tx) => {
       const claim = await tx.premiumOrder.updateMany({
-        where: { id, status: { in: ["PENDING", "DELIVERED", "COMPLETED", "WARRANTY"] } },
+        where: { id, status: { in: ["PENDING", "PARTIAL", "DELIVERED", "COMPLETED", "WARRANTY"] } },
         data: { status: "REFUNDED" },
       });
       if (claim.count === 0) return;
@@ -560,7 +560,7 @@ export async function adminPremiumOrderAction(formData: FormData) {
   if (order.status === "REFUNDED" || order.status === "CANCELED") back(path, "err", "Đơn đã kết thúc — không sửa được nữa");
   const deliveryData = String(formData.get("deliveryData") || "") || order.deliveryData;
   const status = String(formData.get("status") || order.status) as any;
-  if (!["PENDING", "DELIVERED", "COMPLETED", "WARRANTY"].includes(status)) back(path, "err", "Trạng thái không hợp lệ — muốn hoàn tiền hãy dùng nút Huỷ đơn");
+  if (!["PENDING", "PARTIAL", "DELIVERED", "COMPLETED", "WARRANTY"].includes(status)) back(path, "err", "Trạng thái không hợp lệ — muốn hoàn tiền hãy dùng nút Huỷ đơn");
   const adminNote = String(formData.get("adminNote") || "") || order.adminNote;
   await prisma.premiumOrder.update({ where: { id }, data: { status, deliveryData, adminNote } });
   // Đợt 119: admin vừa chuyển đơn sang Đã giao/Hoàn thành (từ trạng thái

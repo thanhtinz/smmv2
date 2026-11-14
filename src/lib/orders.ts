@@ -400,7 +400,7 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
     let claimed = false;
     await prisma.$transaction(async (tx) => {
       const claim = await tx.premiumOrder.updateMany({
-        where: { id: order.id, status: { in: ["PENDING", "DELIVERED", "COMPLETED", "WARRANTY"] } },
+        where: { id: order.id, status: { in: ["PENDING", "PARTIAL", "DELIVERED", "COMPLETED", "WARRANTY"] } },
         data: { status: "REFUNDED" },
       });
       if (claim.count === 0) return;

@@ -40,6 +40,11 @@ async function postWebhook(evt: any, signature?: string): Promise<{ status: numb
 }
 
 async function main() {
+  // Từ P2-03 webhook FZR claim receipt NGUYÊN TỬ theo event_id — các
+  // event_id cố định của test này phải được dọn trước mỗi lần chạy, nếu
+  // không lượt chạy sau bị dedupe chặn (processed=false) oan.
+  await prisma.webhookReceipt.deleteMany({ where: { ref: { in: ["fzr:evt-bad-1", "fzr:evt-test-1", "fzr:evt-done-1", "fzr:evt-chat-1"] } } }).catch(() => {});
+
   const proc: ChildProcess = spawn("node", ["scripts/mock-fzr.mjs"], { env: { ...process.env, MOCK_FZR_PORT: "3998" }, stdio: "ignore" });
   try {
     for (let i = 0; i < 40; i++) { try { const r = await fetch(`${MOCK}/__log`); if (r.ok) break; } catch { /* chờ */ } await new Promise((r) => setTimeout(r, 250)); }
