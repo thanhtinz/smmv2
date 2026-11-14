@@ -63,11 +63,28 @@ export async function POST(req: NextRequest) {
       } catch {
         return NextResponse.json({ success: true, skipped: "duplicate purchase tx" });
       }
-      if (hit.status !== "PENDING" && hit.status !== "EXPIRED") {
+      // PROCESSING cũng phải tới được settle (P2-01 audit đợt 2): settle tự
+      // phân biệt "đang chạy khoẻ" (trả processing, không đụng vào) với
+      // "kẹt quá lease" (tiếp quản chạy tiếp) — chặn ở đây thì phiên chết
+      // giữa chừng không bao giờ được SePay retry cứu. Chỉ trạng thái đã
+      // CHỐT (EXECUTED/FAILED) mới dừng tại đây.
+      if (hit.status !== "PENDING" && hit.status !== "EXPIRED" && hit.status !== "PROCESSING") {
         return NextResponse.json({ success: true, skipped: "purchase already settled" });
       }
-      const { settlePurchasePayment } = await import("@/lib/purchase");
-      const r = await settlePurchasePayment(hit.id, { paidVnd: amount, finalIfUnderpaid: "wait" });
+      let r;
+      try {
+        const { settlePurchasePayment } = await import("@/lib/purchase");
+        r = await settlePurchasePayment(hit.id, { paidVnd: amount, finalIfUnderpaid: "wait" });
+      } catch (e) {
+        // P2-01 (audit đợt 2): lỗi TẠM THỜI lúc thực thi (DB timeout, lỗi
+        // hạ tầng) không được giữ claim — NHẢ receipt + trả 500 để SePay
+        // gửi lại cùng txId và settlement chạy lại từ đầu. Trước bản vá,
+        // receipt PUR:<txId> kẹt vĩnh viễn: khách đã chuyển tiền nhưng
+        // mọi lần SePay retry đều bị chặn ở "duplicate purchase tx".
+        await prisma.webhookReceipt.delete({ where: { ref: `PUR:${txId}` } }).catch(() => {});
+        await prisma.apiLog.create({ data: { kind: "webhook", ref: txId, ok: false, detail: `purchase=${hit.code} settle lỗi tạm thời: ${String((e as any)?.message || e).slice(0, 160)}` } }).catch(() => {});
+        return NextResponse.json({ success: false, error: "temporary failure, retry" }, { status: 500 });
+      }
       await prisma.apiLog.create({ data: { kind: "webhook", ref: txId, ok: r.ok, detail: `purchase=${hit.code} amount=${amount} -> ${r.reason}` } });
       return NextResponse.json({ success: true, purchase: hit.code, result: r.reason });
     }
