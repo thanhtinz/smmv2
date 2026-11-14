@@ -106,7 +106,7 @@ export default async function HomePage() {
         // chủ đích (khu riêng của Steam trên trang chủ, lệnh fix9).
         where: { active: true, panelId: null, ...regularCatalogWhere() },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true } } },
+        include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true, customFields: true } } },
       }),
     ]);
     // Mục Steam Gift Games riêng: tối đa 15 game mới nhất còn bán, giá =

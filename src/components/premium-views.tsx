@@ -6,7 +6,7 @@ import { getSession } from "@/lib/auth";
 import { PremiumBuyForm } from "@/components/client";
 import { Flash, I } from "@/components/ui";
 import { buyPremiumAction } from "@/app/actions/user";
-import { parsePremiumFields, productImages } from "@/lib/format";
+import { parsePremiumFields, effectivePremiumFields, productImages } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { RichText } from "@/components/rich-text";
 import { ProductGallery } from "@/components/rich-editor";
@@ -27,7 +27,7 @@ import { ensureRefCode } from "@/lib/wallet";
 
 /** Dựng dữ liệu thẻ cho một nhóm sản phẩm: khoảng giá gói, tổng đã bán, còn kho. */
 async function buildCardData(
-  products: { id: number; slug: string; name: string; color: string; images: string | null; imageUrl: string | null; fulfillment: string; customFields?: string | null; variants: { id: number; name?: string; price: number; providerGroup?: string | null; deliveryType?: string | null }[] }[],
+  products: { id: number; slug: string; name: string; color: string; images: string | null; imageUrl: string | null; fulfillment: string; customFields?: string | null; variants: { id: number; name?: string; price: number; providerGroup?: string | null; deliveryType?: string | null; customFields?: string | null }[] }[],
 ): Promise<PremiumCardData[]> {
   const variantProduct = new Map<number, number>();
   for (const p of products) for (const v of p.variants) variantProduct.set(v.id, p.id);
@@ -59,7 +59,10 @@ async function buildCardData(
     const prices = p.variants.map((v) => v.price).filter((x) => x > 0);
     const rv = reviewMap.get(p.id);
     const only = p.variants.length === 1 ? p.variants[0] : null;
-    const hasRequiredField = parsePremiumFields(p.customFields).some((f) => f.required);
+    // Có trường bắt buộc ở SẢN PHẨM hoặc ở BẤT KỲ GÓI nào thì không cho thêm
+    // nhanh vào giỏ từ thẻ — khách phải vào trang chi tiết điền theo gói.
+    const hasRequiredField = parsePremiumFields(p.customFields).some((f) => f.required)
+      || p.variants.some((v) => parsePremiumFields(v.customFields).some((f) => f.required));
     const cartVariant = only && !hasRequiredField && !(only.providerGroup || "").startsWith("telegram_")
       ? { id: only.id, name: only.name || p.name, price: only.price, stock: stockByVariant.get(only.id) || 0 }
       : null;
@@ -123,7 +126,7 @@ export async function PremiumShopView({ cat, q, sort, from, to, base }: { cat?: 
     // Premium này (cả lưới lẫn lọc theo danh mục) — regularCatalogWhere.
     where: { active: true, ...(catId ? { categoryId: catId } : {}), panelId: null, ...regularCatalogWhere() },
     orderBy: { sort: "asc" },
-    include: { category: true, variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true } } },
+    include: { category: true, variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true, customFields: true } } },
   });
   let items = await buildCardData(allProducts);
   const bySlug = new Map(allProducts.map((p) => [p.slug, p]));
@@ -303,7 +306,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
   const relatedRaw = await prisma.premiumProduct.findMany({
     where: { active: true, categoryId: product.categoryId, id: { not: product.id }, panelId: null, ...regularCatalogWhere() },
     orderBy: { sort: "asc" }, take: 4,
-    include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true } } },
+    include: { variants: { where: { active: true }, orderBy: { price: "asc" }, select: { id: true, name: true, price: true, providerGroup: true, deliveryType: true, customFields: true } } },
   });
   const related = await buildCardData(relatedRaw);
   // Các khối gập nội dung: xếp chồng trong cột trái, ngay dưới danh sách gói
@@ -457,6 +460,7 @@ export async function PremiumDetailView({ slug, searchParams, base }: { slug: st
             fulfillment={product.fulfillment}
             action={buyPremiumAction}
             fields={parsePremiumFields(product.customFields)}
+            fieldsByVariant={Object.fromEntries(product.variants.map((v) => [v.id, effectivePremiumFields(product.customFields, v.customFields)]))}
             note={product.buyNote}
             productImage={images[0] || null}
             productColor={product.color}

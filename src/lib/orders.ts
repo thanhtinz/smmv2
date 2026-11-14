@@ -1,6 +1,6 @@
 import { prisma } from "./db";
 import { applyBalance, creditReferralCommission, clawbackReferralCommission } from "./wallet";
-import { genCode, parsePremiumFields, vnd } from "./format";
+import { genCode, parsePremiumFields, effectivePremiumFields, vnd } from "./format";
 import { checkPromo, consumePromo } from "./promo";
 import { getSettings, DEFAULT_SETTINGS } from "./settings";
 import { notifyUser } from "./notify";
@@ -95,8 +95,9 @@ export async function createPremiumOrder(input: {
   // để khách nhận lỗi rõ ràng thay vì lỗi NCC sau khi trừ tiền.
   if (variant.minOrderQty != null && input.quantity < variant.minOrderQty) throw new Error(`Số lượng tối thiểu cho gói này là ${variant.minOrderQty}`);
   if (variant.maxOrderQty != null && input.quantity > variant.maxOrderQty) throw new Error(`Số lượng tối đa cho gói này là ${variant.maxOrderQty}`);
-  // Trường tuỳ chỉnh của sản phẩm: validate trường bắt buộc và gộp thành thông tin bàn giao
-  const fields = parsePremiumFields(variant.product.customFields);
+  // Trường tuỳ chỉnh HIỆU LỰC của gói (trường riêng của gói thắng, không có
+  // thì trường của sản phẩm): validate trường bắt buộc + gộp thông tin bàn giao
+  const fields = effectivePremiumFields(variant.product.customFields, variant.customFields);
   let buyerInfo = input.buyerInfo;
   if (fields.length > 0 && input.customData !== undefined) {
     const lines: string[] = [];

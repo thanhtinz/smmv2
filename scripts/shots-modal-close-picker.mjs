@@ -9,9 +9,14 @@
  *      chú chọn gói ở Gói bán + KHÔNG còn picker ở form sản phẩm -> Lưu ->
  *      popup ĐÓNG + sản phẩm hiện ở danh sách.
  *   T6 VariantsModal: khung "Tìm gói từ nguồn" -> tìm "netflix" -> chọn
- *      Netflix (gắn sản phẩm nguồn 101) -> chu kỳ hiện -> bấm "1 Tháng" ->
- *      form thêm gói tự điền tên/chu kỳ/giá -> Thêm gói -> popup ĐÓNG +
- *      gói có trong modal. (2 ảnh chụp)
+ *      Netflix (gắn sản phẩm nguồn 101) -> chu kỳ hiện (mock theo shape
+ *      catalog THẬT: cycle = số NGÀY 30/360 -> nhãn "1 tháng"/"1 năm" +
+ *      ghi chú option) -> bấm "1 tháng" -> form thêm gói tự điền
+ *      tên/chu kỳ/giá -> Thêm gói -> popup ĐÓNG + gói có trong modal.
+ *   T7 Trường tuỳ chỉnh THEO GÓI (lệnh Tín 2026-11-13): form sản phẩm
+ *      không còn editor trường; ở hàng gói "1 tháng" mở mục trường tuỳ
+ *      chỉnh của gói, thêm trường "Gmail nâng cấp" -> Lưu -> popup ĐÓNG
+ *      (đối chiếu DB ở bước checker riêng).
  *   T4 VariantsModal: thêm gói -> popup ĐÓNG; mở lại, xoá trắng tên gói ->
  *      Lưu -> popup GIỮ NGUYÊN + báo lỗi "Thiếu tên gói hoặc giá".
  *   T5 Editor Liên hệ: thêm liên hệ -> Lưu -> popup ĐÓNG + thẻ hiện.
@@ -159,6 +164,7 @@ async function main() {
   await sleep(600);
   ok(!(await evaluate(`!!document.querySelector('select[name="fulfillment"]')`)), "T3: gắn NCC ThaTim thì ô chọn hình thức giao BIẾN MẤT");
   ok((await evaluate(`(document.querySelector('input[name="fulfillment"]') || {}).value || ''`)) === "API", "T3: hình thức giao tự ép = API (field ẩn)");
+  ok(!(await evaluate(`document.body.innerText.includes('Trường tuỳ chỉnh khách điền khi mua')`)), "T3: form sản phẩm KHÔNG còn editor trường tuỳ chỉnh (đã chuyển xuống gói)");
   text = await bodyText();
   ok(text.includes("mở Gói bán của sản phẩm để tìm và chọn các gói từ nguồn"), "T3: hiện ghi chú chọn gói ở form Gói bán");
   ok(!(await evaluate(`!!document.querySelector('input[placeholder*="Tìm theo tên trong catalog"]')`)), "T3: form sản phẩm KHÔNG còn khung tìm từ nguồn");
@@ -188,12 +194,13 @@ async function main() {
   await sleep(1500);
   text = await bodyText();
   ok(text.includes("Đã gắn sản phẩm nguồn"), "T6: đã gắn sản phẩm nguồn sau khi chọn");
-  ok(text.includes("1 Tháng · 39.000 VND"), "T6: chu kỳ 1 Tháng hiện kèm giá nguồn");
-  ok(text.includes("1 Năm · 399.000 VND"), "T6: chu kỳ 1 Năm hiện kèm giá nguồn");
-  await evaluate(`(() => { const ov = [...document.querySelectorAll('div')].find((d) => (d.className || '').includes('backdrop-blur') && d.className.includes('fixed')); const b = ov ? [...ov.querySelectorAll('button')].find((x) => x.innerText.includes('1 Tháng ·')) : null; if (!b) throw new Error('không thấy chip chu kỳ 1 Tháng'); b.click(); return true; })()`);
+  ok(text.includes("1 tháng · 39.000 VND"), "T6: chu kỳ nguồn 30 NGÀY hiện đúng nhãn '1 tháng' kèm giá (không còn 30 tháng)");
+  ok(text.includes("1 năm · 399.000 VND"), "T6: chu kỳ nguồn 360 NGÀY hiện đúng nhãn '1 năm' kèm giá");
+  ok(text.includes("Nâng cấp chính chủ"), "T6: chip hiện ghi chú option của nguồn");
+  await evaluate(`(() => { const ov = [...document.querySelectorAll('div')].find((d) => (d.className || '').includes('backdrop-blur') && d.className.includes('fixed')); const b = ov ? [...ov.querySelectorAll('button')].find((x) => x.innerText.includes('1 tháng ·')) : null; if (!b) throw new Error('không thấy chip chu kỳ 1 tháng'); b.click(); return true; })()`);
   await sleep(600);
   const addFormVal = (field) => evaluate(`(() => { const i = document.querySelector('input[placeholder*="Tên gói (VD: 1 Tháng)"]'); const f = i ? i.closest('form') : null; if (!f) return ''; if (${JSON.stringify(field)} === 'name') return i.value; const el = f.querySelector('[name="' + ${JSON.stringify(field)} + '"]'); return el ? el.value : ''; })()`);
-  ok((await addFormVal("name")) === "1 Tháng", "T6: tên gói tự điền = '1 Tháng'");
+  ok((await addFormVal("name")) === "1 tháng", "T6: tên gói tự điền = '1 tháng'");
   ok((await addFormVal("providerCycle")) === "1", "T6: chu kỳ NCC tự điền = 1");
   ok((await addFormVal("price")) === "39000", "T6: giá bán tự điền = 39000");
   ok((await addFormVal("cost")) === "39000", "T6: giá vốn tự điền = 39000");
@@ -205,9 +212,40 @@ async function main() {
   await goiBtn("T6 mở lần 2");
   await sleep(1200);
   const variantNames6 = await evaluate(`(() => { const ov = [...document.querySelectorAll('div')].find((d) => (d.className || '').includes('backdrop-blur')); return ov ? [...ov.querySelectorAll('form [name="name"]')].map((i) => i.value) : []; })()`);
-  ok(variantNames6.includes("1 Tháng"), "T6: gói '1 Tháng' đã có trong modal");
+  ok(variantNames6.includes("1 tháng"), "T6: gói '1 tháng' đã có trong modal");
   await clickBtnText("Đóng");
   await sleep(600);
+
+  /* ---- T7: trường tuỳ chỉnh THEO GÓI — thêm ở hàng gói, lưu -> đóng ---- */
+  await navigate(`${BASE}/admin/premium?q=${suffix}`, 3000);
+  await goiBtn("T7 mở modal gói");
+  await sleep(1200);
+  ok(await modalOpen(), "T7: modal Gói bán mở");
+  await evaluate(`(() => {
+    const f = [...document.querySelectorAll('form')].find((x) => { const nm = x.querySelector('[name="name"]'); return nm && nm.value === '1 tháng'; });
+    if (!f) throw new Error('không thấy hàng gói 1 tháng');
+    const s = [...f.querySelectorAll('summary')].find((x) => x.innerText.includes('Trường tuỳ chỉnh của gói này'));
+    if (!s) throw new Error('không thấy mục trường tuỳ chỉnh của gói');
+    s.click(); return true;
+  })()`);
+  await sleep(500);
+  await evaluate(`(() => {
+    const f = [...document.querySelectorAll('form')].find((x) => { const nm = x.querySelector('[name="name"]'); return nm && nm.value === '1 tháng'; });
+    const b = [...f.querySelectorAll('button')].find((x) => x.innerText.includes('Thêm trường tuỳ chỉnh'));
+    if (!b) throw new Error('không thấy nút thêm trường');
+    b.click(); return true;
+  })()`);
+  await sleep(500);
+  await setVal(`(() => { const f = [...document.querySelectorAll('form')].find((x) => { const nm = x.querySelector('[name="name"]'); return nm && nm.value === '1 tháng'; }); return f.querySelector('input[placeholder*="Nhãn trường"]'); })()`, "Gmail nâng cấp");
+  await sleep(400);
+  await evaluate(`(() => {
+    const f = [...document.querySelectorAll('form')].find((x) => { const nm = x.querySelector('[name="name"]'); return nm && nm.value === '1 tháng'; });
+    const b = [...f.querySelectorAll('button')].find((x) => x.innerText.trim() === 'Lưu');
+    if (!b) throw new Error('không thấy nút Lưu gói');
+    b.click(); return true;
+  })()`);
+  await sleep(3500);
+  ok(!(await modalOpen()), "T7: popup ĐÓNG sau khi lưu gói kèm trường tuỳ chỉnh riêng");
   await navigate(`${BASE}/admin/premium?q=netflix`, 3000);
 
   /* ---- T4: VariantsModal thêm -> đóng; sửa lỗi -> giữ ---- */

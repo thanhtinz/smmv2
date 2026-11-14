@@ -124,7 +124,7 @@ export function PremiumCategoriesClient({ categories }: { categories: PremiumCat
 }
 
 /* ================= SẢN PHẨM & GÓI ================= */
-export type PremiumVariantDTO = { id: number; name: string; price: number; cost: number; warrantyDays: number; providerCycle: number | null; providerId: number | null; providerGroup: string | null; providerItemId: string | null; deliveryType: string | null; outOfStock: boolean; stockQty: number | null; active: boolean; sort: number; stockAvailable: number; stockTotal: number };
+export type PremiumVariantDTO = { id: number; name: string; price: number; cost: number; warrantyDays: number; providerCycle: number | null; providerId: number | null; providerGroup: string | null; providerItemId: string | null; deliveryType: string | null; outOfStock: boolean; stockQty: number | null; active: boolean; sort: number; stockAvailable: number; stockTotal: number; providerNote: string | null; customFields: string | null };
 export type PremiumProductDTO = {
   id: number; categoryId: number; categoryName: string; name: string; slug: string; tagline: string | null; description: string | null;
   color: string; fulfillment: string; providerId: number | null; providerProductId: string | null; customFields: string | null;
@@ -157,9 +157,13 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
   const [fzrGroup, setFzrGroup] = useState<"gamekeys" | "giftcards">("gamekeys");
   const selectedProvider = providers.find((pr) => String(pr.id) === providerId);
   const isFzrProvider = selectedProvider?.driver === "FZR";
-  // NCC chuẩn kiểu ThaTim: sản phẩm tự đấu API, KHÔNG chọn hình thức giao ở
-  // đây — chọn sản phẩm/chu kỳ nguồn ở form Gói bán (lệnh Tín 2026-11-13).
+  // Có gắn nhà cung cấp thì sản phẩm tự đấu API, KHÔNG chọn hình thức giao
+  // ở đây — riêng ThaTim: chọn sản phẩm/chu kỳ nguồn ở form Gói bán (lệnh
+  // Tín 2026-11-13). Ô hình thức giao chỉ còn cho sản phẩm không gắn nguồn
+  // (kho tự động / thủ công).
   const isStandardProvider = selectedProvider?.driver === "STANDARD";
+  const hasProvider = !!selectedProvider;
+  const effUi = hasProvider ? "API" : fulfillment;
   const changeProvider = (v: string) => {
     setProviderId(v);
     setProviderProductId("");
@@ -220,7 +224,7 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
           <div><label className={lbl}>{t("Mô tả chi tiết")}</label><RichTextEditor name="description" defaultValue={p?.description} minHeight={160} /></div>
           <div><label className={lbl}>{t("Lưu ý khi mua")}</label><textarea name="buyNote" rows={2} defaultValue={p?.buyNote || ""} className={inp} placeholder={t("Các lưu ý quan trọng cho khách hàng...")} /></div>
           <details className="rounded-xl border border-slate-200 px-4 py-3" open={!!p && (p.fulfillment !== "MANUAL" || !!p.providerId || !!p.warrantyInfo || !!p.usageGuide)}>
-            <summary className="cursor-pointer text-sm font-semibold text-slate-700">{t("Cài đặt nâng cao: hình thức giao, bảo hành, trường tuỳ chỉnh")}</summary>
+            <summary className="cursor-pointer text-sm font-semibold text-slate-700">{t("Cài đặt nâng cao: nguồn hàng, bảo hành")}</summary>
             <div className="mt-3 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -232,13 +236,19 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
                 </div>
                 <div><label className={lbl}>{t("Màu nhận diện")}</label><input name="color" type="color" defaultValue={p?.color || "#3178fc"} className="h-[42px] w-full cursor-pointer rounded-xl border border-slate-300 bg-white px-1.5 py-1.5" /></div>
               </div>
-              {isStandardProvider ? (
+              {hasProvider ? (
                 <>
                   <input type="hidden" name="fulfillment" value="API" />
-                  <input type="hidden" name="providerProductId" value={providerProductId} />
-                  <p className="rounded-lg bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700">
-                    {t("Đấu API qua")} {selectedProvider?.name} — {t("mở Gói bán của sản phẩm để tìm và chọn các gói từ nguồn.")}
-                  </p>
+                  {isStandardProvider ? (
+                    <>
+                      <input type="hidden" name="providerProductId" value={providerProductId} />
+                      <p className="rounded-lg bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700">
+                        {t("Đấu API qua")} {selectedProvider?.name} — {t("mở Gói bán của sản phẩm để tìm và chọn các gói từ nguồn.")}
+                      </p>
+                    </>
+                  ) : (
+                    <div><label className={lbl}>{t("ID sản phẩm tại NCC")}</label><input name="providerProductId" value={providerProductId} onChange={(e) => { setProviderProductId(e.target.value); setPickedName(""); }} className={inp} placeholder={t("Chọn từ nguồn bên dưới hoặc gõ mã")} /></div>
+                  )}
                 </>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
@@ -255,7 +265,7 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
                   )}
                 </div>
               )}
-              {fulfillment === "API" && isFzrProvider && selectedProvider && (
+              {effUi === "API" && isFzrProvider && selectedProvider && (
                 <div className="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-3">
                   <div className="text-[11px] font-bold uppercase tracking-wide text-brand-700">{t("Tìm sản phẩm từ nguồn")}</div>
                     <>
@@ -300,10 +310,8 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
               )}
               <div><label className={lbl}>{t("Thông tin bảo hành")}</label><RichTextEditor name="warrantyInfo" defaultValue={p?.warrantyInfo} minHeight={100} /></div>
               <div><label className={lbl}>{t("Hướng dẫn sử dụng")}</label><RichTextEditor name="usageGuide" defaultValue={p?.usageGuide} minHeight={100} /></div>
-              <div>
-                <label className={lbl}>{t("Trường tuỳ chỉnh khách điền khi mua")}</label>
-                <PremiumFieldsEditor initial={parsePremiumFields(p?.customFields)} />
-              </div>
+              {/* Trường tuỳ chỉnh KHÔNG còn ở form sản phẩm — định nghĩa theo
+                  từng GÓI trong form Gói bán (lệnh Tín 2026-11-13). */}
             </div>
           </details>
           <details className="rounded-xl border border-slate-200 px-4 py-3" open={!!p && (!!p.metaTitle || !!p.metaDescription)}>
@@ -333,7 +341,7 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
 
 const PROVIDER_GROUPS = ["gamekeys", "giftcards", "topups", "manual", "telegram_stars", "telegram_premium", "steam_topup", "steam_gift"];
 
-type SourceCycle = { cycle: number; label: string | null; priceRaw: number };
+type SourceCycle = { cycle: number; label: string | null; priceRaw: number; note: string | null };
 type SourceProduct = { id: string; name: string; category: string; cycles: SourceCycle[] };
 
 export function VariantsModal({ product, onClose, providers = [], returnTo = "/admin/premium" }: { product: PremiumProductDTO; onClose: () => void; providers?: PremiumProviderOpt[]; returnTo?: string }) {
@@ -357,6 +365,10 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
   const [addPrice, setAddPrice] = useState("");
   const [addCost, setAddCost] = useState("");
   const [addCycle, setAddCycle] = useState("");
+  // Ghi chú của option nguồn đang chọn (nhiều option trùng thời hạn chỉ khác
+  // nhau ở ghi chú này) — lưu vào providerNote của gói khi thêm.
+  const [addNote, setAddNote] = useState("");
+  const [pickedKey, setPickedKey] = useState("");
   const toVnd = (raw: number) => (!srcProvider || srcProvider.currency === "VND" ? Math.round(raw) : Math.round(raw * (srcProvider.exchangeRate || 1)));
   const fmtSrc = (raw: number) => `${raw.toLocaleString("vi-VN")} ${srcProvider?.currency || ""}`;
   const loadCycles = async (pid: string) => {
@@ -403,9 +415,11 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
     setAddName(c.label || `${c.cycle} tháng`);
     setAddCost(String(vnd));
     if (!addPrice) setAddPrice(String(vnd));
-    setFPicked(`${c.label || `${c.cycle} tháng`} · ${fmtSrc(c.priceRaw)}`);
+    setAddNote(c.note || "");
+    setPickedKey(`${c.cycle}|${c.priceRaw}|${c.note || ""}`);
+    setFPicked(`${c.label || `${c.cycle} tháng`} · ${fmtSrc(c.priceRaw)}${c.note ? ` — ${c.note}` : ""}`);
   };
-  const changeSourceProduct = () => { setSrcPid(""); setSrcName(""); setFCycles(null); setFProducts(null); setFPicked(""); setFNote(""); setFError(""); };
+  const changeSourceProduct = () => { setSrcPid(""); setSrcName(""); setFCycles(null); setFProducts(null); setFPicked(""); setFNote(""); setFError(""); setAddNote(""); setPickedKey(""); };
   // Hàng 3: ánh xạ NCC theo gói (FIX7 E2) — đồng bộ FZR ghi sẵn 3 trường này;
   // nay admin sửa tay được để tự dựng sản phẩm API (Telegram/Steam/...) hoặc
   // gỡ ánh xạ. Nhóm có datalist gợi ý các nhóm chuẩn, vẫn gõ tự do được.
@@ -465,6 +479,14 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
                 )}
               </div>
               {mapRow(v)}
+              {v.providerNote && <p className="mt-1.5 text-xs text-slate-400">{t("Ghi chú gói tại NCC")}: {v.providerNote}</p>}
+              {/* Trường tuỳ chỉnh RIÊNG của gói (lệnh Tín 2026-11-13): khách
+                  mua gói này thì điền các trường này; gói để trống thì dùng
+                  trường của sản phẩm. */}
+              <details className="mt-2">
+                <summary className="cursor-pointer text-xs font-semibold text-slate-500">{t("Trường tuỳ chỉnh của gói này")}</summary>
+                <div className="mt-2"><PremiumFieldsEditor initial={parsePremiumFields(v.customFields)} /></div>
+              </details>
             </form>
           ))}
           {product.variants.length === 0 && <div className="py-4 text-center text-sm text-slate-400">{t("Chưa có gói nào — thêm gói đầu tiên ở dưới.")}</div>}
@@ -514,10 +536,11 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
                       ? <p className="mt-2 text-xs text-slate-400">{t("Sản phẩm nguồn không có chu kỳ nào.")}</p>
                       : (
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {fCycles.map((c) => (
-                            <button key={c.cycle} type="button" onClick={() => pickSourceCycle(c)}
-                              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${addCycle === String(c.cycle) ? "border-brand-500 bg-brand-50 text-brand-700" : "border-brand-200 bg-white text-slate-700 hover:bg-brand-50"}`}>
-                              {c.label || `${c.cycle} tháng`} · {fmtSrc(c.priceRaw)}
+                          {fCycles.map((c, i) => (
+                            <button key={`${c.cycle}-${c.priceRaw}-${i}`} type="button" onClick={() => pickSourceCycle(c)} title={c.note || undefined}
+                              className={`max-w-[280px] rounded-lg border px-3 py-1.5 text-left transition ${pickedKey === `${c.cycle}|${c.priceRaw}|${c.note || ""}` ? "border-brand-500 bg-brand-50 text-brand-700" : "border-brand-200 bg-white text-slate-700 hover:bg-brand-50"}`}>
+                              <span className="block text-xs font-semibold">{c.label || `${c.cycle} tháng`} · {fmtSrc(c.priceRaw)}</span>
+                              {c.note && <span className="mt-0.5 block truncate text-[11px] font-normal text-slate-400">{c.note}</span>}
                             </button>
                           ))}
                         </div>
@@ -563,6 +586,12 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
               )}
             </div>
             {mapRow()}
+            <input type="hidden" name="providerNote" value={addNote} />
+            {addNote && <p className="mt-2 text-xs text-slate-400">{t("Ghi chú gói tại NCC")}: {addNote}</p>}
+            <div className="mt-3">
+              <div className="mb-1.5 text-xs font-semibold text-slate-500">{t("Trường tuỳ chỉnh của gói này — khách điền khi mua gói này")}</div>
+              <PremiumFieldsEditor initial={[]} />
+            </div>
           </form>
           <div className="mt-4 flex items-center justify-between">
             <Link href="/admin/kho-premium" className="text-sm font-semibold text-blue-600 hover:text-blue-800">{t("Mở Kho tài khoản để nhập kho →")}</Link>

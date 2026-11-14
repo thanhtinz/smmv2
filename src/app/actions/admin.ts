@@ -227,7 +227,7 @@ export async function adminSyncAllProviders() {
  *  kết quả đầu + tổng số khớp; lỗi phía NCC trả về dạng {ok:false} để form
  *  hiện tại chỗ, không văng trang. */
 export async function adminProviderCatalogSearch(providerId: number, q: string): Promise<
-  | { ok: true; total: number; items: { id: string; name: string; category: string; currency: string; cycles: { cycle: number; label: string | null; priceRaw: number }[] }[] }
+  | { ok: true; total: number; items: { id: string; name: string; category: string; currency: string; cycles: { cycle: number; label: string | null; priceRaw: number; note: string | null }[] }[] }
   | { ok: false; error: string }
 > {
   await requireAdmin();
@@ -249,7 +249,7 @@ export async function adminProviderCatalogSearch(providerId: number, q: string):
         name: p.name,
         category: p.categoryName,
         currency: provider.currency,
-        cycles: p.variants.map((v) => ({ cycle: v.cycle, label: v.label ?? null, priceRaw: v.priceRaw })),
+        cycles: p.variants.map((v) => ({ cycle: v.cycle, label: v.label ?? null, priceRaw: v.priceRaw, note: v.note ?? null })),
       })),
     };
   } catch (e) {
@@ -260,7 +260,7 @@ export async function adminProviderCatalogSearch(providerId: number, q: string):
 /** Chu kỳ (gói) của ĐÚNG một sản phẩm trong catalog NCC chuẩn — form Gói
  *  bán dùng để liệt kê các gói nguồn của sản phẩm đã gắn, khỏi đoán id. */
 export async function adminProviderProductCycles(providerId: number, providerProductId: string): Promise<
-  | { ok: true; name: string; currency: string; cycles: { cycle: number; label: string | null; priceRaw: number }[] }
+  | { ok: true; name: string; currency: string; cycles: { cycle: number; label: string | null; priceRaw: number; note: string | null }[] }
   | { ok: false; error: string }
 > {
   await requireAdmin();
@@ -278,7 +278,7 @@ export async function adminProviderProductCycles(providerId: number, providerPro
       ok: true,
       name: found.name,
       currency: provider.currency,
-      cycles: found.variants.map((v) => ({ cycle: v.cycle, label: v.label ?? null, priceRaw: v.priceRaw })),
+      cycles: found.variants.map((v) => ({ cycle: v.cycle, label: v.label ?? null, priceRaw: v.priceRaw, note: v.note ?? null })),
     };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Không gọi được nhà cung cấp" };
@@ -352,20 +352,20 @@ export async function adminSaveProduct(formData: FormData) {
   await requireAdmin();
   const rt = retTo(formData);
   const id = parseInt(String(formData.get("id") || "0"));
-  // Hình thức giao + ánh xạ nguồn (lệnh Tín 2026-11-13 tối): sản phẩm đấu
-  // qua NCC chuẩn kiểu ThaTim (driver STANDARD) KHÔNG chọn hình thức giao ở
-  // form sản phẩm — cứ gắn NCC chuẩn là sản phẩm đấu API, việc chọn sản
-  // phẩm/chu kỳ nguồn làm ở form Gói bán. Máy chủ tự ép ở đây (không tin
-  // field ẩn phía khách) và khi sửa mà không đổi NCC thì giữ nguyên
-  // providerProductId đã gắn từ bước gói.
+  // Hình thức giao + ánh xạ nguồn (lệnh Tín 2026-11-13 tối): sản phẩm có
+  // gắn nhà cung cấp thì KHÔNG chọn hình thức giao ở form sản phẩm — cứ
+  // gắn NCC là sản phẩm đấu API (riêng ThaTim: chọn sản phẩm/chu kỳ nguồn
+  // làm ở form Gói bán). Máy chủ tự ép ở đây (không tin field ẩn phía
+  // khách) và khi sửa mà không đổi NCC thì giữ nguyên providerProductId
+  // đã gắn từ bước gói.
   const formProviderId = formData.get("providerId") ? parseInt(String(formData.get("providerId"))) || null : null;
   const formProvider = formProviderId ? await prisma.provider.findUnique({ where: { id: formProviderId }, select: { driver: true } }) : null;
-  const isStandardSource = formProvider?.driver === "STANDARD" && !!formProviderId;
-  const effFulfillment = isStandardSource ? "API" : String(formData.get("fulfillment") || "MANUAL");
+  const hasSource = !!formProvider && !!formProviderId;
+  const effFulfillment = hasSource ? "API" : String(formData.get("fulfillment") || "MANUAL");
   let effProviderProductId: string | null = null;
   if (effFulfillment === "API") {
     effProviderProductId = String(formData.get("providerProductId") || "") || null;
-    if (isStandardSource && !effProviderProductId && id) {
+    if (hasSource && !effProviderProductId && id) {
       const cur = await prisma.premiumProduct.findUnique({ where: { id }, select: { providerId: true, providerProductId: true } });
       if (cur?.providerId === formProviderId) effProviderProductId = cur.providerProductId;
     }
@@ -380,7 +380,11 @@ export async function adminSaveProduct(formData: FormData) {
     fulfillment: effFulfillment,
     providerId: effFulfillment === "API" ? formProviderId : null,
     providerProductId: effProviderProductId,
-    customFields: normalizePremiumFieldsJson(String(formData.get("customFields") || "")),
+    // Trường tuỳ chỉnh nay định nghĩa THEO GÓI ở form Gói bán — form sản
+    // phẩm không còn gửi field này: chỉ ghi khi form thực sự có, còn không
+    // thì giữ nguyên dữ liệu cũ (vẫn là fallback cho gói chưa có trường
+    // riêng, vd các khu FZR trường theo category).
+    ...(formData.has("customFields") ? { customFields: normalizePremiumFieldsJson(String(formData.get("customFields") || "")) } : {}),
     buyNote: String(formData.get("buyNote") || "").trim().slice(0, 500) || null,
     images: (() => { const list = formData.getAll("images").map((v) => String(v).trim()).filter(Boolean).slice(0, 10); return list.length ? JSON.stringify(list) : null; })(),
     imageUrl: (() => { const first = formData.getAll("images").map((v) => String(v).trim()).filter(Boolean)[0]; return first ? first.slice(0, 500) : null; })(),
@@ -441,6 +445,13 @@ export async function adminSaveVariant(formData: FormData) {
     providerGroup: String(formData.get("providerGroup") || "").trim() || null,
     providerItemId: String(formData.get("providerItemId") || "").trim() || null,
     deliveryType: deliveryRaw === "FAST" || deliveryRaw === "SLOW" ? deliveryRaw : null,
+    // Ghi chú gói phía NCC (note của option ThaTim): form Thêm gói có gửi
+    // kèm (ô ẩn do chip nguồn điền) thì ghi; form sửa từng gói không có
+    // trường này thì GIỮ NGUYÊN giá trị đã lưu, không ghi đè thành null.
+    ...(formData.has("providerNote") ? { providerNote: String(formData.get("providerNote") || "").trim().slice(0, 1000) || null } : {}),
+    // Trường tuỳ chỉnh RIÊNG của gói (lệnh Tín 2026-11-13: trường đi theo
+    // gói) — editor ở form gói bán luôn gửi kèm field này.
+    customFields: normalizePremiumFieldsJson(String(formData.get("customFields") || "")),
     outOfStock: !isAutoStock && formData.get("outOfStock") === "on",
     stockQty: isAutoStock ? null : (stockQtyParsed != null && Number.isFinite(stockQtyParsed) && stockQtyParsed >= 0 ? stockQtyParsed : null),
     active: formData.get("active") === "on",

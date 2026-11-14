@@ -342,7 +342,8 @@ model PremiumVariant {
   providerStock Int? // tồn kho PHÍA NCC báo (FZR gamekeys: keys[].stock theo từng edition) — chỉ hiện + suy "hết hàng" ở khu Game Key; KHÔNG phải nắp kho của shop (stockQty) và không bị trừ khi đặt (NCC tự thực thi lúc gọi order)
   minOrderQty  Int? // số lượng mua TỐI THIỂU mỗi đơn phía NCC (FZR gamekeys keys[] + giftcards offers: min_order_quantity) — createPremiumOrder chặn trước khi gọi NCC; null = không giới hạn
   maxOrderQty  Int? // số lượng mua TỐI ĐA mỗi đơn phía NCC (max_order_quantity) — như trên; null = không giới hạn
-  providerNote String?       @db.Text // ghi chú theo GÓI phía NCC (FZR manual-services offers: note_product) — chỉ để hiện ở trang mua
+  providerNote String?       @db.Text // ghi chú theo GÓI phía NCC (FZR manual-services offers: note_product; ThaTim: note của option) — chỉ để hiện ở trang mua
+  customFields String?  @db.Text // JSON: trường tuỳ chỉnh RIÊNG của gói (lệnh Tín 2026-11-13) — khách điền khi mua gói này; gói không có thì dùng trường của sản phẩm
   deliveryMinutes Int? // thời gian giao điển hình theo phút phía NCC báo (FZR manual-services offers: delivery_minutes) — chỉ để hiện
   active      Boolean        @default(true)
   sort        Int            @default(0)

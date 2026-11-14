@@ -148,10 +148,12 @@ export type NormalizedProduct = {
   providerProductId: string;
   name: string;
   categoryName: string;
-  variants: { cycle: number; priceRaw: number; label?: string }[];
+  variants: { cycle: number; priceRaw: number; label?: string; note?: string; optionId?: number }[];
 };
 
-/** Nhãn chu kỳ kiểu ThaTim ("1 Tháng", "1 Năm", "23 Ngày") -> số tháng để gọi action=buy */
+/** Nhãn chu kỳ ("1 Tháng", "1 Năm", "23 Ngày") -> số tháng để gọi action=buy
+ *  (buy phía ThaTim nhận cycle theo THÁNG — tài liệu api-docs + history thật
+ *  trả time_pay = 1/6/12 tháng, đã kiểm chứng 2026-11-13). */
 export function parseCycleMonths(v: any): number {
   if (v === null || v === undefined) return 0;
   if (typeof v === "number") return Math.round(v);
@@ -163,21 +165,57 @@ export function parseCycleMonths(v: any): number {
   return Math.round(num);
 }
 
+/** Nhãn hiển thị từ số tháng: 12 -> "1 năm", 6 -> "6 tháng". */
+export function cycleMonthsLabel(months: number): string {
+  if (months > 0 && months % 12 === 0) return `${months / 12} năm`;
+  return `${months} tháng`;
+}
+
+/** Chu kỳ trong time_data của catalog THẬT (kiểm chứng trực tiếp bằng key
+ *  thật ngày 2026-11-13): cycle là SỐ NGÀY (30/90/180/360/720/1080), kèm
+ *  option_id + note + is_active — KHÁC hẳn bản tài liệu cũ (nhãn chữ). Quy
+ *  ngày -> tháng tại đây; nhãn chữ (nếu nguồn nào trả dạng chữ) vẫn đi qua
+ *  parseCycleMonths như cũ. */
+export function cycleMonthsFromTimeData(v: any): number {
+  if (typeof v === "string" && /[a-zA-ZÀ-ỹ]/.test(v)) return parseCycleMonths(v);
+  const n = typeof v === "number" ? v : parseFloat(String(v ?? ""));
+  if (!isFinite(n) || n <= 0) return 0;
+  return Math.max(1, Math.round(n / 30));
+}
+
 export function normalizeProducts(raw: any): NormalizedProduct[] {
   const out: NormalizedProduct[] = [];
   const pushProduct = (p: any, categoryName: string) => {
     if (!p || (p.id === undefined && p.product_id === undefined)) return;
-    const variants: { cycle: number; priceRaw: number; label?: string }[] = [];
-    const pushVar = (cycle: any, price: any, label?: string) => {
-      const c = parseCycleMonths(cycle);
+    const variants: NormalizedProduct["variants"] = [];
+    const pushVar = (cycle: any, price: any, extra?: { label?: string; note?: string; optionId?: number; fromTimeData?: boolean }) => {
+      const c = extra?.fromTimeData ? cycleMonthsFromTimeData(cycle) : parseCycleMonths(cycle);
       const pr = parseFloat(String(price));
-      if (c > 0 && pr > 0) variants.push({ cycle: c, priceRaw: pr, label });
+      if (c > 0 && pr > 0) {
+        variants.push({
+          cycle: c,
+          priceRaw: pr,
+          label: extra?.label || cycleMonthsLabel(c),
+          ...(extra?.note ? { note: extra.note } : {}),
+          ...(extra?.optionId !== undefined ? { optionId: extra.optionId } : {}),
+        });
+      }
     };
+    const fromTimeData = Array.isArray(p.time_data);
     const arr = p.time_data || p.cycles || p.plans || p.prices || p.durations || p.packages;
     if (Array.isArray(arr)) {
       for (const v of arr) {
-        if (typeof v === "object") {
-          pushVar(v.cycle ?? v.months ?? v.duration ?? v.time, v.price ?? v.rate ?? v.amount, typeof v.cycle === "string" ? v.cycle : undefined);
+        if (typeof v === "object" && v !== null) {
+          // Option phía nguồn đã tắt bán (is_active=false) thì không đưa lên web.
+          if (v.is_active === false) continue;
+          const noteRaw = typeof v.note === "string" ? v.note : (typeof v.description === "string" ? v.description : "");
+          const oid = v.option_id ?? v.cycle_id;
+          pushVar(v.cycle ?? v.months ?? v.duration ?? v.time, v.price ?? v.rate ?? v.amount, {
+            label: typeof v.cycle === "string" && /[a-zA-ZÀ-ỹ]/.test(v.cycle) ? v.cycle : undefined,
+            note: noteRaw.trim() ? noteRaw.trim().slice(0, 300) : undefined,
+            optionId: oid !== undefined && oid !== null && isFinite(Number(oid)) ? Number(oid) : undefined,
+            fromTimeData,
+          });
         }
       }
     }
@@ -189,13 +227,19 @@ export function normalizeProducts(raw: any): NormalizedProduct[] {
       pushVar(p.cycle ?? p.months ?? p.duration ?? 1, p.price ?? p.rate);
     }
     if (!variants.length) return;
-    const dedup = new Map<number, { cycle: number; priceRaw: number; label?: string }>();
-    for (const v of variants) if (!dedup.has(v.cycle)) dedup.set(v.cycle, v);
+    // Khử trùng theo (chu kỳ + giá + ghi chú): nguồn có NHIỀU option CÙNG
+    // thời hạn nhưng khác giá/ghi chú (vd Capcut 6 tháng có 3 loại) — đó là
+    // các gói khác nhau, TUYỆT ĐỐI không gộp theo chu kỳ như trước.
+    const dedup = new Map<string, NormalizedProduct["variants"][number]>();
+    for (const v of variants) {
+      const key = `${v.cycle}|${v.priceRaw}|${v.note || ""}`;
+      if (!dedup.has(key)) dedup.set(key, v);
+    }
     out.push({
       providerProductId: String(p.id ?? p.product_id),
       name: String(p.product_name || p.name || p.title || `Sản phẩm ${p.id ?? p.product_id}`),
       categoryName: String(p.category || p.category_name || categoryName || "Sản phẩm khác"),
-      variants: Array.from(dedup.values()).sort((a, b) => a.cycle - b.cycle),
+      variants: Array.from(dedup.values()).sort((a, b) => a.cycle - b.cycle || a.priceRaw - b.priceRaw),
     });
   };
   const walk = (node: any, categoryName = "") => {
@@ -292,7 +336,11 @@ export async function syncProviderPremium(provider: Provider) {
     for (const v of p.variants) {
       const costVnd = Math.ceil(v.priceRaw * provider.exchangeRate);
       const sell = Math.ceil(costVnd * (1 + provider.markupPercent / 100));
-      const ev = await prisma.premiumVariant.findFirst({ where: { productId, providerCycle: v.cycle } });
+      // Gói nguồn phân biệt bằng (chu kỳ + ghi chú option): cùng thời hạn
+      // vẫn có thể là nhiều gói khác nhau phía nguồn; giá thay đổi thì cập
+      // nhật vào đúng gói đã khớp thay vì đẻ thêm gói mới giá cũ còn treo.
+      const noteVal = v.note?.trim() || null;
+      const ev = await prisma.premiumVariant.findFirst({ where: { productId, providerCycle: v.cycle, providerNote: noteVal } });
       const data = {
         productId,
         name: v.label?.trim() || (v.cycle >= 12 && v.cycle % 12 === 0 ? `${v.cycle / 12} năm` : `${v.cycle} tháng`),
@@ -300,6 +348,7 @@ export async function syncProviderPremium(provider: Provider) {
         cost: costVnd,
         warrantyDays: 0,
         providerCycle: v.cycle,
+        providerNote: noteVal,
       };
       if (ev) await prisma.premiumVariant.update({ where: { id: ev.id }, data });
       else await prisma.premiumVariant.create({ data });

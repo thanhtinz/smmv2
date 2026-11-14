@@ -37,12 +37,13 @@ export function DeliveryBadge({ type, t }: { type: "FAST" | "SLOW"; t: (s: strin
   );
 }
 
-export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, note, maxQty = 50, backBase, layout, productImage, productColor, belowVariants, promos, flashPct, cartProduct }: {
+export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, fieldsByVariant, note, maxQty = 50, backBase, layout, productImage, productColor, belowVariants, promos, flashPct, cartProduct }: {
   variants: { id: number; name: string; price: number; warrantyDays: number; stock: number; delivery?: "FAST" | "SLOW"; soldOut?: boolean; stockQty?: number | null }[];
   slug: string;
   fulfillment: string;
   action: (formData: FormData) => void;
   fields?: PremiumCustomField[]; // trường tuỳ chỉnh của sản phẩm — có thì thay ô thông tin bàn giao mặc định
+  fieldsByVariant?: Record<number, PremiumCustomField[]>; // trường HIỆU LỰC theo từng gói (đã gồm fallback về trường sản phẩm ở phía server) — khách chọn gói nào thì điền trường của gói đó
   note?: string | null; // hướng dẫn riêng của sản phẩm (hộp xanh phía trên các ô nhập)
   maxQty?: number; // trần số lượng mỗi đơn — lấy từ cấu hình hệ thống
   backBase?: string; // gốc đường dẫn trang chi tiết (/premium hoặc /dashboard/premium) để trả về đúng khung khi có lỗi
@@ -59,6 +60,9 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
   const [qty, setQty] = useState(1);
   const [promoCode, setPromoCode] = useState("");
   const v = variants.find((x) => x.id === variantId) || variants[0];
+  // Trường khách điền của GÓI đang chọn (server đã tính hiệu lực: trường
+  // riêng của gói, không có thì trường của sản phẩm).
+  const activeFields = (fieldsByVariant && v ? fieldsByVariant[v.id] : undefined) ?? fields;
   const formRef = useRef<HTMLFormElement>(null);
   const cartGroup = cartProduct && v ? cartProduct.groups[v.id] : null;
   const cartable = !!cartProduct && !!v && !(cartGroup || "").startsWith("telegram_");
@@ -68,7 +72,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
     let buyerInfo: string | null = null;
     const form = formRef.current;
     if (form) {
-      (fields || []).forEach((f, i) => {
+      (activeFields || []).forEach((f, i) => {
         const el = form.elements.namedItem(`cf_${i}`) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
         if (el && el.value) custom[f.label] = el.value;
       });
@@ -101,10 +105,10 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
     const grandTotal = afterFlash - promoDiscount;
     const infoFields = (
       <>
-        {fields && fields.length > 0 ? (
+        {activeFields && activeFields.length > 0 ? (
           <div className="space-y-3.5">
-            {fields.map((f, i) => (
-              <div key={i}>
+            {activeFields.map((f, i) => (
+              <div key={`${v?.id}-${i}`}>
                 <label className="lbl">{f.label}{f.required ? " *" : ""}</label>
                 {f.type === "textarea" ? (
                   <textarea className="inp" name={`cf_${i}`} rows={3} required={f.required} placeholder={f.placeholder || ""} />
@@ -276,10 +280,10 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
       {note && (
         <div className="rounded-xl bg-brand-50 border border-brand-100 px-4 py-3 text-sm text-brand-900 leading-relaxed">{note}</div>
       )}
-      {fields && fields.length > 0 ? (
+      {activeFields && activeFields.length > 0 ? (
         <div className="space-y-3.5">
-          {fields.map((f, i) => (
-            <div key={i}>
+          {activeFields.map((f, i) => (
+            <div key={`${v?.id}-${i}`}>
               <label className="lbl">{f.label}{f.required ? " *" : ""}</label>
               {f.type === "textarea" ? (
                 <textarea className="inp" name={`cf_${i}`} rows={3} required={f.required} placeholder={f.placeholder || ""} />
@@ -301,7 +305,7 @@ export function PremiumBuyForm({ variants, slug, fulfillment, action, fields, no
           <p className="text-xs text-slate-400 mt-1.5">{fulfillment === "API" ? t("Thông tin này được gửi kèm đơn sang nhà cung cấp để bàn giao gói.") : t("Gói này được nâng cấp trực tiếp lên tài khoản của bạn — chỉ cần email, không cần mật khẩu.")}</p>
         </div>
       )}
-      {!fields?.length && fulfillment === "AUTO_STOCK" && (
+      {!activeFields?.length && fulfillment === "AUTO_STOCK" && (
         <div>
           <label className="lbl">{t("Ghi chú (tuỳ chọn)")}</label>
           <input className="inp" name="buyerInfo" placeholder={t("Email nhận tài khoản (mặc định dùng email tài khoản của bạn)")} />

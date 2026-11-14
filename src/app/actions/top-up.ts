@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createPremiumOrder } from "@/lib/orders";
 import { moduleOn } from "@/lib/modules";
-import { parsePremiumFields } from "@/lib/format";
+import { parsePremiumFields, effectivePremiumFields } from "@/lib/format";
 
 function back(path: string, key: "msg" | "err", text: string): never {
   redirect(`${path}?${key}=${encodeURIComponent(text)}`);
@@ -34,13 +34,13 @@ export async function placeTopupAction(formData: FormData) {
   const variant = await prisma.premiumVariant.findUnique({
     where: { id: variantId },
     select: {
-      id: true, productId: true, providerGroup: true, active: true,
+      id: true, productId: true, providerGroup: true, active: true, customFields: true,
       product: { select: { customFields: true } },
     },
   });
   const path = variant ? `/dashboard/top-up/${variant.productId}` : "/dashboard/top-up";
   if (!variant || variant.providerGroup !== "topups" || !variant.active) back(path, "err", "Gói nạp không khả dụng");
-  const fields = parsePremiumFields(variant!.product.customFields);
+  const fields = effectivePremiumFields(variant!.product.customFields, variant!.customFields);
   const customData: Record<string, string> = {};
   fields.forEach((f, i) => { customData[f.label] = String(formData.get(`cf_${i}`) || ""); });
   try {

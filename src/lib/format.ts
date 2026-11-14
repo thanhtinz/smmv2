@@ -121,6 +121,16 @@ export function normalizePremiumFieldsJson(raw: string): string | null {
   const f = parsePremiumFields(raw);
   return f.length ? JSON.stringify(f) : null;
 }
+
+/** Trường khách điền HIỆU LỰC của một gói (lệnh Tín 2026-11-13: trường tuỳ
+ *  chỉnh đi theo GÓI): trường định nghĩa riêng cho gói
+ *  (PremiumVariant.customFields) thắng; gói chưa định nghĩa thì dùng trường
+ *  của sản phẩm — dữ liệu cũ theo sản phẩm và các khu FZR (trường theo
+ *  category của nhà cung cấp) vẫn chạy qua fallback này. */
+export function effectivePremiumFields(productFields?: string | null, variantFields?: string | null): PremiumCustomField[] {
+  const vf = parsePremiumFields(variantFields);
+  return vf.length ? vf : parsePremiumFields(productFields);
+}
 export function randomKey(bytes = 24) {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let s = "";

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { userByApiKey } from "@/lib/auth";
 import { createPremiumOrder } from "@/lib/orders";
-import { vnd, parsePremiumFields } from "@/lib/format";
+import { vnd, parsePremiumFields, effectivePremiumFields } from "@/lib/format";
 import { applyFlashAmount, flashPercentForProduct } from "@/lib/flash";
 import { variantSoldOut, isQtyTracked, resolveDeliveryType } from "@/lib/variant-stock";
 import { FZR_LABELS } from "@/lib/fzr";
@@ -119,6 +119,7 @@ async function handle(req: NextRequest) {
           if (p.fulfillment === "AUTO_STOCK") qty = stockCounts.get(v.id) ?? 0;
           else if (isQtyTracked(p.fulfillment, v.stockQty)) qty = v.stockQty;
           const soldOut = variantSoldOut(v, p.fulfillment) || qty === 0;
+          const variantFields = parsePremiumFields(v.customFields);
           gp.get(p.id).variants.push({
             variant: v.id,
             name: v.name,
@@ -128,6 +129,16 @@ async function handle(req: NextRequest) {
             ...(qty !== null ? { stock_qty: qty } : {}),
             ...(v.minOrderQty != null ? { min_order_quantity: v.minOrderQty } : {}),
             ...(v.maxOrderQty != null ? { max_order_quantity: v.maxOrderQty } : {}),
+            // Trường tuỳ chỉnh RIÊNG của gói (nếu gói có định nghĩa) — ghi đè
+            // required_fields cấp sản phẩm khi đặt đơn gói này.
+            ...(variantFields.length ? {
+              required_fields: variantFields.map((f) => ({
+                label: f.label, type: f.type, required: f.required,
+                ...(f.key ? { key: f.key } : {}),
+                ...(f.placeholder ? { placeholder: f.placeholder } : {}),
+                ...(f.options ? { options: f.options } : {}),
+              })),
+            } : {}),
           });
         }
       }
@@ -208,7 +219,7 @@ async function handle(req: NextRequest) {
       }
       if (note && !record[FZR_LABELS.extraInfo]) record[FZR_LABELS.extraInfo] = note;
       const fresh = await prisma.user.findUnique({ where: { id: user.id } });
-      const declared = parsePremiumFields(variant.product.customFields);
+      const declared = effectivePremiumFields(variant.product.customFields, variant.customFields);
       // player_id tiện ích: sản phẩm top-up của FZR khai trường theo KEY của
       // NCC (nhãn do admin đặt) — gắn giá trị vào đúng trường khai báo có key
       // kiểu player/id thay vì chỉ nhãn generic cũ.

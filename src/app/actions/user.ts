@@ -13,7 +13,7 @@ import { usdtDepositRate } from "@/lib/rates";
 import { moduleOn } from "@/lib/modules";
 import { rateLimitExceeded } from "@/lib/rate-limit";
 import { passwordError } from "@/lib/security";
-import { randomKey, genCode, parsePremiumFields } from "@/lib/format";
+import { randomKey, genCode, parsePremiumFields, effectivePremiumFields } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -48,7 +48,7 @@ export async function buyPremiumAction(formData: FormData) {
   // Trường tuỳ chỉnh của sản phẩm (form gửi cf_0, cf_1... theo thứ tự trường đã định nghĩa)
   let customData: Record<string, string> | undefined;
   const variantRow = variantId ? await prisma.premiumVariant.findUnique({ where: { id: variantId }, include: { product: { select: { customFields: true } } } }) : null;
-  const fields = parsePremiumFields(variantRow?.product.customFields);
+  const fields = effectivePremiumFields(variantRow?.product.customFields, variantRow?.customFields);
   if (fields.length > 0) {
     customData = {};
     fields.forEach((f, i) => { customData![f.label] = String(formData.get(`cf_${i}`) || ""); });
