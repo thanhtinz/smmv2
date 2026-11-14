@@ -1,6 +1,6 @@
 # BNT Shop — Bộ cài VPS một lệnh
 
-Bộ này cài toàn bộ BNT Shop lên một VPS trống: Node.js 20, PostgreSQL, Caddy
+Bộ này cài toàn bộ BNT Shop lên một VPS trống: Node.js 24 LTS, PostgreSQL, Caddy
 (HTTPS tự động), systemd, cron đồng bộ đơn hàng và sao lưu hằng ngày.
 
 ## Cần chuẩn bị
@@ -54,6 +54,8 @@ lại khi VPS khởi động lại, mở tường lửa, cài cron:
 | Trạng thái dịch vụ | `systemctl status smmv2 caddy postgresql` |
 
 ## Gỡ / cài lại
+
+> **Tên `smmv2` là tên kỹ thuật cũ được giữ có chủ đích** để tương thích đường nâng cấp của các bản đã cài: thư mục `/opt/smmv2`, dịch vụ systemd `smmv2`, database `smmv2` và cookie phiên `smmv2_session` KHÔNG đổi tên dù sản phẩm đã tách thành BNT Shop — đổi tên sẽ làm hỏng các bản đang chạy.
 
 Dữ liệu nằm ở PostgreSQL (database `smmv2`) và file `/opt/smmv2/.env`. Muốn cài
 lại sạch: xoá thư mục `/opt/smmv2`, xoá database rồi chạy lại `install.sh`.

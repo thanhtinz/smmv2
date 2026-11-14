@@ -42,7 +42,7 @@ nguồn chỉ hiện trong admin.
 
 ## Công nghệ
 
-Next.js 14 (App Router) + TypeScript + Tailwind, Prisma + PostgreSQL.
+Next.js 15 (App Router) + React 19 + TypeScript + Tailwind, Prisma + PostgreSQL. Runtime: Node.js 24 LTS.
 Tiền tệ: số nguyên VND.
 
 ## Chạy local
