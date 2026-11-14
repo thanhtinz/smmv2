@@ -64,9 +64,60 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Max-Age": "86400",
 };
 
+/** CSP bằng nonce (audit P3-02 đợt 2 = P3-03 đợt 1): script nội tuyến của
+ *  hệ thống chỉ chạy khi mang nonce của đúng request đó — bỏ hẳn
+ *  'unsafe-inline' khỏi script-src. Chế độ qua biến môi trường CSP_MODE:
+ *  mặc định "report" (chỉ báo cáo, không chặn — dùng để rà soát false
+ *  positive trên luồng thật), đặt "enforce" để khoá thật. style-src giữ
+ *  'unsafe-inline' đợt này (Tailwind/inline style khắp nơi). */
+function cspHeader(nonce: string): { key: string; value: string } {
+  const value = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' https:`,
+    "style-src 'self' 'unsafe-inline' https:",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data: https:",
+    "connect-src 'self' https:",
+    "frame-src 'self' https:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+  ].join("; ");
+  return {
+    key: process.env.CSP_MODE === "enforce" ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only",
+    value,
+  };
+}
+
+function newNonce(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+/** NextResponse.next/rewrite mang nonce xuống layout qua header x-nonce
+ *  (Next tự gắn nonce này cho script của framework) + gắn CSP lên response. */
+function withCsp(req: NextRequest, res: NextResponse, nonce: string): NextResponse {
+  const { key, value } = cspHeader(nonce);
+  res.headers.set(key, value);
+  return res;
+}
+
+function nextWithNonce(req: NextRequest, nonce: string, rewriteTo?: URL): NextResponse {
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-nonce", nonce);
+  const res = rewriteTo
+    ? NextResponse.rewrite(rewriteTo, { request: { headers: requestHeaders } })
+    : NextResponse.next({ request: { headers: requestHeaders } });
+  return withCsp(req, res, nonce);
+}
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const { host, sub, root } = splitHost(req);
+  const nonce = newNonce();
 
   if (sub === "api") {
     if (pathname === "/api/v2" || pathname.startsWith("/api/v2/")) {
@@ -98,11 +149,11 @@ export function middleware(req: NextRequest) {
       SHARED_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
       /\.[a-z0-9]+$/i.test(pathname)
     ) {
-      return NextResponse.next();
+      return pathname.startsWith("/api/") ? NextResponse.next() : nextWithNonce(req, nonce);
     }
     const url = req.nextUrl.clone();
     url.pathname = pathname === "/" ? "/admin" : `/admin${pathname}`;
-    return NextResponse.rewrite(url);
+    return nextWithNonce(req, nonce, url);
   }
 
   // Miền gốc: phase 2 mới chuyển hướng khu admin sang admin.<gốc>.
@@ -121,7 +172,9 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  // API trên miền gốc: không gắn CSP (chỉ dành cho trang HTML).
+  if (pathname.startsWith("/api/")) return NextResponse.next();
+  return nextWithNonce(req, nonce);
 }
 
 export const config = {

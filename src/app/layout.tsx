@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { getSettings, siteUrlFromSettings } from "@/lib/settings";
 import { siteBaseUrl } from "@/lib/email-verify";
@@ -65,6 +66,9 @@ export async function generateMetadata(): Promise<Metadata> {
 const THEME_SCRIPT = `(function(){try{var h=document.documentElement;var a=localStorage.getItem('smmv2-accent');var m=localStorage.getItem('smmv2-mode');if(a)h.setAttribute('data-accent',a);if(m==='dark')h.classList.add('dark');else if(m==='light')h.classList.remove('dark');var d=localStorage.getItem('smmv2-dir');if(d)h.setAttribute('dir',d);var f=localStorage.getItem('smmv2-font');if(f)h.setAttribute('data-font',f);var s=localStorage.getItem('smmv2-fsize');if(s)h.setAttribute('data-fsize',s);var l=localStorage.getItem('smmv2-lang');if(l)h.setAttribute('lang',l);if(l&&l!=='__SERVER_LANG__'){h.setAttribute('data-i18n-pending','1');setTimeout(function(){h.removeAttribute('data-i18n-pending');},1600);}}catch(e){}})();`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Nonce CSP của request này (middleware cấp) — gắn cho mọi script nội
+  // tuyến của hệ thống để chạy được khi CSP bỏ 'unsafe-inline' (P3-02).
+  const nonce = (await headers()).get("x-nonce") || undefined;
   const s = await getSettings().catch(() => null);
   const i18n = await getServerI18n().catch(() => null);
   const langCfgJson = i18n ? JSON.stringify(i18n.cfg).replace(/</g, "\\u003c") : "{}";
@@ -95,15 +99,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={i18n?.lang || "en"} data-accent={accent} className={dark ? "dark" : undefined} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <script dangerouslySetInnerHTML={{ __html: `window.__LANGCFG__=${langCfgJson};` }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: `window.__LANGCFG__=${langCfgJson};` }} />
         {s?.gsc_verification ? <meta name="google-site-verification" content={s.gsc_verification} /> : null}
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd).replace(/</g, "\\u003c") }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webLd).replace(/</g, "\\u003c") }} />
+        <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd).replace(/</g, "\\u003c") }} />
+        <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(webLd).replace(/</g, "\\u003c") }} />
         {s?.ga_id ? (
           <>
             <script async src={`https://www.googletagmanager.com/gtag/js?id=${s.ga_id}`} />
-            <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${String(s.ga_id).replace(/[^A-Za-z0-9-]/g, "")}');` }} />
+            <script nonce={nonce} dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${String(s.ga_id).replace(/[^A-Za-z0-9-]/g, "")}');` }} />
           </>
         ) : null}
         {headHtml ? <div hidden dangerouslySetInnerHTML={{ __html: headHtml }} /> : null}
