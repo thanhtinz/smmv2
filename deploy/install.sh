@@ -116,6 +116,9 @@ AI_SERVICE_TOKEN="$(openssl rand -hex 32)"
 NEXT_PUBLIC_SITE_URL="https://${DOMAIN}"
 MAIN_HOST="${DOMAIN}"
 NEXT_PUBLIC_MAIN_HOST="${DOMAIN}"
+# CSP chạy chế độ chặn thật ngay từ đầu (full-audit P3-02): thiếu dòng
+# này middleware mặc định Report-Only — chỉ báo cáo, không chặn.
+CSP_MODE="enforce"
 EOF
   chmod 600 "$APP_DIR/.env"
   chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
