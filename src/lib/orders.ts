@@ -522,6 +522,11 @@ async function balanceText(userId: number): Promise<string> {
 /** Đồng bộ đơn premium API từ provider (action=history) — cron + nút bấm admin.
  *  Bàn giao nằm ở trường "data" của mục history khi status = completed. */
 export async function syncPremiumOrderStatus(order: PremiumOrder) {
+  // FULL-AUDIT a75d260 P2-02: đơn đã REFUNDED/CANCELED là KẾT THÚC về
+  // tài chính — đồng bộ không bao giờ được hồi sinh thành DELIVERED
+  // (khách đã nhận tiền hoàn). Guard ở service layer, không dựa vào
+  // việc UI có ẩn nút hay không.
+  if (order.status === "REFUNDED" || order.status === "CANCELED") return order;
   if (!order.providerId || !order.providerOrderId) return order;
   const provider = await prisma.provider.findUnique({ where: { id: order.providerId } });
   if (!provider) return order;
@@ -636,7 +641,7 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
         });
       }
     }
-  } else if (canceled === codes.length && codes.length > 0 && order.status !== "REFUNDED") {
+  } else if (canceled === codes.length && codes.length > 0) {
     // Claim REFUNDED trong transaction trước khi cộng tiền — đồng bộ chạy trùng
     // với admin bấm huỷ tay thì chỉ một đường hoàn được tiền.
     let claimed = false;

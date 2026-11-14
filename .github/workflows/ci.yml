@@ -67,6 +67,7 @@ jobs:
             test-purchase-fulfillment-resume \
             test-std-buy-logfail \
             test-std-sync-multichild \
+            test-std-sync-terminal \
             test-purchase-refund-failclosed \
             test-purchase-refund-concurrent \
             test-passkey-challenge \

@@ -513,6 +513,11 @@ export async function adminPremiumOrderAction(formData: FormData) {
   if (!order) back("/admin/don-premium", "err", "Không tìm thấy đơn");
   const path = `/admin/don-premium/${id}`;
   if (kind === "sync") {
+    // FULL-AUDIT a75d260 P2-02 (lớp action): đơn đã hoàn/huỷ không cho
+    // đồng bộ — chặn ngay tại action kể cả khi gọi thẳng không qua UI.
+    if (order.status === "REFUNDED" || order.status === "CANCELED") {
+      back(path, "err", "Đơn đã hoàn tiền/huỷ — không thể đồng bộ hồi sinh trạng thái");
+    }
     try {
       const prov = order.providerId ? await prisma.provider.findUnique({ where: { id: order.providerId }, select: { driver: true } }) : null;
       const { pollFzrPremiumOrder } = await import("@/lib/fzr-orders");
