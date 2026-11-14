@@ -84,6 +84,7 @@ jobs:
             test-fzr-webhook-childset \
             test-fzr-child-ids \
             test-admin-order-cas \
+            test-stock-import-dedupe \
             test-fzr-webhook \
             test-boltutil \
             test-webhook

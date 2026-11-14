@@ -440,10 +440,16 @@ model PremiumStock {
   variantId Int
   variant   PremiumVariant @relation(fields: [variantId], references: [id])
   payload   String         @db.Text // nội dung giao: tài khoản / mã / hướng dẫn
+  // Hash SHA-256 của payload đã chuẩn hoá (full-audit a75d260 P3-01):
+  // unique theo (variantId, payloadHash) chặn nhập trùng ở tầng DB —
+  // kể cả payload đã SOLD và hai admin nhập đồng thời. Dòng cũ chưa
+  // có hash được backfill bằng scripts/backfill-stock-hash.ts.
+  payloadHash String?      @db.VarChar(64)
   status    StockStatus    @default(AVAILABLE)
   orderId   Int?
   createdAt DateTime       @default(now())
 
+  @@unique([variantId, payloadHash])
   @@index([variantId, status])
 }
 

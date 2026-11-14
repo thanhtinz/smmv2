@@ -485,15 +485,32 @@ export async function adminImportStock(formData: FormData) {
   const bulk = String(formData.get("bulk") || "");
   const rawItems = bulk.split(/\n+/).map((x) => x.trim()).filter(Boolean);
   if (!variantId || !rawItems.length) back("/admin/kho-premium", "err", "Chọn gói và nhập ít nhất 1 dòng kho");
-  // Khử trùng: trùng trong chính lô nhập + trùng với tài khoản ĐANG CÓ trong kho
-  // của gói này — một tài khoản bị nhập 2 dòng AVAILABLE sẽ bị bán cho 2 khách.
+  // Khử trùng (full-audit a75d260 P3-01): trùng trong chính lô nhập +
+  // trùng với MỌI dòng đã có của gói này ở MỌI trạng thái — trước đây
+  // chỉ dò dòng AVAILABLE nên key/tài khoản đã SOLD vẫn nhập lại được
+  // và bán lần hai. Tầng DB còn unique (variantId, payloadHash) +
+  // createMany skipDuplicates: hai admin nhập đồng thời cùng một lô
+  // thì DB chỉ giữ một dòng cho mỗi payload.
+  const { createHash } = await import("crypto");
+  const hashOf = (x: string) => createHash("sha256").update(x).digest("hex");
   const items = Array.from(new Set(rawItems));
-  const existing = await prisma.premiumStock.findMany({ where: { variantId, status: "AVAILABLE", payload: { in: items } }, select: { payload: true } });
-  const dupSet = new Set(existing.map((x) => x.payload));
-  const fresh = items.filter((x) => !dupSet.has(x));
-  const skipped = rawItems.length - fresh.length;
-  if (fresh.length) await prisma.premiumStock.createMany({ data: fresh.map((payload) => ({ variantId, payload })) });
-  done("/admin/kho-premium", `Đã nhập ${fresh.length} mục vào kho${skipped > 0 ? ` — bỏ qua ${skipped} dòng trùng` : ""}`);
+  const existing = await prisma.premiumStock.findMany({
+    where: { variantId, OR: [{ payload: { in: items } }, { payloadHash: { in: items.map(hashOf) } }] },
+    select: { payload: true, payloadHash: true },
+  });
+  const dupPayloads = new Set(existing.map((x) => x.payload));
+  const dupHashes = new Set(existing.map((x) => x.payloadHash).filter(Boolean));
+  const fresh = items.filter((x) => !dupPayloads.has(x) && !dupHashes.has(hashOf(x)));
+  let created = 0;
+  if (fresh.length) {
+    const r = await prisma.premiumStock.createMany({
+      data: fresh.map((payload) => ({ variantId, payload, payloadHash: hashOf(payload) })),
+      skipDuplicates: true,
+    });
+    created = r.count;
+  }
+  const skipped = rawItems.length - created;
+  done("/admin/kho-premium", `Đã nhập ${created} mục vào kho${skipped > 0 ? ` — bỏ qua ${skipped} dòng trùng` : ""}`);
 }
 
 export async function adminDeleteStock(formData: FormData) {
