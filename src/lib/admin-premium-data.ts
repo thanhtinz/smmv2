@@ -9,7 +9,7 @@ export async function loadAdminPremiumData(where: any, pageOpts?: { skip?: numbe
   const [products, categories, providers] = await Promise.all([
     prisma.premiumProduct.findMany({ where: { ...where, panelId: null }, orderBy: [{ sort: "asc" }, { id: "asc" }], ...(pageOpts?.take !== undefined ? { skip: pageOpts.skip || 0, take: pageOpts.take } : {}), include: { category: true, variants: { orderBy: [{ sort: "asc" }, { id: "asc" }] } } }),
     prisma.premiumCategory.findMany({ orderBy: [{ sort: "asc" }, { id: "asc" }], include: { _count: { select: { products: true } } } }),
-    prisma.provider.findMany({ where: { kind: { in: ["PREMIUM", "BOTH"] } }, select: { id: true, name: true, driver: true, currency: true, exchangeRate: true }, orderBy: { id: "asc" } }),
+    prisma.provider.findMany({ where: { kind: { in: ["PREMIUM", "BOTH"] }, driver: { not: "FZR" } }, select: { id: true, name: true, driver: true, currency: true, exchangeRate: true }, orderBy: { id: "asc" } }),
   ]);
   const variantIds = products.flatMap((p) => p.variants.map((v) => v.id));
   const orderGroups = variantIds.length ? await prisma.premiumOrder.groupBy({ by: ["variantId"], where: { variantId: { in: variantIds } }, _count: { _all: true } }) : [];

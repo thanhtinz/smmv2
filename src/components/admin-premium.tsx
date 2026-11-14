@@ -71,7 +71,7 @@ export function PremiumCategoryModal({ category, onClose }: { category?: Premium
         </div>
         <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
           <button type="button" onClick={onClose} className="btn-ghost btn-sm !px-5 !py-2.5">{t("Hủy")}</button>
-          <button className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("Lưu danh mục")}</button>
+          <button className="btn-primary px-5">{t("Lưu danh mục")}</button>
         </div>
       </form>
     </Modal>
@@ -85,7 +85,7 @@ export function PremiumCategoriesClient({ categories }: { categories: PremiumCat
   return (
     <>
       <div className="mb-4 flex justify-end">
-        <button onClick={() => { setEditing(undefined); setOpen(true); }} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm danh mục mới")}</button>
+        <button onClick={() => { setEditing(undefined); setOpen(true); }} className="btn-primary !px-4">{t("+ Thêm danh mục mới")}</button>
       </div>
       {open && <PremiumCategoryModal category={editing} onClose={() => setOpen(false)} />}
       <div className="card overflow-x-auto">
@@ -234,7 +234,7 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
                     {providers.map((pr) => <option key={pr.id} value={pr.id}>{pr.name}</option>)}
                   </select>
                 </div>
-                <div><label className={lbl}>{t("Màu nhận diện")}</label><input name="color" type="color" defaultValue={p?.color || "#3178fc"} className="h-[42px] w-full cursor-pointer rounded-xl border border-slate-300 bg-white px-1.5 py-1.5" /></div>
+                <div><label className={lbl}>{t("Màu nhận diện")}</label><input name="color" type="color" defaultValue={p?.color || "#3178fc"} className="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white px-1.5 py-1" /></div>
               </div>
               {hasProvider ? (
                 <>
@@ -332,7 +332,7 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
         </div>
         <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
           <button type="button" onClick={onClose} className="btn-ghost btn-sm !px-5 !py-2.5">{t("Hủy")}</button>
-          <button className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("Lưu sản phẩm")}</button>
+          <button className="btn-primary px-5">{t("Lưu sản phẩm")}</button>
         </div>
       </form>
     </Modal>
@@ -346,7 +346,7 @@ type SourceProduct = { id: string; name: string; category: string; cycles: Sourc
 
 export function VariantsModal({ product, onClose, providers = [], returnTo = "/admin/premium" }: { product: PremiumProductDTO; onClose: () => void; providers?: PremiumProviderOpt[]; returnTo?: string }) {
   const { t, td } = useLang();
-  const small = "rounded-lg border border-slate-300 px-2 py-1.5 text-sm w-full";
+  const small = "inp";
   // Tìm gói từ nguồn (lệnh Tín 2026-11-13 tối): sản phẩm gắn NCC chuẩn kiểu
   // ThaTim thì gói bán chọn từ catalog nguồn — bước 1 gắn sản phẩm nguồn
   // (lưu vào sản phẩm), bước 2 bấm chu kỳ để điền sẵn form thêm gói.
@@ -508,7 +508,7 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
               </div>
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="active" defaultChecked={v.active} className="h-4 w-4" /> {t("Đang bán")}</label>
-                <button className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">{t("Lưu")}</button>
+                <button className="btn-primary btn-sm">{t("Lưu")}</button>
                 <button formAction={adminDeleteVariant} onClick={(e) => { if (!confirm(`${t("Xoá gói")} "${v.name}"?`)) e.preventDefault(); }} className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">{t("Xoá gói")}</button>
                 {product.fulfillment === "AUTO_STOCK"
                   ? <span className="text-xs text-slate-400">{`${t("Kho:")} ${v.stockAvailable}/${v.stockTotal}`}</span>
@@ -563,8 +563,8 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
                 <>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                     <span className="font-semibold text-slate-600">{t("Sản phẩm nguồn")}: {srcName || srcPid} ({t("mã")} {srcPid})</span>
-                    <button type="button" onClick={changeSourceProduct} className="font-semibold text-blue-600 hover:text-blue-800">{t("Đổi sản phẩm nguồn")}</button>
-                    {!fCycles && !fBusy && <button type="button" onClick={() => void loadCycles(srcPid)} className="font-semibold text-blue-600 hover:text-blue-800">{t("Tải các chu kỳ")}</button>}
+                    <button type="button" onClick={changeSourceProduct} className="font-semibold text-brand-600 hover:text-brand-700">{t("Đổi sản phẩm nguồn")}</button>
+                    {!fCycles && !fBusy && <button type="button" onClick={() => void loadCycles(srcPid)} className="font-semibold text-brand-600 hover:text-brand-700">{t("Tải các chu kỳ")}</button>}
                   </div>
                   {fBusy && <p className="mt-1.5 text-xs text-slate-400">{t("Đang gọi nhà cung cấp...")}</p>}
                   {fCycles && (
@@ -609,7 +609,7 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
             </div>
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
               <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="active" defaultChecked className="h-4 w-4" /> {t("Đang bán")}</label>
-              <button className="ml-auto rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">{t("+ Thêm gói")}</button>
+              <button className="btn-primary btn-sm ml-auto">{t("+ Thêm gói")}</button>
             </div>
             {extraOptions()}
             <input type="hidden" name="providerNote" value={addNote} />
@@ -619,7 +619,7 @@ export function VariantsModal({ product, onClose, providers = [], returnTo = "/a
             </details>
           </form>
           <div className="mt-4 flex items-center justify-between">
-            <Link href="/admin/kho-premium" className="text-sm font-semibold text-blue-600 hover:text-blue-800">{t("Mở Kho tài khoản để nhập kho →")}</Link>
+            <Link href="/admin/kho-premium" className="text-sm font-semibold text-brand-600 hover:text-brand-700">{t("Mở Kho tài khoản để nhập kho →")}</Link>
             <button type="button" onClick={onClose} className="btn-ghost btn-sm !px-5 !py-2.5">{t("Đóng")}</button>
           </div>
         </div>
@@ -637,7 +637,7 @@ export function ProductsClient({ products, categories, providers, returnTo = "/a
     <>
       <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
         <Link href="/admin/kho-premium" className="btn-ghost !px-4">{t("Kho tài khoản")}</Link>
-        <button onClick={() => { setEditing(undefined); setOpen(true); }} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{t("+ Thêm sản phẩm mới")}</button>
+        <button onClick={() => { setEditing(undefined); setOpen(true); }} className="btn-primary !px-4">{t("+ Thêm sản phẩm mới")}</button>
       </div>
       {filterForm}
       {open && <ProductModal product={editing} categories={categories} providers={providers} returnTo={returnTo} onClose={() => setOpen(false)} />}
@@ -660,7 +660,7 @@ export function ProductsClient({ products, categories, providers, returnTo = "/a
                   </div>
                 </td>
                 <td className="td text-slate-600">{p.categoryName}</td>
-                <td className="td"><button onClick={() => setVariantFor(p)} className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-100">{`${p.variants.length} ${t("gói")}`}</button></td>
+                <td className="td"><button onClick={() => setVariantFor(p)} className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 ring-1 ring-inset ring-brand-600/20 hover:bg-brand-100">{`${p.variants.length} ${t("gói")}`}</button></td>
                 <td className="td text-slate-600">{num(p.orderCount)}</td>
                 <td className="td text-slate-600">{p.sort}</td>
                 <td className="td">

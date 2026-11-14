@@ -65,17 +65,25 @@ export default async function AdminHome() {
       <PageHead title={L("Tổng quan")} desc={L("Toàn cảnh kinh doanh của hệ thống.")} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="card relative overflow-hidden p-6">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 to-brand-300" />
-          <div className="text-sm font-medium text-slate-400">{L("Tổng doanh thu")}</div>
-          <div className="mt-1 text-3xl font-extrabold text-slate-900">{M(totalRevenue)}</div>
-          <div className="mt-2 text-sm text-slate-500">{L("Hôm nay:")} <b className="text-slate-700">{M(revToday)}</b></div>
+        <div className="card p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[12.5px] font-semibold text-slate-400">{L("Tổng doanh thu")}</div>
+              <div className="mt-1.5 text-[22px] font-extrabold leading-none tracking-tight text-slate-900">{M(totalRevenue)}</div>
+              <div className="mt-2 text-[12px] text-slate-400">{L("Hôm nay:")} <b className="text-slate-600">{M(revToday)}</b></div>
+            </div>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">{I.chart}</span>
+          </div>
         </div>
-        <div className="card relative overflow-hidden p-6">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 to-violet-300" />
-          <div className="text-sm font-medium text-slate-400">{L("Tổng đơn hàng")}</div>
-          <div className="mt-1 text-3xl font-extrabold text-slate-900">{num(totalOrders)}</div>
-          <div className="mt-2 text-sm text-slate-500">{L("Hôm nay:")} <b className="text-slate-700">{num(ordersToday)}{L(" đơn")}</b> {Ld(`· ${num(preTotal)} Premium`)}</div>
+        <div className="card p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[12.5px] font-semibold text-slate-400">{L("Tổng đơn hàng")}</div>
+              <div className="mt-1.5 text-[22px] font-extrabold leading-none tracking-tight text-slate-900">{num(totalOrders)}</div>
+              <div className="mt-2 text-[12px] text-slate-400">{L("Hôm nay:")} <b className="text-slate-600">{num(ordersToday)}{L(" đơn")}</b> {Ld(`· ${num(preTotal)} Premium`)}</div>
+            </div>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">{I.receipt}</span>
+          </div>
         </div>
       </div>
 
@@ -86,10 +94,9 @@ export default async function AdminHome() {
         <Stat label={L("Tổng người dùng")} value={num(totalUsers)} icon={I.users} tone="violet" />
       </div>
 
-      <h2 className="mb-3 mt-8 text-sm font-extrabold uppercase tracking-wide text-slate-400">{L("Phân tích tài chính")}</h2>
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
         <div className="card p-6">
-          <div className="mb-4 font-bold text-slate-900">{L("Báo cáo thu - chi")}</div>
+          <div className="mb-4 text-[13px] font-bold uppercase tracking-[0.06em] text-slate-500">{L("Báo cáo thu - chi")}</div>
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-xl bg-emerald-50 px-4 py-3.5">
               <div className="text-[11px] font-medium uppercase tracking-wide text-emerald-500">{L("Thu (tổng nạp)")}</div>
@@ -106,7 +113,7 @@ export default async function AdminHome() {
           </div>
         </div>
         <div className="card p-6">
-          <div className="mb-4 font-bold text-slate-900">{L("Top 5 sản phẩm")}</div>
+          <div className="mb-4 text-[13px] font-bold uppercase tracking-[0.06em] text-slate-500">{L("Top 5 sản phẩm")}</div>
           <div className="space-y-3.5">
             {topProducts.map((p, i) => (
               <div key={p.name}>
@@ -116,7 +123,7 @@ export default async function AdminHome() {
                   <span className="ml-auto font-semibold text-slate-900">{num(p.count)}{L(" đơn")}</span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-                  <div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-brand-400" style={{ width: `${Math.round((p.count / maxProd) * 100)}%` }} />
+                  <div className="h-full rounded-full bg-brand-500" style={{ width: `${Math.round((p.count / maxProd) * 100)}%` }} />
                 </div>
               </div>
             ))}
@@ -125,10 +132,9 @@ export default async function AdminHome() {
         </div>
       </div>
 
-      <h2 className="mb-3 mt-8 text-sm font-extrabold uppercase tracking-wide text-slate-400">{L("Báo cáo chi tiết")}</h2>
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
         <div className="card overflow-hidden">
-          <div className="flex justify-between border-b border-slate-100 px-5 py-4"><span className="font-bold text-slate-900">{L("Giao dịch gần đây")}</span><Link href="/admin/bien-dong" className="text-sm font-medium text-brand-600">{L("Xem tất cả")}</Link></div>
+          <div className="flex justify-between border-b border-slate-100 px-5 py-3.5"><span className="text-[13px] font-bold uppercase tracking-[0.06em] text-slate-500">{L("Giao dịch gần đây")}</span><Link href="/admin/bien-dong" className="text-sm font-medium text-brand-600">{L("Xem tất cả")}</Link></div>
           <table className="w-full">
             <thead><tr><th className="th">{L("Loại")}</th><th className="th">{L("Số tiền")}</th><th className="th">{L("Người dùng")}</th><th className="th">{L("Thời gian")}</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
@@ -145,7 +151,7 @@ export default async function AdminHome() {
           </table>
         </div>
         <div className="card overflow-hidden">
-          <div className="flex justify-between border-b border-slate-100 px-5 py-4"><span className="font-bold text-slate-900">{L("Nạp tiền gần đây")}</span><Link href="/admin/nap-tien" className="text-sm font-medium text-brand-600">{L("Xem tất cả")}</Link></div>
+          <div className="flex justify-between border-b border-slate-100 px-5 py-3.5"><span className="text-[13px] font-bold uppercase tracking-[0.06em] text-slate-500">{L("Nạp tiền gần đây")}</span><Link href="/admin/nap-tien" className="text-sm font-medium text-brand-600">{L("Xem tất cả")}</Link></div>
           <table className="w-full">
             <thead><tr><th className="th">{L("Người dùng")}</th><th className="th">{L("Số tiền")}</th><th className="th">{L("Trạng thái")}</th><th className="th">{L("Thời gian")}</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
@@ -163,9 +169,9 @@ export default async function AdminHome() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
         <div className="card overflow-hidden xl:col-span-2">
-          <div className="flex justify-between border-b border-slate-100 px-5 py-4"><span className="font-bold text-slate-900">{L("Đơn hàng mới nhất")}</span><Link href="/admin/don-premium" className="text-sm font-medium text-brand-600">{L("Xem tất cả")}</Link></div>
+          <div className="flex justify-between border-b border-slate-100 px-5 py-3.5"><span className="text-[13px] font-bold uppercase tracking-[0.06em] text-slate-500">{L("Đơn hàng mới nhất")}</span><Link href="/admin/don-premium" className="text-sm font-medium text-brand-600">{L("Xem tất cả")}</Link></div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead><tr><th className="th">#</th><th className="th">{L("Người dùng")}</th><th className="th">{L("Sản phẩm")}</th><th className="th">{L("Số tiền")}</th><th className="th">{L("Trạng thái")}</th></tr></thead>
@@ -184,14 +190,19 @@ export default async function AdminHome() {
             </table>
           </div>
         </div>
-        <div className="space-y-6">
-          <div className="card overflow-hidden bg-gradient-to-br from-violet-600 to-purple-700 p-6 text-white">
-            <div className="text-sm font-medium text-violet-200">{L("Tổng số dư người dùng")}</div>
-            <div className="mt-1 text-3xl font-extrabold">{M(userAgg._sum.balance || 0)}</div>
-            <div className="mt-2 text-sm text-violet-200">{num(totalUsers) + " " + L("tài khoản")}</div>
+        <div className="space-y-4">
+          <div className="card p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[12.5px] font-semibold text-slate-400">{L("Tổng số dư người dùng")}</div>
+                <div className="mt-1.5 text-[22px] font-extrabold leading-none tracking-tight text-slate-900">{M(userAgg._sum.balance || 0)}</div>
+                <div className="mt-2 text-[12px] text-slate-400">{num(totalUsers) + " " + L("tài khoản")}</div>
+              </div>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">{I.wallet}</span>
+            </div>
           </div>
           <div className="card overflow-hidden">
-            <div className="flex justify-between border-b border-slate-100 px-5 py-4"><span className="font-bold text-slate-900">{L("Ticket cần xử lý")}</span><Link href="/admin/ticket" className="text-sm font-medium text-brand-600">{L("Xem tất cả")}</Link></div>
+            <div className="flex justify-between border-b border-slate-100 px-5 py-3.5"><span className="text-[13px] font-bold uppercase tracking-[0.06em] text-slate-500">{L("Ticket cần xử lý")}</span><Link href="/admin/ticket" className="text-sm font-medium text-brand-600">{L("Xem tất cả")}</Link></div>
             <div className="divide-y divide-slate-100">
               {openTickets.map((t) => (
                 <Link key={t.id} href={`/admin/ticket/${t.id}`} className="block px-5 py-3 transition hover:bg-slate-50">

@@ -99,6 +99,23 @@ async function main() {
   ok(t.includes("sản phẩm"), "R4: trang Sản phẩm & Gói render");
   await shot("2026-11-14-rebuild-admin-products");
 
+  // Mo form Them san pham: khong duoc co khoi nhap goi (goi them sau)
+  await evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((x) => x.innerText.includes('Thêm sản phẩm')); if (b) b.click(); return !!b; })()`);
+  await sleep(1500);
+  t = (await bodyText()).toLowerCase();
+  ok(t.includes("tên sản phẩm") && t.includes("lưu sản phẩm") && !t.includes("bảo hành (ngày)"), "R7: form sản phẩm không nhập gói chung");
+  await shot("2026-11-14-rebuild-admin-product-form");
+  await evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((x) => x.innerText.trim() === 'Hủy'); if (b) b.click(); return true; })()`);
+  await sleep(800);
+  // Mo popup Goi ban cua san pham dau tien
+  await evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((x) => x.innerText.trim() === 'Gói'); if (b) b.click(); return !!b; })()`);
+  await sleep(1500);
+  t = (await bodyText()).toLowerCase();
+  ok(t.includes("thêm gói mới") && t.includes("gói bán"), "R8: popup Gói bán mở được (gói thêm sau, riêng)");
+  await shot("2026-11-14-rebuild-admin-variants");
+  await evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((x) => x.innerText.trim() === 'Đóng'); if (b) b.click(); return true; })()`);
+  await sleep(800);
+
   await navigate(`${BASE}/admin/cau-hinh`, 3000);
   const inpH = await evaluate(`(() => { const el = document.querySelector('.admin-scope input.inp, .admin-scope .inp'); return el ? Math.round(el.getBoundingClientRect().height) : 0; })()`);
   ok(inpH === 40, `R5: ô nhập admin cao đúng 40px (đo=${inpH})`);

@@ -35,7 +35,7 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
       </Suspense>
       <div className={`my-8 w-full ${wide ? "max-w-2xl" : "max-w-lg"} rounded-2xl bg-white shadow-2xl`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div className="text-base font-extrabold text-slate-900">{title}</div>
+          <div className="text-[15px] font-bold text-slate-900">{title}</div>
           <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label={t("Đóng")}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </button>
@@ -52,7 +52,7 @@ export function Switch({ name, defaultChecked, label }: { name: string; defaultC
       <span className="text-sm font-medium text-slate-700">{label}</span>
       <span className="relative inline-flex">
         <input type="checkbox" name={name} defaultChecked={defaultChecked} className="peer sr-only" />
-        <span className="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-blue-600" />
+        <span className="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-brand-600" />
         <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
       </span>
     </label>
@@ -207,7 +207,7 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
         </div>
         <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
           <button type="button" onClick={onClose} className="btn-ghost btn-sm !px-5 !py-2.5">{t("Hủy")}</button>
-          <button className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{p ? t("Cập nhật nhà cung cấp") : t("Lưu nhà cung cấp")}</button>
+          <button className="btn-primary px-5">{p ? t("Cập nhật nhà cung cấp") : t("Lưu nhà cung cấp")}</button>
         </div>
       </form>
     </Modal>
@@ -255,7 +255,7 @@ export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups, siteB
                     <input type="hidden" name="id" value={p.id} />
                     <input name="markupPercent" type="number" min={0} max={500} defaultValue={p.markupPercent} className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-sm" />
                     <span className="text-sm text-slate-500">%</span>
-                    <button className="text-blue-600 hover:text-blue-800" title={t("Lưu tỷ lệ")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg></button>
+                    <button className="text-brand-600 hover:text-brand-700" title={t("Lưu tỷ lệ")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg></button>
                   </form>
                 </td>
                 <td className="td text-slate-600">{p.currency}</td>
