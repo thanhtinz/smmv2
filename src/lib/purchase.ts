@@ -267,15 +267,39 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
   const refundOnce = async (idx: number, kind: "DIFF" | "FULL", amount: number, note: string): Promise<boolean> => {
     if (amount <= 0) return true;
     const ref = `PUR${pp.id}L${idx}${kind === "DIFF" ? "D" : "F"}`;
+    const claimWhere = { purchasePaymentId: pp.id, lineNo: idx, kind };
     try {
+      // Đã claim ở bảng claim (lượt trước thắng) HOẶC đã có giao dịch
+      // REFUND mang khoá ref (đơn tạo trước khi có bảng claim) -> coi
+      // như đã hoàn, không cộng lần hai.
+      const claimedBefore = await prisma.purchaseRefundClaim.findFirst({ where: claimWhere, select: { id: true } });
+      if (claimedBefore) return true;
       const done = await prisma.transaction.findFirst({ where: { userId: pp.userId, type: "REFUND", ref }, select: { id: true } });
-      if (done) return true;
+      if (done) {
+        // Ghi bổ sung claim cho khoản hoàn kiểu cũ để các lượt sau
+        // kiểm tra một chỗ (lỗi ghi bổ sung thì bỏ qua — giao dịch
+        // REFUND ở trên vẫn là bằng chứng đã hoàn).
+        await prisma.purchaseRefundClaim.create({ data: { ...claimWhere, amount } }).catch(() => {});
+        return true;
+      }
+      // FULL-AUDIT 3d1309c P2-06: insert claim + cộng ví trong CÙNG
+      // một transaction. Bản trước tra sổ rồi mới cộng ở transaction
+      // khác — hai lượt settle song song (một lượt chạy quá lease trong
+      // lúc cron/webhook tiếp quản) cùng tra "chưa có" rồi cùng cộng.
+      // Nay khoá unique ở DB quyết định: một lượt commit được cả claim
+      // lẫn tiền; lượt còn lại văng unique-violation -> đã hoàn.
+      // Cộng ví LỖI thật (vd tràn int4) thì cả claim lẫn tiền cùng
+      // rollback -> trả false giữ dòng pending như P2-B.
       await prisma.$transaction(async (tx) => {
+        await tx.purchaseRefundClaim.create({ data: { ...claimWhere, amount } });
         await applyBalance(tx, pp.userId, amount, "REFUND", ref, note);
       });
       return true;
     } catch {
-      return false;
+      // Unique-violation vì lượt song song vừa thắng claim+commit:
+      // kiểm tra lại claim — có claim nghĩa là tiền đã vào ví ở lượt đó.
+      const claimedNow = await prisma.purchaseRefundClaim.findFirst({ where: claimWhere, select: { id: true } }).catch(() => null);
+      return !!claimedNow;
     }
   };
   for (let idx = 0; idx < snapshot.lines.length; idx++) {

@@ -66,6 +66,7 @@ jobs:
             test-purchase-pricecap \
             test-purchase-fulfillment-resume \
             test-purchase-refund-failclosed \
+            test-purchase-refund-concurrent \
             test-purchase-payment \
             test-sepay-purchase-retry \
             test-sepay-purchase-orphan \

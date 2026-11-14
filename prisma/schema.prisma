@@ -369,6 +369,22 @@ model PanelPremiumPrice {
   @@unique([panelId, variantId])
 }
 
+// Claim hoàn tiền của thanh toán trực tiếp (full-audit 3d1309c P2-06):
+// khoá duy nhất (phiên, dòng, loại hoàn) — insert claim và cộng ví nằm
+// trong CÙNG transaction ở refundOnce (lib/purchase) nên hai lượt settle
+// chạy song song không thể cùng cộng một khoản hoàn: một lượt thắng
+// claim, lượt còn lại nhận unique-violation và coi như đã hoàn.
+model PurchaseRefundClaim {
+  id                Int      @id @default(autoincrement())
+  purchasePaymentId Int
+  lineNo            Int
+  kind              String   @db.VarChar(4) // DIFF | FULL
+  amount            Int
+  createdAt         DateTime @default(now())
+
+  @@unique([purchasePaymentId, lineNo, kind])
+}
+
 model WebhookReceipt {
   id        Int      @id @default(autoincrement())
   ref       String   @unique @db.VarChar(120) // id giao dịch phía cổng (SePay...) — chống cộng tiền trùng nguyên tử
