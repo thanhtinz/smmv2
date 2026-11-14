@@ -8,7 +8,12 @@ export const dynamic = "force-dynamic";
  *  Webhook secret của web mẹ cấu hình ở Admin — chữ ký khớp thì xử lý. */
 export async function POST(req: NextRequest) {
   const s = await getSettings();
-  const raw = await req.text();
+  // P3-02 (full-audit 6750109): cap byte cứng trước khi xác thực chữ ký.
+  const { readBodyCapped } = await import("@/lib/http-body");
+  const raw = await readBodyCapped(req);
+  if (raw === null) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
   const sig = req.headers.get("stripe-signature") || "";
   const secrets: string[] = [];
   if (s.stripe_webhook_secret) secrets.push(s.stripe_webhook_secret);

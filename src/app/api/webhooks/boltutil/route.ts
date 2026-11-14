@@ -19,7 +19,13 @@ export const dynamic = "force-dynamic";
 const CAP = 64 * 1024;
 
 export async function POST(req: NextRequest) {
-  const raw = await req.text().catch(() => "");
+  // P3-02 (full-audit 6750109): cap byte cứng trước khi xác thực chữ ký.
+  const { readBodyCapped } = await import("@/lib/http-body");
+  const rawOrNull = await readBodyCapped(req);
+  if (rawOrNull === null) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
+  const raw = rawOrNull;
   const cfg = await getBoltConfig().catch(() => null);
   const ts = req.headers.get("x-bolt-webhook-timestamp") || req.headers.get("x-bolt-timestamp") || "";
   const sig = req.headers.get("x-bolt-webhook-signature") || req.headers.get("x-bolt-signature") || "";

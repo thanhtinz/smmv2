@@ -46,7 +46,12 @@ async function findOrderByProviderId(providerOrderId: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const raw = await req.text().catch(() => "");
+  // P3-02 (full-audit 6750109): cap byte cứng TRƯỚC khi parse/xác thực.
+  const { readBodyCapped } = await import("@/lib/http-body");
+  const raw = await readBodyCapped(req);
+  if (raw === null) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
   const headers: Record<string, string> = {};
   req.headers.forEach((v, k) => { headers[k] = v.slice(0, 500); });
 

@@ -30,7 +30,14 @@ export const dynamic = "force-dynamic";
 const WRITE_ACTIONS = new Set(["buy"]);
 
 async function handle(req: NextRequest, method: string) {
-  const params = new URLSearchParams(await req.text().catch(() => ""));
+  // P3-02 (full-audit 6750109): body đọc TRƯỚC khi kiểm key nên cũng
+  // phải có cap byte cứng như các webhook công khai.
+  const { readBodyCapped } = await import("@/lib/http-body");
+  const rawBody = await readBodyCapped(req);
+  if (rawBody === null) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
+  const params = new URLSearchParams(rawBody);
   const q = req.nextUrl.searchParams;
   const action = params.get("action") || q.get("action") || "";
   // Action ghi: bỏ qua toàn bộ query string (chỉ body + header có hiệu lực).

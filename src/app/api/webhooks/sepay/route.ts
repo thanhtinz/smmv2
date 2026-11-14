@@ -37,7 +37,12 @@ export async function POST(req: NextRequest) {
   if (!authorized) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const body: any = await req.json().catch(() => null);
+  // P3-02 (full-audit 6750109): đọc body có cap byte cứng rồi mới parse.
+  const { readBodyCapped } = await import("@/lib/http-body");
+  const rawBody = await readBodyCapped(req);
+  if (rawBody === null) return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  let body: any = null;
+  try { body = JSON.parse(rawBody); } catch { body = null; }
   if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
 
   const content: string = body.content || body.description || body.transferContent || "";
