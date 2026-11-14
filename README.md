@@ -1,156 +1,65 @@
-# SMMv2 — SMM Panel + Shop Tài khoản Premium
+# BNT Shop — Cửa hàng sản phẩm số
 
-Website kinh doanh 2 mảng trong **một hệ thống, một số dư**:
+Website bán sản phẩm số thuần (tách từ SMMv2 ngày 2026-11-12 — mảng SMM đã
+gỡ toàn bộ): tài khoản Premium, Game Key, Gift Card, nạp game (Top-Up),
+Steam, Telegram Stars/Premium và dịch vụ thủ công. Bản chạy thật:
+https://bntshop.com
 
-1. **SMM Panel** — tăng like / follow / view / comment cho Facebook, TikTok, Instagram, YouTube, Telegram, Shopee...
-2. **Premium Shop** — YouTube Premium, Spotify, Netflix, ChatGPT, Canva, CapCut, Microsoft 365, Google One, ELSA...
+## Nguồn hàng
 
-Mỗi mảng chạy được **cả 2 hình thức song song**:
+- **ThaTim** (driver STANDARD): sản phẩm Premium đấu API `category / buy /
+  history` — gói bán là từng chu kỳ (cycle) của sản phẩm nguồn, chọn ở form
+  Gói bán.
+- **FZR.CARDS** (driver FZR): 8 nhóm — gamekeys, giftcards, topups, manual,
+  telegram_stars, telegram_premium, steam_topup, steam_gift — đồng bộ
+  catalog + tồn kho, thực thi đơn qua API, webhook + cron đối soát trạng
+  thái (gồm trạng thái giao một phần PARTIAL).
+- Kho tự giao (AUTO_STOCK) và giao thủ công / nâng cấp chính chủ.
 
-| | Tự động qua API | Thủ công |
-|---|---|---|
-| **SMM** | Đấu API nhà cung cấp chuẩn SMM v2 (ThaTim, slike, mọi panel tương thích): tự đồng bộ dịch vụ + giá, tự đẩy đơn, tự cập nhật trạng thái, hoàn tiền tự động khi Partial/Canceled | Admin xử lý trong hàng đợi đơn, cập nhật số bắt đầu / còn lại / trạng thái, hoàn một phần tự tính |
-| **Premium** | Kho tài khoản (`AUTO_STOCK`) giao ngay khi mua; hoặc đấu **API mua sản phẩm kiểu ThaTim** (`category/buy/history`) — tự mua từ nguồn, tự lấy nội dung bàn giao | Admin giao tay / nâng cấp chính chủ theo email khách gửi |
+Phía khách không bao giờ hiện tên/loại nguồn hàng — nhãn giao hàng trung
+tính: “Giao tự động” / “Giao ngay” / “Nâng cấp chính chủ”. Thông tin đấu
+nguồn chỉ hiện trong admin.
 
-Kèm **Admin panel riêng** tại `/admin` và **API cho đại lý** tại `/api/v2` (chuẩn SMM v2 + API sản phẩm) để khách khác đấu vào bán lại.
+## Thanh toán
 
-## Giao diện (đa theme, theo phong cách thatim)
+- Ví nội bộ: nạp qua VietQR/SePay (tự cộng khi chuyển đúng nội dung),
+  BoltUtil, Stripe, PayPal.
+- Thanh toán trực tiếp cho giỏ hàng (PurchasePayment): phiên có trạng thái
+  PROCESSING + phục hồi an toàn khi tiến trình chết giữa chừng.
+- Mã giảm giá, Flash Sale, thẻ thành viên **Pass** (giảm giá + hoàn tiền
+  theo gói), hoa hồng giới thiệu bạn bè.
 
-- **Đa giao diện**: khách tự đổi **6 tông màu** (Xanh dương #4680ff kiểu thatim, Tím, Xanh lá, Cam, Hồng, Ngọc) × **Sáng/Tối** bằng nút "Giao diện" trên mọi thanh header; lựa chọn lưu trên thiết bị của khách. Admin đặt tông + chế độ mặc định cho khách mới tại **Admin → Cấu hình → Giao diện mặc định**.
-- Ngôn ngữ thiết kế theo thatim.vn: nền xám xanh rất nhạt, thẻ trắng bóng mềm, sidebar mục đang chọn nền nhạt viền mảnh, nút liên hệ nổi Zalo/Telegram/Fanpage/Hotline góc phải dưới (điền link ở Admin → Cấu hình).
-- Dễ dùng: trang dịch vụ có xem Bảng/Lưới, sắp xếp giá, lọc khoảng giá, ghim yêu thích; form đặt đơn có nút Dán link, chip chọn nhanh số lượng, cảnh báo link sai nền tảng và thiếu số dư; dashboard có biểu đồ chi tiêu 14 ngày, thao tác nhanh, nút Đặt lại đơn cũ.
-- **Kiểu webapp**: menu footer cố định dưới màn hình điện thoại (kiểu app) ở cả trang khách, khu khách hàng và admin — nút hành động chính (Đặt đơn / Duyệt nạp) nổi tròn ở giữa, mục đang mở sáng màu; có sẵn manifest nên khách lưu ra màn hình chính là mở toàn màn hình như app thật.
+## Khu vực hệ thống
 
-## Tính năng chính
-
-**Khách hàng**
-- Đăng ký / đăng nhập, cấp bậc Thành viên → Đại lý (−5%) → Tổng đại lý (−10%) → VIP (−15%) áp tự động vào giá SMM
-- Đặt đơn SMM: chọn danh mục → dịch vụ, tính tiền trực tiếp; dịch vụ comment có ô nhập nội dung từng dòng, dịch vụ cảm xúc có chọn reaction, watch time có số phút (đúng tham số kiểu ThaTim)
-- **Drip-feed**: dịch vụ hỗ trợ sẽ có tuỳ chọn thả nhỏ giọt — chia tổng số lượng thành nhiều lượt cách nhau theo phút, cron thả từng lượt, huỷ chỉ hoàn phần chưa thả
-- **Đặt hàng loạt**: dán danh sách `id dịch vụ | link | số lượng` (tối đa 50 dòng), xem trước từng dòng + tổng tiền rồi đặt tất cả
-- **Panel con**: mở gian hàng riêng tại `/cua-hang/[slug]` hoặc tên miền riêng (CNAME) — khách của panel mua theo giá panel, chủ panel nhận hoa hồng từng đơn (hoàn tiền thì thu hồi theo tỉ lệ). Gian hàng dùng đúng khung + component của web mẹ. **Trang cấu hình lần đầu** (`/dashboard/panel-cua-toi/thiet-lap`) là wizard 5 bước: thông tin → giá & cấp bậc → **nhập API key tài khoản mẹ để liên kết** (mặc định là key của chính chủ panel, hệ thống kiểm tra key khi lưu — đúng mô hình thatim: tạo panel xong vào Cài đặt nhập API token) → tên miền & hỗ trợ → hoàn tất
-- **Cấp bậc khách của panel**: 4 bậc Thành viên / Đại lý / Tổng đại lý / VIP — mỗi panel tự đặt % giảm riêng từng bậc (trừ vào hoa hồng của chủ panel) và đặt thêm được **giá cố định cho từng dịch vụ theo từng bậc** (kiểu bảng giá nhiều cột cấp bậc của thatim); chủ panel gán bậc cho từng khách ngay trong trang quản lý panel
-- **Panel Admin riêng** tại `/panel-admin`: khu quản trị tách hẳn cho chủ panel (header + sidebar thương hiệu panel, chỉ chủ panel vào được) gồm Tổng quan / Dịch vụ & Giá / Đơn hàng / Khách hàng / Cài đặt. Dịch vụ tại panel con **chỉ đồng bộ từ web mẹ** — chủ panel không thêm dịch vụ, không đấu nguồn riêng, **chỉ chỉnh giá bán** (phụ phí, giảm theo bậc, giá riêng từng dịch vụ theo bậc), gán bậc cho khách và xem đơn/hoa hồng. Landing của panel con dùng nguyên khung landing của web mẹ (hero + các mục 01–08, `SectionHead`/`HeroStat` dùng chung từ `components/ui`) với nhịp chia mục đều `py-16 lg:py-20`
-- **Thanh toán SePay dùng chung + panel con đủ tính năng/cấu hình như site chính**: cả web mẹ và mọi panel con nạp qua **một cấu hình SePay chung** của web mẹ (một webhook, một tài khoản nhận, mỗi khách một mã nạp riêng) — chủ panel xem cấu hình này dạng chỉ đọc tại Panel Admin → Cài đặt và theo dõi tổng/lượt nạp của khách mình ngay tại Tổng quan. Panel con có đủ cấu hình thương hiệu riêng như site chính: 4 kênh hỗ trợ riêng (Zalo/Telegram/Facebook/Hotline — hiện ở nút liên hệ nổi và footer của landing con, trống thì dùng của web mẹ), thông báo riêng chạy trên landing con, footer mang tên panel. Panel con cũng **bán Premium như site chính** tại `/cua-hang/[slug]/premium` với giá của panel (giá mẹ + phụ phí, khách thuộc panel giảm thêm theo cấp bậc) — đơn Premium ghi `panelId` + `commission`, chủ panel nhận hoa hồng như đơn SMM và bị thu hồi khi đơn hoàn/huỷ (cả đường hoàn tự động lẫn admin huỷ tay). Giao diện giữ gọn kiểu thatim: trang quản trị/cài đặt không để đoạn ghi chú giải thích dài — chữ hướng dẫn dài chỉ nằm ở các luồng nhiều bước (wizard cấu hình lần đầu)
-- **Trường tuỳ chỉnh cho sản phẩm Premium**: mỗi sản phẩm định nghĩa được các ô khách phải điền khi mua (nhãn, kiểu ô 1 dòng/nhiều dòng/danh sách chọn, bắt buộc, chữ gợi ý, các lựa chọn — tối đa 8 trường) trong Admin → Sản phẩm Premium; trang chi tiết hiện đúng các trường đó thay ô thông tin chung, thiếu trường bắt buộc thì không đặt được đơn, giá trị được gộp theo nhãn vào thông tin bàn giao của đơn (đẩy sang nhà cung cấp khi đấu API). Mỗi sản phẩm còn có **hướng dẫn nhập thông tin riêng** (`buyNote`) hiện thành hộp hướng dẫn phía trên form mua — đúng cơ chế thatim dùng (một ô nhập chung + hướng dẫn riêng từng sản phẩm: sản phẩm này dặn nhập Gmail, sản phẩm kia dặn nhập số điện thoại)
-- **Trang chi tiết Premium đầy đủ**: thẻ chọn gói gọn (tên + giá trên một dòng), ô số lượng lớn có nút −/+; mỗi sản phẩm có **ảnh** (link ảnh, trống thì dùng chữ cái đại diện), và 3 mục dưới khu vực mua: **Thông tin sản phẩm** (mô tả + danh mục/hình thức giao/bảo hành tối đa), **Thông tin bảo hành** (nội dung admin nhập, trống thì liệt kê theo số ngày của từng gói), **Hướng dẫn sử dụng** — admin nhập tại form sản phẩm, áp dụng cả trang chi tiết của web mẹ và của panel con
-- Shop Premium: gói kho giao ngay, gói chính chủ giao tay, bảo hành trong trang đơn
-- Nạp tiền: VietQR ngân hàng + MoMo, cộng **tự động qua webhook** (SePay/Casso) khi chuyển đúng nội dung `SMM <mã nạp>`; thưởng nạp theo mốc cấu hình được
-- Sổ giao dịch đầy đủ, ticket hỗ trợ 2 chiều, trang API key cho đại lý
-
-**Admin (`/admin`)**
-- Tổng quan: doanh thu / lợi nhuận hôm nay + tháng, biểu đồ 14 ngày, cảnh báo số dư nhà cung cấp sắp hết
-- Đơn SMM (lọc API/thủ công/trạng thái), xử lý tay, huỷ + hoàn tiền, đồng bộ trạng thái từ provider từng đơn
-- Đơn Premium: giao tay, bảo hành, huỷ + hoàn, đồng bộ bàn giao từ nhà cung cấp
-- Nạp tiền: duyệt tay, cộng tiền tay, lịch sử webhook tự động
-- Dịch vụ SMM: CRUD danh mục/dịch vụ, chọn nguồn API hoặc thủ công cho từng dịch vụ
-- **Nhà cung cấp API**: thêm/sửa, kiểm tra số dư, **đồng bộ dịch vụ SMM và sản phẩm Premium** (cộng markup %), preset sẵn cho **ThaTim**
-- Sản phẩm Premium + gói bán (giá, vốn, bảo hành, chu kỳ nhà cung cấp), Kho Premium nhập hàng loạt từng dòng
-- Người dùng: cộng/trừ số dư, đổi cấp bậc, khoá tài khoản, phân quyền **2 tầng** — STAFF chỉ xem/xử lý đơn + ticket; tiền, nhà cung cấp + API key, dịch vụ + giá, sản phẩm + kho, người dùng + vai trò, cấu hình và thông báo chỉ ADMIN (link Admin Panel cũng chỉ hiện với role ADMIN)
-- Panel con: danh sách gian hàng của đại lý, khoá/mở panel
-- Ticket, Thông báo, Nhật ký API/webhook, Cấu hình (tên site, ngân hàng/MoMo, mốc thưởng nạp, bảo trì...)
+- **Admin** tại `/admin` (phân quyền 2 tầng ADMIN / STAFF) + các subdomain
+  suy từ domain đã cấu hình: `api.` (API v2 cho đối tác), `admin.`,
+  `webhook.` (đầu nhận webhook nhà cung cấp/thanh toán).
+- **API cho BNT AI Company** tại `/api/ai/*` — bắt buộc header
+  `x-bnt-ai-token` khớp biến môi trường `AI_SERVICE_TOKEN` (thiếu biến =
+  khoá hẳn).
+- Mọi cấu hình nghiệp vụ nằm trong Admin → Cấu hình và lưu vào database
+  (tên web, liên kết web, SEO, mô-đun bật/tắt, nhà cung cấp, tỉ giá...).
 
 ## Công nghệ
 
-Next.js 14 (App Router) + TypeScript + Tailwind CSS + Prisma ORM + MySQL/MariaDB (đổi sang Postgres chỉ cần sửa `provider` trong `prisma/schema.prisma`). Toàn bộ tiền tệ lưu VND dạng số nguyên; mọi biến động số dư đi qua một hàm ghi sổ duy nhất trong transaction.
+Next.js 14 (App Router) + TypeScript + Tailwind, Prisma + PostgreSQL.
+Tiền tệ: số nguyên VND.
 
-## Chạy local / trên VPS
+## Chạy local
 
 ```bash
-# 1. Tạo database MySQL/MariaDB tên smmv2
-# 2. Cấu hình môi trường
-cp .env.example .env   # sửa DATABASE_URL, AUTH_SECRET, CRON_SECRET
-
+cp .env.example .env   # điền DATABASE_URL, AUTH_SECRET, CRON_SECRET...
 npm install
-npm run db:setup       # tạo bảng + seed dữ liệu mẫu
-npm run build
-npm start              # http://localhost:3000
+npx prisma db push
+npm run db:seed        # chỉ dùng cho dev/test (admin mẫu Admin@123)
+npm run build && npm start
 ```
 
-Tài khoản seed:
+`docker-compose.yml` chỉ phục vụ chạy thử local: mọi khoá bí mật phải
+truyền qua biến môi trường, không có giá trị mặc định.
 
-| Tài khoản | Mật khẩu | Vai trò |
-|---|---|---|
-| `admin` | `Admin@123` | ADMIN — **đổi ngay sau khi đăng nhập** (Hồ sơ ở /dashboard/ho-so hoặc trang người dùng) |
-| `demo` | `Demo@123` | Khách demo, số dư sẵn 500.000đ, cấp Đại lý |
+## Triển khai VPS
 
-Seed gồm: 18 dịch vụ SMM thủ công mẫu, 9 sản phẩm Premium với giá/vốn theo khảo sát thị trường VN (YouTube/Spotify Family tự làm, Netflix kho mẫu...), và **nguồn ThaTim ở trạng thái tắt** chờ dán API key thật.
-
-## Đấu nguồn ThaTim (và các panel tương tự)
-
-1. Đăng ký tài khoản tại thatim.vn, nạp tiền, lấy **API key** trong mục API của họ.
-2. Vào **Admin → Nhà cung cấp API → Thêm nguồn ThaTim** (preset sẵn URL `https://thatim.vn/api/v2`, loại "Cả SMM + Premium"), dán key, bật, lưu.
-3. Bấm **Kiểm tra số dư** rồi **Đồng bộ dịch vụ**: hệ thống kéo toàn bộ dịch vụ social (`action=services`) và sản phẩm (`action=category`), quy đổi tiền và cộng markup % bạn đặt.
-4. Từ đó: khách đặt đơn dịch vụ API → hệ thống tự `action=add` (kèm `comments`/`reaction`/`minutes` khi có); khách mua sản phẩm API → tự `action=buy` với `cycle` + `note`; cron tự hỏi `status`/`history` và bàn giao + hoàn tiền khi cần.
-   - Đã đối chiếu tài liệu thật của thatim.vn (2026-11-04): API sản phẩm nằm ở endpoint riêng **`https://thatim.vn/api/product`** (hệ thống tự suy ra từ URL `/api/v2` khi đồng bộ/mua); `services` của thatim trả về dạng lồng theo danh mục kèm trường `price` — đã hỗ trợ; `category` trả `time_data` với nhãn chu kỳ ("1 Tháng", "1 Năm", cả "… Ngày") — nhãn được quy về số tháng khi gọi `buy`; trạng thái/bàn giao đơn premium lấy qua `history` (lọc `product_id`, khớp `order_code`), **dữ liệu bàn giao nằm ở trường `data`** của mục history khi đơn `completed`.
-
-Không có key ThaTim? Mọi panel chuẩn SMM API v2 khác (slike...) đều đấu được theo cùng cách.
-
-## Việc định kỳ (cron) — bắt buộc để đơn API tự chạy
-
-```bash
-*/5 * * * * curl -s "https://your-domain.vn/api/cron/sync?secret=<CRON_SECRET>&services=1"
-```
-
-Cron này: **thả các lượt drip-feed đến hạn**, đồng bộ trạng thái đơn SMM đang chạy (hoàn tiền Partial/Canceled), lấy bàn giao đơn Premium API, và (khi `services=1`) đồng bộ lại giá/dịch vụ + số dư từ mọi nhà cung cấp đang bật.
-
-Trên Vercel: dùng `vercel.json` đã kèm sẵn (cron 10 phút) và đặt env `CRON_SECRET` — Vercel tự gửi `Authorization: Bearer <CRON_SECRET>` khi chạy cron, endpoint đã hỗ trợ cả 3 cách xác thực (`?secret=`, header `x-cron-secret`, Bearer). Database dùng MySQL ngoài (VPS MySQL, Aiven, PlanetScale...) vì Vercel không chứa MySQL.
-
-## Webhook cộng tiền tự động
-
-- URL: `POST https://your-domain.vn/api/webhooks/sepay`
-- Header: `Authorization: Apikey <SEPAY_WEBHOOK_SECRET>` (đặt trong `.env`)
-- Nhận diện khách bằng mã nạp trong nội dung chuyển khoản; chống cộng trùng theo mã giao dịch ngân hàng. Tương thích SePay và mọi cổng bắn JSON có `content`, `transferAmount`, `transferType=in`, `id`.
-
-## Kiểm thử đấu API
-
-Repo kèm mock panel kiểu ThaTim + script test toàn luồng (đồng bộ, đặt đơn kèm comments, refill, mua sản phẩm, lấy bàn giao, đối soát số dư):
-
-```bash
-python3 scripts/mock-provider.py &   # mock chạy ở 127.0.0.1:3999
-npx tsx scripts/test-provider.ts
-```
-
-## Cấu trúc thư mục
-
-```
-prisma/schema.prisma     Toàn bộ mô hình dữ liệu
-prisma/seed.ts           Dữ liệu mẫu (dịch vụ, premium, admin, nguồn ThaTim tắt)
-src/lib/provider.ts      Client đấu API nguồn (SMM v2 + Product API kiểu ThaTim)
-src/lib/orders.ts        Máy đặt đơn / hoàn tiền / đồng bộ trạng thái 2 mảng
-src/lib/wallet.ts        Ghi sổ số dư (mọi biến động đều qua đây)
-src/app/api/v2           API cho đại lý (services/balance/add/status/orders/cancel/refill + category/buy/history)
-src/app/api/webhooks     Webhook nạp tiền tự động
-src/app/api/cron         Cron đồng bộ
-src/app/dashboard        Khu khách hàng
-src/app/admin            Admin panel riêng
-```
-
-## Tính năng bổ sung (các đợt sau)
-
-**Kinh doanh & vận hành**
-- **Mã giảm giá**: % hoặc số tiền cố định, trần giảm, đơn tối thiểu, giới hạn lượt, khoảng áp dụng, phạm vi SMM/Premium — khách nhập tại form đặt đơn, form mua Premium và qua API đại lý (`promo_code`).
-- **Đăng ký định kỳ**: khách tạo gói tự đặt đơn theo lịch; trần chi mỗi ngày; tự dừng khi đạt mục tiêu tổng hoặc khi thiếu số dư (có thông báo). Cron xử lý chung với các tác vụ nền khác.
-- **Chiến dịch**: gom đơn theo chiến dịch, đặt ngân sách và theo dõi tiến độ chi.
-- **So sánh dịch vụ**: bảng đối chiếu dịch vụ cùng danh mục theo giá sau chiết khấu của chính khách.
-- **Affiliate**: hoa hồng % trên giao dịch mua của người được giới thiệu; thu hồi tự động và đúng bằng phần đã cộng khi đơn bị hoàn.
-- **Giá thông minh** (Admin): chỉnh giá hàng loạt theo phạm vi (nguồn/danh mục/thủ công/toàn bộ) × chế độ (giá vốn + % lãi | +/− % giá hiện tại).
-
-**Admin**
-- **Phân tích**: doanh thu/lợi nhuận 30 ngày, dịch vụ và khách chi tiêu cao nhất, hiệu quả theo nhà cung cấp, phễu đăng ký → nạp → đặt đơn.
-- **CRM**: trang chi tiết khách 360° (số dư, tổng nạp/chi 2 mảng, đơn gần nhất, ticket, lịch sử nạp, sổ giao dịch) kèm cộng/trừ tiền và sửa cấp bậc tại chỗ.
-- **Phát hiện rủi ro**: đơn gắn cờ (trùng đơn/lặp link/số lượng lớn), đặt đơn dày bất thường, link dùng chung nhiều tài khoản, hoàn tiền nhiều lần, nạp lớn chờ duyệt.
-- **Biến động số dư** toàn hệ thống + xuất CSV; **Ngân hàng** dạng thẻ (trang nạp hiển thị chọn ngân hàng khi có nhiều tài khoản); **Cấp bậc** sửa được % giảm từng bậc; **Bài viết** + trang public `/bai-viet`; **Email Marketing** qua SMTP (gửi lô BCC theo nhóm khách, có gửi thử); **Bảo mật nâng cao** (chặn IP khi đăng nhập/đăng ký, độ dài mật khẩu tối thiểu, nhật ký hoạt động); **Hệ thống** (thông tin môi trường + dọn dữ liệu cũ).
-- **Mô-đun**: bật/tắt 5 mảng (Đặt đơn SMM, Premium, Panel con, Affiliate, Đăng ký) — chặn thật ở cả giao diện và xử lý phía server.
-
-**Cổng nạp & đăng nhập mở rộng** (đều cấu hình trong Admin → Cấu hình, không cần sửa code)
-- **PayPal / Stripe**: nạp USD quy đổi theo tỉ giá, cộng tự động qua return + webhook.
-- **USDT**: khách chuyển tới ví đã cấu hình (TRC20/BEP20/ERC20) rồi khai tx hash — chờ admin duyệt; chống khai trùng một hash hai lần.
-- **Telegram**: bot báo tin khi có nạp thành công hoặc ticket mới.
-- **Đăng nhập Google**: OAuth theo email; cần Client ID/Secret từ Google Cloud, Redirect URI là `https://<domain>/api/auth/google/callback`.
-- **AI**: tab AI trong Cấu hình (OpenAI hoặc endpoint tương thích, hoặc Google Gemini) + nút kiểm tra kết nối. Trang khách **Tìm dịch vụ bằng AI** (`/dashboard/tim-dich-vu`) gợi ý dịch vụ từ mô tả tự nhiên; chưa có key hoặc AI lỗi thì tự chuyển về tìm kiếm thường.
-- **Tỉ giá hiển thị**: khách đổi tiền tệ hiển thị theo tỉ giá admin đặt (`/api/display-config`), tiền thật vẫn là VND.
-- **Script tuỳ chỉnh**: chèn HTML vào `<head>`/cuối `<body>` (chat widget, thống kê...) từ Cấu hình.
-
-**Panel con trên domain riêng**
-- Domain của panel (CNAME về cùng server): `/` mở gian hàng, `/admin` mở thẳng Panel Admin của panel đó, `/login` đăng nhập tại chỗ. Trên domain chính, Panel Admin vẫn ở `/panel-admin`.
+Xem `deploy/README.md` — bộ cài một lệnh (Node.js + PostgreSQL + Caddy +
+systemd), lần đầu mở web qua trang `/setup` để tạo tài khoản admin đầu
+tiên, trang này tự khoá sau khi hoàn tất.

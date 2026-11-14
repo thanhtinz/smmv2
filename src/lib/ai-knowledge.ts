@@ -14,8 +14,12 @@ export interface AiDoc {
 
 export async function buildAiDocs(): Promise<AiDoc[]> {
   const today = new Date().toISOString().slice(0, 10);
+  // P3-01 (audit đợt 2): kho tri thức AI chỉ được chứa sản phẩm/gói ĐANG
+  // BÁN — trước bản vá, sản phẩm đã tắt và gói đã tắt vẫn lọt vào, AI tư
+  // vấn khách mua thứ không còn bán.
   const products = await prisma.premiumProduct.findMany({
-    include: { category: true, variants: { orderBy: { price: "asc" } } },
+    where: { active: true },
+    include: { category: true, variants: { where: { active: true }, orderBy: { price: "asc" } } },
     orderBy: { id: "asc" },
     take: 500,
   });

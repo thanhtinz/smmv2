@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # ============================================================
-#  SMMv2 — Bộ cài MỘT LỆNH trên VPS Ubuntu 22.04 / 24.04
+#  BNT Shop — Bộ cài MỘT LỆNH trên VPS Ubuntu 22.04 / 24.04
 #
 #  Cách chạy (trên VPS, quyền root):
-#    git clone https://github.com/thanhtinz/smmv2.git
+#    git clone https://github.com/thanhtinz/bntshop.git
 #    cd smmv2
 #    sudo DOMAIN=tenmien.com bash deploy/install.sh
 #
 #  Biến môi trường tuỳ chọn:
 #    DOMAIN        (bắt buộc) tên miền chính, đã trỏ A về IP của VPS này
 #    GITHUB_TOKEN  token GitHub nếu repo là private và máy chưa clone sẵn
-#    REPO          mặc định https://github.com/thanhtinz/smmv2.git
+#    REPO          mặc định https://github.com/thanhtinz/bntshop.git
 #
 #  Script làm hết: swap, Node 20, PostgreSQL, Caddy (HTTPS tự động),
 #  systemd, cron đồng bộ đơn + sao lưu hằng ngày.
@@ -19,7 +19,7 @@ set -euo pipefail
 
 APP_DIR=/opt/smmv2
 APP_USER=smmv2
-REPO="${REPO:-https://github.com/thanhtinz/smmv2.git}"
+REPO="${REPO:-https://github.com/thanhtinz/bntshop.git}"
 DOMAIN="${DOMAIN:-}"
 
 step() { echo; echo "==> $*"; }
@@ -98,7 +98,7 @@ if [ -n "$SRC_DIR" ] && [ "$SRC_DIR" != "$APP_DIR" ]; then
 elif [ ! -f "$APP_DIR/package.json" ]; then
   CLONE_URL="$REPO"
   if [ -n "${GITHUB_TOKEN:-}" ]; then
-    CLONE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/thanhtinz/smmv2.git"
+    CLONE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/thanhtinz/bntshop.git"
   fi
   sudo -u "$APP_USER" -H git clone "$CLONE_URL" "$APP_DIR"
 fi

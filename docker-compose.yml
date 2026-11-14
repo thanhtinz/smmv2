@@ -1,20 +1,25 @@
+# CHỈ DÙNG CHO DEV LOCAL — không dùng cho production.
+# Mọi khoá bí mật phải truyền qua biến môi trường (file .env cạnh file này
+# hoặc export trước khi chạy); compose sẽ BÁO LỖI NGAY nếu thiếu, không có
+# giá trị mặc định nào được chôn trong file này.
 services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_DB: smmv2
-      POSTGRES_USER: smmv2
-      POSTGRES_PASSWORD: <redacted>
+      POSTGRES_DB: ${POSTGRES_DB:-bntshop}
+      POSTGRES_USER: ${POSTGRES_USER:-bntshop}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Thiếu POSTGRES_PASSWORD — đặt trong .env}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
-      - smmv2-db:/var/lib/postgresql/data
+      - bntshop-db:/var/lib/postgresql/data
   app:
     build: .
     environment:
-      DATABASE_URL: "postgresql://smmv2:smmv2-pass@db:5432/smmv2"
-      AUTH_SECRET: "<redacted>
-      CRON_SECRET: "<redacted>
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bntshop}:${POSTGRES_PASSWORD:?Thiếu POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-bntshop}
+      AUTH_SECRET: ${AUTH_SECRET:?Thiếu AUTH_SECRET — đặt trong .env}
+      CRON_SECRET: ${CRON_SECRET:?Thiếu CRON_SECRET — đặt trong .env}
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
       NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
     ports:
       - "127.0.0.1:3000:3000"
@@ -22,4 +27,4 @@ services:
       - db
     command: sh -c "npx prisma db push && npm run db:seed && npm start"
 volumes:
-  smmv2-db:
+  bntshop-db:

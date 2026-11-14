@@ -1,6 +1,6 @@
-# SMMv2 — Bộ cài VPS một lệnh
+# BNT Shop — Bộ cài VPS một lệnh
 
-Bộ này cài toàn bộ SMMv2 lên một VPS trống: Node.js 20, PostgreSQL, Caddy
+Bộ này cài toàn bộ BNT Shop lên một VPS trống: Node.js 20, PostgreSQL, Caddy
 (HTTPS tự động), systemd, cron đồng bộ đơn hàng và sao lưu hằng ngày.
 
 ## Cần chuẩn bị
@@ -14,8 +14,8 @@ Bộ này cài toàn bộ SMMv2 lên một VPS trống: Node.js 20, PostgreSQL, 
 ## Lệnh cài
 
 ```bash
-git clone https://github.com/thanhtinz/smmv2.git
-cd smmv2
+git clone https://github.com/thanhtinz/bntshop.git
+cd bntshop
 sudo DOMAIN=tenmien.com bash deploy/install.sh
 ```
 

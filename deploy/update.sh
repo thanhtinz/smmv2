@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SMMv2 — Cập nhật lên bản mới nhất từ GitHub main: kéo code, cài thư viện,
+# BNT Shop (dịch vụ smmv2) — Cập nhật lên bản mới nhất từ GitHub main: kéo code, cài thư viện,
 # đồng bộ database, build lại và khởi động lại dịch vụ. Chạy bằng root:
 #   sudo bash /opt/smmv2/deploy/update.sh
 set -euo pipefail
