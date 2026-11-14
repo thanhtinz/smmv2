@@ -176,6 +176,21 @@ async function main() {
       const after = await freshOrder(order.id);
       ok(r.ok && (await fzrCallsFor(order.id)).length === 0, "C: claim còn tươi -> KHÔNG gọi FZR");
       ok(after?.status === "PENDING" && !after?.providerOrderId, "C: đơn giữ nguyên PENDING chờ lượt thực thi kia");
+      // FULL-AUDIT P2-04: phiên KHÔNG được chốt EXECUTED khi đơn còn
+      // PENDING chưa có mã NCC — phải ở PROCESSING để recovery vào lại.
+      const ppC = await prisma.purchasePayment.findUnique({ where: { id: pp.id } });
+      ok(ppC?.status === "PROCESSING", `C2: phiên giữ PROCESSING (thực tế ${ppC?.status})`);
+      // Claim hết hạn -> lượt settle tiếp theo gỡ claim, thực thi, chốt phiên
+      const stale = new Date(Date.now() - 20 * 60000).toISOString();
+      await prisma.premiumOrder.update({ where: { id: order.id }, data: { providerRaw: JSON.stringify({ fzrClaimAt: stale }) } });
+      // Lease của PHIÊN cũng phải hết hạn mới được settle lại (updatedAt
+      // là @updatedAt nên phải lùi bằng SQL thô).
+      await prisma.$executeRaw`UPDATE "PurchasePayment" SET "updatedAt" = NOW() - INTERVAL '11 minutes' WHERE id = ${pp.id}`;
+      const r2 = await settlePurchasePayment(pp.id);
+      const after2 = await freshOrder(order.id);
+      const ppC2 = await prisma.purchasePayment.findUnique({ where: { id: pp.id } });
+      ok(r2.ok && (await fzrCallsFor(order.id)).length === 1 && !!after2?.providerOrderId, "C3: claim hết hạn -> thực thi lại, đơn có mã FZR");
+      ok(ppC2?.status === "EXECUTED", "C4: đơn xong -> phiên mới chốt EXECUTED");
     }
 
     /* D) NCC chuẩn chưa hề gửi -> buy + DELIVERED */

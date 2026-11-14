@@ -104,6 +104,39 @@ export async function GET(req: NextRequest) {
   }
   result.fzrPolled = fzrPolled;
 
+  // FULL-AUDIT 3d1309c P2-04: đơn API kẹt ở bước CHƯA GỬI provider —
+  // PENDING, chưa có mã NCC, không thuộc phiên thanh toán nào còn
+  // PROCESSING để recovery nhặt (phiên đã chốt, hoặc đơn mua bằng ví bị
+  // chết giữa commit và lời gọi NCC). Lượt đồng bộ ở trên chỉ quét đơn
+  // ĐÃ có providerOrderId nên không bao giờ thấy chúng. Quét riêng các
+  // đơn nằm yên quá lease 10 phút và giao cho ensurePremiumOrder-
+  // Fulfillment: nó tự tôn trọng claim còn tươi, tự gỡ claim hết hạn
+  // (FZR chạy lại nhờ idempotency; STANDARD gắn cờ chờ admin).
+  try {
+    const stuck = await prisma.premiumOrder.findMany({
+      where: {
+        status: "PENDING",
+        providerId: { not: null },
+        providerOrderId: null,
+        updatedAt: { lt: new Date(Date.now() - 10 * 60 * 1000) },
+      },
+      take: 20,
+      orderBy: { updatedAt: "asc" },
+      select: { id: true },
+    });
+    const { ensurePremiumOrderFulfillment } = await import("@/lib/orders");
+    let resumed = 0;
+    for (const o of stuck) {
+      try {
+        await ensurePremiumOrderFulfillment(o.id);
+        resumed++;
+      } catch { /* đơn lẻ lỗi không chặn cả vòng quét */ }
+    }
+    result.premiumFulfillResumed = resumed;
+  } catch (e: any) {
+    result.premiumFulfillError = String(e?.message || e);
+  }
+
   // BoltUtil: poll là đường dự phòng khi webhook trễ/mất (webhook có gửi lại nhưng không đảm bảo tức thời).
   // Đối soát tối đa 30 yêu cầu nạp USDT-BoltUtil đang PENDING trong 24 giờ qua;
   // gặp 429 thì dừng phần còn lại tới lượt sau.

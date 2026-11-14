@@ -330,6 +330,30 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
             await alertMother("purchase_fulfill_resume_failed", "Không tiếp tục được giao hàng cho đơn nhận lại", `Phiên ${pp.code}, đơn ${adopted.code}: ${String(e?.message || e).slice(0, 200)}`).catch(() => {});
           }
         }
+        // FULL-AUDIT 3d1309c P2-04: ensure trả đơn VẪN PENDING mà chưa
+        // có mã NCC = bước giao hàng đang thuộc về một lượt thực thi
+        // khác (claim còn tươi) hoặc lượt đó đã chết ngay sau khi ghi
+        // marker. Ghi dòng là xong ở đây sẽ chốt phiên EXECUTED và cắt
+        // mất đường recovery — phiên không còn PROCESSING để cron nhặt.
+        // Giữ dòng pending: phiên ở lại PROCESSING, recovery vào lại
+        // khi lease hết hạn và ensure tự gỡ claim cũ để chạy tiếp.
+        // Ngoại lệ duy nhất: đơn STANDARD đã gắn cờ "chưa rõ trạng
+        // thái" (không có idempotency phía ThaTim) — không đường tự
+        // động nào đi tiếp được; đóng phiên, admin đối soát trên đơn.
+        const ambiguous = (adopted.adminNote || "").includes("Giao hàng API chưa rõ trạng thái");
+        // Chỉ áp cho đơn API: đơn kho/thủ công PENDING sau khi tạo là
+        // trạng thái ĐÚNG (admin giao tay) — giữ pending ở đây sẽ kẹt
+        // cả phiên oan (hồi quy đã gặp ở test adoption/refund-failclosed).
+        const adoptedVariant = await prisma.premiumVariant.findUnique({
+          where: { id: adopted.variantId },
+          select: { product: { select: { fulfillment: true } } },
+        });
+        const isApiOrder = (adoptedVariant as any)?.product?.fulfillment === "API";
+        if (isApiOrder && adopted.status === "PENDING" && !adopted.providerOrderId && !ambiguous) {
+          results[idx] = { variantId: line.variantId, ok: false, pending: true, startedAt: Date.now() };
+          await persistProgress();
+          continue;
+        }
         okCodes.push(adopted.code);
         const diff = line.share - Number(adopted.total || 0);
         if (diff > 0) {
