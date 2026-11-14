@@ -1,6 +1,7 @@
 // KIT cho BNT Shop — chép vào src/lib/ai-knowledge.ts của repo bntshop (smmv2).
 // Kiến thức đọc thẳng từ DB thật: PremiumProduct + PremiumVariant (giá theo
 // thời hạn) — admin sửa giá là AI trả lời theo giá mới.
+import { createHash, timingSafeEqual } from "crypto";
 import { prisma } from "./db";
 
 export interface AiDoc {
@@ -55,7 +56,14 @@ export function normalizeVi(text: string): string {
 }
 
 export function aiAuthorized(req: Request): boolean {
+  // FAIL-CLOSED (audit đợt 2 P1-01): thiếu AI_SERVICE_TOKEN là TỪ CHỐI —
+  // bản cũ fail-open khiến /api/ai/* (đọc ticket + trả lời as admin) mở
+  // công khai trên production khi môi trường chưa khai báo token.
   const expected = process.env.AI_SERVICE_TOKEN?.trim();
-  if (!expected) return true;
-  return req.headers.get("x-bnt-ai-token") === expected;
+  if (!expected) return false;
+  const got = req.headers.get("x-bnt-ai-token") || "";
+  // Hash hai phía về cùng độ dài rồi so sánh hằng-thời-gian.
+  const a = createHash("sha256").update(got).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
 }
