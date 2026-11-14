@@ -11,12 +11,12 @@ import { assertNotRiskRestricted, evaluateUserRisk } from "./risk";
 import {
   providerBuyProduct, findPremiumOrderInHistory, extractDelivery,
 } from "./provider";
-import { executeFzrPremiumOrder, refreshFzrQuotePrice, parseBuyerInfoLines } from "./fzr-orders";
+import { executeFzrPremiumOrder, pollFzrPremiumOrder, refreshFzrQuotePrice, parseBuyerInfoLines } from "./fzr-orders";
 import { claimVariantStock, restoreVariantStock, variantSoldOut, OUT_OF_STOCK_ERROR, notifyStockCrossing } from "./variant-stock";
 import { passDiscountFor, creditPassCashback, clawbackPassCashback } from "./pass";
 import { sendCustomerMail } from "./customer-mail";
 import { moduleOn, moduleKeyForGroup, MODULE_LABEL } from "./modules";
-import type { PremiumOrder, User } from "@prisma/client";
+import type { PremiumOrder, PremiumProduct, PremiumVariant, User } from "@prisma/client";
 
 /**
  * Engine đơn Premium (mua sản phẩm số): tạo đơn + trừ ví/kho + giao tự động
@@ -273,94 +273,229 @@ export async function createPremiumOrder(input: {
   void evaluateUserRisk(input.user.id);
   if (created.status === "DELIVERED" || created.status === "COMPLETED") await awardPointsForPremiumOrder(created);
 
-  // Đấu API mua sản phẩm (kiểu ThaTim): gọi action=buy cho từng đơn vị
+  // Đấu API mua sản phẩm (kiểu ThaTim/FZR): bước hậu-commit tách riêng
+  // thành runPremiumApiFulfillment để recovery gọi lại khi cần (P2-A).
   if (variant.product.fulfillment === "API") {
-    const provider = variant.product.providerId
-      ? await prisma.provider.findUnique({ where: { id: variant.product.providerId } })
-      : null;
-    // FazerCards (driver FZR): luồng riêng theo nhóm sản phẩm — xem lib/fzr-orders.
-    // Đơn thiếu linkage FZR thì rơi xuống xử lý tay như stub API trước đây.
-    if (provider?.driver === "FZR" && variant.providerGroup && variant.providerItemId) {
-      const fzrOrder = await prisma.premiumOrder.findUnique({ where: { id: created.id } });
-      if (fzrOrder) {
-        return executeFzrPremiumOrder({
-          order: fzrOrder,
-          variant,
-          provider,
-          inputs: input.customData || parseBuyerInfoLines(buyerInfo),
-        });
-      }
-    }
-    if (!provider || !variant.product.providerProductId || !variant.providerCycle) {
-      // Chưa cấu hình đủ mapping -> giữ đơn PENDING cho admin xử lý tay thay vì mất đơn
-      await prisma.premiumOrder.update({
-        where: { id: created.id },
-        data: { adminNote: "Sản phẩm API chưa cấu hình đủ provider/chu kỳ — cần xử lý tay" },
-      });
-      return created;
-    }
-    const codes: string[] = [];
-    const deliveries: string[] = [];
-    let failed = 0;
-    for (let i = 0; i < input.quantity; i++) {
-      try {
-        const r = await providerBuyProduct(provider, variant.product.providerProductId, variant.providerCycle, buyerInfo || "");
-        codes.push(r.orderCode);
-        const d = extractDelivery(r.raw?.data || r.raw).delivery;
-        if (d) deliveries.push(d);
-        await prisma.apiLog.create({ data: { kind: "provider_out", ref: created.code, detail: `buy product=${variant.product.providerProductId} cycle=${variant.providerCycle} -> ${r.orderCode}` } });
-      } catch (e: any) {
-        failed++;
-        await prisma.apiLog.create({ data: { kind: "provider_out", ref: created.code, ok: false, detail: `buy failed: ${String(e?.message || e)}` } });
-      }
-    }
-    if (codes.length === 0) {
-      // Provider từ chối toàn bộ -> hoàn tiền đủ + trả kho số lượng đã trừ
-      await prisma.$transaction(async (tx) => {
-        await restoreVariantStock(tx, variant.id, input.quantity);
-        await applyBalance(tx, input.user.id, total, "REFUND", created.code, "Nhà cung cấp từ chối đơn premium — hoàn tiền");
-        await tx.premiumOrder.update({ where: { id: created.id }, data: { status: "REFUNDED" } });
-      });
-      await clawbackReferralCommission(input.user.id, total, created.code);
-      await clawbackPassCashback(input.user.id, total, created.code);
-      void sendCustomerMail(input.user.id, "order_refunded", {
-        order_code: created.code, product_name: variant.product.name,
-        refund_amount: vnd(total), balance: await balanceText(input.user.id),
-      });
-      return { ...created, status: "REFUNDED" as const };
-    }
-    if (failed > 0) {
-      const refundAmt = Math.floor((total * failed) / input.quantity);
-      await prisma.$transaction(async (tx) => {
-        await restoreVariantStock(tx, variant.id, failed);
-        await applyBalance(tx, input.user.id, refundAmt, "REFUND", created.code, `Hoàn ${failed} đơn vị provider không nhận`);
-      });
-      await clawbackReferralCommission(input.user.id, refundAmt, created.code);
-      await clawbackPassCashback(input.user.id, refundAmt, created.code);
-      void sendCustomerMail(input.user.id, "order_refunded", {
-        order_code: created.code, product_name: variant.product.name,
-        refund_amount: vnd(refundAmt), balance: await balanceText(input.user.id),
-      });
-    }
-    const updated = await prisma.premiumOrder.update({
-      where: { id: created.id },
-      data: {
-        providerOrderId: codes.join(","),
-        ...(deliveries.length === input.quantity
-          ? { status: "DELIVERED", deliveryData: deliveries.join("\n---\n") }
-          : {}),
-        ...(failed > 0 ? { adminNote: `${failed}/${input.quantity} đơn vị bị provider từ chối — đã hoàn tiền phần đó` } : {}),
-      },
-    });
-    if (updated.status === "DELIVERED") {
-      void sendCustomerMail(input.user.id, "order_delivered", {
-        order_code: created.code, product_name: variant.product.name, variant_name: variant.name,
-        delivery_content: updated.deliveryData || "",
-      });
-    }
-    return updated;
+    return runPremiumApiFulfillment({ order: created, variant, user: input.user, quantity: input.quantity, customData: input.customData, buyerInfo, total });
   }
   return created;
+}
+
+/**
+ * Bước giao hàng API SAU khi transaction tạo đơn đã chốt — tách khỏi
+ * createPremiumOrder để recovery của thanh toán trực tiếp gọi lại đúng
+ * bước này khi tiến trình chết giữa commit đơn và lời gọi nhà cung cấp
+ * (tái-audit 0e15517 P2-A). Mọi hoàn tiền trong này tính trên `total`
+ * của đơn; đơn thanh toán trực tiếp (externalPaid) cũng hoàn vào ví như
+ * đường tạo đơn thường.
+ */
+export async function runPremiumApiFulfillment(args: {
+  order: PremiumOrder;
+  variant: PremiumVariant & { product: PremiumProduct };
+  user: User;
+  quantity: number;
+  customData?: Record<string, string>;
+  buyerInfo?: string;
+  total: number;
+}): Promise<PremiumOrder> {
+  const { order, variant, user, quantity, customData, buyerInfo, total } = args;
+  const provider = variant.product.providerId
+    ? await prisma.provider.findUnique({ where: { id: variant.product.providerId } })
+    : null;
+  // FazerCards (driver FZR): luồng riêng theo nhóm sản phẩm — xem lib/fzr-orders.
+  // Đơn thiếu linkage FZR thì rơi xuống xử lý tay như stub API trước đây.
+  if (provider?.driver === "FZR" && variant.providerGroup && variant.providerItemId) {
+    const fzrOrder = await prisma.premiumOrder.findUnique({ where: { id: order.id } });
+    if (fzrOrder) {
+      return executeFzrPremiumOrder({
+        order: fzrOrder,
+        variant,
+        provider,
+        inputs: customData || parseBuyerInfoLines(buyerInfo),
+      });
+    }
+  }
+  if (!provider || !variant.product.providerProductId || !variant.providerCycle) {
+    // Chưa cấu hình đủ mapping -> giữ đơn PENDING cho admin xử lý tay thay vì mất đơn
+    await prisma.premiumOrder.update({
+      where: { id: order.id },
+      data: { adminNote: "Sản phẩm API chưa cấu hình đủ provider/chu kỳ — cần xử lý tay" },
+    });
+    return order;
+  }
+  // Claim nguyên tử TRƯỚC vòng mua (cùng khuôn claim của FZR): hai tiến
+  // trình không bao giờ cùng mua cho một đơn. Dấu stdClaimAt + mã lưu tăng
+  // dần theo từng đơn vị cho phép recovery (ensurePremiumOrderFulfillment)
+  // phân biệt "chưa hề gửi" (không dấu, không mã — chạy lại an toàn) với
+  // "đang bay dở" (có dấu, thiếu mã — KHÔNG mua lại vì ThaTim không có
+  // khoá idempotency; gắn cờ đối soát tay).
+  const claim = await prisma.premiumOrder.updateMany({
+    where: { id: order.id, status: "PENDING", providerOrderId: null, providerRaw: null },
+    data: { providerRaw: JSON.stringify({ stdClaimAt: new Date().toISOString() }) },
+  });
+  if (claim.count === 0) return (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
+  const codes: string[] = [];
+  const deliveries: string[] = [];
+  let failed = 0;
+  for (let i = 0; i < quantity; i++) {
+    try {
+      const r = await providerBuyProduct(provider, variant.product.providerProductId, variant.providerCycle, buyerInfo || "");
+      codes.push(r.orderCode);
+      const d = extractDelivery(r.raw?.data || r.raw).delivery;
+      if (d) deliveries.push(d);
+      await prisma.apiLog.create({ data: { kind: "provider_out", ref: order.code, detail: `buy product=${variant.product.providerProductId} cycle=${variant.providerCycle} -> ${r.orderCode}` } });
+      // Lưu mã NGAY theo từng đơn vị: tiến trình chết giữa vòng thì
+      // recovery đếm được phần đã mua qua providerOrderId, không mua lại.
+      // Nuốt lỗi ghi ở đây — lần ghi chốt cuối vòng vẫn ghi đủ toàn bộ mã;
+      // một lần ghi phụ lỗi không được biến đơn vị ĐÃ mua thành "thất bại".
+      await prisma.premiumOrder.update({
+        where: { id: order.id },
+        data: { providerOrderId: codes.join(","), ...(deliveries.length ? { deliveryData: deliveries.join("\n---\n") } : {}) },
+      }).catch(() => {});
+    } catch (e: any) {
+      failed++;
+      await prisma.apiLog.create({ data: { kind: "provider_out", ref: order.code, ok: false, detail: `buy failed: ${String(e?.message || e)}` } });
+    }
+  }
+  if (codes.length === 0) {
+    // Provider từ chối toàn bộ -> hoàn tiền đủ + trả kho số lượng đã trừ
+    await prisma.$transaction(async (tx) => {
+      await restoreVariantStock(tx, variant.id, quantity);
+      await applyBalance(tx, user.id, total, "REFUND", order.code, "Nhà cung cấp từ chối đơn premium — hoàn tiền");
+      await tx.premiumOrder.update({ where: { id: order.id }, data: { status: "REFUNDED" } });
+    });
+    await clawbackReferralCommission(user.id, total, order.code);
+    await clawbackPassCashback(user.id, total, order.code);
+    void sendCustomerMail(user.id, "order_refunded", {
+      order_code: order.code, product_name: variant.product.name,
+      refund_amount: vnd(total), balance: await balanceText(user.id),
+    });
+    return { ...order, status: "REFUNDED" as const };
+  }
+  if (failed > 0) {
+    const refundAmt = Math.floor((total * failed) / quantity);
+    await prisma.$transaction(async (tx) => {
+      await restoreVariantStock(tx, variant.id, failed);
+      await applyBalance(tx, user.id, refundAmt, "REFUND", order.code, `Hoàn ${failed} đơn vị provider không nhận`);
+    });
+    await clawbackReferralCommission(user.id, refundAmt, order.code);
+    await clawbackPassCashback(user.id, refundAmt, order.code);
+    void sendCustomerMail(user.id, "order_refunded", {
+      order_code: order.code, product_name: variant.product.name,
+      refund_amount: vnd(refundAmt), balance: await balanceText(user.id),
+    });
+  }
+  const updated = await prisma.premiumOrder.update({
+    where: { id: order.id },
+    data: {
+      providerOrderId: codes.join(","),
+      ...(deliveries.length === quantity
+        ? { status: "DELIVERED", deliveryData: deliveries.join("\n---\n") }
+        : {}),
+      ...(failed > 0 ? { adminNote: `${failed}/${quantity} đơn vị bị provider từ chối — đã hoàn tiền phần đó` } : {}),
+    },
+  });
+  if (updated.status === "DELIVERED") {
+    void sendCustomerMail(user.id, "order_delivered", {
+      order_code: order.code, product_name: variant.product.name, variant_name: variant.name,
+      delivery_content: updated.deliveryData || "",
+    });
+  }
+  return updated;
+}
+
+
+/* ===== TÁI-AUDIT 0e15517 P2-A: đối soát/tiếp tục giao hàng cho đơn API =====
+ * createPremiumOrder chốt transaction tạo đơn TRƯỚC rồi mới gọi nhà cung
+ * cấp. Tiến trình chết đúng cửa sổ đó để lại đơn PENDING chưa hề được gửi
+ * đi. Recovery của thanh toán trực tiếp (lib/purchase.ts) nhận lại đơn
+ * theo khoá và gọi hàm này để đưa bước giao hàng về trạng thái rõ ràng:
+ *   - đã có mã NCC (providerOrderId)  -> chỉ ĐỐI SOÁT trạng thái (poll/sync);
+ *   - có dấu claim nhưng chưa có mã    -> lượt thực thi trước chết giữa
+ *     chừng: FZR có Idempotency-Key = id đơn nên claim hết hạn lease thì
+ *     gỡ claim (CAS) và thực thi lại an toàn; NCC chuẩn không có khoá
+ *     idempotency nên KHÔNG mua lại — gắn cờ + cảnh báo admin đối soát;
+ *   - chưa dấu claim, chưa mã          -> chưa hề gửi: chạy đúng bước
+ *     hậu-commit còn thiếu (runPremiumApiFulfillment).
+ * Đơn không phải API hoặc không còn PENDING thì giữ nguyên. */
+const FULFILL_CLAIM_STALE_MS = 10 * 60000; // cùng lease với PURCHASE_STALE_MS
+
+function parseProviderRaw(raw: string | null): Record<string, any> | null {
+  if (!raw) return null;
+  try {
+    const j = JSON.parse(raw);
+    return j && typeof j === "object" ? j : null;
+  } catch { return null; }
+}
+
+async function flagFulfillmentAmbiguous(order: PremiumOrder, why: string): Promise<PremiumOrder> {
+  const note = `Giao hàng API chưa rõ trạng thái — ${why}; kiểm tra phía nhà cung cấp trước khi giao/hoàn tay`;
+  if ((order.adminNote || "").includes("Giao hàng API chưa rõ trạng thái")) return order;
+  const updated = await prisma.premiumOrder.update({
+    where: { id: order.id },
+    data: { adminNote: [order.adminNote, note].filter(Boolean).join(" · ").slice(0, 900) },
+  });
+  void alertMother("purchase_fulfill_ambiguous", `Đơn ${order.code} cần đối soát giao hàng`, note);
+  return updated;
+}
+
+export async function ensurePremiumOrderFulfillment(orderId: number): Promise<PremiumOrder | null> {
+  const order = await prisma.premiumOrder.findUnique({ where: { id: orderId } });
+  if (!order || order.status !== "PENDING") return order;
+  const variant = await prisma.premiumVariant.findUnique({
+    where: { id: order.variantId },
+    include: { product: true },
+  });
+  if (!variant || variant.product.fulfillment !== "API") return order;
+  const provider = variant.product.providerId
+    ? await prisma.provider.findUnique({ where: { id: variant.product.providerId } })
+    : null;
+
+  // Đã có mã phía NCC = đã gửi thành công ít nhất một phần: chỉ đối soát.
+  if (order.providerOrderId) {
+    try {
+      if (provider?.driver === "FZR") return await pollFzrPremiumOrder(order);
+      if (provider) {
+        const synced = await syncPremiumOrderStatus(order);
+        if (synced) return synced;
+      }
+    } catch { /* lỗi đối soát không chặn nhận đơn — cron đồng bộ thử lại sau */ }
+    return prisma.premiumOrder.findUnique({ where: { id: order.id } });
+  }
+
+  const raw = parseProviderRaw(order.providerRaw);
+  const claimIso = raw?.fzrClaimAt || raw?.stdClaimAt;
+  if (claimIso) {
+    const claimAt = new Date(claimIso).getTime();
+    if (Number.isFinite(claimAt) && Date.now() - claimAt < FULFILL_CLAIM_STALE_MS) {
+      return order; // claim còn tươi: một lượt thực thi khác có thể đang chạy
+    }
+    if (provider?.driver === "FZR" && variant.providerGroup && variant.providerItemId) {
+      // FZR: Idempotency-Key = id đơn (tài liệu reseller, lib/fzr.ts) nên
+      // thực thi lại sau khi claim hết hạn là an toàn — phía FZR deduplicate
+      // theo id đơn. Gỡ claim bằng CAS trên đúng giá trị providerRaw cũ:
+      // giá trị đã đổi nghĩa là một lượt khác vừa đụng vào, không giành.
+      const reset = await prisma.premiumOrder.updateMany({
+        where: { id: order.id, status: "PENDING", providerOrderId: null, providerRaw: order.providerRaw },
+        data: { providerRaw: null },
+      });
+      if (reset.count === 0) return prisma.premiumOrder.findUnique({ where: { id: order.id } });
+      await prisma.apiLog.create({ data: { kind: "provider_out", ref: order.code, detail: "FZR: thực thi lại sau claim hết hạn (recovery thanh toán trực tiếp)" } }).catch(() => {});
+      const user = await prisma.user.findUnique({ where: { id: order.userId } });
+      if (!user) return order;
+      const fresh = (await prisma.premiumOrder.findUnique({ where: { id: order.id } })) || order;
+      return runPremiumApiFulfillment({ order: fresh, variant, user, quantity: order.quantity, buyerInfo: order.buyerInfo || undefined, total: order.total });
+    }
+    // NCC chuẩn (ThaTim) KHÔNG có khoá idempotency: đơn vị đang bay lúc
+    // tiến trình chết có thể đã được NCC nhận mà chưa kịp lưu mã — mua lại
+    // là mua trùng. Giữ PENDING, gắn cờ đối soát tay thay vì im lặng.
+    return flagFulfillmentAmbiguous(order, "tiến trình trước chết giữa vòng mua phía NCC");
+  }
+
+  // Chưa dấu claim, chưa mã = chưa hề gửi NCC: chạy bước còn thiếu.
+  const user = await prisma.user.findUnique({ where: { id: order.userId } });
+  if (!user) return order;
+  return runPremiumApiFulfillment({ order, variant, user, quantity: order.quantity, buyerInfo: order.buyerInfo || undefined, total: order.total });
 }
 
 /** Số dư ví hiện tại của khách dạng chữ cho biến thư ({{balance}}). */

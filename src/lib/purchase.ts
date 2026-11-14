@@ -3,7 +3,7 @@ import { getSettings, usdtRateOf, depositContent } from "@/lib/settings";
 import { genCode } from "@/lib/format";
 import { flashPercentForProduct, applyFlashAmount } from "@/lib/flash";
 import { checkPromo } from "@/lib/promo";
-import { createPremiumOrder } from "@/lib/orders";
+import { createPremiumOrder, ensurePremiumOrderFulfillment } from "@/lib/orders";
 import { applyBalance } from "@/lib/wallet";
 import { notifyUser } from "@/lib/notify";
 import { alertMother } from "@/lib/alerts";
@@ -291,9 +291,22 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
         orderBy: { createdAt: "asc" }, take: 1,
       }) : [];
       if (candidates.length) {
-        const adopted: any = candidates[0];
+        let adopted: any = candidates[0];
         if (!keyed) {
           await prisma.premiumOrder.update({ where: { id: adopted.id }, data: { purchasePaymentId: pp.id, purchaseLineNo: idx } }).catch(() => {});
+        }
+        // TÁI-AUDIT 0e15517 P2-A: có dòng đơn mới chứng minh đơn ĐÃ TẠO,
+        // chưa chứng minh ĐÃ GỬI nhà cung cấp — tiến trình trước có thể
+        // chết đúng giữa commit đơn và lời gọi NCC. Đơn API còn PENDING
+        // thì đối soát/tiếp tục bước giao hàng còn thiếu TRƯỚC khi ghi
+        // nhận dòng này là xong; lỗi ở bước này cũng không được nuốt im
+        // lặng — cảnh báo admin đối soát tay.
+        if (adopted.status === "PENDING") {
+          try {
+            adopted = (await ensurePremiumOrderFulfillment(adopted.id)) || adopted;
+          } catch (e: any) {
+            await alertMother("purchase_fulfill_resume_failed", "Không tiếp tục được giao hàng cho đơn nhận lại", `Phiên ${pp.code}, đơn ${adopted.code}: ${String(e?.message || e).slice(0, 200)}`).catch(() => {});
+          }
         }
         okCodes.push(adopted.code);
         const diff = line.share - Number(adopted.total || 0);
