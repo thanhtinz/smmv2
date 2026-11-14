@@ -6,6 +6,7 @@ import { checkPromo } from "@/lib/promo";
 import { createPremiumOrder } from "@/lib/orders";
 import { applyBalance } from "@/lib/wallet";
 import { notifyUser } from "@/lib/notify";
+import { alertMother } from "@/lib/alerts";
 import { vietqrUrl } from "@/lib/vietqr";
 
 /** ================================================================
@@ -256,6 +257,20 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
     const line = snapshot.lines[idx];
     try {
       if (!user) throw new Error("Tài khoản không tồn tại");
+      // P1-02 (audit đợt 2): giá có thể đã ĐỔI sau lúc khách trả tiền (giá
+      // gói tăng / flash sale kết thúc). Tính lại tổng của dòng bằng ĐÚNG
+      // công thức lúc chốt phiên — nếu cao hơn phần tiền dòng này đã thu
+      // thì KHÔNG tạo đơn giao thiếu tiền; ném lỗi để nhánh catch bồi hoàn
+      // toàn bộ phần tiền của dòng vào ví khách. Trước bản vá, chênh lệch
+      // âm bị bỏ qua im lặng: shop giao theo giá mới nhưng chỉ thu giá cũ.
+      const expected = (await computeCartPayable(
+        [{ variantId: line.variantId, qty: line.qty, custom: line.custom, buyerInfo: line.buyerInfo }],
+        snapshot.promo || "",
+        pp.userId,
+      )).shares[0];
+      if (expected > line.share) {
+        throw new Error(`Giá gói đã tăng sau khi thanh toán (${line.share.toLocaleString("vi-VN")}đ → ${expected.toLocaleString("vi-VN")}đ)`);
+      }
       const order: any = await createPremiumOrder({
         user, variantId: line.variantId, quantity: line.qty,
         customData: line.custom && Object.keys(line.custom).length ? line.custom : undefined,
@@ -266,6 +281,11 @@ export async function settlePurchasePayment(ppId: number, opts: { paidVnd?: numb
       okCodes.push(order.code);
       // Giá chốt lúc thực thi THẤP hơn phần đã trả của dòng -> hoàn chênh lệch vào ví
       const diff = line.share - Number(order.total || 0);
+      if (diff < 0) {
+        // Đã chặn trước bằng tính-lại ở trên; chỉ còn cửa sổ race rất hẹp
+        // (giá đổi đúng giữa hai bước) — báo admin đối soát, không im lặng.
+        await alertMother("purchase_price_up", "Đơn thanh toán trực tiếp lệch giá tăng", `Phiên ${pp.code}, đơn ${order.code}: tổng thực thi ${Number(order.total || 0).toLocaleString("vi-VN")}đ > phần đã thu ${line.share.toLocaleString("vi-VN")}đ. Cần đối soát thủ công.`).catch(() => {});
+      }
       if (diff > 0) {
         await prisma.$transaction(async (tx) => {
           await applyBalance(tx, pp.userId, diff, "REFUND", pp.code, `Hoàn chênh lệch giá đơn ${order.code} (thanh toán trực tiếp ${pp.code})`);
