@@ -331,7 +331,17 @@ export async function executeFzrPremiumOrder(args: {
     try {
       const r = await createOne(provider, variant, order, inputs);
       raws.push(r.raw);
-      if (r.orderId) ids.push(r.orderId);
+      if (r.orderId) {
+        ids.push(r.orderId);
+        // Lưu mã đơn con NGAY sau mỗi lượt (full-audit 6750109 P2-03):
+        // tiến trình chết giữa vòng hoặc lần ghi chốt cuối vòng lỗi thì
+        // các mã đã tạo vẫn còn dấu vết cho cron/webhook đối soát. Lỗi
+        // ghi phụ bị nuốt — ghi chốt cuối vòng vẫn ghi đủ toàn bộ mã.
+        await prisma.premiumOrder.update({
+          where: { id: order.id },
+          data: { providerOrderId: ids.join(",") },
+        }).catch(() => {});
+      }
       if (r.note) notes.push(r.note);
       succeeded++;
     } catch (e: any) {

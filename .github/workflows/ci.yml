@@ -78,6 +78,7 @@ jobs:
             test-fzr-refund-ledger \
             test-fzr-mixed-status \
             test-fzr-webhook-childset \
+            test-fzr-child-ids \
             test-admin-order-cas \
             test-fzr-webhook \
             test-boltutil \

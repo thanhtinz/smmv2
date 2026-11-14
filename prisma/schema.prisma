@@ -455,7 +455,7 @@ model PremiumOrder {
   status        PremiumOrderStatus @default(PENDING)
   providerId    Int?
   provider      Provider?          @relation(fields: [providerId], references: [id])
-  providerOrderId String?          @db.VarChar(60) // order_code phía nhà cung cấp (kiểu ThaTim: _8488103)
+  providerOrderId String?          @db.Text // mã phía nhà cung cấp; driver FZR lưu NHIỀU mã đơn con cách nhau dấu phẩy (Telegram Premium theo lượt) — TEXT từ full-audit 6750109 P2-03, VARCHAR(60) tràn khi nhiều lượt
   // Liên kết PHIÊN THANH TOÁN TRỰC TIẾP (tái-audit P2-01 2026-11-14):
   // đơn do settlePurchasePayment tạo thì ghi id phiên + số dòng; cặp này
   // DUY NHẤT (Postgres cho nhiều NULL nên đơn thường không va nhau) —
