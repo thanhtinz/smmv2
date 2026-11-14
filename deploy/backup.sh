@@ -2,9 +2,15 @@
 # BNT Shop (dịch vụ smmv2) — Sao lưu database PostgreSQL vào /var/backups/smmv2, giữ 7 bản gần nhất.
 # Cron tự chạy 03:30 mỗi ngày (cài bởi install.sh); chạy tay: sudo bash deploy/backup.sh
 set -euo pipefail
+# P3-01 (full-audit 3d1309c): bản sao DB chứa dữ liệu khách + giao dịch —
+# siết quyền ngay từ đầu: umask 077 để file tạo ra là 600, thư mục 700,
+# và chmod tường minh sau khi tạo (không phụ thuộc umask của cron).
+umask 077
 DIR=/var/backups/smmv2
 mkdir -p "$DIR"
+chmod 700 "$DIR"
 FILE="$DIR/db-$(date +%Y%m%d-%H%M).sql.gz"
 su postgres -c "pg_dump smmv2" | gzip > "$FILE"
+chmod 600 "$FILE"
 ls -1t "$DIR"/db-*.sql.gz | tail -n +8 | xargs -r rm -f
 echo "Đã sao lưu: $FILE"
