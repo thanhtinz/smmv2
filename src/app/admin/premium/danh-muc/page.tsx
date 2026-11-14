@@ -18,7 +18,7 @@ export default async function AdminPremiumCategories( { searchParams: searchPara
   const dtos = cats.map((c) => ({ id: c.id, name: c.name, slug: c.slug, description: c.description, icon: c.icon, sort: c.sort, active: c.active, metaTitle: c.metaTitle, metaDescription: c.metaDescription, productCount: c._count.products }));
   return (
     <div>
-      <PageHead title={L("Quản lý Danh mục Premium")} desc={L("Quản lý các danh mục sản phẩm Premium")} />
+      <PageHead title={L("Quản lý Danh mục Premium")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form method="get" className="card mb-4 flex flex-wrap items-center gap-3 p-4">
         <input name="q" defaultValue={searchParams.q || ""} className="inp min-w-[220px] flex-1 sm:max-w-[400px]" placeholder={L("Tìm theo tên danh mục hoặc slug...")} />

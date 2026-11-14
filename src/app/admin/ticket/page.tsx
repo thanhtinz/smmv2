@@ -17,7 +17,7 @@ export default async function AdminTickets() {
   const tickets = await prisma.ticket.findMany({ where: {}, orderBy: [{ status: "asc" }, { updatedAt: "desc" }], take: 60, include: { user: true, _count: { select: { messages: true } } } });
   return (
     <div>
-      <PageHead title={L("Ticket hỗ trợ")} desc={L("Ticket CHỜ PHẢN HỒI (khách vừa gửi/trả lời) được xếp lên đầu.")} />
+      <PageHead title={L("Ticket hỗ trợ")} />
       {ratingAgg._count.rating > 0 && <p className="mb-4 text-sm text-slate-500">{L("Đánh giá hỗ trợ trung bình:")} <b className="inline-flex items-center gap-1 text-amber-500">{(ratingAgg._avg.rating || 0).toFixed(1)}<span className="[&_svg]:h-4 [&_svg]:w-4">{I.star}</span></b> {L("từ")} {ratingAgg._count.rating} {L("lượt chấm của khách")}</p>}
       {tickets.length === 0 ? <Empty text={L("Chưa có ticket nào")} /> : (
         <div className="card overflow-x-auto">

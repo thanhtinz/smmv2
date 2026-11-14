@@ -14,7 +14,7 @@ export default async function AdminEmailMarketing( { searchParams: searchParamsP
   const configured = !!(s.smtp_host && s.smtp_user && s.smtp_from);
   return (
     <div>
-      <PageHead title="Email Marketing" desc={L("Gửi email thông báo / khuyến mãi tới nhóm người dùng. Email gửi theo lô, ẩn danh sách người nhận (BCC).")} />
+      <PageHead title="Email Marketing" />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       {!configured && (
         <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">

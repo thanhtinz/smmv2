@@ -23,7 +23,7 @@ export default async function AdminCurrencyPage( { searchParams: searchParamsPro
   const s = await getSettings();
   return (
     <div>
-      <PageHead title={L("Quản lý tiền tệ")} desc={L("Tỉ giá quy đổi hiển thị khi khách đổi tiền tệ ở nút Cài đặt hiển thị. Số dư và thanh toán thật luôn tính bằng VNĐ.")} />
+      <PageHead title={L("Quản lý tiền tệ")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form action={saveRatesAction} className="card p-6">
         <div className="font-bold text-slate-900">{L("Tỉ giá: 1 đơn vị ngoại tệ = ? VNĐ")}</div>

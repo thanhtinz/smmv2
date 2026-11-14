@@ -47,7 +47,7 @@ export default async function AdminAnalytics() {
 
   return (
     <div>
-      <PageHead title={L("Phân tích")} desc={L("Thu nhập tổng, mặt hàng bán chạy, top khách và hành vi khách hàng.")} />
+      <PageHead title={L("Phân tích")} />
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={L("Thu nhập hôm nay")} value={M(full.today.revenue)} sub={L("Lãi ") + M(full.today.profit) + L(" · ") + num(full.today.orders) + L(" đơn")} icon={I.money} tone="blue" />
         <Stat label={L("Thu nhập 7 ngày")} value={M(full.last7.revenue)} sub={L("Lãi ") + M(full.last7.profit) + L(" · ") + num(full.last7.orders) + L(" đơn")} icon={I.chart} tone="cyan" />

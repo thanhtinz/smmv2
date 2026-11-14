@@ -56,7 +56,7 @@ export default async function AdminSystem( { searchParams: searchParamsPromise }
   ];
   return (
     <div>
-      <PageHead title={L("Hệ thống")} desc={L("Thông tin môi trường và dọn dẹp dữ liệu cũ để hệ thống nhẹ và nhanh.")} />
+      <PageHead title={L("Hệ thống")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <div className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">{L("Sức khoẻ hệ thống")}</div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

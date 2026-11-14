@@ -62,7 +62,7 @@ export default async function AdminHome() {
 
   return (
     <div>
-      <PageHead title={L("Tổng quan")} desc={L("Toàn cảnh kinh doanh của hệ thống.")} />
+      <PageHead title={L("Tổng quan")} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="card p-5">

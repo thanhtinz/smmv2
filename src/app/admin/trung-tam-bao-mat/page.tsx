@@ -77,7 +77,7 @@ export default async function SecurityCenter( { searchParams: searchParamsPromis
 
   return (
     <div>
-      <PageHead title={L("Trung tâm bảo mật")} desc={L("Tổng quan an ninh toàn hệ thống: đăng nhập, thiết bị, khoá khẩn cấp và nhật ký thao tác bất biến.")} />
+      <PageHead title={L("Trung tâm bảo mật")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">

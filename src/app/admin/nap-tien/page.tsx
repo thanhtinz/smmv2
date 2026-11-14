@@ -72,7 +72,7 @@ export default async function AdminDeposits( { searchParams: searchParamsPromise
 
   return (
     <div>
-      <PageHead title={L("Quản lý Nạp tiền")} desc={L("Phê duyệt và theo dõi các giao dịch tài chính trên hệ thống.")}>
+      <PageHead title={L("Quản lý Nạp tiền")}>
         <DeleteAllDeposits action={adminDeleteDepositsAction} />
         <a href="/admin/nap-tien" className="btn-primary">{L("Cập nhật dữ liệu")}</a>
       </PageHead>

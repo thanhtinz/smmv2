@@ -27,7 +27,7 @@ export default async function AdminStock( { searchParams: searchParamsPromise }:
 
   return (
     <div>
-      <PageHead title={L("Kho Premium")} desc={L("Mỗi dòng kho = 1 đơn vị giao ngay khi khách mua gói tương ứng. Mục đã bán được gắn mã đơn để tra cứu bảo hành.")} />
+      <PageHead title={L("Kho Premium")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
         <div className="xl:col-span-2 space-y-6">
@@ -54,7 +54,7 @@ export default async function AdminStock( { searchParams: searchParamsPromise }:
             <select className="inp !w-44" name="status" defaultValue={searchParams.status || ""}>
               <option value="">{L("Tất cả")}</option><option value="AVAILABLE">{L("Còn trong kho")}</option><option value="SOLD">{L("Đã bán")}</option>
             </select>
-            <button className="btn-dark">{L("Lọc")}</button>
+            <button className="btn-primary">{L("Lọc")}</button>
           </form>
           <div className="card overflow-x-auto">
             <table className="w-full min-w-[640px]">

@@ -35,7 +35,7 @@ export default async function AdminUpdate() {
   const lastMig = migrations[0]?.finished_at || null;
   return (
     <div>
-      <PageHead title={L("Cập nhật hệ thống")} desc={L("Phiên bản nền tảng đang chạy và lịch sử cập nhật cơ sở dữ liệu.")}>
+      <PageHead title={L("Cập nhật hệ thống")}>
         <a href="https://github.com/thanhtinz/smmv2/commits/main" target="_blank" rel="noreferrer" className="btn-primary !py-2.5">{L("Kiểm tra cập nhật")}</a>
       </PageHead>
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">

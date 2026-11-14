@@ -62,7 +62,7 @@ export function ContactWidgetsManager({ items, saveAction, deleteAction, toggleA
               <Badge cls={w.active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}>{w.active ? t("Hiển thị") : t("Đã ẩn")}</Badge>
               <form action={toggleAction}>
                 <input type="hidden" name="id" value={w.id} />
-                <button type="submit" title={w.active ? t("Tắt hiển thị") : t("Bật hiển thị")} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${w.active ? "bg-blue-600" : "bg-slate-300"}`}>
+                <button type="submit" title={w.active ? t("Tắt hiển thị") : t("Bật hiển thị")} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${w.active ? "bg-brand-600" : "bg-slate-300"}`}>
                   <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${w.active ? "left-[22px]" : "left-0.5"}`} />
                 </button>
               </form>

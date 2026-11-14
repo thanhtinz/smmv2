@@ -29,7 +29,7 @@ export default async function AdminPromotions( { searchParams: searchParamsPromi
   const topTier = bonusTiers.length ? bonusTiers.reduce((a, b) => (b.percent > a.percent ? b : a)) : null;
   return (
     <div>
-      <PageHead title={L("Khuyến mãi")} desc={L("Thưởng nạp tiền, hoa hồng giới thiệu và mã giảm giá của hệ thống.")} />
+      <PageHead title={L("Khuyến mãi")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form action={adminSaveMethodsAction} className="card space-y-4 p-6">
         <input type="hidden" name="back" value="/admin/khuyen-mai" />

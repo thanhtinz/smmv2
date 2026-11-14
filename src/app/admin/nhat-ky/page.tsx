@@ -15,13 +15,13 @@ export default async function AdminLogs( { searchParams: searchParamsPromise }: 
   const kinds = ["provider_out", "provider_sync", "reseller_in", "webhook"];
   return (
     <div>
-      <PageHead title={L("Nhật ký API & Webhook")} desc={L("Tra cứu lỗi đấu API, đồng bộ dịch vụ, refill từ đại lý và webhook nạp tiền.")} />
+      <PageHead title={L("Nhật ký API & Webhook")} />
       <form className="flex gap-2 mb-5">
         <select className="inp !w-56" name="kind" defaultValue={searchParams.kind || ""}>
           <option value="">{L("Tất cả loại")}</option>
           {kinds.map((k) => <option key={k} value={k}>{k}</option>)}
         </select>
-        <button className="btn-dark">{L("Lọc")}</button>
+        <button className="btn-primary">{L("Lọc")}</button>
       </form>
       {logs.length === 0 ? <Empty text={L("Chưa có nhật ký")} /> : (
         <div className="card overflow-x-auto">

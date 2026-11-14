@@ -19,7 +19,7 @@ export default async function AdminDiscountCodes( { searchParams: searchParamsPr
   const edit = searchParams.edit ? codes.find((c) => c.id === parseInt(searchParams.edit || "0")) : undefined;
   return (
     <div>
-      <PageHead title={L("Mã giảm giá")} desc={L("Mã khuyến mãi khách nhập khi mua Premium — tiền giảm trừ thẳng vào tiền đơn, hệ thống chịu phần giảm.")}>
+      <PageHead title={L("Mã giảm giá")}>
         {edit && <Link href="/admin/ma-giam-gia" className="btn-ghost">{L("+ Tạo mã mới")}</Link>}
       </PageHead>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />

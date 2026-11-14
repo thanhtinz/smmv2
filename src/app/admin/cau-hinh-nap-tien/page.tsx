@@ -90,7 +90,7 @@ export default async function AdminMethodConfig( { searchParams: searchParamsPro
   ].filter(Boolean) as string[];
   return (
     <div>
-      <PageHead title={L("Cấu hình nạp tiền")} desc={L("Bật/tắt và cấu hình từng phương thức nạp tiền của hệ thống.")} />
+      <PageHead title={L("Cấu hình nạp tiền")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <div className="grid items-start gap-6 xl:grid-cols-2">
         <form action={adminSaveMethodsAction} className="card space-y-4 p-6">

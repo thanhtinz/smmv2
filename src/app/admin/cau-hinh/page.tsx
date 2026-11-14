@@ -772,7 +772,7 @@ export default async function AdminSettings( { searchParams: searchParamsPromise
 
   return (
     <div>
-      <PageHead title={L("Cài đặt Website")} desc={L("Cấu hình SEO, logo, favicon và thông báo hệ thống.")}>
+      <PageHead title={L("Cài đặt Website")}>
         <button type="submit" form="settings-form" className="btn-primary shrink-0">{L("Lưu cài đặt")}</button>
       </PageHead>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />

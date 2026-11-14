@@ -41,7 +41,7 @@ export default async function AdminCleanupPage( { searchParams: searchParamsProm
   const trashIcon = (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5 inline"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>);
   return (
     <div>
-      <PageHead title={L("Dọn dẹp hệ thống")} desc={L("Quản lý bộ nhớ đệm, dọn dẹp các tệp tin logs rác và tối ưu hóa hệ thống")} />
+      <PageHead title={L("Dọn dẹp hệ thống")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
       <div className="grid gap-4 md:grid-cols-3">

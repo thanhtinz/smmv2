@@ -30,7 +30,7 @@ export default async function AdminPremiumProducts( { searchParams: searchParams
   const categories = catDtos;
   return (
     <div>
-      <PageHead title={L("Quản lý Sản phẩm Premium")} desc={L("Thêm, sửa, xóa sản phẩm và các gói thời hạn (1 tháng, 3 tháng, 1 năm...)")} />
+      <PageHead title={L("Quản lý Sản phẩm Premium")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <ProductsClient
         products={dtos}

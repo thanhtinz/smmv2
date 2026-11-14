@@ -44,7 +44,7 @@ export default async function AdminModules( { searchParams: searchParamsPromise 
   const s = await getSettings();
   return (
     <div>
-      <PageHead title={L("Mô-đun")} desc={L("Bật / tắt từng mảng chức năng của hệ thống. Tắt là module biến mất khỏi phía khách và route/API của nó bị chặn luôn.")}>
+      <PageHead title={L("Mô-đun")}>
         <button className="btn-primary !py-2.5" form="modules-form" type="submit">{L("Lưu thay đổi")}</button>
       </PageHead>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />

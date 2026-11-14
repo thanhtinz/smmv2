@@ -16,7 +16,7 @@ export default async function AdminPostCategories( { searchParams: searchParamsP
   const edit = searchParams.edit ? cats.find((c) => c.id === parseInt(searchParams.edit || "0")) : undefined;
   return (
     <div>
-      <PageHead title={L("Danh mục bài viết")} desc={L("Nhóm bài viết theo chủ đề (tin tức, hướng dẫn, khuyến mãi...).")}>
+      <PageHead title={L("Danh mục bài viết")}>
         <Link href="/admin/bai-viet" className="btn-ghost">{L("← Tất cả bài viết")}</Link>
       </PageHead>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />

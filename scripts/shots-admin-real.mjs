@@ -133,6 +133,25 @@ async function main() {
   }
   await shot("2026-11-14-rebuild-p3-orders-last");
 
+  // P4: ra toan bo trang admin con lai — render sach, khong loi ung dung
+  const p4pages = [
+    "phan-tich", "nha-cung-cap", "premium/danh-muc", "kho-premium", "don-premium",
+    "nguoi-dung", "ticket", "nap-tien", "cau-hinh-nap-tien", "ngan-hang",
+    "bien-dong", "ma-giam-gia", "khuyen-mai", "bai-viet", "bai-viet/danh-muc",
+    "banner", "email-marketing", "lien-he", "tien-te", "ngon-ngu", "mo-dun",
+    "bao-cao", "nhat-ky", "rui-ro", "bao-mat", "trung-tam-bao-mat",
+    "he-thong", "cap-nhat", "don-dep",
+  ];
+  for (const slug of p4pages) {
+    await navigate(`${BASE}/admin/${slug}`, 2200);
+    t = (await bodyText()).toLowerCase();
+    ok(!t.includes("application error") && !t.includes("internal server error"), `R12-${slug}: trang render sạch`);
+  }
+  for (const [slug, name] of [["nguoi-dung", "users"], ["nha-cung-cap", "providers"], ["nap-tien", "deposits"], ["ticket", "tickets"], ["mo-dun", "modules"]]) {
+    await navigate(`${BASE}/admin/${slug}`, 2500);
+    await shot(`2026-11-14-rebuild-p4-${name}`);
+  }
+
   await navigate(`${BASE}/admin/cau-hinh`, 3000);
   const inpH = await evaluate(`(() => { const el = document.querySelector('.admin-scope input.inp, .admin-scope .inp'); return el ? Math.round(el.getBoundingClientRect().height) : 0; })()`);
   ok(inpH === 40, `R5: ô nhập admin cao đúng 40px (đo=${inpH})`);

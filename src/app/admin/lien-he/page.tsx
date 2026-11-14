@@ -23,7 +23,7 @@ export default async function AdminContactPage( { searchParams: searchParamsProm
   const aiOn = s.ai_enabled === "1" && !!s.ai_api_key;
   return (
     <div>
-      <PageHead title={L("Widget Liên hệ")} desc={L("Quản lý các kênh liên hệ hiển thị trên website")} />
+      <PageHead title={L("Widget Liên hệ")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <div>
         <ContactWidgetsManager

@@ -94,7 +94,7 @@ export default async function AdminUserDetail( { params: paramsPromise, searchPa
                 <select className="inp" name="role" defaultValue={u.role}><option value="USER">{L("Người dùng")}</option><option value="STAFF">{L("Nhân viên")}</option><option value="ADMIN">{L("Admin")}</option></select>
               </div>
             )}
-            <button className="btn-dark w-full">{L("Lưu thay đổi")}</button>
+            <button className="btn-primary w-full">{L("Lưu thay đổi")}</button>
           </form>
           <div className="card overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 font-bold text-slate-900">{L("Ticket & nạp gần nhất")}</div>

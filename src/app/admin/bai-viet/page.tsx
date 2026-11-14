@@ -21,7 +21,7 @@ export default async function AdminPosts( { searchParams: searchParamsPromise }:
   const edit = searchParams.edit ? posts.find((p) => p.id === parseInt(searchParams.edit || "0")) : undefined;
   return (
     <div>
-      <PageHead title={L("Bài viết")} desc={L("Tin tức / hướng dẫn hiển thị công khai ở mục Bài viết trên website.")}>
+      <PageHead title={L("Bài viết")}>
         <Link href="/admin/bai-viet/danh-muc" className="btn-ghost">{L("Danh mục bài viết")}</Link>
         {edit && <Link href="/admin/bai-viet" className="btn-primary">{L("+ Viết bài mới")}</Link>}
       </PageHead>
@@ -30,7 +30,7 @@ export default async function AdminPosts( { searchParams: searchParamsPromise }:
         <div>
           <form className="mb-4 flex gap-2">
             <input className="inp !w-80" name="q" placeholder={L("Tìm tiêu đề bài viết...")} defaultValue={searchParams.q || ""} />
-            <button className="btn-dark">{L("Tìm kiếm")}</button>
+            <button className="btn-primary">{L("Tìm kiếm")}</button>
           </form>
           {posts.length === 0 ? <Empty text={L("Chưa có bài viết nào")} /> : (
             <div className="card overflow-x-auto">

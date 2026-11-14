@@ -16,7 +16,7 @@ export default async function AdminBanks( { searchParams: searchParamsPromise }:
   const edit = searchParams.edit ? banks.find((b) => b.id === parseInt(searchParams.edit || "0")) : undefined;
   return (
     <div>
-      <PageHead title={L("Ngân hàng")} desc={L("Quản lý tài khoản ngân hàng nhận thanh toán. Người dùng sẽ chuyển khoản vào các tài khoản này (hiện ở trang Nạp tiền).")}>
+      <PageHead title={L("Ngân hàng")}>
         {edit && <Link href="/admin/ngan-hang" className="btn-ghost">{L("+ Thêm ngân hàng")}</Link>}
       </PageHead>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />

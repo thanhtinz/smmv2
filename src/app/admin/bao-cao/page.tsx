@@ -43,7 +43,7 @@ export default async function AdminReportPage( { searchParams: searchParamsPromi
 
   return (
     <div>
-      <PageHead title={L("Báo cáo & Thông báo")} desc={L("Thống kê thu nhập, mặt hàng bán chạy, top khách — và nơi cấu hình gửi báo cáo/báo tin qua Email, Telegram, Discord.")}>
+      <PageHead title={L("Báo cáo & Thông báo")}>
         <form action={sendMotherReportNowAction}>
           <button className="btn-primary">{L("Gửi báo cáo ngay")}</button>
         </form>
@@ -177,7 +177,7 @@ export default async function AdminReportPage( { searchParams: searchParamsPromi
             </form>
           ))}
           <form action={sendMotherReportNowAction}>
-            <button className="btn-dark">{L("Gửi báo cáo ngay")}</button>
+            <button className="btn-primary">{L("Gửi báo cáo ngay")}</button>
           </form>
         </div>
       </div>

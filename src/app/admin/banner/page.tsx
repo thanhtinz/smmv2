@@ -22,7 +22,7 @@ export default async function AdminBannerPage( { searchParams: searchParamsPromi
 
   return (
     <div>
-      <PageHead title={L("Banner trang chủ")} desc={L("Mỗi banner gắn một ngôn ngữ — khách chọn ngôn ngữ nào sẽ thấy banner của ngôn ngữ đó.")} />
+      <PageHead title={L("Banner trang chủ")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
 
       <BannerForm

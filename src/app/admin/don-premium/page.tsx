@@ -19,7 +19,7 @@ export default async function AdminPremiumOrders( { searchParams: searchParamsPr
   const orders = await prisma.premiumOrder.findMany({ where, orderBy: { id: "desc" }, take: 50, include: { variant: { include: { product: true } }, user: true } });
   return (
     <div>
-      <PageHead title={L("Đơn Premium")} desc={L("Đơn Chờ giao = khách đã trả tiền, cần giao tay. Đơn Bảo hành = khách báo lỗi, cần đổi/hoàn.")} />
+      <PageHead title={L("Đơn Premium")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form className="flex flex-wrap gap-2 mb-5">
         <input className="inp min-w-[220px] flex-1" name="q" placeholder={L("Mã đơn / username...")} defaultValue={searchParams.q || ""} />
@@ -27,7 +27,7 @@ export default async function AdminPremiumOrders( { searchParams: searchParamsPr
           <option value="">{L("Tất cả trạng thái")}</option>
           {Object.entries(PRE_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <button className="btn-dark">{L("Lọc")}</button>
+        <button className="btn-primary">{L("Lọc")}</button>
       </form>
       {orders.length === 0 ? <Empty text={L("Không có đơn nào")} /> : (
         <div className="card overflow-x-auto">

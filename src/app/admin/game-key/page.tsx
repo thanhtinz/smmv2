@@ -27,7 +27,7 @@ export default async function AdminGameKeyOrders( { searchParams: searchParamsPr
           <option value="">{L("Tất cả trạng thái")}</option>
           {Object.entries(PRE_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <button className="btn-dark">{L("Lọc")}</button>
+        <button className="btn-primary">{L("Lọc")}</button>
       </form>
       {orders.length === 0 ? <Empty text={L("Không có đơn nào")} /> : (
         <div className="card overflow-x-auto">

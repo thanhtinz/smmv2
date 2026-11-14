@@ -40,7 +40,7 @@ export default async function AdminRisk() {
 
   return (
     <div>
-      <PageHead title={L("Phát hiện rủi ro")} desc={L("Các dấu hiệu bất thường hệ thống tự quét: đặt đơn dày bất thường, thông tin nhận hàng dùng chung nhiều tài khoản, nạp lớn chờ duyệt, hoàn tiền dày.")} />
+      <PageHead title={L("Phát hiện rủi ro")} />
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={L("Khách đặt ≥5 đơn / giờ")} value={num(rapidUsers.length)} icon={I.clock} tone="orange" />
         <Stat label={L("Thông tin nhận dùng chung ≥3 tài khoản")} value={num(sharedBuyers.length)} icon={I.list} tone="amber" />

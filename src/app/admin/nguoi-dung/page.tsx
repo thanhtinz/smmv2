@@ -20,11 +20,21 @@ export default async function AdminUsers( { searchParams: searchParamsPromise }:
   const totalBalance = await prisma.user.aggregate({ _sum: { balance: true } });
   return (
     <div>
-      <PageHead title={L("Người dùng")} desc={<>{num(users.length)} {L("tài khoản hiển thị")} · {L("Tổng số dư khách đang giữ:")} {M(totalBalance._sum.balance || 0)} {L("(nợ phải trả của hệ thống)")}</>} />
+      <PageHead title={L("Người dùng")} />
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:max-w-[560px]">
+        <div className="card p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{L("Tài khoản hiển thị")}</div>
+          <div className="mt-1 text-xl font-extrabold text-slate-800">{num(users.length)}</div>
+        </div>
+        <div className="card p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{L("Tổng số dư khách đang giữ")}</div>
+          <div className="mt-1 text-xl font-extrabold text-slate-800">{M(totalBalance._sum.balance || 0)}</div>
+        </div>
+      </div>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form className="flex gap-2 mb-5">
         <input className="inp !w-80" name="q" placeholder={L("Tìm username / email / SĐT...")} defaultValue={searchParams.q || ""} />
-        <button className="btn-dark">{L("Tìm")}</button>
+        <button className="btn-primary">{L("Tìm")}</button>
       </form>
       {users.length === 0 ? <Empty text={L("Không tìm thấy người dùng")} /> : (
         <div className="card overflow-x-auto">

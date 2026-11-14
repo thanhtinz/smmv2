@@ -51,7 +51,7 @@ export default async function AdminProviders( { searchParams: searchParamsPromis
   }
   return (
     <div>
-      <PageHead title={L("Quản lý nhà cung cấp")} desc={L("Nhà cung cấp nguồn hàng Premium — hệ thống tự đồng bộ sản phẩm + giá (cộng markup), tự đẩy đơn và tự cập nhật trạng thái.")} />
+      <PageHead title={L("Quản lý nhà cung cấp")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label={L("Tổng số nhà cung cấp")} value={String(providers.length)} icon={I.server} />

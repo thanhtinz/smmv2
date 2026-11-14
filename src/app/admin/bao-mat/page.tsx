@@ -24,7 +24,7 @@ export default async function AdminSecurity( { searchParams: searchParamsPromise
   const KIND_LABEL: Record<string, string> = { bulk_price: "Chỉnh giá hàng loạt", email_marketing: "Gửi email marketing", cleanup: "Dọn dẹp hệ thống", price_change: "Nguồn đổi giá vốn" };
   return (
     <div>
-      <PageHead title={L("Bảo mật nâng cao")} desc={L("Chặn IP lạm dụng và chính sách mật khẩu. IP bị chặn sẽ không đăng nhập / đăng ký được.")} />
+      <PageHead title={L("Bảo mật nâng cao")} />
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <form action={saveSecurityPolicyAction} className="card mb-6 overflow-hidden">
         <CardHead icon={I.shield} tone="brand" title={L("Bảo mật khu quản trị (2FA + IP được phép)")} />
