@@ -544,32 +544,97 @@ export async function syncPremiumOrderStatus(order: PremiumOrder) {
     else if (st === "completed") completedNoData++;
     if (/cancel|refund|fail/.test(st)) canceled++;
   }
-  if (deliveries.length) {
-    await prisma.premiumOrder.update({
-      where: { id: order.id },
-      data: { status: "DELIVERED", deliveryData: deliveries.join("\n---\n") },
-    });
-    await awardPointsForPremiumOrder(order);
-    // Mail chỉ bắn khi đơn THẬT SỰ chuyển sang đã giao ở lần đồng bộ này —
-    // admin bấm đồng bộ lại trên đơn đã giao thì không gửi trùng.
+  // FULL-AUDIT a75d260 P2-01: chốt trạng thái tổng theo TỪNG đơn con.
+  // Trước đây chỉ cần deliveries.length > 0 là DELIVERED cả đơn dù các
+  // đơn con còn lại đang xử lý/không thấy/đã huỷ — cron chỉ poll
+  // PENDING/PARTIAL nên phần chưa giao bị bỏ rơi vĩnh viễn.
+  const totalCodes = codes.length;
+  const allSeen = totalCodes > 0 && seen === totalCodes;
+  const finishedOk = deliveries.length + completedNoData;
+  const deliveredMail = async () => {
     if (order.status !== "DELIVERED" && order.status !== "COMPLETED") {
       void sendCustomerMail(order.userId, "order_delivered", {
         order_code: order.code, product_name: variant?.product.name || "", variant_name: variant?.name || "",
         delivery_content: deliveries.join("\n---\n"),
       });
     }
-  } else if (completedNoData > 0 && seen === codes.length && canceled === 0) {
+  };
+  if (allSeen && canceled === 0 && finishedOk === totalCodes && deliveries.length === totalCodes) {
+    // Mọi đơn con đều đã giao có nội dung -> DELIVERED.
+    await prisma.premiumOrder.update({
+      where: { id: order.id },
+      data: { status: "DELIVERED", deliveryData: deliveries.join("\n---\n") },
+    });
+    await awardPointsForPremiumOrder(order);
+    await deliveredMail();
+  } else if (allSeen && canceled === 0 && finishedOk === totalCodes && deliveries.length > 0) {
+    // Mọi đơn con đều xong; một số completed nhưng không trả dữ liệu
+    // bàn giao -> DELIVERED phần có nội dung + ghi chú đối soát phần
+    // thiếu (không bỏ rơi như trước, cũng không kẹt PARTIAL vô hạn).
+    await prisma.premiumOrder.update({
+      where: { id: order.id },
+      data: {
+        status: "DELIVERED", deliveryData: deliveries.join("\n---\n"),
+        adminNote: [order.adminNote, `Đồng bộ NCC: ${completedNoData}/${totalCodes} đơn con completed nhưng không có dữ liệu bàn giao — đối soát tay`].filter(Boolean).join(" · "),
+      },
+    });
+    await awardPointsForPremiumOrder(order);
+    await deliveredMail();
+  } else if (allSeen && canceled === 0 && finishedOk === totalCodes) {
     // Provider báo hoàn thành nhưng chưa trả dữ liệu bàn giao -> đánh dấu hoàn thành, admin đối soát
     await prisma.premiumOrder.update({
       where: { id: order.id },
       data: { status: "COMPLETED", adminNote: [order.adminNote, "Provider báo completed nhưng chưa có dữ liệu bàn giao"].filter(Boolean).join(" · ") },
     });
     await awardPointsForPremiumOrder(order);
-    if (order.status !== "DELIVERED" && order.status !== "COMPLETED") {
-      void sendCustomerMail(order.userId, "order_delivered", {
-        order_code: order.code, product_name: variant?.product.name || "", variant_name: variant?.name || "",
-        delivery_content: "",
+    await deliveredMail();
+  } else if (deliveries.length > 0 || (allSeen && canceled > 0 && finishedOk > 0)) {
+    // HỖN HỢP: một phần đã giao/xong, phần còn lại đang chạy hoặc đã
+    // huỷ -> PARTIAL (cron poll tiếp). Thấy đủ mà có đơn con huỷ thì
+    // hoàn phần huỷ theo quyền lợi luỹ kế qua sổ hoàn.
+    const joined = deliveries.join("\n---\n");
+    const claim = await prisma.premiumOrder.updateMany({
+      where: { id: order.id, status: "PENDING" },
+      data: { status: "PARTIAL", ...(joined ? { deliveryData: joined } : {}) },
+    });
+    if (claim.count === 0 && joined) {
+      await prisma.premiumOrder.updateMany({
+        where: { id: order.id, status: "PARTIAL" },
+        data: { deliveryData: joined },
       });
+    }
+    if (claim.count === 1) {
+      await alertMother("purchase_fulfill_ambiguous", `Đơn NCC chuẩn giao một phần: ${order.code}`, `Đơn ${order.code}: ${finishedOk}/${totalCodes} đơn con đã xong, ${canceled} huỷ, còn lại đang xử lý/không thấy. Đơn ở trạng thái PARTIAL chờ đối soát tiếp.`).catch(() => {});
+    }
+    if (allSeen && canceled > 0) {
+      let partCredited = 0;
+      await prisma.$transaction(async (tx) => {
+        const fresh = await tx.premiumOrder.findUnique({ where: { id: order.id } });
+        if (!fresh) return;
+        const entitledAmt = Math.floor((fresh.total * canceled) / totalCodes);
+        const deltaAmt = entitledAmt - (fresh.refundedAmount || 0);
+        const deltaUnits = Math.max(0, canceled - (fresh.refundedUnits || 0));
+        if (deltaAmt <= 0) return;
+        // CAS trên chính refundedAmount: hai lượt đồng bộ chạy trùng
+        // không cộng hai lần (mẫu FZR mixed-status).
+        const cas = await tx.premiumOrder.updateMany({
+          where: { id: order.id, refundedAmount: fresh.refundedAmount },
+          data: { refundedAmount: entitledAmt, refundedUnits: Math.max(canceled, fresh.refundedUnits || 0) },
+        });
+        if (cas.count === 0) return;
+        if (deltaUnits > 0) await restoreVariantStock(tx, order.variantId, deltaUnits);
+        const { applyBalance } = await import("./wallet");
+        await applyBalance(tx, order.userId, deltaAmt, "REFUND", order.code, `Hoàn ${canceled} đơn con bị huỷ của đơn ${order.code}`);
+        partCredited = deltaAmt;
+      });
+      if (partCredited > 0) {
+        await clawbackReferralCommission(order.userId, partCredited, order.code);
+        await clawbackPassCashback(order.userId, partCredited, order.code);
+        void sendCustomerMail(order.userId, "order_refunded", {
+          order_code: order.code, product_name: variant?.product.name || "",
+          refund_amount: vnd(partCredited), balance: await balanceText(order.userId),
+        });
+      }
     }
   } else if (canceled === codes.length && codes.length > 0 && order.status !== "REFUNDED") {
     // Claim REFUNDED trong transaction trước khi cộng tiền — đồng bộ chạy trùng
