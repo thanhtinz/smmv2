@@ -12,6 +12,7 @@ import { recordLoginEvent } from "@/lib/login-events";
 import { clientIp } from "@/lib/rate-limit";
 import { lockdownMessage, lockdownState, userCanBypassLockdown } from "@/lib/lockdown";
 import {
+  claimPasskeyChallenge,
   clearChallenge,
   parseTransports,
   passkeysEnabled,
@@ -109,6 +110,15 @@ export async function POST(req: NextRequest) {
     return fail(403, lockdownMessage(ld.reason));
   }
 
+  // P3-01 (full-audit 6750109): tiêu thụ challenge NGUYÊN TỬ ở server
+  // TRƯỚC khi xác minh — hai request song song cùng cookie/assertion
+  // chỉ một lượt qua được claim này; cookie bị xoá ở response không
+  // còn là chốt duy nhất.
+  if (!(await claimPasskeyChallenge(saved))) {
+    await clearChallenge();
+    return fail(401, "Passkey không hợp lệ");
+  }
+
   const { rpID, origin } = rpFromRequest(req);
   let verified = false;
   let newCounter = passkey.counter;
@@ -145,10 +155,35 @@ export async function POST(req: NextRequest) {
     return fail(401, "Passkey không hợp lệ");
   }
 
-  await prisma.userPasskey.update({
-    where: { id: passkey.id },
+  // Counter: chống phát lại bằng CAS trên giá trị counter đã đọc +
+  // kiểm tra đơn điệu (authenticator có counter > 0 phải tăng). CAS
+  // trượt = một request song song đã dùng assertion này rồi.
+  if (passkey.counter > 0 && newCounter <= passkey.counter) {
+    await recordLoginEvent({
+      userId: user.id,
+      username: user.username,
+      success: false,
+      reason: "Passkey counter không tăng (nghi phát lại)",
+      ip,
+      userAgent: ua,
+    });
+    return fail(401, "Passkey không hợp lệ");
+  }
+  const counterCas = await prisma.userPasskey.updateMany({
+    where: { id: passkey.id, counter: passkey.counter },
     data: { counter: newCounter, lastUsedAt: new Date() },
   });
+  if (counterCas.count === 0) {
+    await recordLoginEvent({
+      userId: user.id,
+      username: user.username,
+      success: false,
+      reason: "Passkey counter đã bị dùng (CAS trượt)",
+      ip,
+      userAgent: ua,
+    });
+    return fail(401, "Passkey không hợp lệ");
+  }
   await recordLoginEvent({
     userId: user.id,
     username: user.username,

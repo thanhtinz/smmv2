@@ -96,6 +96,19 @@ export async function saveChallenge(
     maxAge: 60 * 5,
     secure: process.env.NODE_ENV === "production",
   };
+  // Ghi dòng challenge phía server (P3-01) + dọn dòng hết hạn tranh thủ.
+  try {
+    const { prisma } = await import("./db");
+    await prisma.passkeyChallenge.create({
+      data: {
+        challengeHash: await challengeHashOf(data.challenge),
+        purpose: data.purpose,
+        uid: data.uid ?? null,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      },
+    });
+    void prisma.passkeyChallenge.deleteMany({ where: { expiresAt: { lt: new Date() } } }).catch(() => {});
+  } catch { /* DB lỗi: verify sẽ fail-closed ở bước claim */ }
   if (maybeData && dataOrStore && typeof (dataOrStore as { set?: unknown }).set === "function") {
     (dataOrStore as { set: (name: string, value: string, o: typeof opts) => void }).set(
       PASSKEY_CHALLENGE_COOKIE,
@@ -105,6 +118,33 @@ export async function saveChallenge(
     return;
   }
   (await cookies()).set(PASSKEY_CHALLENGE_COOKIE, token, opts);
+}
+
+const challengeHashOf = async (challenge: string): Promise<string> => {
+  const { createHash } = await import("crypto");
+  return createHash("sha256").update(challenge).digest("hex");
+};
+
+/**
+ * Claim một lần challenge ở phía server (full-audit 6750109 P3-01).
+ * Hai request song song mang cùng cookie/assertion: chỉ MỘT lượt thắng
+ * updateMany (usedAt còn null + chưa hết hạn). Phải gọi TRƯỚC bước xác
+ * minh WebAuthn — challenge bị tiêu thụ kể cả khi xác minh thất bại.
+ * Không có dòng tương ứng (challenge phát hành trước khi có cơ chế này)
+ * thì coi như không hợp lệ: fail-closed, người dùng lấy challenge mới.
+ */
+export async function claimPasskeyChallenge(saved: PasskeyChallenge): Promise<boolean> {
+  try {
+    const { prisma } = await import("./db");
+    const hash = await challengeHashOf(saved.challenge);
+    const claim = await prisma.passkeyChallenge.updateMany({
+      where: { challengeHash: hash, purpose: saved.purpose, usedAt: null, expiresAt: { gt: new Date() } },
+      data: { usedAt: new Date() },
+    });
+    return claim.count === 1;
+  } catch {
+    return false;
+  }
 }
 
 /** Đọc + kiểm chứng challenge: chữ ký, hạn 5 phút và purpose phải khớp.

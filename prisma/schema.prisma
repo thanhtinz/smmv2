@@ -1284,6 +1284,23 @@ model RiskEvent {
 // Passkey / WebAuthn (bảo mật Enterprise GĐ3): khoá công khai của thiết bị đăng nhập
 // nhanh (Face ID / Touch ID / Windows Hello). publicKey dạng base64url do thư viện
 // SimpleWebAuthn cấp; counter chống clone thiết bị.
+// Challenge passkey phía server (full-audit 6750109 P3-01): cookie JWT
+// chỉ là phương tiện vận chuyển; quyền SỬ DỤNG nằm ở dòng này — verify
+// phải claim nguyên tử (usedAt: null -> now) TRƯỚC khi xác minh, nên
+// cùng một assertion nộp song song chỉ một request qua được. Chỉ lưu
+// HASH của challenge, không lưu giá trị thô.
+model PasskeyChallenge {
+  id            Int       @id @default(autoincrement())
+  challengeHash String    @unique @db.VarChar(64)
+  purpose       String    @db.VarChar(12) // pk-login | pk-reg
+  uid           Int?
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([expiresAt])
+}
+
 model UserPasskey {
   id           Int       @id @default(autoincrement())
   userId       Int

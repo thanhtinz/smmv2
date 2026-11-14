@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
 import { clientIp } from "@/lib/rate-limit";
-import { clearChallenge, passkeysEnabled, readChallenge, rpFromRequest } from "@/lib/webauthn";
+import { claimPasskeyChallenge, clearChallenge, passkeysEnabled, readChallenge, rpFromRequest } from "@/lib/webauthn";
 
 /** Bước 2 đăng ký passkey: xác minh attestation từ thiết bị, lưu khoá công khai.
  *  @simplewebauthn/server v14: kết quả nằm ở registrationInfo.credential
@@ -29,6 +29,17 @@ export async function POST(req: NextRequest) {
 
   const saved = await readChallenge(req, "pk-reg");
   if (!saved || saved.uid !== user.id) {
+    await clearChallenge();
+    return NextResponse.json(
+      { ok: false, error: "Phiên đăng ký passkey đã hết hạn, vui lòng thử lại" },
+      { status: 400 },
+    );
+  }
+
+  // P3-01 (full-audit 6750109): claim nguyên tử challenge ở server
+  // trước khi xác minh — cùng một attestation nộp hai lần/song song
+  // chỉ một lượt qua được.
+  if (!(await claimPasskeyChallenge(saved))) {
     await clearChallenge();
     return NextResponse.json(
       { ok: false, error: "Phiên đăng ký passkey đã hết hạn, vui lòng thử lại" },
