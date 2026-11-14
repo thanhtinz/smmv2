@@ -1,0 +1,23 @@
+name: Gitleaks — quét khoá bí mật
+
+# Thay GitHub Secret Scanning (bị khoá sau gói trả phí với repo riêng tư):
+# quét mỗi lần push/PR vào main, checkout fetch-depth 0 để quét cả lịch sử.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

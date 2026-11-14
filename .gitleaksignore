@@ -1,0 +1,7 @@
+# Gitleaks — 3 phát hiện đã phân loại GIẢ (fixture/example/dev-placeholder), rà 2026-11-13:
+# 1) scripts/shots-provider-122.mjs — apiKey fixture 15 ký tự của mock provider local trong script chụp ảnh.
+# 2) .env.example — AUTH_SECRET là chuỗi ví dụ trong file mẫu.
+# 3) docker-compose.yml — thông tin đăng nhập PostgreSQL mặc định cho môi trường dev local.
+9cb79da60a6c3a17029e92b3ef83cd75e087a4d1:scripts/shots-provider-122.mjs:generic-api-key:76
+16273d349d9701ad5fc627c74e72829854b2ae56:.env.example:generic-api-key:5
+16273d349d9701ad5fc627c74e72829854b2ae56:docker-compose.yml:generic-api-key:15
