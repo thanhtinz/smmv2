@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, enforceAdminSecurity } from "@/lib/auth";
 import { guardSetupDone } from "@/lib/setup";
-import { getSettings } from "@/lib/settings";
+import { getSettings, siteUrlFromSettings } from "@/lib/settings";
 import { logoutAction } from "@/app/actions/auth";
 import { DisplaySettings } from "@/components/display";
 import AdminNav, { AdminNavEntry } from "@/components/admin-nav";
@@ -171,7 +171,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <LangProvider lang={i18n.lang} ov={i18n.cfg.overrides[i18n.lang]} cur={i18n.cur} rates={i18n.rates}>
     <div className="admin-scope min-h-screen bg-[#f4f6fb]">
-      <AdminNav siteName={s.site_name} logoUrl={headerLogoUrl(s.logo_url)} entries={entries} />
+      <AdminNav siteName={s.site_name} logoUrl={headerLogoUrl(s.logo_url)} entries={entries} siteUrl={siteUrlFromSettings(s)} />
       <div className="flex min-h-screen flex-col lg:pl-[260px]">
         <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
           <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
@@ -193,7 +193,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <div className="ml-auto flex items-center gap-2.5">
               <AdminRealtime endpoint="/api/admin/realtime" suffix="mother" />
               <DisplaySettings />
-              <Link href="/" className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">{L("Xem website")}</Link>
+              <Link href={siteUrlFromSettings(s) || "/"} className="hidden text-sm font-medium text-slate-500 hover:text-slate-800 xl:inline">{L("Xem website")}</Link>
               <span className="hidden items-center gap-2 rounded-full bg-slate-100 py-1 pl-1 pr-3 sm:flex">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white">{initial}</span>
                 <span className="text-sm font-semibold text-slate-800">{user.username}</span>

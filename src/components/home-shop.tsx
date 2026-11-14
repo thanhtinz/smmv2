@@ -40,6 +40,30 @@ export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const n = slides.length;
+  // Banner admin (slide bare): khung hero TỰ CO GIÃN theo tỉ lệ ảnh của
+  // slide đang hiện (lệnh Tín 2026-11-13 — cách "tự co giãn cho phù hợp"):
+  // khung cố định 240/300/380 + object-cover CẮT hai đầu banner có tỉ lệ
+  // khác khung (banner thật 1920×640 = 3:1 mất chữ ở hai mép trên mobile).
+  // Tỉ lệ đọc từ naturalWidth/naturalHeight của từng ảnh khi tải xong
+  // (mọi slide đều đã gắn trong DOM nên onLoad chạy đủ cho mọi slide);
+  // chưa có số của slide đang hiện thì dùng mặc định 3:1 để khung không
+  // nhảy. Slide tự tạo (không bare) giữ khung cố định như cũ tuyệt đối.
+  const [ratios, setRatios] = useState<Record<number, number>>({});
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const noteRatio = (i: number, img: HTMLImageElement) => {
+    if (!img.naturalWidth || !img.naturalHeight) return;
+    const r = img.naturalWidth / img.naturalHeight;
+    setRatios((m) => (Math.abs((m[i] || 0) - r) < 0.001 ? m : { ...m, [i]: r }));
+  };
+  // Lớp dự phòng: ảnh lấy từ cache trình duyệt có thể đã tải xong TRƯỚC
+  // khi React gắn onLoad (hydration) → quét lại các ảnh đã complete khi
+  // mount/đổi bộ slide để tỉ lệ không kẹt ở mặc định.
+  useEffect(() => {
+    sectionRef.current?.querySelectorAll("img").forEach((img, i) => {
+      if (img.complete) noteRatio(i, img);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slides]);
   // Tự chạy + chấm TIẾN TRÌNH dùng CHUNG MỘT đồng hồ rAF (lệnh Tín
   // 2026-11-08 21:12): accRef = số ms đã chạy của slide hiện tại — thanh
   // đầy (acc chạm HERO_AUTOPLAY_MS) thì chuyển slide ngay trong cùng tick,
@@ -76,13 +100,19 @@ export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
     setIdx(((i % n) + n) % n);
   };
   const go = (d: number) => goTo(idx + d);
+  // Slide đang hiện là banner admin → khung theo tỉ lệ ảnh của chính
+  // banner đó (bề ngang vẫn tràn hết cỡ; chiều cao = ngang / tỉ lệ);
+  // slide tự tạo → khung cố định 240/300/380 như cũ.
+  const adaptive = !!slides[idx]?.bare;
+  const activeRatio = ratios[idx] ?? 3;
   return (
-    <section className="relative w-full overflow-hidden" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      {/* Chiều cao hero: giữ nguyên 300/380/470 của fix9 (6bb0644) — đợt
-          full-bleed chỉ đổi bề ngang (tràn viewport), không đổi chiều cao
-          (Tín đính chính 2026-11-08 13:51). Ảnh nền object-cover cắt giữa,
-          không méo. */}
-      <div className="relative h-[240px] sm:h-[300px] lg:h-[380px]">
+    <section ref={sectionRef} className="relative w-full overflow-hidden" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      {/* Chiều cao hero: slide tự tạo giữ nguyên 240/300/380 (đợt
+          full-bleed chỉ đổi bề ngang — tràn viewport — không đổi chiều
+          cao, Tín đính chính 2026-11-08 13:51). Riêng slide BANNER ADMIN
+          dùng aspect-ratio theo ảnh thật (2026-11-13) để ảnh hiện trọn
+          vẹn, không bị object-cover cắt hai đầu. */}
+      <div className={adaptive ? "relative w-full" : "relative h-[240px] sm:h-[300px] lg:h-[380px]"} style={adaptive ? { aspectRatio: `${activeRatio} / 1` } : undefined}>
         {slides.map((s, i) => (
           <div key={i} className={`absolute inset-0 transition-opacity duration-700 ${i === idx ? "opacity-100" : "pointer-events-none opacity-0"}`}>
             {s.bare ? (
@@ -92,11 +122,11 @@ export function HeroSlider({ slides }: { slides: HomeSlide[] }) {
               s.href ? (
                 <Link href={s.href} className="absolute inset-0" aria-label="Banner">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.image || ""} alt="" draggable={false} onContextMenu={(e) => e.preventDefault()} className="h-full w-full select-none object-cover" />
+                  <img src={s.image || ""} alt="" draggable={false} onContextMenu={(e) => e.preventDefault()} onLoad={(e) => noteRatio(i, e.currentTarget)} className="h-full w-full select-none object-cover" />
                 </Link>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={s.image || ""} alt="" draggable={false} onContextMenu={(e) => e.preventDefault()} className="absolute inset-0 h-full w-full select-none object-cover" />
+                <img src={s.image || ""} alt="" draggable={false} onContextMenu={(e) => e.preventDefault()} onLoad={(e) => noteRatio(i, e.currentTarget)} className="absolute inset-0 h-full w-full select-none object-cover" />
               )
             ) : s.image ? (
               <>

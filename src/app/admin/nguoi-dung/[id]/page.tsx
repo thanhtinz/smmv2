@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, requireAdminPage } from "@/lib/auth";
 import { BackLink, Flash, Badge, Stat, I, CardHead, RiskBar } from "@/components/ui";
@@ -16,7 +16,8 @@ const TX_LABEL: Record<string, string> = { DEPOSIT: "Nạp tiền", SMM_ORDER: "
 export default async function AdminUserDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
   await requireAdminPage();
   const { L, Ld, M } = await getServerI18n(null);
-  const me = (await getCurrentUser())!;
+  const me = await getCurrentUser();
+  if (!me) redirect("/login");
   const u = await prisma.user.findUnique({
     where: { id: parseInt(params.id) },
     include: { panel: { select: { name: true } }, referredBy: { select: { username: true } }, _count: { select: { referrals: true } } },

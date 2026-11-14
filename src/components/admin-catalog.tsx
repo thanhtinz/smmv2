@@ -1,14 +1,38 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { adminSaveProvider, adminDeleteProvider, adminProviderAction, adminProviderMarkup, adminSyncAllProviders } from "@/app/actions/admin";
 import { num } from "@/lib/format";
 import { useLang } from "@/components/lang";
+
+/** Tự đóng modal khi một lần lưu THÀNH CÔNG: mọi action lưu trong admin
+ *  kết thúc bằng done() = redirect mang ?msg= (lỗi validate thì ?err=).
+ *  Form trong modal giữ binding trực tiếp với action nên Next bảo toàn
+ *  state — modal đang mở không tự đóng được. Watcher này theo dõi URL:
+ *  một điều hướng MỚI (khác object searchParams so với lúc modal mở) mang
+ *  ?msg= và không có ?err= thì gọi onClose; gặp ?err= thì giữ modal mở để
+ *  admin sửa tiếp, thông báo lỗi đã có toast nổi trên cùng lo phần báo. */
+function ModalSuccessWatcher({ onClose }: { onClose: () => void }) {
+  const sp = useSearchParams();
+  const mountSp = useRef(sp);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    if (sp === mountSp.current) return;
+    mountSp.current = sp;
+    if (sp.get("msg") && !sp.get("err")) closeRef.current();
+  }, [sp]);
+  return null;
+}
 
 /* ---------- Khung modal dùng chung cho khu vực danh mục (NCC / Dịch vụ / Danh mục) ---------- */
 export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   const { t } = useLang();
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-[2px]" onClick={onClose}>
+      <Suspense fallback={null}>
+        <ModalSuccessWatcher onClose={onClose} />
+      </Suspense>
       <div className={`my-8 w-full ${wide ? "max-w-2xl" : "max-w-lg"} rounded-2xl bg-white shadow-2xl`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="text-base font-extrabold text-slate-900">{title}</div>
@@ -72,11 +96,13 @@ export function providerModeOf(p?: ProviderDTO): ProviderMode {
   return "PREMIUM";
 }
 
-export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMarkups, siteBase }: { provider?: ProviderDTO; onClose: () => void; webhookSecretSet?: boolean; mode?: ProviderMode; fzrMarkups?: Record<string, string>; siteBase?: string }) {
+export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMarkups, siteBase, webhookBase }: { provider?: ProviderDTO; onClose: () => void; webhookSecretSet?: boolean; mode?: ProviderMode; fzrMarkups?: Record<string, string>; siteBase?: string; webhookBase?: string }) {
   // URL webhook FZR hiển thị cho admin dán vào panel FazerCards: gốc =
   // Liên kết web đã cấu hình (server truyền xuống — đợt 120); chưa cấu
   // hình thì dùng chính origin admin đang đứng (địa chỉ thật của bản cài).
-  const fzrWebhookUrl = `${siteBase || (typeof window !== "undefined" ? window.location.origin : "")}/api/webhooks/fzr`;
+  // URL webhook chuẩn tên miền con (đợt 127): webhook.<gốc> khi suy được
+  // từ Liên kết web đã cấu hình; chưa cấu hình thì rơi về gốc như cũ.
+  const fzrWebhookUrl = `${webhookBase || siteBase || (typeof window !== "undefined" ? window.location.origin : "")}/api/webhooks/fzr`;
   const { t } = useLang();
   const [tab, setTab] = useState(0);
   const p = provider;
@@ -186,7 +212,7 @@ export function ProviderModal({ provider, onClose, webhookSecretSet, mode, fzrMa
 
 /** Danh sách nhà cung cấp + hai nút thêm riêng (Premium / FZR) và các hành
  *  động từng dòng: sửa, đồng bộ, kiểm tra số dư, xoá. */
-export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups, siteBase }: { providers: ProviderDTO[]; webhookSecretSet?: boolean; fzrMarkups?: Record<string, string>; siteBase?: string }) {
+export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups, siteBase, webhookBase }: { providers: ProviderDTO[]; webhookSecretSet?: boolean; fzrMarkups?: Record<string, string>; siteBase?: string; webhookBase?: string }) {
   const { t, td, m } = useLang();
   const [editing, setEditing] = useState<ProviderDTO | undefined>(undefined);
   const [addMode, setAddMode] = useState<ProviderMode>("PREMIUM");
@@ -204,7 +230,7 @@ export function ProvidersClient({ providers, webhookSecretSet, fzrMarkups, siteB
       {/* key theo đích mở: điều hướng mềm sau server action GIỮ instance modal
           (state không tự reset) — không có key, form thêm FZR mở sau form Premium
           sẽ còn nguyên URL đã gõ ở form trước (đã gặp thật khi kiểm chứng). */}
-      {open && <ProviderModal key={editing ? `edit-${editing.id}` : `add-${addMode}`} provider={editing} mode={addMode} onClose={() => setOpen(false)} webhookSecretSet={webhookSecretSet} fzrMarkups={fzrMarkups} siteBase={siteBase} />}
+      {open && <ProviderModal key={editing ? `edit-${editing.id}` : `add-${addMode}`} provider={editing} mode={addMode} onClose={() => setOpen(false)} webhookSecretSet={webhookSecretSet} fzrMarkups={fzrMarkups} siteBase={siteBase} webhookBase={webhookBase} />}
       <div className="card mt-5 overflow-x-auto">
         <table className="w-full min-w-[880px]">
           <thead><tr className="border-b border-slate-100">

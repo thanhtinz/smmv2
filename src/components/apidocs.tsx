@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { ApiDocTabs, ApiTabs, CopyBtn, type ApiActionDoc } from "@/components/client";
 import { getServerI18n } from "@/lib/lang-server";
+import { getSettings, siteUrlFromSettings, subUrlFromSettings } from "@/lib/settings";
 
 const KEY: [string, string, string] = ["key", "string", "API key cá nhân của bạn"];
 
@@ -54,7 +55,11 @@ export async function ApiDocsView({ apiKey }: { apiKey?: string | null }) {
   const h = headers();
   const host = h.get("host") || "localhost:3000";
   const proto = h.get("x-forwarded-proto") || (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
-  const endpoint = `${proto}://${host}/api/v2`;
+  // Địa chỉ API CHUẨN theo tên miền con (đợt 127): api.<miền gốc> suy từ
+  // Liên kết web đã cấu hình — tài liệu đọc ở host nào cũng hiện đúng
+  // địa chỉ chuẩn này; chưa cấu hình thì rơi về gốc, rồi về host hiện tại.
+  const s = await getSettings().catch(() => null);
+  const endpoint = `${subUrlFromSettings(s, "api") || siteUrlFromSettings(s) || `${proto}://${host}`}/api/v2`;
   // Nhãn + mô tả tham số ở module scope được dịch tại đây (điểm hiển thị phía server)
   // trước khi truyền cho ApiTabs; chuỗi ví dụ response là mẫu dữ liệu nên giữ nguyên.
   const localize = (actions: ApiActionDoc[]): ApiActionDoc[] => actions.map((a) => ({ ...a, label: L(a.label), params: a.params.map(([n, ty, d]) => [n, ty, L(d)] as [string, string, string]), ...(a.note ? { note: L(a.note) } : {}) }));

@@ -58,22 +58,28 @@ export default async function HomePage() {
   // Dải icon lối tắt dưới hero (lệnh Tín 2026-11-08 21:08): ẩn/hiện từng ô
   // THEO ĐÚNG điều kiện của buildCustomerNav để dải và menu khách không bao
   // giờ lệch nhau — 2 ô Telegram theo telegram_enabled (như nhóm Telegram);
-  // Steam / Game Key / Gift Card / Top-Up luôn hiện như các nhóm menu tương
-  // ứng (menu luôn hiện vô điều kiện). Ô "Tất cả sản phẩm" đã BỎ khỏi dải
-  // theo lệnh Tín 2026-11-08 21:42; ô "Mạng xã hội" (SMM) đã GỠ theo lệnh
-  // Tín 2026-11-12 (web tách thành Digital Shop thuần).
+  // các ô khu FZR theo công tắc khu area_* (đợt 126, trước đây luôn hiện).
+  // Ô "Tất cả sản phẩm" đã BỎ khỏi dải theo lệnh Tín 2026-11-08 21:42; ô
+  // "Mạng xã hội" (SMM) đã GỠ theo lệnh Tín 2026-11-12 (web tách thành
+  // Digital Shop thuần).
   const stripTiles: StripTile[] = [
-    { href: "/dashboard/steam/top-up", label: L("Steam Top-Up"), img: "/home-strip/steam-topup.jpg" },
-    { href: "/dashboard/steam/gift-games", label: L("Steam Gift"), img: "/home-strip/steam-gift.jpg" },
+    // Ô khu riêng theo đúng công tắc khu (đợt 126): khu nào tắt ở Admin →
+    // Mô-đun thì ô của khu đó ẩn khỏi dải, khớp menu khách (buildCustomerNav).
+    ...(s.area_steam_enabled !== "0"
+      ? [
+          { href: "/dashboard/steam/top-up", label: L("Steam Top-Up"), img: "/home-strip/steam-topup.jpg" },
+          { href: "/dashboard/steam/gift-games", label: L("Steam Gift"), img: "/home-strip/steam-gift.jpg" },
+        ]
+      : []),
     ...(s.telegram_enabled !== "0"
       ? [
           { href: "/dashboard/telegram?tab=stars", label: L("Telegram Stars"), img: "/home-strip/telegram-stars.jpg" },
           { href: "/dashboard/telegram?tab=premium", label: L("Telegram Premium"), img: "/home-strip/telegram-premium.jpg" },
         ]
       : []),
-    { href: "/dashboard/game-key", label: L("Game Key"), img: "/home-strip/game-key.jpg" },
-    { href: "/dashboard/gift-card", label: L("Gift Card"), img: "/home-strip/gift-card.jpg" },
-    { href: "/dashboard/top-up", label: L("Top-Up Game"), img: "/home-strip/top-up.jpg" },
+    ...(s.area_gamekey_enabled !== "0" ? [{ href: "/dashboard/game-key", label: L("Game Key"), img: "/home-strip/game-key.jpg" }] : []),
+    ...(s.area_giftcard_enabled !== "0" ? [{ href: "/dashboard/gift-card", label: L("Gift Card"), img: "/home-strip/gift-card.jpg" }] : []),
+    ...(s.area_topup_enabled !== "0" ? [{ href: "/dashboard/top-up", label: L("Top-Up Game"), img: "/home-strip/top-up.jpg" }] : []),
   ];
   const homeModal = s.home_modal_enabled === "1" && s.home_modal_content?.trim() ? s.home_modal_content : null;
 
@@ -171,6 +177,11 @@ export default async function HomePage() {
         .sort((a, b) => b.sold - a.sold || b.productId - a.productId)
         .slice(0, 50);
     }
+    // Cổng module khu trên trang chủ (đợt 126): khu Steam tắt → mục Steam
+    // Gift Games ẩn; khu Top-Up tắt → mục Top-Up Game ẩn (menu + dải icon
+    // + trang + đơn của từng khu bị chặn ở các lớp riêng của chúng).
+    if (s.area_steam_enabled === "0") gifts = [];
+    if (s.area_topup_enabled === "0") topups = [];
     const cards = await premiumCardsFor(products as any);
     all = (products as any[]).map((p, i) => ({ ...cards[i], categoryId: p.categoryId }));
     // Khung Flash Sale trang chủ (lệnh Tín 2026-11-12): chỉ dựng khi có đợt
@@ -215,8 +226,11 @@ export default async function HomePage() {
     // thì hero chạy BANNER THẬT thay slide tự tạo — chỉ banner đúng ngôn ngữ
     // khách đang chọn (lang đã resolve vi/en); ngôn ngữ đó chưa có banner
     // thì tạm dùng bộ banner của ngôn ngữ còn lại để hero không bao giờ trống.
+    // Công tắc module Banner trang chủ (đợt 126): tắt ở Admin → Mô-đun thì
+    // banner admin KHÔNG thay slide (hasAdminBanners giữ false nên nhánh
+    // shop trống cũng không dựng hero — tương tác với đợt 125 ở điểm này).
     const bannerRows = await prisma.homeBanner.findMany({ where: { active: true }, orderBy: [{ sort: "asc" }, { id: "asc" }] });
-    if (bannerRows.length) {
+    if (bannerRows.length && s.hero_banner_enabled !== "0") {
       hasAdminBanners = true;
       const mine = bannerRows.filter((b) => b.lang === lang);
       const chosen = mine.length ? mine : bannerRows;

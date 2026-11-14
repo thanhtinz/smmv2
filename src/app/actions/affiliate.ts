@@ -34,7 +34,12 @@ export async function enrollAffiliateAction() {
 export async function withdrawAffiliateAction() {
   const user = await requireUser();
   const settings = await getSettings();
-  if (settings.module_affiliate === "0") back("err", "Chương trình giới thiệu đang tắt");
+  // Đợt 126 — lựa chọn có chủ đích: tắt module Affiliate thì DỪNG cộng hoa
+  // hồng mới (engine trong lib/wallet tự kiểm tra) và khoá trang/tham gia,
+  // nhưng RÚT số dư hoa hồng đã có về ví vẫn phải chạy — đó là tiền của
+  // khách đã kiếm được, không phải bề mặt tính năng. Trang /dashboard/
+  // kiem-tien bị chặn khi tắt nên nút rút không hiện; action giữ mở để số
+  // dư không bao giờ bị khoá theo công tắc.
   const min = affiliateWithdrawMin(settings);
   const me = await prisma.user.findUnique({ where: { id: user.id }, select: { affiliateBalance: true } });
   const amount = me?.affiliateBalance || 0;

@@ -9,7 +9,8 @@ import { getServerI18n } from "@/lib/lang-server";
 export const dynamic = "force-dynamic";
 
 export default async function DashPostDetail({ params }: { params: { slug: string } }) {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();
   if (!(await moduleOn("blog"))) redirect("/");
   const post = await prisma.post.findUnique({ where: { slug: params.slug }, include: { category: true } });

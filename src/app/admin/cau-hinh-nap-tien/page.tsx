@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireAdminPage } from "@/lib/auth";
-import { getSettings, siteUrlFromSettings } from "@/lib/settings";
+import { getSettings, siteUrlFromSettings, subUrlFromSettings } from "@/lib/settings";
 import { PageHead, Flash, Badge } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
 import { adminSaveMethodsAction, adminBoltPingAction, adminStripeTestAction, adminPaypalTestAction, adminSepayStatusAction, adminFetchRatesNowAction } from "@/app/actions/admin";
@@ -72,6 +72,8 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();
   const base = siteUrlFromSettings(s) || "https://your-domain.vn";
+  // URL webhook chuẩn tên miền con (đợt 127): webhook.<gốc>.
+  const whBase = subUrlFromSettings(s, "webhook") || base;
   const banks = await prisma.bankAccount.findMany({ where: { active: true }, orderBy: { id: "asc" } });
   const back = "/admin/cau-hinh-nap-tien";
   // Lần webhook SePay gần nhất hệ thống nhận được (cho khối trạng thái trung thực)
@@ -100,8 +102,8 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
           <div>
             <label className="lbl">{L("Webhook URL (dán vào SePay)")}</label>
             <div className="flex items-center gap-2">
-              <input className="inp font-mono !text-xs" readOnly value={`${base}/api/webhooks/sepay`} />
-              <CopyBtn text={`${base}/api/webhooks/sepay`} />
+              <input className="inp font-mono !text-xs" readOnly value={`${whBase}/api/webhooks/sepay`} />
+              <CopyBtn text={`${whBase}/api/webhooks/sepay`} />
             </div>
           </div>
           <div>
@@ -186,7 +188,7 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
           </div>
           <div>
             <label className="lbl">{L("URL webhook (dán vào BoltUtil → Integrations → API)")}</label>
-            <input className="inp" readOnly value={`${base}/api/webhooks/boltutil`} />
+            <input className="inp" readOnly value={`${whBase}/api/webhooks/boltutil`} />
           </div>
           <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-slate-500">{L("BoltUtil không giữ tiền — USDT về thẳng ví nhận đã cấu hình trong dashboard BoltUtil; tiền cộng cho khách theo số thực nhận khi giao dịch đủ xác nhận.")}</p>
           <PurposeTicks
@@ -244,8 +246,8 @@ export default async function AdminMethodConfig({ searchParams }: { searchParams
           <div>
             <label className="lbl">{L("Webhook URL (dán vào Stripe)")}</label>
             <div className="flex items-center gap-2">
-              <input className="inp font-mono !text-xs" readOnly value={`${base}/api/webhooks/stripe`} />
-              <CopyBtn text={`${base}/api/webhooks/stripe`} />
+              <input className="inp font-mono !text-xs" readOnly value={`${whBase}/api/webhooks/stripe`} />
+              <CopyBtn text={`${whBase}/api/webhooks/stripe`} />
             </div>
           </div>
           <PurposeTicks

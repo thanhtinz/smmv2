@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { moduleOn } from "@/lib/modules";
 import { PageHead, Flash, Badge, Empty, Stat, I } from "@/components/ui";
@@ -40,7 +41,8 @@ function contactDisplay(c: FloatingContact): string {
  *  mở trang là thấy form đã điền sẵn ở cột phụ. Route /dashboard/faq cũ
  *  redirect về đây kèm neo #faq. */
 export default async function TicketsPage({ searchParams }: { searchParams: { msg?: string; err?: string; st?: string; q?: string; subject?: string; category?: string; body?: string } }) {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();
   if (!(await moduleOn("tickets"))) { const { redirect } = await import("next/navigation"); redirect("/"); }
   const st = searchParams.st && T_STATUS[searchParams.st] ? searchParams.st : "";

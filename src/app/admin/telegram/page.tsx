@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { I, PageHead, Badge, Empty, Stat } from "@/components/ui";
+import { I, PageHead, Badge, Empty, Stat, Flash } from "@/components/ui";
 import { PRE_STATUS, dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { telegramOrderWhere, telegramRecipient } from "@/lib/tg";
@@ -13,10 +13,10 @@ export const dynamic = "force-dynamic";
  *  Bản ghi vẫn là PremiumOrder với providerGroup telegram_* — trang này là
  *  góc nhìn quản lý riêng, không lẫn với đơn Premium thường. */
 export default async function AdminTelegramOrdersPage({ searchParams }: {
-  searchParams: { q?: string; type?: string; status?: string; from?: string; to?: string; page?: string };
+  searchParams: { q?: string; type?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string };
 }) {
   const PAGE_SIZE = await adminListPageSize();
-  const { L, M } = await getServerI18n();
+  const { L, M, Ld } = await getServerI18n();
   const base = telegramOrderWhere();
   const startDay = new Date(); startDay.setHours(0, 0, 0, 0);
   const [todayCount, doneCount, starsAgg, revenueAgg] = await Promise.all([
@@ -53,6 +53,7 @@ export default async function AdminTelegramOrdersPage({ searchParams }: {
 
   return (
     <div>
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <PageHead title={L("Đơn Telegram")} desc={L("Đơn Stars và Premium Telegram của toàn hệ thống.")} />
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Stat icon={I.send} label={L("Đơn hôm nay")} value={String(todayCount)} />

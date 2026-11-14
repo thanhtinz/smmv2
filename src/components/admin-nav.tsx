@@ -108,7 +108,7 @@ function Group({ entry, winner }: { entry: { group: string; icon: string; childr
   );
 }
 
-function NavBody({ siteName, logoUrl, entries, pathname, onNavigate }: { siteName: string; logoUrl: string; entries: AdminNavEntry[]; pathname: string; onNavigate?: () => void }) {
+function NavBody({ siteName, logoUrl, entries, pathname, onNavigate, siteUrl }: { siteName: string; logoUrl: string; entries: AdminNavEntry[]; pathname: string; onNavigate?: () => void; siteUrl?: string }) {
   const { t } = useLang();
   const winner = navWinner(entries, pathname);
   return (
@@ -131,7 +131,10 @@ function NavBody({ siteName, logoUrl, entries, pathname, onNavigate }: { siteNam
         )}
       </nav>
       <div className="shrink-0 border-t border-white/10 p-3">
-        <Link href="/" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white">
+        {/* Về website phải là URL TUYỆT ĐỐI của miền gốc (đợt 127): trên
+            host admin.<gốc>, href "/" bị middleware viết lại vào /admin
+            nên bấm không ra khỏi khu quản trị được. */}
+        <Link href={siteUrl || "/"} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white">
           <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 opacity-90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /></svg>
           <span>{t("Về website")}</span>
         </Link>
@@ -140,14 +143,14 @@ function NavBody({ siteName, logoUrl, entries, pathname, onNavigate }: { siteNam
   );
 }
 
-export default function AdminNav({ siteName, logoUrl, entries }: { siteName: string; logoUrl: string; entries: AdminNavEntry[] }) {
+export default function AdminNav({ siteName, logoUrl, entries, siteUrl }: { siteName: string; logoUrl: string; entries: AdminNavEntry[]; siteUrl?: string }) {
   const { t } = useLang();
   const pathname = usePathname() || "/admin";
   const [open, setOpen] = useState(false);
   return (
     <>
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-[260px] flex-col bg-[#081c36] text-slate-300 lg:flex">
-        <NavBody siteName={siteName} logoUrl={logoUrl} entries={entries} pathname={pathname} />
+        <NavBody siteName={siteName} logoUrl={logoUrl} entries={entries} pathname={pathname} siteUrl={siteUrl} />
       </aside>
       {/* Điện thoại: nút burger cố định ở góc trái thanh trên + ngăn kéo trượt chứa toàn bộ menu
           (thay thanh menu footer dưới đáy đã bỏ). Layout chừa ml cho logo để không đè nút. */}
@@ -159,7 +162,7 @@ export default function AdminNav({ siteName, logoUrl, entries }: { siteName: str
         <>
           <div className="fixed inset-0 z-[70] bg-slate-950/50 lg:hidden" onClick={() => setOpen(false)} />
           <div className="fixed inset-y-0 left-0 z-[80] flex w-[280px] max-w-[85vw] flex-col bg-[#081c36] text-slate-300 shadow-2xl lg:hidden">
-            <NavBody siteName={siteName} logoUrl={logoUrl} entries={entries} pathname={pathname} onNavigate={() => setOpen(false)} />
+            <NavBody siteName={siteName} logoUrl={logoUrl} entries={entries} pathname={pathname} onNavigate={() => setOpen(false)} siteUrl={siteUrl} />
           </div>
         </>
       )}

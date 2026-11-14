@@ -126,6 +126,7 @@ export async function createTicketAction(formData: FormData) {
 
 export async function replyTicketAction(formData: FormData) {
   const user = await requireUser();
+  if (!(await moduleOn("tickets"))) back("/dashboard/ticket", "err", "Tính năng hỗ trợ / ticket đang tắt");
   const ticketId = parseInt(String(formData.get("ticketId") || "0"));
   const body = String(formData.get("body") || "").trim();
   const t = await prisma.ticket.findFirst({ where: { id: ticketId, userId: user.id } });
@@ -133,11 +134,12 @@ export async function replyTicketAction(formData: FormData) {
   await prisma.ticketMessage.create({ data: { ticketId, body, attachments: cleanAttachments(formData.get("attachments")) } });
   await prisma.ticket.update({ where: { id: ticketId }, data: { status: "OPEN" } });
   revalidatePath(`/dashboard/ticket/${ticketId}`);
-  redirect(`/dashboard/ticket/${ticketId}`);
+  back(`/dashboard/ticket/${ticketId}`, "msg", "Đã gửi trả lời");
 }
 
 export async function regenApiKeyAction() {
   const user = await requireUser();
+  if (!(await moduleOn("api"))) back("/dashboard/ho-so", "err", "Tính năng API đang tắt");
   if (rateLimitExceeded(`regenkey|${user.id}`, 5, 3600000)) back("/dashboard/ho-so", "err", "Thao tác quá nhanh, vui lòng thử lại sau ít phút");
   await prisma.user.update({ where: { id: user.id }, data: { apiKey: randomKey(32) } });
   await writeAudit({ actorId: user.id, actorName: user.username, role: user.role, action: "apikey.regen", targetType: "user", targetId: user.id, detail: "Tạo mới API key (key cũ vô hiệu)", ip: currentIp() });
@@ -148,6 +150,7 @@ export async function regenApiKeyAction() {
  *  /api/v2 bằng key của tài khoản này; để trống = không giới hạn. */
 export async function saveApiKeyIpsAction(formData: FormData) {
   const user = await requireUser();
+  if (!(await moduleOn("api"))) back("/dashboard/ho-so?tab=api", "err", "Tính năng API đang tắt");
   const { parseIpList, ipMatchesRule } = await import("@/lib/ip-match");
   const raw = String(formData.get("apiKeyIps") || "").slice(0, 2000);
   const rules = parseIpList(raw);
@@ -248,6 +251,7 @@ export async function redeemPointsAction(formData: FormData) {
 /** Khách chấm sao hỗ trợ cho ticket ĐÃ ĐÓNG. */
 export async function rateTicketAction(formData: FormData) {
   const user = await requireUser();
+  if (!(await moduleOn("tickets"))) back("/dashboard/ticket", "err", "Tính năng hỗ trợ / ticket đang tắt");
   const ticketId = parseInt(String(formData.get("ticketId") || "0"));
   const rating = Math.min(5, Math.max(1, parseInt(String(formData.get("rating") || "0")) || 0));
   const note = String(formData.get("ratingNote") || "").trim().slice(0, 255);

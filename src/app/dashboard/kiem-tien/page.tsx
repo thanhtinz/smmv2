@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { KiemTienView } from "@/components/kiemtien";
 import { AffiliateIntro } from "@/components/affiliate-intro";
@@ -10,7 +11,8 @@ export default async function EarnPage({ searchParams }: { searchParams: Record<
   const { getSettings, siteUrlFromSettings } = await import("@/lib/settings");
   const settings = await getSettings();
   if (settings.module_affiliate === "0") { const { redirect } = await import("next/navigation"); redirect("/"); }
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   // CỔNG THAM GIA (chủ web chốt 2026-11-12, mẫu ldshop /account/aff): chưa
   // ghi danh (affiliateEnrolledAt = null) thì route này hiện trang GIỚI
   // THIỆU chương trình với tỉ lệ thật từ cấu hình; bấm "Đăng ký tham gia"

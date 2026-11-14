@@ -23,6 +23,15 @@ export async function buildCustomerNav(
   const ticketsOn = s.module_tickets !== "0";
   const apiOn = s.module_api !== "0";
   const telegramOn = s.telegram_enabled !== "0";
+  // Đợt 126 (luật module 2026-11-13): Ưu đãi theo module_promo và từng khu
+  // FZR theo công tắc khu area_* — tắt ở Admin → Mô-đun thì nhóm/mục biến
+  // mất khỏi menu (trang + action của chúng cũng bị chặn ở máy chủ).
+  const promoOn = s.module_promo !== "0";
+  const steamOn = s.area_steam_enabled !== "0";
+  const gamekeyOn = s.area_gamekey_enabled !== "0";
+  const giftcardOn = s.area_giftcard_enabled !== "0";
+  const topupOn = s.area_topup_enabled !== "0";
+  const manualOn = s.area_manual_enabled !== "0";
   // Menu gom nhóm dropdown cho gọn: nhóm nào đang chứa trang hiện tại thì tự mở.
   // Nhóm "Dịch vụ mạng xã hội" (SMM) ĐÃ GỠ (lệnh Tín 2026-11-12 — web tách
   // thành Digital Shop thuần, SMM làm web riêng).
@@ -43,7 +52,7 @@ export async function buildCustomerNav(
   // (pass_name, trống = "Pass"). Link chữ "Xem mã ưu đãi" ở khối mã giảm
   // của giỏ hàng là cửa khác, giữ nguyên.
   const financeChildren = [
-    { href: "/uu-dai", label: L("Ưu đãi") },
+    ...(promoOn ? [{ href: "/uu-dai", label: L("Ưu đãi") }] : []),
     ...(s.pass_enabled === "1" ? [{ href: "/pass", label: (s.pass_name || "").trim() || "Pass" }] : []),
     { href: "/dashboard/giao-dich", label: L("Lịch sử số dư") },
     ...(affiliateOn ? [{ href: "/dashboard/kiem-tien", label: L("Giới thiệu bạn bè") }] : []),
@@ -55,9 +64,10 @@ export async function buildCustomerNav(
     { href: "/dashboard/thong-bao", label: L("Thông báo"), badge: unreadNoti },
     ...(s.module_blog !== "0" ? [{ href: "/dashboard/bai-viet", label: L("Bài viết") }] : []),
   ];
-  // Steam (lệnh Tín 2026-11-08 02:02): dropdown LUÔN hiện (kể cả khi chưa
-  // đồng bộ sản phẩm Steam nào — trang đích tự hiện trạng thái chưa có dữ
-  // liệu), nằm ngay sau nhóm Tài chính.
+  // Steam (lệnh Tín 2026-11-08 02:02): dropdown hiện kể cả khi chưa đồng
+  // bộ sản phẩm Steam nào (trang đích tự hiện trạng thái chưa có dữ liệu),
+  // nằm ngay sau nhóm Tài chính — từ đợt 126 thêm điều kiện công tắc khu
+  // area_steam_enabled (tắt thì nhóm ẩn như các module khác).
   const steamChildren = [
     { href: "/dashboard/steam/top-up", label: L("Steam Top-Up (CIS)") },
     { href: "/dashboard/steam/gift-games", label: L("Steam Gift Games") },
@@ -100,11 +110,11 @@ export async function buildCustomerNav(
     // Nhóm Tài chính đứng đúng vị trí mục Ưu đãi phẳng trước đây (gộp Ưu
     // đãi + Pass vào đây — xem financeChildren ở trên).
     { label: L("Tài chính"), icon: I.wallet, children: financeChildren },
-    { label: "Steam", icon: I.gamepad, children: steamChildren },
-    { label: "Game key", icon: I.key, children: gameKeyChildren },
-    { label: "Gift Card", icon: I.gift, children: giftCardChildren },
-    { label: "Top-Up", icon: I.zap, children: topupChildren },
-    { label: "Manual Services", icon: I.wrench, children: manualChildren },
+    ...(steamOn ? [{ label: "Steam", icon: I.gamepad, children: steamChildren }] : []),
+    ...(gamekeyOn ? [{ label: "Game key", icon: I.key, children: gameKeyChildren }] : []),
+    ...(giftcardOn ? [{ label: "Gift Card", icon: I.gift, children: giftCardChildren }] : []),
+    ...(topupOn ? [{ label: "Top-Up", icon: I.zap, children: topupChildren }] : []),
+    ...(manualOn ? [{ label: "Manual Services", icon: I.wrench, children: manualChildren }] : []),
     ...(telegramOn ? [{ label: "Telegram Premium", icon: I.send, children: telegramChildren }] : []),
     ...(apiOn ? [{ href: "/dashboard/api-docs", label: L("Tài liệu API"), icon: I.code }] : []),
     ...(supportChildren.length ? [{ label: L("Hỗ trợ"), icon: I.ticket, children: supportChildren }] : []),

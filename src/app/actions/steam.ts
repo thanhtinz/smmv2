@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createPremiumOrder } from "@/lib/orders";
+import { moduleOn } from "@/lib/modules";
 import { FZR_LABELS } from "@/lib/fzr";
 
 function back(path: string, key: "msg" | "err", text: string): never {
@@ -24,6 +25,7 @@ function cleanError(e: any, path: string): never {
  *  đọc lại. Mệnh giá là gói CỐ ĐỊNH phía provider (không có nạp số tự do). */
 export async function placeSteamTopupAction(formData: FormData) {
   const user = await requireUser();
+  if (!(await moduleOn("steam"))) redirect("/");
   const path = "/dashboard/steam/top-up";
   const variantId = parseInt(String(formData.get("variantId") || "0")) || 0;
   const login = String(formData.get("login") || "").trim().slice(0, 64);
@@ -44,6 +46,7 @@ export async function placeSteamTopupAction(formData: FormData) {
  *  tin nhận gift — đi vào customData đúng nhãn FZR_LABELS.giftReceiver. */
 export async function placeSteamGiftAction(formData: FormData) {
   const user = await requireUser();
+  if (!(await moduleOn("steam"))) redirect("/");
   const path = "/dashboard/steam/gift-games";
   const variantId = parseInt(String(formData.get("variantId") || "0")) || 0;
   const invite = String(formData.get("invite") || "").trim().slice(0, 300);

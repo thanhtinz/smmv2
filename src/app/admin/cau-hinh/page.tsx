@@ -1,4 +1,4 @@
-import { getSettings, normalizeSiteUrl, siteUrlFromSettings } from "@/lib/settings";
+import { getSettings, normalizeSiteUrl, siteUrlFromSettings, subUrlFromSettings } from "@/lib/settings";
 import { requireAdminPage } from "@/lib/auth";
 import { PageHead, Flash, I } from "@/components/ui";
 import { CopyBtn } from "@/components/client";
@@ -166,8 +166,11 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
   });
   const seasonalTheme = parseSeasonalTheme(s.seasonal_theme) || "tet";
   const base = siteUrlFromSettings(s) || "https://your-domain.vn";
+  // URL webhook chuẩn tên miền con (đợt 127): webhook.<gốc> — route vẫn
+  // trả lời song song ở miền gốc; cron/Google/return giữ miền gốc.
+  const whBase = subUrlFromSettings(s, "webhook") || base;
   const cronUrl = `${base}/api/cron/sync?secret=${s.cron_secret || "<CRON_SECRET>"}&services=1`;
-  const webhookUrl = `${base}/api/webhooks/sepay`;
+  const webhookUrl = `${whBase}/api/webhooks/sepay`;
 
   const infoBox = "rounded-xl bg-brand-50 px-4 py-3 text-[13px] leading-relaxed text-slate-600";
   const warnBox = "rounded-xl bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-700";
@@ -243,10 +246,11 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
           <p className="text-xs leading-relaxed text-slate-400">{L("Đến mùa lễ, bật công tắc này là toàn bộ trang khách (trang chủ và khu vực sau khi đăng nhập) có hiệu ứng hạt rơi theo chủ đề đã chọn. Tắt là gỡ sạch hoàn toàn. Khu vực quản trị không hiển thị trang trí.")}</p>
           <div>
             <label className="lbl">{L("Bật trang trí mùa lễ hội")}</label>
-            <select className="inp" name="seasonal_decor_enabled" defaultValue={s.seasonal_decor_enabled === "1" ? "1" : "0"}>
-              <option value="0">{L("Tắt")}</option>
-              <option value="1">{L("Bật")}</option>
-            </select>
+            {/* Công tắc chính đã dời về Admin → Mô-đun (đợt 126 — một
+                công tắc một chỗ); ở đây chỉ chọn chủ đề. */}
+            <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
+              {s.seasonal_decor_enabled === "1" ? L("Đang bật") : L("Đang tắt")} — {L("bật/tắt trang trí ở")} <a href="/admin/mo-dun" className="font-semibold text-brand-600">{L("Admin → Mô-đun")}</a>.
+            </p>
           </div>
           <div>
             <label className="lbl">{L("Chủ đề trang trí")}</label>
@@ -546,7 +550,11 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       <div className={infoBox}>{L("Cho phép người dùng chia sẻ link giới thiệu và nhận hoa hồng trên mỗi giao dịch mua của người được giới thiệu (mua sản phẩm Premium). Hoa hồng cộng vào số dư hoa hồng riêng của người giới thiệu; khách tự rút về ví chính khi đạt mức tối thiểu bên dưới.")}</div>
       <div>
         <label className="lbl">{L("Bật chương trình giới thiệu")}</label>
-        <select className="inp" name="module_affiliate" defaultValue={s.module_affiliate === "0" ? "0" : "1"}><option value="1">{L("Bật")}</option><option value="0">{L("Tắt")}</option></select>
+        {/* Công tắc chính đã dời về Admin → Mô-đun (đợt 126 — một công
+            tắc một chỗ); ở đây chỉ đặt tỷ lệ + mức rút. */}
+        <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
+          {s.module_affiliate !== "0" ? L("Đang bật") : L("Đang tắt")} — {L("bật/tắt chương trình ở")} <a href="/admin/mo-dun" className="font-semibold text-brand-600">{L("Admin → Mô-đun")}</a>.
+        </p>
       </div>
       <div><label className="lbl">{L("Tỷ lệ hoa hồng (%)")}</label><input className="inp" name="affiliate_percent" type="number" step="0.5" min="0" max="50" defaultValue={s.affiliate_percent} /></div>
       <div><label className="lbl">{L("Mức rút hoa hồng tối thiểu (đ)")}</label><input className="inp" name="affiliate_withdraw_min" type="number" step="1000" min="0" defaultValue={s.affiliate_withdraw_min} /></div>
@@ -562,7 +570,11 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="lbl">{L("Bật gói Pass")}</label>
-          <select className="inp" name="pass_enabled" defaultValue={s.pass_enabled === "1" ? "1" : "0"}><option value="1">{L("Bật")}</option><option value="0">{L("Tắt")}</option></select>
+          {/* Công tắc chính đã dời về Admin → Mô-đun (đợt 126 — một công
+              tắc một chỗ); ở đây chỉ đặt giá + thông số gói. */}
+          <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
+            {s.pass_enabled === "1" ? L("Đang bật") : L("Đang tắt")} — {L("bật/tắt Pass ở")} <a href="/admin/mo-dun" className="font-semibold text-brand-600">{L("Admin → Mô-đun")}</a>.
+          </p>
         </div>
         <div><label className="lbl">{L("Tên gói (để trống = Pass)")}</label><input className="inp" name="pass_name" defaultValue={s.pass_name} placeholder="Pass" /></div>
       </div>
@@ -683,7 +695,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
         <div className="font-bold text-slate-900">{L("Danh sách đường dẫn Cron & Webhook")}</div>
         {cronRow("Đồng bộ trạng thái đơn hàng & catalog", "mỗi 5–10 phút", cronUrl, "Trên VPS: crontab */5 * * * * curl -s \"URL trên\". Trên Vercel: vercel.json mục crons với header x-cron-secret.")}
         {cronRow("Webhook cộng tiền tự động (SePay / ngân hàng)", "theo giao dịch", webhookUrl, "Header: Authorization: Apikey <secret đặt ở trang Cấu hình nạp tiền>. Cộng tiền theo mã nạp trong nội dung chuyển khoản, chống cộng trùng theo mã giao dịch.")}
-        {cronRow("Webhook Stripe", "theo sự kiện", `${base}/api/webhooks/stripe`, "Khai trong Stripe Dashboard, sự kiện checkout.session.completed, ký bằng Webhook Secret ở tab Thanh toán.")}
+        {cronRow("Webhook Stripe", "theo sự kiện", `${whBase}/api/webhooks/stripe`, "Khai trong Stripe Dashboard, sự kiện checkout.session.completed, ký bằng Webhook Secret ở tab Thanh toán.")}
         {cronRow("Trang quay về sau thanh toán PayPal / Stripe", "sau thanh toán", `${base}/api/payments/paypal/return · ${base}/api/payments/stripe/return`)}
       </section>
     </>
@@ -698,7 +710,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: { 
         <code className="block bg-slate-950 text-slate-100 rounded-xl px-4 py-3 break-all">{base}/api/v2</code>
       </div>
       <p className="text-slate-600">{L("Xác thực: gửi kèm")} <span className="font-mono">key</span> {L("= API key riêng của từng tài khoản (khách tự lấy ở mục API trong tài khoản). Các action:")} <span className="font-mono">products · category · buy · premium_status · history</span>{L(".")}</p>
-      <p className="text-slate-600">{L("Tài liệu đầy đủ cho khách ở trang")} <a className="text-brand-600 font-semibold" href="/dashboard/api-docs" target="_blank">{L("Tài liệu API")}</a>{L(".")}</p>
+      <p className="text-slate-600">{L("Tài liệu đầy đủ cho khách ở trang")} <a className="text-brand-600 font-semibold" href={`${siteUrlFromSettings(s)}/dashboard/api-docs`} target="_blank">{L("Tài liệu API")}</a>{L(".")}</p>
     </section>
   );
 

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createPremiumOrder } from "@/lib/orders";
+import { moduleOn } from "@/lib/modules";
 import { parsePremiumFields } from "@/lib/format";
 
 function back(path: string, key: "msg" | "err", text: string): never {
@@ -26,6 +27,7 @@ function cleanError(e: any, path: string): never {
  *  là danh tính tài khoản mua (như Gift Card). */
 export async function placeManualAction(formData: FormData) {
   const user = await requireUser();
+  if (!(await moduleOn("manual"))) redirect("/");
   const variantId = parseInt(String(formData.get("variantId") || "0")) || 0;
   const variant = await prisma.premiumVariant.findUnique({
     where: { id: variantId },

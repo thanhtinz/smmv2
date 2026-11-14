@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { PageHead } from "@/components/ui";
@@ -13,7 +14,8 @@ export const dynamic = "force-dynamic";
    với cổng Điều khoản bắt xác nhận). Chưa cấu hình nội dung thì báo đang cập nhật,
    tuyệt đối không tự soạn văn bản điều khoản. */
 export default async function TermsPage() {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const s = await getSettings();
   const { L } = await getServerI18n();
   const title = s.terms_title || L("Điều khoản sử dụng");

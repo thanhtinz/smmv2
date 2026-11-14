@@ -94,7 +94,7 @@ export function ContactWidgetsManager({ items, saveAction, deleteAction, toggleA
 
       {open && (
       <Modal onClose={() => setOpen(false)} title={edit ? t("Sửa liên hệ") : t("Thêm liên hệ mới")}>
-        <form action={saveAction} onSubmit={() => setOpen(false)} className="space-y-4 px-6 py-5">
+        <form action={saveAction} className="space-y-4 px-6 py-5">
           <input type="hidden" name="id" value={edit?.id || 0} />
           <input type="hidden" name="image" value={img} />
           <div>

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { PublicFrame } from "@/components/public-frame";
 import { getServerI18n } from "@/lib/lang-server";
-import { moduleOn } from "@/lib/modules";
+import { requireModuleOn } from "@/lib/modules";
 import { num, dt } from "@/lib/format";
 import { I } from "@/components/ui";
 import { CopyCodeButton } from "@/components/copy-code";
@@ -17,24 +17,23 @@ export const dynamic = "force-dynamic";
  *  Xếp: hết hạn sớm nhất trước, mã không hạn chót xuống cuối, cùng nhóm thì
  *  mã mới trước. Thẻ chỉ hiện dữ kiện THẬT của mã — trường nào không có thì
  *  không có dòng đó (model không có trường mô tả nên thẻ không có mô tả).
- *  Module mã giảm giá bị tắt ở Cấu hình thì trang hiện trạng thái trống. */
+ *  Module mã giảm giá tắt ở Admin → Mô-đun thì trang bị chặn ở máy chủ,
+ *  chuyển về trang chủ (đợt 126 — trước đây chỉ hiện trạng thái trống). */
 export default async function DealsPage() {
+  await requireModuleOn("promo");
   const { L, M } = await getServerI18n();
   const now = new Date();
-  const promoOn = await moduleOn("promo");
-  const rows = promoOn
-    ? await prisma.discountCode.findMany({
-        where: {
-          // Mã phạm vi "SMM" đã chết cùng đợt gỡ SMM (không đơn nào áp được) — không quảng bá.
-          panelId: null, isPublic: true, active: true, scope: { not: "SMM" },
-          AND: [
-            { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-            { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
-          ],
-        },
-        orderBy: [{ endsAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
-      })
-    : [];
+  const rows = await prisma.discountCode.findMany({
+    where: {
+      // Mã phạm vi "SMM" đã chết cùng đợt gỡ SMM (không đơn nào áp được) — không quảng bá.
+      panelId: null, isPublic: true, active: true, scope: { not: "SMM" },
+      AND: [
+        { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+        { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
+      ],
+    },
+    orderBy: [{ endsAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
+  });
   const codes = rows.filter((c) => c.usageLimit === 0 || c.usedCount < c.usageLimit);
   const scopeLabel = (scope: string) => (scope === "PREMIUM" ? L("Sản phẩm Premium") : L("Tất cả đơn hàng"));
   const remaining = (endsAt: Date) => {

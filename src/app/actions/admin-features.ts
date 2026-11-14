@@ -340,6 +340,15 @@ export async function saveModulesAction(formData: FormData) {
     // Công tắc mục Telegram (khu tách riêng của FZR) nằm cùng trang Mô-đun
     // từ 2026-11-08 — trang Cài đặt Telegram riêng đã bỏ.
     "telegram_enabled",
+    // Đợt 126 (luật module 2026-11-13): gom nốt các công tắc từng nằm rải
+    // rác về đây — Pass (trước ở tab Pass của Cấu hình), Trang trí mùa
+    // (trước ở Cấu hình) — và các công tắc mới: Banner trang chủ, Flash
+    // Sale, 5 khu riêng của FZR. Từ nay MỌI công tắc module chỉ lưu ở
+    // action này (một công tắc một chỗ).
+    "pass_enabled", "seasonal_decor_enabled",
+    "hero_banner_enabled", "module_flashsale",
+    "area_steam_enabled", "area_gamekey_enabled", "area_giftcard_enabled",
+    "area_topup_enabled", "area_manual_enabled",
   ]) {
     await setSetting(k, formData.get(k) === "on" ? "1" : "0");
   }

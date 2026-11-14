@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { Flash, Empty } from "@/components/ui";
 import { getServerI18n } from "@/lib/lang-server";
@@ -19,7 +20,8 @@ export default async function TopupDetailPage({ params, searchParams }: {
   params: { id: string };
   searchParams: { msg?: string; err?: string };
 }) {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();
   const id = parseInt(params.id) || 0;
   const product = await prisma.premiumProduct.findFirst({

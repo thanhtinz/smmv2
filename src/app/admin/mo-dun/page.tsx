@@ -8,28 +8,42 @@ export const dynamic = "force-dynamic";
 
 type Mod = { key: string; name: string; desc: string; icon: React.ReactNode };
 
+/** Danh sách module ĐẦY ĐỦ của web (luật Tín 2026-11-13, đợt 126): mọi
+ *  mảng chức năng thật đều có đúng một công tắc tại đây — công tắc từng
+ *  nằm rải rác (Pass + Trang trí mùa ở Cấu hình, Affiliate ở Cấu hình)
+ *  đã dời hiển thị về đây; cấu hình chi tiết của từng module giữ nguyên
+ *  chỗ cũ. Tắt một module = nó biến mất khỏi menu/trang phía khách VÀ
+ *  route/API/action của nó bị chặn ở máy chủ (lib/modules). */
 const MODULES: Mod[] = [
   { key: "module_premium", name: "Tài khoản Premium", desc: "Bán tài khoản Premium cho khách.", icon: I.gem },
+  { key: "hero_banner_enabled", name: "Banner trang chủ", desc: "Hero banner admin tự tải lên ở trang chủ.", icon: I.panels },
+  { key: "module_flashsale", name: "Flash Sale", desc: "Khung flash sale ở trang chủ và giảm giá flash khi đặt đơn.", icon: I.zap },
+  { key: "area_steam_enabled", name: "Khu Steam", desc: "Steam Top-Up và Steam Gift Games cho khách.", icon: I.gamepad },
+  { key: "area_gamekey_enabled", name: "Khu Game Key", desc: "Danh mục và đặt mua game key cho khách.", icon: I.key },
+  { key: "area_giftcard_enabled", name: "Khu Gift Card", desc: "Danh mục và đặt mua gift card cho khách.", icon: I.gift },
+  { key: "area_topup_enabled", name: "Khu Top-Up", desc: "Nạp game (Top-Up) cho khách.", icon: I.refresh },
+  { key: "area_manual_enabled", name: "Khu Manual Services", desc: "Dịch vụ thủ công và chat nhà cung cấp cho khách.", icon: I.wrench },
   { key: "telegram_enabled", name: "Telegram (Stars & Premium)", desc: "Hiện menu và trang đặt đơn Telegram phía khách.", icon: I.send },
-  { key: "module_register", name: "Đăng ký tài khoản", desc: "Cho khách đăng ký tài khoản mới.", icon: I.users },
-  { key: "module_promo", name: "Mã giảm giá", desc: "Áp mã giảm giá khi đặt đơn.", icon: I.gift },
+  { key: "pass_enabled", name: "Pass (gói thành viên)", desc: "Trang Pass và mua / đổi / huỷ gói thành viên.", icon: I.star },
+  { key: "module_promo", name: "Mã giảm giá", desc: "Áp mã giảm giá khi đặt đơn và trang Ưu đãi.", icon: I.percent },
   { key: "module_affiliate", name: "Giới thiệu (Affiliate)", desc: "Hoa hồng cho người giới thiệu.", icon: I.money },
   { key: "module_tickets", name: "Hỗ trợ / Ticket", desc: "Khách mở ticket hỗ trợ.", icon: I.ticket },
-  { key: "module_api", name: "API đại lý", desc: "API /api/v2 cho đại lý.", icon: I.key },
+  { key: "module_api", name: "API đại lý", desc: "API /api/v2 cho đại lý.", icon: I.code },
   { key: "module_blog", name: "Bài viết", desc: "Tin tức, hướng dẫn trên website.", icon: I.file },
+  { key: "module_register", name: "Đăng ký tài khoản", desc: "Cho khách đăng ký tài khoản mới.", icon: I.users },
   { key: "livechat_enabled", name: "Tư vấn nổi (AI)", desc: "Nút tư vấn nổi gợi ý sản phẩm.", icon: I.cpu },
   { key: "support_widget_enabled", name: "Widget liên hệ nổi", desc: "Nút liên hệ Zalo / Telegram / Facebook / Hotline.", icon: I.bell },
+  { key: "seasonal_decor_enabled", name: "Trang trí mùa lễ hội", desc: "Hạt rơi theo mùa trên khung khách (chọn chủ đề ở Cấu hình).", icon: I.megaphone },
 ];
 
-/** Mô-đun — chỗ bật/tắt từng mảng chức năng của hệ thống, danh sách phẳng một thẻ.
- *  Panel con còn có công tắc riêng cho khách của panel đó ở trang Mô-đun của panel. */
+/** Mô-đun — chỗ bật/tắt từng mảng chức năng của hệ thống, danh sách phẳng một thẻ. */
 export default async function AdminModules({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
   await requireAdminPage();
   const { L, Ld } = await getServerI18n(null);
   const s = await getSettings();
   return (
     <div>
-      <PageHead title={L("Mô-đun")} desc={L("Bật / tắt từng mảng chức năng của hệ thống.")}>
+      <PageHead title={L("Mô-đun")} desc={L("Bật / tắt từng mảng chức năng của hệ thống. Tắt là module biến mất khỏi phía khách và route/API của nó bị chặn luôn.")}>
         <button className="btn-primary !py-2.5" form="modules-form" type="submit">{L("Lưu thay đổi")}</button>
       </PageHead>
       <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />

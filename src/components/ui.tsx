@@ -60,14 +60,9 @@ export function RankBadge({ rank }: { rank: number }) {
 export function Empty({ text }: { text: string }) {
   return <div className="card p-10 text-center text-sm text-slate-400">{text}</div>;
 }
-export function Flash({ msg, err }: { msg?: string; err?: string }) {
-  if (!msg && !err) return null;
-  return (
-    <div className={`mb-5 rounded-xl px-4 py-3 text-sm font-medium ${err ? "bg-rose-50 text-rose-700 border border-rose-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"}`}>
-      {err || msg}
-    </div>
-  );
-}
+/* Flash giờ là toast nổi (client component ở components/flash.tsx) —
+   re-export để 63 trang đang import { Flash } từ ui không phải đổi. */
+export { Flash } from "@/components/flash";
 export function BackLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link href={href} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 mb-4">

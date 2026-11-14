@@ -17,7 +17,8 @@ export default async function TelegramHistoryPage({ searchParams }: {
   searchParams: { q?: string; type?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string };
 }) {
   const PAGE_SIZE = await historyPageSize();
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const { L, Ld, M } = await getServerI18n();
   if (!(await telegramEnabled())) redirect("/");
   const base = telegramOrderWhere(user.id);

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth-shell";
 import { Flash } from "@/components/ui";
 import { prisma } from "@/lib/db";
@@ -14,6 +15,10 @@ export default async function RegisterPage({ searchParams }: { searchParams: { m
   const ref = (searchParams.ref || searchParams.aff || cookies().get(AFF_COOKIE_REF)?.value || "").trim().toUpperCase();
   const referrer = ref ? await prisma.user.findUnique({ where: { refCode: ref }, select: { username: true } }) : null;
   const settings = await getSettings().catch(() => null);
+  // Công tắc module Đăng ký (đợt 126): tắt thì trang đăng ký bị chặn ở
+  // máy chủ, về trang chủ — action đăng ký và Google callback còn chặn
+  // thêm một lớp (chỉ chặn tạo tài khoản MỚI, đăng nhập cũ không đổi).
+  if (settings?.module_register === "0") redirect("/");
   const { L, Ld } = await getServerI18n();
   const recaptchaSiteKey =
     settings?.recaptcha_enabled === "1" && settings?.recaptcha_register === "1" && settings?.recaptcha_site_key

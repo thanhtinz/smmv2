@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 /* Bài viết nằm TRONG khu khách (lệnh Tín 2026-11-05): khách panel thấy bài của
    panel mình; panel chưa có bài nào thì thấy bài của web mẹ. */
 export default async function DashPostsPage({ searchParams }: { searchParams: { cat?: string; q?: string } }) {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();
   if (!(await moduleOn("blog"))) redirect("/");
   const scopePid: number | null = null;

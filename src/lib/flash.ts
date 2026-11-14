@@ -15,6 +15,11 @@ export type FlashKind = "PREMIUM";
 
 export async function getActiveFlashSale(kind?: FlashKind): Promise<FlashSaleRow | null> {
   try {
+    // Công tắc module Flash Sale (đợt 126): tắt ở Admin → Mô-đun thì coi
+    // như không có đợt nào — chặn TẠI ĐÂY, điểm đọc duy nhất, nên cả khung
+    // trang chủ lẫn áp giá trong đơn đều tắt theo, không sót bề mặt nào.
+    const sGate = await getSettings();
+    if (sGate.module_flashsale === "0") return null;
     const now = new Date();
     const sale = await prisma.flashSale.findFirst({
       where: {

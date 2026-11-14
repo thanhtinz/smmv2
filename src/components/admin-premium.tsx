@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Modal, Switch } from "@/components/admin-catalog";
 import { PremiumFieldsEditor } from "@/components/client";
 import { RichTextEditor, ImagesField } from "@/components/rich-editor";
-import { adminSavePremiumCategory, adminDeletePremiumCategory, adminTogglePremiumCategory, adminSaveProduct, adminDeleteProduct, adminToggleProduct, adminSaveVariant, adminDeleteVariant } from "@/app/actions/admin";
+import { adminSavePremiumCategory, adminDeletePremiumCategory, adminTogglePremiumCategory, adminSaveProduct, adminDeleteProduct, adminToggleProduct, adminSaveVariant, adminDeleteVariant, adminProviderCatalogSearch } from "@/app/actions/admin";
+import { fzrPickSearch } from "@/app/actions/admin-families";
 import { num, parsePremiumFields } from "@/lib/format";
 import { useLang } from "@/components/lang";
 
@@ -131,7 +132,7 @@ export type PremiumProductDTO = {
   metaTitle: string | null; metaDescription: string | null;
   active: boolean; sort: number; orderCount: number; variants: PremiumVariantDTO[];
 };
-export type PremiumProviderOpt = { id: number; name: string };
+export type PremiumProviderOpt = { id: number; name: string; driver: string };
 
 export function ProductModal({ product, categories, providers, onClose, returnTo = "/admin/premium" }: { product?: PremiumProductDTO; categories: PremiumCategoryDTO[]; providers: PremiumProviderOpt[]; onClose: () => void; returnTo?: string }) {
   const { t } = useLang();
@@ -142,6 +143,55 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
   const [fulfillment, setFulfillment] = useState(p?.fulfillment || "MANUAL");
   const [metaTitle, setMetaTitle] = useState(p?.metaTitle || "");
   const [metaDescription, setMetaDescription] = useState(p?.metaDescription || "");
+  // Chọn sản phẩm từ nguồn khi hình thức giao = API: mã phía NCC là state
+  // để khung tìm kiếm bên dưới điền vào (vẫn gõ tay được). Đổi nhà cung cấp
+  // thì mã cũ vô nghĩa — xoá kèm kết quả tìm và lựa chọn cũ.
+  const [providerId, setProviderId] = useState(p?.providerId ? String(p.providerId) : "");
+  const [providerProductId, setProviderProductId] = useState(p?.providerProductId || "");
+  const [pickQ, setPickQ] = useState("");
+  const [pickItems, setPickItems] = useState<{ id: string; name: string; sub: string; price: string }[] | null>(null);
+  const [pickBusy, setPickBusy] = useState(false);
+  const [pickError, setPickError] = useState("");
+  const [pickNote, setPickNote] = useState("");
+  const [pickedName, setPickedName] = useState("");
+  const [fzrGroup, setFzrGroup] = useState<"gamekeys" | "giftcards">("gamekeys");
+  const selectedProvider = providers.find((pr) => String(pr.id) === providerId);
+  const isFzrProvider = selectedProvider?.driver === "FZR";
+  const changeProvider = (v: string) => {
+    setProviderId(v);
+    setProviderProductId("");
+    setPickItems(null);
+    setPickError("");
+    setPickNote("");
+    setPickedName("");
+  };
+  const runPickSearch = async () => {
+    if (!selectedProvider || pickBusy) return;
+    setPickBusy(true); setPickError(""); setPickNote("");
+    try {
+      if (isFzrProvider) {
+        const r = await fzrPickSearch(fzrGroup, pickQ, 1);
+        if (!r.ok) { setPickError(r.error || t("Không tìm được sản phẩm")); setPickItems(null); return; }
+        setPickItems((r.items || []).map((it) => ({ id: it.id, name: it.name, sub: [it.extra, it.extra2].filter(Boolean).join(" · "), price: it.priceUsd ? `$${it.priceUsd}` : "" })));
+        if (r.hasMore) setPickNote(t("Còn thêm kết quả — gõ từ khoá cụ thể hơn để thu hẹp."));
+      } else {
+        const r = await adminProviderCatalogSearch(selectedProvider.id, pickQ);
+        if (!r.ok) { setPickError(r.error || t("Không tìm được sản phẩm")); setPickItems(null); return; }
+        setPickItems(r.items.map((it) => ({ id: it.id, name: it.name, sub: it.category, price: it.cycles[0] ? `${it.cycles[0].priceRaw.toLocaleString("vi-VN")} ${it.currency}` : "" })));
+        if (r.total > r.items.length) setPickNote(t("Hiện 50 kết quả đầu trong tổng số khớp — gõ thêm từ khoá để thu hẹp."));
+      }
+    } catch {
+      setPickError(t("Không gọi được nhà cung cấp"));
+      setPickItems(null);
+    } finally {
+      setPickBusy(false);
+    }
+  };
+  const applyPick = (it: { id: string; name: string }) => {
+    setProviderProductId(it.id);
+    setPickedName(it.name);
+    if (!p) { setName(it.name); if (!slugTouched) setSlug(slugify(it.name)); }
+  };
   return (
     <Modal title={p ? t("Chỉnh sửa Sản phẩm Premium") : t("Thêm Sản phẩm Premium Mới")} onClose={onClose} wide>
       <form action={adminSaveProduct}>
@@ -191,12 +241,59 @@ export function ProductModal({ product, categories, providers, onClose, returnTo
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={lbl}>{t("Nhà cung cấp")}</label>
-                    <select name="providerId" defaultValue={p?.providerId || ""} className={inp}>
+                    <select name="providerId" value={providerId} onChange={(e) => changeProvider(e.target.value)} className={inp}>
                       <option value="">{t("Chọn nhà cung cấp")}</option>
                       {providers.map((pr) => <option key={pr.id} value={pr.id}>{pr.name}</option>)}
                     </select>
                   </div>
-                  <div><label className={lbl}>{t("ID sản phẩm tại NCC")}</label><input name="providerProductId" defaultValue={p?.providerProductId || ""} className={inp} /></div>
+                  <div><label className={lbl}>{t("ID sản phẩm tại NCC")}</label><input name="providerProductId" value={providerProductId} onChange={(e) => { setProviderProductId(e.target.value); setPickedName(""); }} className={inp} placeholder={t("Chọn từ nguồn bên dưới hoặc gõ mã")} /></div>
+                </div>
+              )}
+              {fulfillment === "API" && (
+                <div className="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-3">
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-brand-700">{t("Tìm sản phẩm từ nguồn")}</div>
+                  {!selectedProvider ? (
+                    <p className="mt-1.5 text-xs text-slate-400">{t("Chọn nhà cung cấp ở trên trước — hệ thống lấy catalog thật của họ để bạn tìm và chọn, khỏi phải nhớ mã sản phẩm.")}</p>
+                  ) : (
+                    <>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {isFzrProvider && (
+                          <select value={fzrGroup} onChange={(e) => { setFzrGroup(e.target.value as "gamekeys" | "giftcards"); setPickItems(null); setPickedName(""); }} className={`${inp} !w-36 !py-2 text-[13px]`}>
+                            <option value="gamekeys">Game Key</option>
+                            <option value="giftcards">Gift Card</option>
+                          </select>
+                        )}
+                        <input value={pickQ} onChange={(e) => setPickQ(e.target.value)} placeholder={t("Tìm theo tên trong catalog của nhà cung cấp...")} className={`${inp} min-w-[200px] flex-1 !py-2 text-[13px]`}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runPickSearch(); } }} />
+                        <button type="button" onClick={runPickSearch} disabled={pickBusy} className="btn-primary btn-row !px-3.5 disabled:opacity-50">{pickBusy ? t("Đang gọi...") : t("Tìm")}</button>
+                      </div>
+                      {pickError && <p className="mt-1.5 text-xs font-semibold text-rose-600">{pickError}</p>}
+                      {pickNote && <p className="mt-1.5 text-xs text-slate-400">{pickNote}</p>}
+                      {pickItems && (
+                        pickItems.length === 0
+                          ? <p className="mt-2 text-xs text-slate-400">{t("Không có sản phẩm nào khớp trong catalog của nhà cung cấp.")}</p>
+                          : (
+                            <div className="mt-2 max-h-52 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                              {pickItems.map((it) => (
+                                <button key={it.id} type="button" onClick={() => applyPick(it)}
+                                  className={`flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-brand-50 ${providerProductId === it.id ? "bg-brand-50" : ""}`}>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-[13px] font-bold text-slate-800">{it.name}</span>
+                                    <span className="block text-[11px] text-slate-400">{t("Mã")}: {it.id}{it.sub ? ` · ${it.sub}` : ""}</span>
+                                  </span>
+                                  {it.price && <span className="shrink-0 text-[12px] font-bold text-slate-500">{it.price}</span>}
+                                </button>
+                              ))}
+                            </div>
+                          )
+                      )}
+                      {pickedName && providerProductId && (
+                        <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                          {t("Đã chọn")}: {pickedName} ({t("mã")} {providerProductId}) — {t("mã đã điền vào ô ID sản phẩm tại NCC")}.
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
               <div><label className={lbl}>{t("Thông tin bảo hành")}</label><RichTextEditor name="warrantyInfo" defaultValue={p?.warrantyInfo} minHeight={100} /></div>

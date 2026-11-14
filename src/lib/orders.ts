@@ -15,6 +15,7 @@ import { executeFzrPremiumOrder, refreshFzrQuotePrice, parseBuyerInfoLines } fro
 import { claimVariantStock, restoreVariantStock, variantSoldOut, OUT_OF_STOCK_ERROR, notifyStockCrossing } from "./variant-stock";
 import { passDiscountFor, creditPassCashback, clawbackPassCashback } from "./pass";
 import { sendCustomerMail } from "./customer-mail";
+import { moduleOn, moduleKeyForGroup, MODULE_LABEL } from "./modules";
 import type { PremiumOrder, User } from "@prisma/client";
 
 /**
@@ -41,14 +42,24 @@ export async function createPremiumOrder(input: {
   // kho + giao hàng như đơn thường. Chỉ actions/pass.ts được đặt cờ này.
   gift?: boolean;
 }) {
-  if ((await getSettings()).module_premium === "0") throw new Error("Mảng Premium đang tạm tắt");
-  // GĐ3: tài khoản rủi ro cao (chưa được duyệt lại) bị chặn mua Premium mới
-  await assertNotRiskRestricted(input.user.id);
   const variant = await prisma.premiumVariant.findUnique({
     where: { id: input.variantId },
     include: { product: true },
   });
   if (!variant || !variant.active || !variant.product.active) throw new Error("Gói không tồn tại hoặc đã ngưng bán");
+  // Cổng MODULE (luật module 2026-11-13, đợt 126): gói thuộc khu riêng FZR
+  // thì khu đó gác bằng công tắc riêng của khu; gói Premium thường do
+  // module_premium gác như trước. Đây là lớp chặn MÁY CHỦ ở engine dùng
+  // chung — mọi đường tạo đơn (web từng khu, giỏ, API v2, quà Pass) đều
+  // qua đây nên không đường nào lọt khi module tương ứng đang tắt.
+  const areaKey = moduleKeyForGroup(variant.providerGroup);
+  if (areaKey) {
+    if (!(await moduleOn(areaKey))) throw new Error(`Khu ${MODULE_LABEL[areaKey] || "sản phẩm"} đang tạm tắt`);
+  } else if ((await getSettings()).module_premium === "0") {
+    throw new Error("Mảng Premium đang tạm tắt");
+  }
+  // GĐ3: tài khoản rủi ro cao (chưa được duyệt lại) bị chặn mua Premium mới
+  await assertNotRiskRestricted(input.user.id);
   // FZR — báo giá tại thời điểm mua cho nhóm giá biến động (sao Telegram, gift Steam):
   // chốt giá tươi từ provider TRƯỚC khi tính tiền. Nhóm khác giữ giá đã đồng bộ.
   if (variant.product.fulfillment === "API" && variant.providerId && (variant.providerGroup === "telegram_stars" || variant.providerGroup === "steam_gift")) {

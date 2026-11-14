@@ -17,6 +17,29 @@ const authSecretRaw = (() => {
 const secret = new TextEncoder().encode(authSecretRaw);
 export const SESSION_COOKIE = "smmv2_session";
 
+/** Miền cookie CHUNG cho các subdomain (chuẩn tên miền con 2026-11-13,
+ *  đợt 127): suy từ Host của request — bỏ tiền tố subdomain đã biết để
+ *  lấy miền gốc, cookie phiên/step-up/2FA đặt trên ".<miền gốc>" nên
+ *  đăng nhập ở miền gốc là dùng được ở admin.<gốc> và ngược lại.
+ *  Trả undefined (cookie theo host như cũ) cho localhost / IP / host
+ *  một nhãn — các môi trường đó không có subdomain để chia sẻ. Trên
+ *  host demo dạng <tên>.vercel.app, miền suy ra chính là host đó nên
+ *  hành vi tương đương cookie theo host như trước. */
+const COOKIE_SUB_PREFIXES = ["api", "admin", "webhook", "dashboard", "doc", "www"];
+export function sharedCookieDomain(): string | undefined {
+  try {
+    const host = (headers().get("host") || "").split(":")[0].toLowerCase();
+    if (!host || host === "localhost" || /^[\d.]+$/.test(host)) return undefined;
+    const parts = host.split(".");
+    if (parts.length < 2) return undefined;
+    const root = COOKIE_SUB_PREFIXES.includes(parts[0]) && parts.length > 2 ? parts.slice(1).join(".") : host;
+    if (root.split(".").length < 2) return undefined;
+    return `.${root}`;
+  } catch {
+    return undefined;
+  }
+}
+
 /* ---------- GĐ3: xoay vòng khoá phiên (secret rotation) ----------
    Khoá ký JWT PHIÊN lấy từ DB (settings session_secret, đã giải mã qua secret-box)
    nếu admin đã xoay vòng; chưa xoay thì dùng AUTH_SECRET ở env như trước.
@@ -78,12 +101,14 @@ export async function createSession(user: SessionUser) {
     .setIssuedAt()
     .setExpirationTime(`${days}d`)
     .sign((await getSessionSecrets()).current);
+  const sessionDomain = sharedCookieDomain();
   cookies().set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * days,
     secure: process.env.NODE_ENV === "production",
+    ...(sessionDomain ? { domain: sessionDomain } : {}),
   });
 }
 
@@ -93,9 +118,18 @@ export async function destroySession() {
     const s = await getSession();
     if (s?.sid) await prisma.userSession.updateMany({ where: { sid: s.sid, revokedAt: null }, data: { revokedAt: new Date() } });
   } catch { /* bỏ qua lỗi thu hồi khi đăng xuất */ }
-  cookies().delete(SESSION_COOKIE);
-  cookies().delete(PENDING_2FA_COOKIE);
-  cookies().delete(STEPUP_COOKIE);
+  // Xoá cookie phải kèm ĐÚNG miền đã đặt (đợt 127): cookie đặt trên
+  // ".<miền gốc>" mà xoá không kèm miền thì trình duyệt không gỡ.
+  const domain = sharedCookieDomain();
+  if (domain) {
+    cookies().delete({ name: SESSION_COOKIE, path: "/", domain });
+    cookies().delete({ name: PENDING_2FA_COOKIE, path: "/", domain });
+    cookies().delete({ name: STEPUP_COOKIE, path: "/", domain });
+  } else {
+    cookies().delete(SESSION_COOKIE);
+    cookies().delete(PENDING_2FA_COOKIE);
+    cookies().delete(STEPUP_COOKIE);
+  }
 }
 
 /* ---------- Step-up (GĐ2): xác thực lại cho thao tác nhạy cảm, cookie ký hạn 10 phút ---------- */
@@ -107,12 +141,14 @@ export async function createStepUp(userId: number) {
     .setIssuedAt()
     .setExpirationTime("10m")
     .sign(secret);
+  const stepupDomain = sharedCookieDomain();
   cookies().set(STEPUP_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 10,
     secure: process.env.NODE_ENV === "production",
+    ...(stepupDomain ? { domain: stepupDomain } : {}),
   });
 }
 
@@ -144,12 +180,14 @@ export async function createPending2fa(user: { id: number; username: string }) {
     .setIssuedAt()
     .setExpirationTime("5m")
     .sign(secret);
+  const pendingDomain = sharedCookieDomain();
   cookies().set(PENDING_2FA_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 5,
     secure: process.env.NODE_ENV === "production",
+    ...(pendingDomain ? { domain: pendingDomain } : {}),
   });
 }
 

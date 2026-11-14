@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Flash } from "@/components/ui";
@@ -15,7 +16,8 @@ export const dynamic = "force-dynamic";
  *  thẻ "chưa có dữ liệu". Desktop lg+ chia 2 cột 73/27 (Summary dính) như
  *  trang chi tiết Premium; mobile 1 cột. */
 export default async function SteamTopupPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();
 
   const variants = await prisma.premiumVariant.findMany({

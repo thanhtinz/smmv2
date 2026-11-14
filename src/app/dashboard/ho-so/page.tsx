@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { getCurrentUser, getSession, currentIp } from "@/lib/auth";
 import { revokeSessionAction, revokeOtherSessionsAction } from "@/app/actions/sessions";
 import { Flash, Stat, I, Badge, DeviceTile, deviceKind } from "@/components/ui";
@@ -10,7 +11,7 @@ import { TwoFactorCard } from "@/components/two-factor";
 import { PasskeySection } from "@/components/passkey";
 import { ProfileTabs } from "@/components/profile-tabs";
 import { backupCodesLeft } from "@/lib/twofa";
-import { getSettings, siteUrlFromSettings } from "@/lib/settings";
+import { getSettings, siteUrlFromSettings, subUrlFromSettings } from "@/lib/settings";
 import { LEVEL_NAME, num, dt, dshort, relTime } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
 import { regularPremiumWhere } from "@/lib/order-scope";
@@ -29,10 +30,15 @@ function parseUaLabel(ua?: string | null): string | null {
 /** Tài khoản — bố cục theo panel mẫu: đầu trang avatar + huy hiệu, 4 thẻ nhỏ,
  *  3 tab Hồ sơ cá nhân | Kết nối API | Bảo mật & Phiên đăng nhập. */
 export default async function ProfilePage({ searchParams }: { searchParams: { msg?: string; err?: string; tab?: string; bat2fa?: string } }) {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const { L, Ld, M } = await getServerI18n();
   const tab = searchParams.tab === "api" ? "api" : searchParams.tab === "security" ? "security" : "profile";
   const s = await getSettings();
+  // Công tắc module API (đợt 126): tắt thì tab Kết nối API bị chặn ở máy
+  // chủ (key + whitelist IP + tạo key mới đều thuộc module này), các tab
+  // hồ sơ/bảo mật còn lại không đổi.
+  if (tab === "api" && s.module_api === "0") { const { redirect } = await import("next/navigation"); redirect("/dashboard/ho-so"); }
   const [preCount, commissionAgg, refCount, loginHistory, mySessions, curSession, myPasskeys] = await Promise.all([
     prisma.premiumOrder.count({ where: regularPremiumWhere(user.id) }),
     prisma.transaction.aggregate({ where: { userId: user.id, type: { in: ["REFERRAL_COMMISSION", "PANEL_COMMISSION"] }, amount: { gt: 0 } }, _sum: { amount: true } }),
@@ -45,7 +51,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
   const myIp = currentIp();
   const adminMust2fa = searchParams.bat2fa === "1" || ((user.role === "ADMIN" || user.role === "STAFF") && s.admin_2fa_required !== "0");
   const initials = (user.fullName || user.username).trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-  const endpoint = `${siteUrlFromSettings(s)}/api/v2`;
+  const endpoint = `${subUrlFromSettings(s, "api") || siteUrlFromSettings(s)}/api/v2`;
   const passwordForm = (
     <form action={changePasswordAction} className="card space-y-4 p-6">
       <div className="flex items-center gap-3">
@@ -187,7 +193,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: { ms
         </div>
         )}
 
-        api={(
+        api={s.module_api === "0" ? null : (
         <div className="card mt-6 space-y-5 p-6">
           <div className="flex items-center gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shadow-brand-500/30">{I.key}</span>

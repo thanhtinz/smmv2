@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { prisma } from "./db";
 import { applyBalance } from "./wallet";
-import { getSettings, calcBonus, bonusTiersFor } from "./settings";
+import { getSettings, calcBonus, bonusTiersFor, withSubdomain } from "./settings";
 
 /**
  * Cổng BoltUtil (boltutil.com) — thay cơ chế nạp USDT thủ công (2026-11-07).
@@ -157,7 +157,10 @@ export async function boltCreateOrder(cfg: BoltConfig, input: { externalOrderId:
     externalOrderId: input.externalOrderId,
     network: boltApiNetwork(input.network),
     currency: "USDT",
-    notifyUrl: `${origin}/api/webhooks/boltutil`,
+    // URL báo về chuẩn tên miền con (đợt 127): webhook.<gốc> — route vẫn
+    // trả lời song song ở miền gốc nên đơn tạo trước đây không bị ảnh
+    // hưởng; returnUrl giữ nguyên miền gốc (trang khách quay về).
+    notifyUrl: `${withSubdomain(origin, "webhook")}/api/webhooks/boltutil`,
     returnUrl: `${origin}${input.returnPath || "/dashboard/nap-tien"}`,
     expiredMinutes: cfg.expiresMinutes,
     orderDesc: `${siteName} ${input.externalOrderId}`,

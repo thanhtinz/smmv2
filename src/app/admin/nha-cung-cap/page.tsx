@@ -4,7 +4,7 @@ import { PageHead, Flash, Stat, I } from "@/components/ui";
 import { ProvidersClient, type ProviderDTO } from "@/components/admin-catalog";
 import { dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
-import { getSettings, siteUrlFromSettings } from "@/lib/settings";
+import { getSettings, siteUrlFromSettings, subUrlFromSettings } from "@/lib/settings";
 import { getTelegramProvider } from "@/lib/tg";
 import { fzrBalance, fzrMe, fzrTransactions, fzrWebhookConfig } from "@/lib/fzr";
 import { adminFzrAssignmentAction, adminTelegramTestAction, adminFzrWebhookTestAction } from "@/app/actions/telegram";
@@ -58,17 +58,14 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
         <Stat label={L("Tổng số sản phẩm từ nhà cung cấp")} value={String(totalProducts)} icon={I.list} tone="violet" />
         <Stat label={L("Tổng số sản phẩm đang bật")} value={String(enabledProducts)} icon={I.check} tone="cyan" />
       </div>
+      {/* Khối FZR dùng chung (phân công nhà cung cấp cho Telegram + trạng
+          thái số dư/webhook FZR): chỉ hiện khi ĐÃ có nhà cung cấp FZR.
+          Đầu thẻ giải thích "FazerCards — khu tách riêng" + ghi chú khi
+          chưa có nhà cung cấp đã bỏ hẳn theo lệnh Tín 2026-11-13
+          ("bỏ cái card này luôn đi kiểu bị dư"). */}
+      {fzrProviders.length > 0 && (
       <div className="card mt-5 p-5 sm:p-6">
-        <div className="flex items-center gap-2">
-          <span className="text-brand-600">{I.send}</span>
-          <h2 className="text-[15px] font-bold text-slate-900">{L("FazerCards — khu tách riêng")}</h2>
-        </div>
-        <p className="mt-1 text-sm text-slate-500">{L("Telegram và Steam là các khu tách riêng của cùng một nhà cung cấp FazerCards — dùng chung API và webhook, cấu hình tại đây thay vì mỗi khu một trang cài đặt.")}</p>
-        {fzrProviders.length === 0 ? (
-          <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">{L("Chưa có nhà cung cấp FazerCards nào — thêm bằng nút “Thêm nhà cung cấp FZR” ở danh sách bên dưới.")}</p>
-        ) : (
-          <>
-            <form action={adminFzrAssignmentAction} className="mt-4 flex flex-wrap items-end gap-3">
+            <form action={adminFzrAssignmentAction} className="flex flex-wrap items-end gap-3">
               <div className="min-w-[240px] flex-1">
                 <label className="lbl">{L("Nhà cung cấp phục vụ Telegram")}</label>
                 <select className="inp" name="telegram_provider_id" defaultValue={s.telegram_provider_id || ""}>
@@ -116,13 +113,13 @@ export default async function AdminProviders({ searchParams }: { searchParams: {
                 </ul>
               </div>
             )}
-          </>
-        )}
       </div>
+      )}
       <div className="mt-2">
         <ProvidersClient
           providers={dtos}
           siteBase={siteUrlFromSettings(s)}
+          webhookBase={subUrlFromSettings(s, "webhook")}
           webhookSecretSet={Boolean(s.fzr_webhook_secret)}
           fzrMarkups={{
             gamekeys: s.fzr_markup_gamekeys || "",

@@ -1,17 +1,20 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { BackLink, Badge, I } from "@/components/ui";
+import { BackLink, Badge, I, Flash } from "@/components/ui";
 import { Stars } from "@/components/premium-card";
 import { replyTicketAction, rateTicketAction } from "@/app/actions/user";
 import { TicketAttachInput, TicketAttachments } from "@/components/ticket-attach";
 import { dt } from "@/lib/format";
 import { getServerI18n } from "@/lib/lang-server";
+import { requireModuleOn } from "@/lib/modules";
 
 export const dynamic = "force-dynamic";
 
-export default async function TicketDetail({ params }: { params: { id: string } }) {
-  const user = (await getCurrentUser())!;
+export default async function TicketDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
+  await requireModuleOn("tickets");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();
   const t = await prisma.ticket.findFirst({
     where: { id: parseInt(params.id), userId: user.id },
@@ -20,6 +23,7 @@ export default async function TicketDetail({ params }: { params: { id: string } 
   if (!t) notFound();
   return (
     <div className="max-w-3xl">
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <BackLink href="/dashboard/ticket">{L("Tất cả ticket")}</BackLink>
       <div className="card p-6">
         <div className="flex items-start justify-between gap-3 mb-6">

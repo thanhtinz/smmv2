@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { I, Flash, Badge, Empty, Stat } from "@/components/ui";
 import { PRE_STATUS, dt } from "@/lib/format";
@@ -18,7 +19,8 @@ export default async function TopupHistoryPage({ searchParams }: {
   searchParams: { q?: string; status?: string; from?: string; to?: string; page?: string; msg?: string; err?: string };
 }) {
   const PAGE_SIZE = await historyPageSize();
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const { L, Ld, M } = await getServerI18n();
   const base = { userId: user.id, variant: { providerGroup: "topups" } };
   const [totalOrders, doneAgg, pendingAgg, spentAgg] = await Promise.all([

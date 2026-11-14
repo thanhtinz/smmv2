@@ -6,8 +6,8 @@ import { writeAudit } from "@/lib/audit";
 import { applyBalance, clawbackReferralCommission } from "@/lib/wallet";
 import { clawbackPassCashback } from "@/lib/pass";
 import { syncPremiumOrderStatus } from "@/lib/orders";
-import { providerBalance, syncProviderPremium } from "@/lib/provider";
-import { getSettings, setSetting, siteUrlFromSettings, normalizeSiteUrl } from "@/lib/settings";
+import { providerBalance, syncProviderPremium, providerProductCategoriesRaw, normalizeProducts } from "@/lib/provider";
+import { getSettings, setSetting, siteUrlFromSettings, subUrlFromSettings, normalizeSiteUrl } from "@/lib/settings";
 import { fzrMarkupKey } from "@/lib/fzr-markup";
 import { DICT } from "@/lib/i18n";
 import { LANG_KEYS, sanitizeEnabled, sanitizeOverrides, type LangOverrides } from "@/lib/lang-config";
@@ -217,6 +217,44 @@ export async function adminSyncAllProviders() {
     }
   }
   done("/admin/nha-cung-cap", parts.length ? `Đã đồng bộ tất cả — ${parts.join(" · ")}` : "Chưa có nhà cung cấp đang bật");
+}
+
+/** Tìm sản phẩm trong catalog THẬT của một nhà cung cấp STANDARD — dùng cho
+ *  khung chọn từ nguồn trong form sản phẩm Premium (hình thức giao = API):
+ *  admin tìm theo tên rồi bấm chọn để điền đúng mã sản phẩm phía NCC, thay
+ *  cho ô gõ ID tự do (không ai nhớ được mã phía nguồn). Cùng đường dữ liệu
+ *  của đồng bộ catalog: action=category + normalizeProducts. Trả tối đa 50
+ *  kết quả đầu + tổng số khớp; lỗi phía NCC trả về dạng {ok:false} để form
+ *  hiện tại chỗ, không văng trang. */
+export async function adminProviderCatalogSearch(providerId: number, q: string): Promise<
+  | { ok: true; total: number; items: { id: string; name: string; category: string; currency: string; cycles: { cycle: number; label: string | null; priceRaw: number }[] }[] }
+  | { ok: false; error: string }
+> {
+  await requireAdmin();
+  const provider = await prisma.provider.findUnique({ where: { id: providerId } });
+  if (!provider) return { ok: false, error: "Không tìm thấy nhà cung cấp" };
+  if (provider.driver === "FZR") return { ok: false, error: "Nhà cung cấp FZR tra cứu theo nhóm ở khung chọn phía dưới" };
+  try {
+    const raw = await providerProductCategoriesRaw(provider);
+    const products = normalizeProducts(raw);
+    const needle = String(q || "").trim().toLowerCase().slice(0, 100);
+    const matched = needle
+      ? products.filter((p) => `${p.name} ${p.providerProductId} ${p.categoryName}`.toLowerCase().includes(needle))
+      : products;
+    return {
+      ok: true,
+      total: matched.length,
+      items: matched.slice(0, 50).map((p) => ({
+        id: p.providerProductId,
+        name: p.name,
+        category: p.categoryName,
+        currency: provider.currency,
+        cycles: p.variants.map((v) => ({ cycle: v.cycle, label: v.label ?? null, priceRaw: v.priceRaw })),
+      })),
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Không gọi được nhà cung cấp" };
+  }
 }
 
 /* ---------- Premium ---------- */
@@ -559,7 +597,7 @@ export async function adminSepayStatusAction() {
   await requireAdmin();
   const s = await getSettings();
   const base = siteUrlFromSettings(s) || "https://your-domain.vn";
-  const url = `${base}/api/webhooks/sepay`;
+  const url = `${subUrlFromSettings(s, "webhook") || base}/api/webhooks/sepay`;
   const lastLog = await prisma.apiLog.findFirst({ where: { kind: "webhook" }, orderBy: { id: "desc" }, select: { createdAt: true } });
   const lastReceipt = await prisma.webhookReceipt.findFirst({ orderBy: { id: "desc" }, select: { createdAt: true } });
   const lastAt = lastLog?.createdAt || lastReceipt?.createdAt || null;
@@ -680,6 +718,7 @@ export async function adminReplyTicket(formData: FormData) {
   const tk = await prisma.ticket.findUnique({ where: { id: ticketId }, select: { userId: true, subject: true, user: { select: { panelId: true } } } });
   const body = String(formData.get("body") || "").trim();
   const close = formData.get("close") === "on";
+  if (!body && !close) back(`/admin/ticket/${ticketId}`, "err", "Nhập nội dung trả lời, hoặc tick Đóng ticket nếu chỉ muốn đóng");
   if (body) await prisma.ticketMessage.create({ data: { ticketId, body, fromAdmin: true, attachments: cleanAttachments(formData.get("attachments")) } });
   await prisma.ticket.update({ where: { id: ticketId }, data: { status: close ? "CLOSED" : "ANSWERED" } });
   // Đợt 119: mail cho khách khi nhân viên trả lời ticket (chỉ khi có nội dung trả lời).
@@ -692,7 +731,7 @@ export async function adminReplyTicket(formData: FormData) {
       ticket_id: ticketId, ticket_subject: tk.subject, ticket_url: `${mailBase}/dashboard/ticket`,
     });
   }
-  redirect(`/admin/ticket/${ticketId}`);
+  back(`/admin/ticket/${ticketId}`, "msg", close ? "Đã gửi trả lời và đóng ticket" : "Đã gửi trả lời cho khách");
 }
 
 /* ---------- Cấu hình + thông báo ---------- */
@@ -740,7 +779,7 @@ export async function adminSaveSettings(formData: FormData) {
     "recaptcha_enabled", "recaptcha_site_key", "recaptcha_secret", "recaptcha_login", "recaptcha_register",
     "bf_enabled", "bf_max_attempts", "bf_lock_seconds",
     "reg_honeypot", "reg_block_disposable", "reg_max_per_ip_hour", "reg_banned_domains",
-    "smtp_enabled", "smtp_from_name", "module_affiliate", "session_days", "premium_max_qty", "order_max_links",
+    "smtp_enabled", "smtp_from_name", "session_days", "premium_max_qty", "order_max_links",
     "provider_low_balance_default", "subscription_max_active",
     "auto_refill_window_days", "auto_refill_settle_minutes", "cleanup_retention_days", "usdt_min",
     "points_per_100k", "points_value_vnd", "points_min_redeem", "ga_id", "gsc_verification",
@@ -748,8 +787,11 @@ export async function adminSaveSettings(formData: FormData) {
     "catalog_page_size", "history_page_size", "admin_product_page_size", "admin_list_page_size",
     "watermark_enabled", "watermark_text", "watermark_opacity",
     "password_reset_ttl_minutes", "email_verify_ttl_hours", "flash_max_percent",
-    "seasonal_decor_enabled", "seasonal_theme",
-    "pass_enabled", "pass_name", "pass_price_1m", "pass_price_3m", "pass_price_12m",
+    // seasonal_decor_enabled / pass_enabled / module_affiliate KHÔNG còn
+    // lưu ở form Cấu hình (đợt 126): công tắc module chỉ lưu ở Admin →
+    // Mô-đun (saveModulesAction) — một công tắc một chỗ.
+    "seasonal_theme",
+    "pass_name", "pass_price_1m", "pass_price_3m", "pass_price_12m",
     "pass_cashback_percent", "pass_discount_percent", "pass_scope", "pass_gift_product_id", "pass_gift_variant_id",
   ];
   const savedKeys: string[] = [];

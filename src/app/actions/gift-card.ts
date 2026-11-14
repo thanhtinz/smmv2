@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createPremiumOrder } from "@/lib/orders";
+import { moduleOn } from "@/lib/modules";
 
 function back(path: string, key: "msg" | "err", text: string): never {
   redirect(`${path}?${key}=${encodeURIComponent(text)}`);
@@ -25,6 +26,7 @@ function cleanError(e: any, path: string): never {
  *  order (lỗi dứt khoát phía họ vẫn hoàn tiền qua máy chung). */
 export async function placeGiftCardAction(formData: FormData) {
   const user = await requireUser();
+  if (!(await moduleOn("giftcard"))) redirect("/");
   const variantId = parseInt(String(formData.get("variantId") || "0")) || 0;
   const quantity = Math.min(100, Math.max(1, parseInt(String(formData.get("quantity") || "1")) || 1));
   const variant = await prisma.premiumVariant.findUnique({

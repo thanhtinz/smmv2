@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 
 /** Đặt đơn Telegram Stars & Premium (khu riêng, công tắc ở Admin → Telegram). */
 export default async function TelegramOrderPage({ searchParams }: { searchParams: { msg?: string; err?: string; tab?: string } }) {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();
   if (!(await telegramEnabled())) redirect("/");
   const provider = await getTelegramProvider();

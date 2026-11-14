@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { rateLimitExceeded, clientIp } from "@/lib/rate-limit";
 import { getLang } from "@/lib/lang-server";
+import { moduleOn } from "@/lib/modules";
 import { findServices } from "@/lib/finder";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,11 @@ export const dynamic = "force-dynamic";
 /** Livechat tư vấn sản phẩm: khách mô tả nhu cầu → gợi ý sản phẩm Premium
  *  trong catalog kèm giá gói rẻ nhất (đã áp flash sale nếu đang chạy). */
 export async function POST(req: Request) {
+  // Công tắc module AI tư vấn (đợt 126): tắt ở Admin → Mô-đun thì endpoint
+  // từ chối ở máy chủ — không chỉ ẩn nút nổi như trước.
+  if (!(await moduleOn("livechat"))) {
+    return NextResponse.json({ error: "Tính năng tư vấn đang tắt" }, { status: 403 });
+  }
   if (rateLimitExceeded(`suggest|${clientIp(req.headers)}`, 20, 60000)) {
     return NextResponse.json({ error: "Quá nhiều yêu cầu, thử lại sau ít phút" }, { status: 429 });
   }

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { BackLink, Badge } from "@/components/ui";
+import { BackLink, Badge, Flash } from "@/components/ui";
 import { Stars } from "@/components/premium-card";
 import { adminReplyTicket } from "@/app/actions/admin";
 import { TicketAttachInput, TicketAttachments } from "@/components/ticket-attach";
@@ -9,7 +9,7 @@ import { getServerI18n } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminTicketDetail({ params }: { params: { id: string } }) {
+export default async function AdminTicketDetail({ params, searchParams }: { params: { id: string }; searchParams: { msg?: string; err?: string } }) {
   const { L, Ld } = await getServerI18n(null);
   const t = await prisma.ticket.findUnique({
     where: { id: parseInt(params.id) },
@@ -19,6 +19,7 @@ export default async function AdminTicketDetail({ params }: { params: { id: stri
   // Ticket của khách site con do panel con tự hỗ trợ — web mẹ không xem
   return (
     <div className="max-w-3xl">
+      <Flash msg={searchParams.msg ? Ld(searchParams.msg) : undefined} err={searchParams.err ? Ld(searchParams.err) : undefined} />
       <BackLink href="/admin/ticket">{L("Tất cả ticket")}</BackLink>
       <div className="card p-6">
         <div className="flex items-start justify-between gap-3 mb-1">

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { moduleOn } from "@/lib/modules";
 import { syncManualChat, postManualChat, type ChatMsgDTO, type ChatFlags } from "@/lib/manual-chat";
 
 /* Actions cho khung chat đơn Manual Services (đợt 2026-11-08).
@@ -20,6 +21,9 @@ async function authorize(orderId: number): Promise<{ error?: string }> {
   });
   if (!order || order.variant.providerGroup !== "manual") return { error: "Đơn này không có chat nhà cung cấp." };
   if (me.role === "USER" && order.userId !== me.id) return { error: "Bạn không có quyền xem đơn này." };
+  // Công tắc khu Manual Services (đợt 126): tắt thì KHÁCH không xem/gửi
+  // chat nữa; STAFF/ADMIN vẫn xử lý các đơn cũ như thường (như ticket).
+  if (me.role === "USER" && !(await moduleOn("manual"))) return { error: "Khu Manual Services đang tạm tắt." };
   return {};
 }
 

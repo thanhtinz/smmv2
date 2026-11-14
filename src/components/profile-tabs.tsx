@@ -7,7 +7,9 @@ export function ProfileTabs({ initial, labels, profile, api, security }: {
   initial: "profile" | "api" | "security";
   labels: { profile: string; api: string; security: string };
   profile: React.ReactNode;
-  api: React.ReactNode;
+  /** api = null khi module API đang tắt (đợt 126): nút tab biến mất và
+   *  nội dung key KHÔNG được server render xuống trang chút nào. */
+  api: React.ReactNode | null;
   security: React.ReactNode;
 }) {
   const [tab, setTab] = useState(initial);
@@ -21,7 +23,7 @@ export function ProfileTabs({ initial, labels, profile, api, security }: {
   };
   const tabs = [
     { id: "profile" as const, label: labels.profile },
-    { id: "api" as const, label: labels.api },
+    ...(api !== null ? [{ id: "api" as const, label: labels.api }] : []),
     { id: "security" as const, label: labels.security },
   ];
   return (
@@ -32,7 +34,7 @@ export function ProfileTabs({ initial, labels, profile, api, security }: {
         ))}
       </div>
       <div className={tab === "profile" ? "" : "hidden"}>{profile}</div>
-      <div className={tab === "api" ? "" : "hidden"}>{api}</div>
+      {api !== null && <div className={tab === "api" ? "" : "hidden"}>{api}</div>}
       <div className={tab === "security" ? "" : "hidden"}>{security}</div>
     </div>
   );

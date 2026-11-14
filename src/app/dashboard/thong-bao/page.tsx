@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { PageHead, Flash } from "@/components/ui";
 import { NOTIFY_CATEGORIES, parseNotifyPrefs } from "@/lib/notify";
@@ -11,7 +12,8 @@ export const dynamic = "force-dynamic";
 
 /** Thông báo của khách: đơn hoàn thành / hoàn một phần / huỷ / hoàn tiền — mở trang là đánh dấu đã đọc */
 export default async function NotificationsPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const { L, Ld } = await getServerI18n();
   await prisma.notification.updateMany({ where: { userId: user.id, read: false }, data: { read: true } });
   const items = await prisma.notification.findMany({ where: { userId: user.id }, orderBy: { id: "desc" }, take: 50 });

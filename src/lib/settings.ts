@@ -419,6 +419,18 @@ If this wasn't you, change your password immediately and enable two-factor authe
   module_api: "1",
   module_blog: "1",
   module_premium: "1",
+  // Đợt 126 (luật module 2026-11-13): công tắc các mảng trước đây chưa có
+  // khoá riêng — mặc định "1" = giữ nguyên hành vi hiện tại. hero_banner:
+  // hero banner admin ở trang chủ; module_flashsale: toàn bộ cơ chế flash
+  // sale (khung trang chủ + áp giá); area_*: từng khu riêng của FZR (menu +
+  // dải icon + trang + đặt hàng của khu bị chặn ở máy chủ khi tắt).
+  hero_banner_enabled: "1",
+  module_flashsale: "1",
+  area_steam_enabled: "1",
+  area_gamekey_enabled: "1",
+  area_giftcard_enabled: "1",
+  area_topup_enabled: "1",
+  area_manual_enabled: "1",
   // Telegram (khu riêng Admin → Telegram): bật/tắt + nhà cung cấp FZR phục vụ
   telegram_enabled: "1",
   fzr_webhook_secret: "", // secret webhook FazerCards (lưu mã hoá qua secret-box)
@@ -682,4 +694,40 @@ export function siteUrlFromSettings(s: Record<string, string> | null | undefined
 export async function getSiteUrl(): Promise<string> {
   const s = await getSettings().catch(() => null);
   return siteUrlFromSettings(s);
+}
+
+/** Tiền tố subdomain đã biết của chuẩn tên miền con (Tín ban hành
+ *  2026-11-13): api / admin / doc / webhook (+ dashboard cho web có khu
+ *  khách riêng, www là bí danh miền gốc). */
+export const KNOWN_SUB_PREFIXES = ["api", "admin", "webhook", "dashboard", "doc", "www"];
+
+/** Đổi một URL gốc sang subdomain `sub` theo chuẩn tên miền con: host đã
+ *  có tiền tố subdomain đã biết thì THAY tiền tố, chưa có thì THÊM vào.
+ *  Vd: https://bntshop.com + "webhook" -> https://webhook.bntshop.com.
+ *  URL không hợp lệ / host một nhãn (localhost) -> trả nguyên trạng đã
+ *  cắt "/" cuối, nơi gọi tự quyết định có dùng hay rơi về URL gốc. */
+export function withSubdomain(rawUrl: string, sub: string): string {
+  const clean = String(rawUrl || "").replace(/\/+$/, "");
+  if (!clean) return "";
+  let u: URL;
+  try {
+    u = new URL(clean);
+  } catch {
+    return clean;
+  }
+  const parts = u.hostname.split(".");
+  if (parts.length < 2) return clean;
+  if (KNOWN_SUB_PREFIXES.includes(parts[0]) && parts.length > 2) parts[0] = sub;
+  else parts.unshift(sub);
+  u.hostname = parts.join(".");
+  return u.toString().replace(/\/+$/, "");
+}
+
+/** URL của một bề mặt subdomain (api/admin/webhook...) suy từ Liên kết
+ *  web đã cấu hình — nguồn duy nhất cho mọi URL webhook/API hiển thị
+ *  trong admin và URL báo về cho nhà cung cấp. "" khi chưa cấu hình
+ *  nổi URL gốc (nơi gọi rơi về URL gốc như hành vi cũ). */
+export function subUrlFromSettings(s: Record<string, string> | null | undefined, sub: string): string {
+  const base = siteUrlFromSettings(s);
+  return base ? withSubdomain(base, sub) : "";
 }

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings, depositContent, vietQrUrl } from "@/lib/settings";
 import { usdtDepositRate } from "@/lib/rates";
@@ -11,7 +12,8 @@ import { getServerI18n } from "@/lib/lang-server";
 export const dynamic = "force-dynamic";
 
 export default async function DepositPage({ searchParams }: { searchParams: { msg?: string; err?: string } }) {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const s = await getSettings();
   const content = depositContent(user.depositCode);
   const tiers = (() => { try { return JSON.parse(s.deposit_bonus_tiers || "[]") as { from: number; percent: number }[]; } catch { return []; } })();

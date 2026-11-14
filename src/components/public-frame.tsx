@@ -39,18 +39,23 @@ export async function PublicFrame({ children, skipSetupGate }: { children: React
   } else {
     items = [
       { href: "/", label: L("Trang chủ"), icon: I.home },
-      { href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem },
+      ...(s.module_premium !== "0" ? [{ href: "/premium", label: L("Tất cả sản phẩm"), icon: I.gem }] : []),
       // Tài chính (lệnh Tín 2026-11-13): khách chưa đăng nhập cũng gộp Ưu
       // đãi + Pass vào dropdown Tài chính như menu khách đã đăng nhập
       // (buildCustomerNav) — nhóm đứng đúng vị trí Ưu đãi phẳng trước đây.
-      {
-        label: L("Tài chính"), icon: I.wallet, children: [
-          { href: "/uu-dai", label: L("Ưu đãi") },
-          ...(s.pass_enabled === "1" ? [{ href: "/pass", label: (s.pass_name || "").trim() || "Pass" }] : []),
-        ]
-      },
+      // Đợt 126: Ưu đãi theo module_promo, mục Đăng ký theo module_register
+      // — khớp điều kiện ẩn của menu khách đã đăng nhập. Cả hai con đều tắt
+      // thì nhóm không dựng (tránh dropdown rỗng).
+      ...((s.module_promo !== "0" || s.pass_enabled === "1")
+        ? [{
+            label: L("Tài chính"), icon: I.wallet, children: [
+              ...(s.module_promo !== "0" ? [{ href: "/uu-dai", label: L("Ưu đãi") }] : []),
+              ...(s.pass_enabled === "1" ? [{ href: "/pass", label: (s.pass_name || "").trim() || "Pass" }] : []),
+            ]
+          }]
+        : []),
       { href: "/login", label: L("Đăng nhập"), icon: I.lock },
-      { href: "/register", label: L("Đăng ký"), icon: I.plus },
+      ...(s.module_register !== "0" ? [{ href: "/register", label: L("Đăng ký"), icon: I.plus }] : []),
     ];
   }
   const decorTheme = s.seasonal_decor_enabled === "1" ? parseSeasonalTheme(s.seasonal_theme) : null;
